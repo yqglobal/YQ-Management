@@ -3,7 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { CommunicationEvent } from './events/communication-events.enum';
 import type { EmailProvider } from './interfaces/email.provider';
-import type { WhatsAppProvider } from './interfaces/whatsapp.provider';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { TemplateService } from './templates/template.service';
 import {
   CommunicationLogService,
@@ -22,11 +22,24 @@ export class CommunicationService {
   constructor(
     @InjectQueue('communication') private readonly communicationQueue: Queue,
     @Inject('EmailProvider') private readonly emailProvider: EmailProvider,
-    @Inject('WhatsAppProvider')
-    private readonly whatsappProvider: WhatsAppProvider,
+    private readonly whatsappService: WhatsappService,
     private readonly templateService: TemplateService,
     private readonly communicationLogService: CommunicationLogService,
   ) {}
+
+  private async resolveTenantId(workspaceId: string): Promise<string | null> {
+    if (!workspaceId) return null;
+    try {
+      const workspace = await this.whatsappService['prisma'].workspace.findUnique({
+        where: { id: workspaceId },
+        select: { tenantId: true },
+      });
+      return workspace?.tenantId || null;
+    } catch (e) {
+      this.logger.warn(`Failed to resolve tenant for workspace ${workspaceId}: ${e instanceof Error ? e.message : e}`);
+      return null;
+    }
+  }
 
   async publish(event: CommunicationEvent, payload: CommunicationPayload) {
     this.logger.log(`Publishing communication event: ${event}`);
@@ -275,7 +288,10 @@ export class CommunicationService {
     if (!phone) return;
 
     const body = this.templateService.renderWhatsApp('otp', { otp });
-    const result = await this.whatsappProvider.sendText(phone, body);
+    const tenantId = await this.resolveTenantId(payload.workspaceId);
+    const result = tenantId
+      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+      : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,
@@ -304,7 +320,10 @@ export class CommunicationService {
       position: position || '1',
       link,
     });
-    const result = await this.whatsappProvider.sendText(phone, body);
+    const tenantId = await this.resolveTenantId(workspaceId);
+    const result = tenantId
+      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+      : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,
@@ -331,7 +350,10 @@ export class CommunicationService {
       position: String(position || '1'),
       wait_time: String(waitTime || '5'),
     });
-    const result = await this.whatsappProvider.sendText(phone, body);
+    const tenantId = await this.resolveTenantId(payload.workspaceId);
+    const result = tenantId
+      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+      : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,
@@ -356,7 +378,10 @@ export class CommunicationService {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
     });
-    const result = await this.whatsappProvider.sendText(phone, body);
+    const tenantId = await this.resolveTenantId(payload.workspaceId);
+    const result = tenantId
+      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+      : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,
@@ -382,7 +407,10 @@ export class CommunicationService {
       queue_name: queueName || 'the queue',
       wait_time: String(waitTime || '10'),
     });
-    const result = await this.whatsappProvider.sendText(phone, body);
+    const tenantId = await this.resolveTenantId(payload.workspaceId);
+    const result = tenantId
+      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+      : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,
@@ -407,7 +435,10 @@ export class CommunicationService {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
     });
-    const result = await this.whatsappProvider.sendText(phone, body);
+    const tenantId = await this.resolveTenantId(payload.workspaceId);
+    const result = tenantId
+      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+      : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,
@@ -432,7 +463,10 @@ export class CommunicationService {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
     });
-    const result = await this.whatsappProvider.sendText(phone, body);
+    const tenantId = await this.resolveTenantId(payload.workspaceId);
+    const result = tenantId
+      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+      : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,
@@ -457,7 +491,10 @@ export class CommunicationService {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
     });
-    const result = await this.whatsappProvider.sendText(phone, body);
+    const tenantId = await this.resolveTenantId(payload.workspaceId);
+    const result = tenantId
+      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+      : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,
@@ -484,7 +521,10 @@ export class CommunicationService {
       position: '1',
       link: `${process.env.APP_URL || 'http://localhost:3001'}/customer/status/${payload.tokenId || ''}`,
     });
-    const result = await this.whatsappProvider.sendText(phone, body);
+    const tenantId = await this.resolveTenantId(payload.workspaceId);
+    const result = tenantId
+      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+      : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,
@@ -509,7 +549,10 @@ export class CommunicationService {
       name: 'Customer',
       queue_name: newQueueName || 'a new queue',
     });
-    const result = await this.whatsappProvider.sendText(phone, body);
+    const tenantId = await this.resolveTenantId(payload.workspaceId);
+    const result = tenantId
+      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+      : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,

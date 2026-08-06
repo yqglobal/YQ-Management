@@ -6,6 +6,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { CommunicationLogService } from '../../communication/logging/communication-log.service';
 import { TemplateService } from '../../communication/templates/template.service';
 import { PaymentsService } from '../../payments/payments.service';
+import { WhatsappService } from '../../whatsapp/whatsapp.service';
 
 describe('SuperAdminController', () => {
   let controller: SuperAdminController;
@@ -47,8 +48,8 @@ describe('SuperAdminController', () => {
       send: jest.fn(),
     };
 
-    const whatsappProvider = {
-      sendText: jest.fn().mockResolvedValue({ success: true, providerId: 'mock-wa-id' }),
+    const whatsappService = {
+      sendToTenant: jest.fn().mockResolvedValue({ success: true, providerId: 'mock-wa-id' }),
     };
 
     const communicationLogService = {
@@ -70,7 +71,7 @@ describe('SuperAdminController', () => {
       providers: [
         { provide: SuperAdminService, useValue: service },
         { provide: 'EmailProvider', useValue: emailProvider },
-        { provide: 'WhatsAppProvider', useValue: whatsappProvider },
+        { provide: WhatsappService, useValue: whatsappService },
         { provide: CommunicationLogService, useValue: communicationLogService },
         { provide: TemplateService, useValue: templateService },
         { provide: PaymentsService, useValue: paymentsService },

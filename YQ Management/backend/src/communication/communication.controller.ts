@@ -16,7 +16,7 @@ import {
 import { CommunicationService } from './communication.service';
 import { CommunicationEvent } from './events/communication-events.enum';
 import type { EmailProvider } from './interfaces/email.provider';
-import type { WhatsAppProvider } from './interfaces/whatsapp.provider';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { TemplateService } from './templates/template.service';
 import {
   CommunicationLogService,
@@ -44,8 +44,7 @@ export class CommunicationController {
   constructor(
     private readonly communicationService: CommunicationService,
     @Inject('EmailProvider') private readonly emailProvider: EmailProvider,
-    @Inject('WhatsAppProvider')
-    private readonly whatsappProvider: WhatsAppProvider,
+    private readonly whatsappService: WhatsappService,
     private readonly templateService: TemplateService,
     private readonly communicationLogService: CommunicationLogService,
     private readonly whatsappTemplateService: WhatsAppTemplateService,
@@ -105,10 +104,10 @@ export class CommunicationController {
     @Request() req: any,
     @Body() body: { phone: string; message?: string },
   ) {
-    const result = await this.whatsappProvider.sendText(
-      body.phone,
-      body.message || 'Test message from Qmova',
-    );
+    const tenantId = req.user?.tenantId || req.user?.workspaceId;
+    const result = tenantId
+      ? await this.whatsappService.sendToTenant(tenantId, body.phone, body.message || 'Test message from Qmova')
+      : { success: false, error: 'No tenant context for WhatsApp test' };
 
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,

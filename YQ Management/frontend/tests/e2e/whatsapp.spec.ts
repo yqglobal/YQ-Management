@@ -30,13 +30,43 @@ test.describe('WhatsApp Mock Automation', () => {
 
     // Enter OTP if prompted (some E2E seeds may bypass OTP)
     try {
-      await expect(page.locator('input[placeholder="000000"]')).toBeVisible({ timeout: 3000 });
-      await page.fill('input[placeholder="000000"]', '000000');
-      await page.click('button[type="submit"]');
+      const otpSelectors = [
+        'input[placeholder="000000"]',
+        'input[placeholder="Enter OTP"]',
+        'input[name="otp"]',
+        'input[type="tel"]',
+      ];
+      let foundSelector: string | null = null;
+      for (const sel of otpSelectors) {
+        try {
+          await page.waitForSelector(sel, { timeout: 2000 });
+          foundSelector = sel;
+          break;
+        } catch (e) {
+          // not found, try next
+        }
+      }
+
+      if (foundSelector) {
+        await page.fill(foundSelector, '000000');
+        // try a submit button near the input, fallback to generic submit
+        try {
+          const submit = await page.locator(`${foundSelector} >> xpath=ancestor::form`).locator('button[type="submit"]');
+          if (await submit.count()) {
+            await submit.first().click();
+          } else {
+            await page.click('button[type="submit"]');
+          }
+        } catch {
+          await page.click('button[type="submit"]');
+        }
+      }
     } catch (e) {
-      // OTP not required in this seeded environment; continue
+      // OTP not required or not visible in this seeded environment; continue
     }
 
+    // Wait for dashboard navigation (give extra time in CI)
+    await page.waitForURL(/.*\/dashboard/, { timeout: 10000 });
     await expect(page).toHaveURL(/.*\/dashboard/);
 
     // 3. Go to the first queue

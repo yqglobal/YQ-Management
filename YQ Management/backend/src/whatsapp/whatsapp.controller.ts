@@ -8,6 +8,7 @@ import {
   Param,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { WhatsappService } from './whatsapp.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
@@ -118,6 +119,7 @@ export class WhatsappController {
   }
 
   @Post('webhook/:instanceName')
+  @Throttle({ default: { limit: 200, ttl: 60000 } })
   async handleWebhook(
     @Param('instanceName') instanceName: string,
     @Req() req: any,

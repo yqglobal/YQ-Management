@@ -43,7 +43,7 @@ services:
         max-file: "3"
 
   evolution-api:
-    image: evoapicloud/evolution-api:latest
+    image: evoapicloud/evolution-api:2.3.7
     container_name: yq_evolution_api
     restart: unless-stopped
     ports:

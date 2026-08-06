@@ -16,7 +16,7 @@ import { Inject } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { SuperAdminService } from './super-admin.service';
 import type { EmailProvider } from '../communication/interfaces/email.provider';
-import type { WhatsAppProvider } from '../communication/interfaces/whatsapp.provider';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { CommunicationLogService, CommunicationChannel, CommunicationStatus } from '../communication/logging/communication-log.service';
 import { TemplateService } from '../communication/templates/template.service';
 import { PaymentsService } from '../payments/payments.service';
@@ -28,7 +28,7 @@ export class SuperAdminController {
   constructor(
     private readonly superAdminService: SuperAdminService,
     @Inject('EmailProvider') private readonly emailProvider: EmailProvider,
-    @Inject('WhatsAppProvider') private readonly whatsappProvider: WhatsAppProvider,
+    private readonly whatsappService: WhatsappService,
     private readonly communicationLogService: CommunicationLogService,
     private readonly templateService: TemplateService,
     private readonly paymentsService: PaymentsService,
@@ -171,7 +171,9 @@ export class SuperAdminController {
         provider: 'Evolution API',
         configured: !!process.env.EVOLUTION_API_KEY && !!process.env.EVOLUTION_API_URL,
         url: process.env.EVOLUTION_API_URL || 'Not set',
-        instance: process.env.EVOLUTION_INSTANCE_NAME || 'yq_instance',
+        backendPublicUrl: process.env.BACKEND_PUBLIC_URL || process.env.APP_URL || 'Not set',
+        webhookSecret: process.env.WEBHOOK_SECRET ? 'Configured' : 'Not set',
+        model: 'Per-tenant instances (tenant_{id})',
       },
       payments: {
         provider: 'Ozow Payments Gateway',
@@ -243,7 +245,16 @@ export class SuperAdminController {
       logType = 'otp';
     }
 
-    const result = await this.whatsappProvider.sendText(body.phone, content);
+    const tenant = await this.superAdminService['prisma'].tenant.findFirst({
+      where: { whatsappConnected: true, whatsappInstanceId: { not: null } },
+      select: { id: true, name: true, whatsappInstanceId: true },
+    });
+
+    if (!tenant) {
+      return { success: false, error: 'No tenant has WhatsApp connected. Connect WhatsApp for a tenant first.' };
+    }
+
+    const result = await this.whatsappService.sendToTenant(tenant.id, body.phone, content);
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,
       type: logType,
@@ -253,8 +264,9 @@ export class SuperAdminController {
       provider: 'evolution',
       providerId: result.providerId,
       errorMessage: result.error,
+      workspaceId: tenant.id,
     });
-    return { success: result.success, error: result.error, otp: otpCode || undefined };
+    return { success: result.success, error: result.error, otp: otpCode || undefined, tenant: tenant.name };
   }
 
   @Get('communication/templates/email')

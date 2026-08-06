@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { QrCode, Loader2, ArrowRight, Store, Activity, Pizza, Briefcase, Check, Keyboard, Copy, CheckCircle2, Users, Shield } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import useWhatsapp from '../../hooks/useWhatsapp';
 
 const COUNTRY_CODES = [
   { code: '+27', label: '🇿🇦 +27 (ZA)' },
@@ -134,7 +135,6 @@ export default function Onboarding() {
   const [joiningWorkspace, setJoiningWorkspace] = useState(false);
 
   // WhatsApp State
-  const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [connectionMode, setConnectionMode] = useState<'qr' | 'code'>('qr');
   const [pairingCode, setPairingCode] = useState<string | null>(null);
@@ -261,106 +261,26 @@ export default function Onboarding() {
     },
   });
 
-  const connectWhatsAppMutation = useMutation({
-    mutationFn: async () => {
-      const status = await fetchApi('/whatsapp/status');
-      if (status?.state === 'open') return status;
-      if (status?.state === 'connecting' && status.qr) return status;
-      return fetchApi('/whatsapp/connect', { method: 'POST' });
-    },
-    onSuccess: (res) => {
-      if (res.qr) setQrCode(res.qr);
-      queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] });
-      if (res.state === 'open') {
-        setIsWhatsAppConnected(true);
-        toast.success('WhatsApp connected');
-      } else if (res.state === 'connecting') {
-        toast.success('QR code generated — scan it in WhatsApp');
-      } else {
-        toast.info('WhatsApp connection initiated');
-      }
-    },
-    onError: () => {
-      toast.error('Error connecting to WhatsApp. Is Evolution API running?');
-    },
-    onSettled: () => {
-    },
-  });
+  const {
+    statusQuery: whatsappStatusQuery,
+    cachedQrQuery,
+    connectMutation: connectWhatsAppMutation,
+    pairingCodeMutation: generatePairingCodeMutation,
+  } = useWhatsapp();
 
-  // When entering step 3, try to load a cached QR quickly and then refresh in background
+  const whatsappStatus = whatsappStatusQuery.data;
+
+  // When entering step 3, try to load a cached QR quickly
   useEffect(() => {
     let cancelled = false;
-    if (step === 3) {
-      (async () => {
-        try {
-          const cached = await fetchApi('/whatsapp/cached-qr');
-          if (!cancelled && cached?.qr) {
-            setQrCode(cached.qr);
-          }
-        } catch (e) {
-          // ignore
-        }
-
-        // Kick off a background connect to ensure we have the freshest QR and webhooks set.
-        try {
-          const fresh = await fetchApi('/whatsapp/connect', { method: 'POST' });
-          if (!cancelled && fresh?.qr) setQrCode(fresh.qr);
-        } catch (e) {
-          // ignore background errors
-        }
-      })();
+    if (step === 3 && cachedQrQuery.data?.qr) {
+      setQrCode(cachedQrQuery.data.qr);
     }
     return () => { cancelled = true; };
-  }, [step]);
-
-  const generatePairingCodeMutation = useMutation({
-    mutationFn: (phoneNumber: string) =>
-      fetchApi('/whatsapp/pairing-code', {
-        method: 'POST',
-        body: JSON.stringify({ phoneNumber }),
-      }),
-    onSuccess: (res) => {
-      setPairingCode(res.pairingCode);
-      setPairingCopied(false);
-      queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] });
-      toast.success('Pairing code generated. Enter it in WhatsApp.');
-    },
-    onError: () => {
-      toast.error('Failed to generate pairing code');
-    },
-  });
-
-  useEffect(() => {
-    // Save token if coming from Google SSO
-    const { token } = router.query;
-    if (token && typeof token === 'string') {
-      // store via AuthStorage so cookies + canonical key are written
-      try {
-        // lazy-import to avoid circular deps in SSR
-        const api = require('../../lib/api');
-        api.AuthStorage.set(token);
-      } catch (e) {
-        localStorage.setItem('token', token);
-      }
-      // Clean up URL
-      router.replace('/onboarding', undefined, { shallow: true });
-    }
-  }, [router.query]);
-
-  const { data: whatsappStatus } = useQuery({
-    queryKey: ['whatsapp-status'],
-    queryFn: () => fetchApi('/whatsapp/status'),
-    refetchInterval: (query: any) => {
-      const data = query?.state?.data;
-      if (data?.state === 'open') return false;
-      return 1500;
-    },
-    enabled: step === 3,
-  });
+  }, [step, cachedQrQuery.data]);
 
   useEffect(() => {
      if (whatsappStatus?.state === 'open') {
-       setIsWhatsAppConnected(true);
        setQrCode(null);
        setPairingCode(null);
        setPairingPhoneNumber('');
@@ -601,7 +521,7 @@ export default function Onboarding() {
           {step === 3 && (
             <div className="max-w-lg mx-auto animate-in fade-in slide-in-from-right-8 duration-500 bg-white rounded-3xl p-10 shadow-xl border border-gray-100 text-center">
 
-              {!isWhatsAppConnected ? (
+              {whatsappStatus?.state !== 'open' ? (
                 <>
                   {qrCode ? (
                     <div className="animate-in zoom-in duration-500">

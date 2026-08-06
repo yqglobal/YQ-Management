@@ -57,7 +57,10 @@ Qmova is a multi-tenant queue management and customer interaction platform desig
 
 ### E. WhatsApp Automation Engine (Evolution API)
 * **Provider:** Evolution API (Self-hosted or cloud managed instance).
+* **Version:** Pinned to `2.3.7` in all environments (local Docker, Render).
+* **Architecture:** Per-tenant instance model (`tenant_{id}`) with auto-recovery cron (every 10 minutes).
 * **Role:** Establishes linked WhatsApp Web connections per tenant via real-time QR code generation or mobile pairing codes. Automates out-of-the-box customer alerts (e.g., ticket issuance, turn approaching, service completion).
+* **Webhook Security:** Optional `WEBHOOK_SECRET` query parameter validation. In production, `BACKEND_PUBLIC_URL` must point to the backend public URL (not the Vercel frontend) so Evolution webhooks target the NestJS backend.
 
 ### F. Single Sign-On (Google Cloud Identity)
 * **Provider:** Google Cloud Console OAuth 2.0 Application.
@@ -80,6 +83,8 @@ Configure these inside the Render Web Service settings under the **Environment**
 | `BREVO_API_KEY` | REST API Key for transactional OTP emails | Generated via Brevo Dashboard -> Settings -> SMTP & API -> API Keys |
 | `EVOLUTION_API_URL` | Base endpoint URL for WhatsApp service | `https://evo-api.domain.com` |
 | `EVOLUTION_API_KEY` | Global/Instance API token for WhatsApp setup | Configured during Evolution API provisioning |
+| `BACKEND_PUBLIC_URL` | Public URL where backend receives webhooks | `https://qmova-backend.onrender.com` |
+| `WEBHOOK_SECRET` | Optional secret for Evolution webhook auth | Random string |
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID for SSO | Obtained from Google Cloud Console -> Credentials |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret for SSO | Obtained from Google Cloud Console -> Credentials |
 | `SUPER_ADMIN_EMAIL` | Root administrative system email | `yqbuddysa@gmail.com` |
