@@ -23,18 +23,26 @@ export const AuthStorage = {
   set: (token: string) => {
     if (typeof window !== 'undefined' && token) {
       localStorage.setItem('qmover_auth_token', token);
+      // also write legacy key for older onboarding flows
+      try { localStorage.setItem('token', token); } catch (e) {}
       document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Lax`;
     }
   },
   get: (): string | null => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('qmover_auth_token');
+      return (
+        localStorage.getItem('qmover_auth_token') ||
+        localStorage.getItem('token') ||
+        null
+      );
     }
     return null;
   },
   clear: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('qmover_auth_token');
+      // clear legacy key too
+      try { localStorage.removeItem('token'); } catch (e) {}
       sessionStorage.removeItem('qmover_auth_token');
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     }

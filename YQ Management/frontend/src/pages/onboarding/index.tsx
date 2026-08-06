@@ -261,7 +261,12 @@ export default function Onboarding() {
   });
 
   const connectWhatsAppMutation = useMutation({
-    mutationFn: () => fetchApi('/whatsapp/connect', { method: 'POST' }),
+    mutationFn: async () => {
+      const status = await fetchApi('/whatsapp/status');
+      if (status?.state === 'open') return status;
+      if (status?.state === 'connecting' && status.qr) return status;
+      return fetchApi('/whatsapp/connect', { method: 'POST' });
+    },
     onSuccess: (res) => {
       if (res.qr) setQrCode(res.qr);
       queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] });
@@ -302,7 +307,14 @@ export default function Onboarding() {
     // Save token if coming from Google SSO
     const { token } = router.query;
     if (token && typeof token === 'string') {
-      localStorage.setItem('token', token);
+      // store via AuthStorage so cookies + canonical key are written
+      try {
+        // lazy-import to avoid circular deps in SSR
+        const api = require('../../lib/api');
+        api.AuthStorage.set(token);
+      } catch (e) {
+        localStorage.setItem('token', token);
+      }
       // Clean up URL
       router.replace('/onboarding', undefined, { shallow: true });
     }

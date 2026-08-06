@@ -90,7 +90,14 @@ export default function WhatsAppSettingsPage() {
   }, [whatsappStatus]);
 
   const connectWhatsAppMutation = useMutation({
-    mutationFn: () => fetchApi('/whatsapp/connect', { method: 'POST' }),
+    mutationFn: async () => {
+      // Check current status first to avoid creating duplicate instances
+      const status = await fetchApi('/whatsapp/status');
+      if (status?.state === 'open') return status;
+      if (status?.state === 'connecting' && status.qr) return status;
+      // otherwise trigger connect which will create or refresh QR
+      return fetchApi('/whatsapp/connect', { method: 'POST' });
+    },
     onMutate: () => { setQrCode(null); setQrCodeType(null); },
     onSuccess: (res) => {
       if (res.qr) {
