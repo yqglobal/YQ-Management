@@ -88,7 +88,18 @@ async function fetchWithRetry(
 }
 
 export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
-  const baseUrl = 'https://qmova-backend.onrender.com';
+  // Default backend URL. In local dev (Playwright/tests) prefer localhost:3000 so
+  // the frontend talks to the locally running backend instead of the remote host.
+  let baseUrl = 'https://qmova-backend.onrender.com';
+  try {
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+    } else if (process.env.NEXT_PUBLIC_API_URL) {
+      baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    }
+  } catch (e) {
+    // fallback to default
+  }
 
   const headers = new Headers(options.headers || {});
   if (!headers.has('Accept')) {

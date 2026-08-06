@@ -98,6 +98,16 @@ export class WhatsappController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Get('cached-qr')
+  async getCachedQr(@Req() req: AuthenticatedRequest) {
+    const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
+    if (!targetId) return { qr: null };
+    const result = await this.whatsappService.getCachedQr(targetId);
+    if (!result) return { qr: null };
+    return { qr: result.qr || null, expiresAt: result.expiresAt || null };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get('logs')
   getLogs(@Req() req: AuthenticatedRequest) {
     const targetId = req.user.tenantId || (req.user as any).workspaceId;
@@ -121,6 +131,36 @@ export class WhatsappController {
     }
     
     return this.whatsappService.handleWebhook(instanceName, body);
+  }
+
+  // Dev helper: simulate an Evolution webhook payload locally.
+  // Protected: only accessible to authenticated SUPER_ADMIN users to avoid accidental exposure.
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @Post('simulate-webhook/:instanceName')
+  async simulateWebhook(
+    @Param('instanceName') instanceName: string,
+    @Req() req: AuthenticatedRequest,
+    @Body() body: any,
+  ) {
+    // Directly invoke the handler so we can test processing without requiring the webhook secret.
+    return this.whatsappService.handleWebhook(instanceName, body);
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @Get('debug/:key')
+  async getDebugKey(@Param('key') key: string) {
+    return { key, value: await this.whatsappService.getDebugKey(key) };
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.SUPER_ADMIN)
+  @Get('debug')
+  async getDebugKeyQuery(@Req() req: any) {
+    const key = req.query.key as string;
+    if (!key) return { error: 'missing key query param' };
+    return { key, value: await this.whatsappService.getDebugKey(key) };
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)

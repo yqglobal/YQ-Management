@@ -20,8 +20,10 @@ test.describe('Authentication Flow', () => {
 
   test('should navigate to registration page', async ({ page }) => {
     await page.goto('/login');
-    await page.click('text=Start free trial');
-    await expect(page).toHaveURL(/.*\/register/);
+    const startLink = page.getByRole('link', { name: /Start free trial/ });
+    await expect(startLink.first()).toBeVisible();
+    await startLink.first().click();
+    await page.waitForURL(/.*\/register/);
     await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible();
   });
 });

@@ -1,25 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
+import useWhatsapp from '../../../hooks/useWhatsapp';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
+import { Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { MessageSquare, QrCode, Smartphone, Loader2, Send, Save, AlertCircle, CheckCircle2, Phone, RefreshCw, Terminal } from 'lucide-react';
+import { MessageSquare, QrCode, Loader2, AlertCircle, CheckCircle2, Phone, RefreshCw, Terminal } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import PhoneInput from '../../../components/PhoneInput';
 export default function WhatsAppSettingsPage() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrCodeType, setQrCodeType] = useState<'base64' | 'text' | null>(null);
-  const [connecting, setConnecting] = useState(false);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [instanceName, setInstanceName] = useState<string | null>(null);
   const [connectionMode, setConnectionMode] = useState<'qr' | 'code'>('qr');
-  const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [pairingPhoneNumber, setPairingPhoneNumber] = useState('');
   const [pairingCountryCode, setPairingCountryCode] = useState('+1');
-  const [generatingPairingCode, setGeneratingPairingCode] = useState(false);
-
-  const [savingTemplate, setSavingTemplate] = useState<string | null>(null);
-  const [testingWhatsApp, setTestingWhatsApp] = useState(false);
   const [testPhone, setTestPhone] = useState('');
   const [testCountryCode, setTestCountryCode] = useState('+1');
   const [testMessage, setTestMessage] = useState('Test message from Qmova');
@@ -42,22 +39,11 @@ export default function WhatsAppSettingsPage() {
     localStorage.setItem('templateDrafts', JSON.stringify(templateDrafts));
   }, [templateDrafts]);
 
-  const { data: whatsappStatus, refetch: refetchWhatsAppStatus } = useQuery({
-    queryKey: ['whatsapp-status'],
-    queryFn: () => fetchApi('/whatsapp/status'),
-    refetchInterval: (data: any) => {
-      if (qrCode || pairingCode || data?.state === 'connecting') return 1500;
-      return 30000; // Poll every 30s to detect background disconnects
-    },
-  });
-
+  const { statusQuery, logsQuery, cachedQrQuery, connectMutation, pairingMutation, disconnectMutation, testMutation } = useWhatsapp();
+  const whatsappStatus = statusQuery.data;
+  const logs = logsQuery.data;
   const isWhatsAppConnected = whatsappStatus?.state === 'open';
-
-  const { data: logs, refetch: refetchLogs } = useQuery({
-    queryKey: ['whatsapp-logs'],
-    queryFn: () => fetchApi('/whatsapp/logs'),
-    refetchInterval: 2500,
-  });
+  const { cachedQrQuery } = useWhatsapp();
 
   useEffect(() => {
     if (logs?.length) {
@@ -75,13 +61,7 @@ export default function WhatsAppSettingsPage() {
     if (whatsappStatus?.state === 'open') {
       setQrCode(null);
       setQrCodeType(null);
-      setPairingCode(null);
-      setPairingPhoneNumber('');
-      setInstanceName(whatsappStatus.instanceName);
     } else if (whatsappStatus) {
-      if (whatsappStatus.instanceName) {
-        setInstanceName(prev => prev || whatsappStatus.instanceName || null);
-      }
       if (whatsappStatus.qr) {
         setQrCode(whatsappStatus.qr);
         setQrCodeType(whatsappStatus.qrType || (whatsappStatus.qr.startsWith('data:image') ? 'base64' : 'text'));
@@ -89,70 +69,34 @@ export default function WhatsAppSettingsPage() {
     }
   }, [whatsappStatus]);
 
-  const connectWhatsAppMutation = useMutation({
-    mutationFn: async () => {
-      // Check current status first to avoid creating duplicate instances
-      const status = await fetchApi('/whatsapp/status');
-      if (status?.state === 'open') return status;
-      if (status?.state === 'connecting' && status.qr) return status;
-      // otherwise trigger connect which will create or refresh QR
-      return fetchApi('/whatsapp/connect', { method: 'POST' });
-    },
-    onMutate: () => { setQrCode(null); setQrCodeType(null); },
-    onSuccess: (res) => {
-      if (res.qr) {
-        setQrCode(res.qr);
-        setQrCodeType(res.qrType || (res.qr.startsWith('data:image') ? 'base64' : 'text'));
-        toast.success('QR Code ready! Please scan using WhatsApp.');
-      } else if (res.state === 'open') {
-        toast.success('WhatsApp is connected!');
-      } else {
-        toast.info('Connecting to WhatsApp instance...');
-      }
-      refetchWhatsAppStatus();
-    },
-    onError: (err: any) => {
-      toast.error(err.details?.message || err.message || 'Failed to initialize WhatsApp connection. Please check Evolution API.');
-    },
-  });
-
-  const generatePairingCodeMutation = useMutation({
-    mutationFn: (phoneNumber: string) => fetchApi('/whatsapp/pairing-code', { 
-      method: 'POST',
-      body: JSON.stringify({ phoneNumber })
-    }),
-    onMutate: () => setPairingCode(null),
-    onSuccess: (res) => {
-      if (res.pairingCode) setPairingCode(res.pairingCode);
-      refetchWhatsAppStatus();
-    },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to generate pairing code');
+  // Try to load a cached QR quickly when the page mounts
+  // Use cachedQrQuery provided by the hook for instant QR rendering
+  useEffect(() => {
+    if (cachedQrQuery?.data?.qr) {
+      setQrCode(cachedQrQuery.data.qr);
+      setQrCodeType(cachedQrQuery.data.qr.startsWith('data:image') ? 'base64' : 'text');
     }
-  });
+  }, [cachedQrQuery?.data]);
 
-  const disconnectWhatsAppMutation = useMutation({
-    mutationFn: () => fetchApi('/whatsapp/disconnect', { method: 'POST' }),
-    onSuccess: () => {
-      setQrCode(null);
-      setInstanceName(null);
-      setPairingCode(null);
-      refetchWhatsAppStatus();
-      toast.success('WhatsApp disconnected successfully');
-    },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to disconnect WhatsApp');
-    },
-  });
+  const connectWhatsAppMutation = connectMutation;
+  const pairingCodeMutation = pairingMutation;
+  const disconnectWhatsAppMutation = disconnectMutation;
+  const testWhatsAppMutation = testMutation;
 
-  const testWhatsAppMutation = useMutation({
-    mutationFn: (data: { phone: string, message: string }) => fetchApi('/whatsapp/test', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
-    onSuccess: () => toast.success('Test message sent successfully!'),
-    onError: (err: any) => toast.error(err.message || 'Failed to send test message')
-  });
+  useEffect(() => {
+    if (connectWhatsAppMutation.isSuccess && connectWhatsAppMutation.data?.qr) {
+      toast.success('QR Code ready! Please scan using WhatsApp.');
+    }
+    if (connectWhatsAppMutation.isSuccess && connectWhatsAppMutation.data?.state === 'open') {
+      toast.success('WhatsApp is connected!');
+    }
+    if (connectWhatsAppMutation.isError) {
+      const err: any = connectWhatsAppMutation.error;
+      toast.error(err?.details?.message || err?.message || 'Failed to connect to WhatsApp');
+    }
+  }, [connectWhatsAppMutation.status]);
+
+  // Mutations provided by useWhatsapp are used (connect/pairing/disconnect/test)
 
   const saveTemplateMutation = useMutation({
     mutationFn: (data: { id: string, content: string }) => fetchApi(`/communication/templates/whatsapp/${data.id}`, {
@@ -169,6 +113,8 @@ export default function WhatsAppSettingsPage() {
       setSavingTemplate(null);
     }
   });
+
+  const [savingTemplate, setSavingTemplate] = useState<string | null>(null);
 
   return (
     <SettingsLayout pageTitle="WhatsApp Settings" pageSubtitle="Connect your WhatsApp account to send queue notifications">
@@ -247,7 +193,7 @@ export default function WhatsAppSettingsPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center p-8 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-gray-100 dark:border-zinc-800">
-                    {connectionMode === 'qr' && qrCode && (
+                        {connectionMode === 'qr' && qrCode && (
                       <div className="flex flex-col items-center gap-4">
                         <div className="w-64 h-64 bg-white border-4 border-gray-200 dark:border-zinc-700 flex items-center justify-center rounded-xl p-3">
                           {/* If QR is a raw text string (e.g. "2@abc123..."), render with QRCodeSVG */}
@@ -258,16 +204,29 @@ export default function WhatsAppSettingsPage() {
                             <QRCodeSVG value={qrCode} size={220} bgColor="#ffffff" fgColor="#000000" level="M" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-zinc-500 text-center">
-                          Open WhatsApp → Settings → Linked Devices → Link a Device
-                        </p>
+                          <p className="text-xs text-gray-500 dark:text-zinc-500 text-center">
+                            Open WhatsApp → Settings → Linked Devices → Link a Device
+                          </p>
+                          <div className="mt-3 flex items-center justify-center gap-3">
+                            {cachedQrQuery?.data?.expiresAt ? (
+                              <span className="text-xs text-zinc-500">Cached QR expires in {(Math.max(0, Math.round((cachedQrQuery.data.expiresAt - Date.now())/1000)))}s</span>
+                            ) : null}
+                            <button
+                              onClick={() => connectWhatsAppMutation.mutate()}
+                              disabled={connectWhatsAppMutation.isLoading}
+                              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-all text-sm flex items-center gap-2"
+                            >
+                              {connectWhatsAppMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                              {connectWhatsAppMutation.isLoading ? 'Refreshing...' : 'Refresh QR'}
+                            </button>
+                          </div>
                         <button
                           onClick={() => connectWhatsAppMutation.mutate()}
-                          disabled={connectWhatsAppMutation.isPending}
+                          disabled={connectWhatsAppMutation.isLoading}
                           className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-all text-sm flex items-center gap-2"
                         >
-                          {connectWhatsAppMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                          {connectWhatsAppMutation.isPending ? 'Refreshing...' : 'Refresh QR'}
+                          {connectWhatsAppMutation.isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                          {connectWhatsAppMutation.isLoading ? 'Refreshing...' : 'Refresh QR'}
                         </button>
                       </div>
                     )}
@@ -289,11 +248,19 @@ export default function WhatsAppSettingsPage() {
                               className="w-full"
                             />
                             <button 
-                              onClick={() => generatePairingCodeMutation.mutate(`${pairingCountryCode}${pairingPhoneNumber}`)}
-                              disabled={generatePairingCodeMutation.isPending || !pairingPhoneNumber}
+                              onClick={async () => {
+                                try {
+                                  const res: any = await pairingCodeMutation.mutateAsync(`${pairingCountryCode}${pairingPhoneNumber}`);
+                                  if (res?.pairingCode) setPairingCode(res.pairingCode);
+                                  await statusQuery.refetch();
+                                } catch (e: any) {
+                                  toast.error(e?.message || 'Failed to generate pairing code');
+                                }
+                              }}
+                              disabled={pairingCodeMutation.isLoading || !pairingPhoneNumber}
                               className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                             >
-                              {generatePairingCodeMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                              {pairingCodeMutation.isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                               Get Pairing Code
                             </button>
                           </div>

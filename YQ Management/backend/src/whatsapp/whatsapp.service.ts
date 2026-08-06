@@ -24,6 +24,11 @@ export class WhatsappService implements OnModuleInit {
     process.env.EVOLUTION_API_URL || 'http://localhost:8080';
   private readonly evoApiKey = process.env.EVOLUTION_API_KEY || '';
   private readonly appUrl = process.env.APP_URL || 'http://localhost:3001';
+  // Public URL where the backend receives webhooks. In many deployments APP_URL
+  // points to the frontend (Vercel). Provide BACKEND_PUBLIC_URL to explicitly
+  // direct Evolution webhooks to the backend (Render) public URL, e.g.
+  // BACKEND_PUBLIC_URL=https://qmova-backend.onrender.com
+  private readonly backendPublicUrl = process.env.BACKEND_PUBLIC_URL || this.appUrl;
 
   constructor(
     private prisma: PrismaService,
@@ -34,6 +39,10 @@ export class WhatsappService implements OnModuleInit {
     this.logger.log('WhatsappService initialized. Starting sync of WhatsApp instances...');
     // We wait briefly to ensure Prisma and Redis are fully connected
     setTimeout(() => this.syncAllInstances(), 5000);
+  }
+
+  private sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   @Cron('0 */10 * * * *')
@@ -160,6 +169,42 @@ export class WhatsappService implements OnModuleInit {
     }
   }
 
+  // Dev helper: read a Redis debug key (returns parsed JSON when possible)
+  async getDebugKey(key: string) {
+    try {
+      const raw = await this.redisService.client.get(key);
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch { return raw; }
+    } catch (e) {
+      this.logger.warn(`Failed to read debug key ${key}: ${e instanceof Error ? e.message : e}`);
+      return null;
+    }
+  }
+
+  // Return a cached QR (if any) from recent connect attempts stored in Redis.
+  // This is safe for tenant-level access and allows frontend to render a QR instantly
+  // while a fresh connect request runs in the background.
+  async getCachedQr(tenantId: string) {
+    const tenant = await this.resolveTenant(tenantId);
+    if (!tenant) return null;
+    try {
+      const key = `whatsapp:debug:${tenant.id}:connectRaw`;
+      const raw = await this.redisService.client.get(key);
+      if (!raw) return null;
+      let parsed: any = null;
+      try { parsed = JSON.parse(raw); } catch { parsed = raw; }
+      const qr = this.extractQr(parsed);
+      // Get TTL in seconds to inform frontend when cached QR expires
+      let ttl = -2;
+      try { ttl = await this.redisService.client.ttl(key); } catch (e) { /* ignore */ }
+      const expiresAt = ttl > 0 ? Date.now() + ttl * 1000 : null;
+      return { qr: qr || null, expiresAt };
+    } catch (e) {
+      this.logger.warn(`Failed to read cached connectRaw for tenant ${tenantId}: ${e instanceof Error ? e.message : e}`);
+      return null;
+    }
+  }
+
   async fetchEvo(
     path: string,
     method: string = 'GET',
@@ -270,6 +315,10 @@ export class WhatsappService implements OnModuleInit {
     if (typeof data?.response?.qrcode?.base64 === 'string') return data.response.qrcode.base64;
     if (typeof data?.response?.qrcode?.image === 'string') return data.response.qrcode.image;
     if (typeof data?.response?.qr === 'string' && data.response.qr.length > 10) return data.response.qr;
+    // Additional nested fallbacks seen in some Evolution responses
+    if (typeof data?.payload?.qr === 'string' && data.payload.qr.length > 10) return data.payload.qr;
+    if (typeof data?.payload?.qrcode?.base64 === 'string') return data.payload.qrcode.base64;
+    if (typeof data?.data?.instance?.qrcode === 'string' && data.data.instance.qrcode.length > 10) return data.data.instance.qrcode;
     return null;
   }
 
@@ -313,7 +362,16 @@ export class WhatsappService implements OnModuleInit {
     }
 
     const secretParams = process.env.WEBHOOK_SECRET ? `?secret=${process.env.WEBHOOK_SECRET}` : '';
-    const webhookUrl = `${this.appUrl}/whatsapp/webhook/${instanceName}${secretParams}`;
+    // Prefer a dedicated backend public URL for webhooks. APP_URL may be the
+    // frontend public address (Vercel) which will cause Evolution to POST to
+    // a URL that doesn't exist. Use BACKEND_PUBLIC_URL in production to avoid
+    // that misconfiguration.
+    const webhookBase = this.backendPublicUrl;
+    const webhookUrl = `${webhookBase}/whatsapp/webhook/${instanceName}${secretParams}`;
+    // Warn if APP_URL looks like a frontend host and BACKEND_PUBLIC_URL wasn't set
+    if (!process.env.BACKEND_PUBLIC_URL && /vercel\.app|vercel\.com|now\.sh/.test(this.appUrl)) {
+      this.logger.warn(`APP_URL (${this.appUrl}) looks like a frontend host. Consider setting BACKEND_PUBLIC_URL to the backend public URL so Evolution webhooks target the backend: e.g. BACKEND_PUBLIC_URL=https://qmova-backend.onrender.com`);
+    }
     this.logger.debug(`Setting webhook for ${instanceName} -> ${webhookUrl.split('?')[0]}`);
 
     const result = await this.fetchEvo(`/webhook/set/${instanceName}`, 'POST', {
@@ -390,7 +448,7 @@ export class WhatsappService implements OnModuleInit {
         instanceName,
         qrcode: true,
         integration: 'WHATSAPP-BAILEYS',
-        webhook: process.env.WEBHOOK_SECRET ? `${this.appUrl}/whatsapp/webhook/${instanceName}?secret=${process.env.WEBHOOK_SECRET}` : `${this.appUrl}/whatsapp/webhook/${instanceName}`,
+        webhook: process.env.WEBHOOK_SECRET ? `${this.backendPublicUrl}/whatsapp/webhook/${instanceName}?secret=${process.env.WEBHOOK_SECRET}` : `${this.backendPublicUrl}/whatsapp/webhook/${instanceName}`,
         webhook_by_events: false,
         webhook_events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'MESSAGES_UPDATE'],
       });
@@ -418,10 +476,22 @@ export class WhatsappService implements OnModuleInit {
       }
       
       await this.logTenantEvent(tenant.id, 'INSTANCE_CREATED', { instanceName });
+      // Attempt to ensure webhook is set after creation so Evolution sends events
+      try {
+        await this.setWebhook(instanceName);
+      } catch (e) {
+        this.logger.warn(`setWebhook after creation failed for ${instanceName}: ${e instanceof Error ? e.message : e}`);
+      }
     }
-
     // Step 2: Request fresh connect (this forces Evolution to generate a new QR if not open)
-    const connectRes = await this.fetchEvo(`/instance/connect/${instanceName}`, 'GET');
+    let connectRes: FetchEvoResult = { status: 0, data: null, error: { message: 'no response', raw: '' } };
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      connectRes = await this.fetchEvo(`/instance/connect/${instanceName}`, 'GET');
+      if (!connectRes.error) break;
+      this.logger.warn(`Connect attempt ${attempt} failed for ${instanceName}: ${connectRes.error.message}`);
+      if (attempt < maxAttempts) await this.sleep(500);
+    }
     
     if (connectRes.error) {
       await this.logTenantEvent(tenant.id, 'CONNECT_FAILED', { error: connectRes.error.message });
@@ -431,9 +501,17 @@ export class WhatsappService implements OnModuleInit {
     // Log the raw connect response for debugging
     this.logger.log(`[DEBUG] Raw connect response for ${instanceName}: ${JSON.stringify(connectRes.data)}`);
 
-    // Ensure webhook is set just in case (e.g. if instance already existed but had no webhook)
-    if (!needsCreation) {
-      try { await this.setWebhook(instanceName); } catch (e) {}
+    // Persist raw connect response to Redis for short-term debugging (1 hour)
+    try {
+      // Keep cached connectRaw short-lived to avoid stale QR rendering on frontend
+      await this.redisService.client.set(`whatsapp:debug:${tenant.id}:connectRaw`, JSON.stringify(connectRes.data), 'EX', 300);
+    } catch (e) {
+      this.logger.warn(`Failed to persist raw connect response for ${instanceName}: ${e instanceof Error ? e.message : e}`);
+    }
+
+    // Ensure webhook is set just in case (always try, even if creation path attempted earlier)
+    try { await this.setWebhook(instanceName); } catch (e) {
+      this.logger.warn(`setWebhook failed for ${instanceName}: ${e instanceof Error ? e.message : e}`);
     }
 
     const qr = this.extractQr(connectRes.data);
@@ -485,7 +563,7 @@ export class WhatsappService implements OnModuleInit {
         instanceName,
         qrcode: false,
         integration: 'WHATSAPP-BAILEYS',
-        webhook: process.env.WEBHOOK_SECRET ? `${this.appUrl}/whatsapp/webhook/${instanceName}?secret=${process.env.WEBHOOK_SECRET}` : `${this.appUrl}/whatsapp/webhook/${instanceName}`,
+        webhook: process.env.WEBHOOK_SECRET ? `${this.backendPublicUrl}/whatsapp/webhook/${instanceName}?secret=${process.env.WEBHOOK_SECRET}` : `${this.backendPublicUrl}/whatsapp/webhook/${instanceName}`,
         webhook_by_events: false,
         webhook_events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'MESSAGES_UPDATE'],
       });
@@ -691,6 +769,13 @@ export class WhatsappService implements OnModuleInit {
       `Webhook received for ${instanceName}: event=${payload?.event}`,
     );
 
+    // Save last webhook payload for quick debugging (1 hour)
+    try {
+      await this.redisService.client.set(`whatsapp:debug:${instanceName}:lastWebhook`, JSON.stringify(payload), 'EX', 3600);
+    } catch (e) {
+      this.logger.warn(`Failed to persist webhook payload for ${instanceName}: ${e instanceof Error ? e.message : e}`);
+    }
+
     try {
       if (payload?.event === 'connection.update' && payload?.data) {
         const state = payload.data.state;
@@ -718,6 +803,9 @@ export class WhatsappService implements OnModuleInit {
         }
         return { success: true };
       }
+
+      // Dev helper: read a Redis debug key (returns parsed JSON when possible)
+      // (moved to class method to avoid nesting function declarations)
 
       if (payload?.event === 'messages.update' && payload?.data) {
         for (const update of payload.data) {

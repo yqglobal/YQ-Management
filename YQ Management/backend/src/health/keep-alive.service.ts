@@ -24,22 +24,32 @@ export class KeepAliveService {
    */
   @Cron('0 */10 * * * *')
   handleCron() {
-    const toggles = this.superAdminService.getSystemToggles();
-
-    if (toggles.keepAliveBackend !== false) {
-      this.pingBackend();
-    } else {
-      this.logger.warn(
-        'Backend keep-alive ping is DISABLED via Super Admin toggle.',
-      );
+    let toggles = { keepAliveBackend: true, keepAliveWhatsapp: true } as any;
+    try {
+      toggles = this.superAdminService.getSystemToggles() || toggles;
+    } catch (err) {
+      this.logger.warn('Failed to read Super Admin toggles — skipping keep-alive checks this run');
+      return;
     }
 
-    if (toggles.keepAliveWhatsapp !== false) {
-      this.pingEvolutionApi();
-    } else {
-      this.logger.warn(
-        'Evolution API keep-alive ping is DISABLED via Super Admin toggle.',
-      );
+    try {
+      if (toggles.keepAliveBackend !== false) {
+        this.pingBackend();
+      } else {
+        this.logger.warn('Backend keep-alive ping is DISABLED via Super Admin toggle.');
+      }
+    } catch (err) {
+      this.logger.error('Error while pinging backend in keep-alive cron', err);
+    }
+
+    try {
+      if (toggles.keepAliveWhatsapp !== false) {
+        this.pingEvolutionApi();
+      } else {
+        this.logger.warn('Evolution API keep-alive ping is DISABLED via Super Admin toggle.');
+      }
+    } catch (err) {
+      this.logger.error('Error while pinging Evolution API in keep-alive cron', err);
     }
   }
 

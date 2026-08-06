@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 import { QrCode, Loader2, ArrowRight, Store, Activity, Pizza, Briefcase, Check, Keyboard, Copy, CheckCircle2, Users, Shield } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const COUNTRY_CODES = [
@@ -285,6 +286,32 @@ export default function Onboarding() {
     onSettled: () => {
     },
   });
+
+  // When entering step 3, try to load a cached QR quickly and then refresh in background
+  useEffect(() => {
+    let cancelled = false;
+    if (step === 3) {
+      (async () => {
+        try {
+          const cached = await fetchApi('/whatsapp/cached-qr');
+          if (!cancelled && cached?.qr) {
+            setQrCode(cached.qr);
+          }
+        } catch (e) {
+          // ignore
+        }
+
+        // Kick off a background connect to ensure we have the freshest QR and webhooks set.
+        try {
+          const fresh = await fetchApi('/whatsapp/connect', { method: 'POST' });
+          if (!cancelled && fresh?.qr) setQrCode(fresh.qr);
+        } catch (e) {
+          // ignore background errors
+        }
+      })();
+    }
+    return () => { cancelled = true; };
+  }, [step]);
 
   const generatePairingCodeMutation = useMutation({
     mutationFn: (phoneNumber: string) =>
@@ -583,7 +610,13 @@ export default function Onboarding() {
                         Open WhatsApp on your phone, go to Linked Devices, and scan this QR code.
                       </p>
                       <div className="bg-white p-4 rounded-2xl inline-block shadow-lg mx-auto mb-6 border border-gray-100">
-                        <img src={qrCode} alt="WhatsApp QR Code" className="w-64 h-64" />
+                        {qrCode.startsWith && qrCode.startsWith('data:image') ? (
+                          <img src={qrCode} alt="WhatsApp QR Code" className="w-64 h-64" />
+                        ) : (
+                          <div className="w-64 h-64 flex items-center justify-center">
+                            <QRCodeSVG value={qrCode} size={256} />
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center justify-center gap-3 text-gray-500 font-medium">
                         <Loader2 className="w-5 h-5 animate-spin text-[#2563EB]" />
