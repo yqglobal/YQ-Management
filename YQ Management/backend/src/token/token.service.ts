@@ -50,7 +50,7 @@ export class TokenService {
       'otp',
       { otp },
     );
-    await this.notificationsService.sendWhatsAppMessage(phone, message);
+    await this.notificationsService.sendWhatsAppMessage(phone, message, queue.tenantId);
          return { success: true, message: 'OTP sent' };
   }
 
@@ -93,6 +93,7 @@ export class TokenService {
     let purpose: string | null = null;
     const queue = await this.prisma.queue.findUnique({
       where: { id: queueId },
+      include: { tenant: true },
     });
     if (queue && queue.formConfig && Array.isArray(queue.formConfig)) {
       const purposeField = (queue.formConfig as any[]).find(
@@ -188,7 +189,7 @@ export class TokenService {
         );
       }
       if (message) {
-        await this.notificationsService.sendWhatsAppMessage(phone, message);
+        await this.notificationsService.sendWhatsAppMessage(phone, message, queue?.tenantId);
       }
     }
 
@@ -196,7 +197,7 @@ export class TokenService {
   }
 
   async advanceQueue(queueId: string, tenantId: string) {
-    const queue = await this.prisma.queue.findUnique({ where: { id: queueId } });
+    const queue = await this.prisma.queue.findUnique({ where: { id: queueId }, include: { tenant: true } });
     if (!queue || queue.tenantId !== tenantId) {
       throw new BadRequestException('Queue not found or unauthorized');
     }
@@ -261,6 +262,7 @@ export class TokenService {
         await this.notificationsService.sendWhatsAppMessage(
           nextToken.phone,
           message,
+          queue.tenantId,
         );
       }
     }
@@ -285,6 +287,7 @@ export class TokenService {
           await this.notificationsService.sendWhatsAppMessage(
             upcomingToken.phone,
             message,
+            queue?.tenantId,
           );
         }
       }
@@ -504,6 +507,7 @@ export class TokenService {
         await this.notificationsService.sendWhatsAppMessage(
           updatedToken.phone,
           message,
+          newQueue?.tenantId,
         );
       }
     }
@@ -558,6 +562,7 @@ export class TokenService {
         await this.notificationsService.sendWhatsAppMessage(
           updatedToken.phone,
           message,
+          token.queue.tenantId,
         );
       }
     }

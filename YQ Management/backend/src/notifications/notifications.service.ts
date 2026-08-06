@@ -18,10 +18,13 @@ export class NotificationsService implements OnModuleInit {
     this.evolutionApiConfigured = !!this.instanceName;
   }
 
-  async sendWhatsAppMessage(to: string, body: string) {
+  // tenantId is optional; when provided we'll attempt to send using the
+  // tenant's configured WhatsApp instance to avoid using a shared global
+  // instance name which can mix messages between tenants.
+  async sendWhatsAppMessage(to: string, body: string, tenantId?: string) {
     await this.whatsappQueue.add(
       'sendMessage',
-      { to, body },
+      { to, body, tenantId },
       {
         attempts: 3,
         backoff: { type: 'exponential', delay: 2000 },
@@ -29,14 +32,7 @@ export class NotificationsService implements OnModuleInit {
     );
   }
 
-  async executeWhatsAppMessage(to: string, body: string) {
-    if (!this.instanceName) {
-      this.logger.warn(
-        `[MOCK WHATSAPP] Evolution instance not configured. To: ${to} | Body: ${body}`,
-      );
-      return { success: true, mock: true };
-    }
-
+  async executeWhatsAppMessage(to: string, body: string, tenantId?: string) {
     try {
       const cleanNumber = to.replace(/\D/g, '');
       if (!cleanNumber) {
@@ -49,19 +45,22 @@ export class NotificationsService implements OnModuleInit {
         return { success: false, error: 'Empty message body' };
       }
 
-      const result = await this.whatsappService.sendMessage(
-        this.instanceName,
-        cleanNumber,
-        body.trim(),
-      );
-      if (result.success) {
-        this.logger.log(
-          `Sent WhatsApp message to ${cleanNumber} via ${this.instanceName}`,
-        );
+      let result: any;
+      if (tenantId) {
+        result = await this.whatsappService.sendToTenant(tenantId, cleanNumber, body.trim());
+      } else if (this.instanceName) {
+        result = await this.whatsappService.sendMessage(this.instanceName, cleanNumber, body.trim());
       } else {
-        this.logger.error(
-          `Failed to send WhatsApp message to ${cleanNumber}: ${result.error}`,
+        this.logger.warn(
+          `[MOCK WHATSAPP] Evolution instance not configured. To: ${to} | Body: ${body}`,
         );
+        return { success: true, mock: true };
+      }
+
+      if (result.success) {
+        this.logger.log(`Sent WhatsApp message to ${cleanNumber}`);
+      } else {
+        this.logger.error(`Failed to send WhatsApp message to ${cleanNumber}: ${result.error}`);
       }
       return result;
     } catch (error) {

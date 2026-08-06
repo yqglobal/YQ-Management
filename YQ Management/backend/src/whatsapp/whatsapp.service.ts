@@ -1095,6 +1095,19 @@ export class WhatsappService implements OnModuleInit {
     return { success: true, providerId: result.data?.key?.id };
   }
 
+  // Send a message by resolving the tenant's configured instanceName.
+  async sendToTenant(tenantId: string, number: string, text: string) {
+    if (!tenantId) {
+      return { success: false, error: 'Missing tenantId' };
+    }
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant || !tenant.whatsappInstanceId) {
+      this.logger.warn(`Tenant ${tenantId} has no configured WhatsApp instance`);
+      return { success: false, error: 'WhatsApp not configured for tenant' };
+    }
+    return this.sendMessage(tenant.whatsappInstanceId, number, text);
+  }
+
   async sendButtons(
     instanceName: string,
     number: string,

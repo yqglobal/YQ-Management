@@ -30,6 +30,7 @@ export class MessagesService {
   ) {
     const token = await this.prisma.token.findFirst({
       where: { id: tokenId, queue: { tenantId } },
+      include: { queue: true },
     });
     if (!token) throw new NotFoundException('Token not found');
 
@@ -43,7 +44,7 @@ export class MessagesService {
 
     // Notify customer via WhatsApp
     if (token.phone) {
-      await this.notificationsService.sendWhatsAppMessage(token.phone, text);
+      await this.notificationsService.sendWhatsAppMessage(token.phone, text, token.queue?.tenantId);
     }
 
     // Broadcast message to Dashboard & Live Status
