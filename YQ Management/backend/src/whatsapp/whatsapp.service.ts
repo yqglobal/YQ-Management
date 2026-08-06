@@ -624,8 +624,8 @@ export class WhatsappService implements OnModuleInit {
     const isConnected = state === 'open';
 
     let qr: string | null = this.extractQr(stateResult.data);
-    if (state === 'close') {
-      this.logger.debug(`Instance ${instanceName} is ${state}. Attempting to connect to retrieve/generate QR.`);
+    if (state === 'close' || (state === 'connecting' && !qr)) {
+      this.logger.debug(`Instance ${instanceName} is ${state}${state === 'connecting' && !qr ? ' without QR' : ''}. Attempting to connect to retrieve/generate QR.`);
       const connectRes = await this.fetchEvo(
         `/instance/connect/${instanceName}`,
         'GET',
