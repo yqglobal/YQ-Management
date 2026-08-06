@@ -132,7 +132,7 @@ if ! docker ps | grep -q yq_evolution_api; then
         -e DOCKER_ENV=true \
         -e LOG_LEVEL=ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS \
         -e AUTHENTICATION_TYPE=apikey \
-        -e AUTHENTICATION_API_KEY=yq_secret_evolution_key_123 \
+        -e AUTHENTICATION_API_KEY=<EVOLUTION_API_KEY> \
         -e DATABASE_PROVIDER=postgresql \
         -e DATABASE_CONNECTION_URI=postgresql://postgres:postgres@host.docker.internal:5432/evolution_api \
         -e DATABASE_CONNECTION_CLIENT_NAME=evolution_api \
@@ -171,7 +171,7 @@ JWT_SECRET=$(openssl rand -base64 64)
 BREVO_API_KEY=your_brevo_api_key
 BREVO_LIST_ID=2
 EVOLUTION_API_URL=http://localhost:8080
-EVOLUTION_API_KEY=yq_secret_evolution_key_123
+EVOLUTION_API_KEY=<EVOLUTION_API_KEY>
 EVOLUTION_INSTANCE_NAME=yq_instance
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret

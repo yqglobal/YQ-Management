@@ -10,4 +10,4 @@ services:
       - key: AUTHENTICATION_TYPE
         value: apikey
       - key: AUTHENTICATION_API_KEY
-        value: yq_secret_evolution_key_123
+        value: "<EVOLUTION_API_KEY>"

@@ -701,7 +701,7 @@ Based on bugs discovered during this QA strategy, maintain a regression test sui
 # QA-specific overrides
 TEST_MODE=true
 EVOLUTION_API_URL=http://localhost:8080
-EVOLUTION_API_KEY=yq_secret_evolution_key_123
+EVOLUTION_API_KEY=<EVOLUTION_API_KEY>
 APP_URL=http://localhost:3001
 REDIS_URI=redis://localhost:6380
 DATABASE_URL=postgresql://postgres:postgres@localhost:5455/yq_queue

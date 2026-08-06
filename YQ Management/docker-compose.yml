@@ -53,7 +53,7 @@ services:
       - DOCKER_ENV=true
       - LOG_LEVEL=DEBUG,ERROR,WARN,INFO,WEBHOOKS
       - AUTHENTICATION_TYPE=apikey
-      - AUTHENTICATION_API_KEY=yq_secret_evolution_key_123
+      - AUTHENTICATION_API_KEY=<EVOLUTION_API_KEY>
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_URI=postgresql://postgres:postgres@postgres:5432/postgres?schema=public
       - DATABASE_CONNECTION_CLIENT_NAME=evolution_api

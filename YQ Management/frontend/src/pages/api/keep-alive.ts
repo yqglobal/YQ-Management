@@ -24,7 +24,7 @@ export default async function handler(
 
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'https://qmova-backend.onrender.com';
   const evoUrl = process.env.EVOLUTION_API_URL || 'https://qmova-evolution-api.onrender.com';
-  const evoApiKey = process.env.EVOLUTION_API_KEY || 'yq_secret_evolution_key_123';
+  const evoApiKey = process.env.EVOLUTION_API_KEY || '';
 
   const results: Record<string, { status: number | string; ok: boolean }> = {};
 
