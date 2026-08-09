@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
-import { WhatsappService } from './whatsapp.service';
 import { WhatsappController } from './whatsapp.controller';
+import { WhatsappService } from './whatsapp.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { RedisModule } from '../redis/redis.module';
+import { WhatsappLogger } from './whatsapp.logger';
 
 @Module({
-  imports: [PrismaModule],
-  providers: [WhatsappService],
+  imports: [PrismaModule, RedisModule],
   controllers: [WhatsappController],
-  exports: [WhatsappService],
+  providers: [WhatsappService, WhatsappLogger],
+  exports: [WhatsappService, WhatsappLogger],
 })
 export class WhatsappModule {}

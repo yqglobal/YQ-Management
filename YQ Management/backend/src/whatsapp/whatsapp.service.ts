@@ -2,6 +2,7 @@ import { Injectable, Logger, HttpException, HttpStatus, OnModuleInit } from '@ne
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { Cron } from '@nestjs/schedule';
+import { WhatsappLogger } from './whatsapp.logger';
 
 interface EvolutionError {
   message: string;
@@ -33,6 +34,7 @@ export class WhatsappService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private redisService: RedisService,
+    private readonly whatsappLogger: WhatsappLogger,
   ) { }
 
   async onModuleInit() {
@@ -67,7 +69,7 @@ export class WhatsappService implements OnModuleInit {
       const activeInstances = Array.isArray(evoRes?.data) ? evoRes.data.map(i => i.instance.instanceName) : [];
 
       for (const tenant of tenants) {
-        if (!activeInstances.includes(tenant.whatsappInstanceId)) {
+        if (!activeInstances.includes(tenant.whatsappInstanceId)) { 
           this.logger.warn(`Tenant ${tenant.id} instance ${tenant.whatsappInstanceId} missing from Evolution API. Attempting auto-recovery.`);
           await this.logTenantEvent(tenant.id, 'AUTO_RECOVERY_STARTED', { reason: 'Instance missing from Evolution API' });
           await this.connect(tenant.id); // Re-run connect to re-create instance & webhooks
@@ -229,6 +231,7 @@ export class WhatsappService implements OnModuleInit {
     this.logger.log({
       evoRequest: { method, url: fullUrl, path, body: body || null },
     }, `Evolution API Request: ${method} ${path}`);
+    this.whatsappLogger.logRequest(fullUrl, method, body);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 35000);
@@ -260,6 +263,7 @@ export class WhatsappService implements OnModuleInit {
           evoResponse: { status: res.status, raw: text, parsed },
           durationMs,
         }, `Evolution API Failed [Status ${res.status}]: ${method} ${path} (${durationMs}ms) -> ${evolutionError.message}`);
+        this.whatsappLogger.logResponse(fullUrl, method, res.status, { raw: text, parsed, error: evolutionError });
         return { status: res.status, data: parsed, error: evolutionError };
       }
 
@@ -268,6 +272,7 @@ export class WhatsappService implements OnModuleInit {
         evoResponse: { status: res.status, parsed },
         durationMs,
       }, `Evolution API Response [Status ${res.status}]: ${method} ${path} (${durationMs}ms) -> Success`);
+      this.whatsappLogger.logResponse(fullUrl, method, res.status, parsed);
       return { status: res.status, data: parsed };
     } catch (error) {
       const durationMs = Date.now() - startTime;
@@ -277,6 +282,7 @@ export class WhatsappService implements OnModuleInit {
         evolutionError,
         durationMs,
       }, `Evolution API Network/Timeout Error: ${method} ${path} (${durationMs}ms) -> ${evolutionError.message}`);
+      this.whatsappLogger.error('Evolution-API-Network', `Network error for ${method} ${path}: ${evolutionError.message}`);
       return {
         status: evolutionError.status ?? 502,
         data: null,
@@ -768,6 +774,7 @@ export class WhatsappService implements OnModuleInit {
     this.logger.debug(
       `Webhook received for ${instanceName}: event=${payload?.event}`,
     );
+    this.whatsappLogger.logWebhook(instanceName, payload?.event, payload);
 
     // Save last webhook payload for quick debugging (1 hour)
     try {

@@ -22,6 +22,13 @@ export default function WhatsAppSettingsPage() {
   const [testMessage, setTestMessage] = useState('Test message from Qmova');
   const [templateDrafts, setTemplateDrafts] = useState<Record<string, string>>({});
   
+  const logToBackend = (level: string, message: string, data?: any) => {
+    fetchApi('/whatsapp/frontend-log', {
+      method: 'POST',
+      body: JSON.stringify({ level, message, data })
+    }).catch(() => {});
+  };
+  
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,13 +93,16 @@ export default function WhatsAppSettingsPage() {
   useEffect(() => {
     if (connectWhatsAppMutation.isSuccess && connectWhatsAppMutation.data?.qr) {
       toast.success('QR Code ready! Please scan using WhatsApp.');
+      logToBackend('info', 'QR Code received and displayed to user');
     }
     if (connectWhatsAppMutation.isSuccess && connectWhatsAppMutation.data?.state === 'open') {
       toast.success('WhatsApp is connected!');
+      logToBackend('info', 'WhatsApp connected successfully');
     }
     if (connectWhatsAppMutation.isError) {
       const err: any = connectWhatsAppMutation.error;
       toast.error(err?.details?.message || err?.message || 'Failed to connect to WhatsApp');
+      logToBackend('error', 'Failed to connect to WhatsApp', err);
     }
   }, [connectWhatsAppMutation.status]);
 
@@ -149,7 +159,10 @@ export default function WhatsAppSettingsPage() {
                 </p>
                 <div className="flex items-center justify-center gap-4">
                   <button 
-                    onClick={() => disconnectWhatsAppMutation.mutate()}
+                    onClick={() => {
+                      logToBackend('info', 'User requested to disconnect WhatsApp');
+                      disconnectWhatsAppMutation.mutate();
+                    }}
                     disabled={disconnectWhatsAppMutation.isPending}
                     className="px-6 py-2.5 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-xl font-medium transition-colors"
                   >
@@ -176,7 +189,10 @@ export default function WhatsAppSettingsPage() {
                     ) : (
                       <div className="flex flex-col items-center gap-4">
                         <button
-                          onClick={() => connectWhatsAppMutation.mutate()}
+                          onClick={() => {
+                            logToBackend('info', 'User clicked Connect WhatsApp');
+                            connectWhatsAppMutation.mutate();
+                          }}
                           disabled={connectWhatsAppMutation.isPending}
                           className="px-6 py-3 bg-[#25D366] hover:bg-[#1DA851] text-white font-medium rounded-xl transition-all shadow-sm flex items-center gap-2"
                         >
@@ -250,10 +266,15 @@ export default function WhatsAppSettingsPage() {
                             <button 
                               onClick={async () => {
                                 try {
+                                  logToBackend('info', 'User requested pairing code', { phone: `${pairingCountryCode}${pairingPhoneNumber}` });
                                   const res: any = await pairingCodeMutation.mutateAsync(`${pairingCountryCode}${pairingPhoneNumber}`);
-                                  if (res?.pairingCode) setPairingCode(res.pairingCode);
+                                  if (res?.pairingCode) {
+                                    setPairingCode(res.pairingCode);
+                                    logToBackend('info', 'Pairing code received successfully');
+                                  }
                                   await statusQuery.refetch();
                                 } catch (e: any) {
+                                  logToBackend('error', 'Failed to generate pairing code', e);
                                   toast.error(e?.message || 'Failed to generate pairing code');
                                 }
                               }}
@@ -294,7 +315,19 @@ export default function WhatsAppSettingsPage() {
                  className="flex-1" 
                />
                <button 
-                  onClick={() => testWhatsAppMutation.mutate({ phone: `${testCountryCode}${testPhone}`, message: testMessage })}
+                  onClick={() => {
+                    logToBackend('info', 'User sent a test message', { phone: `${testCountryCode}${testPhone}` });
+                    testWhatsAppMutation.mutate({ phone: `${testCountryCode}${testPhone}`, message: testMessage }, {
+                      onSuccess: () => {
+                        toast.success('Test message sent successfully');
+                        logToBackend('info', 'Test message sent successfully');
+                      },
+                      onError: (err: any) => {
+                        toast.error(err?.message || 'Failed to send test message');
+                        logToBackend('error', 'Failed to send test message', err);
+                      }
+                    });
+                  }}
                   disabled={testWhatsAppMutation.isPending || !testPhone}
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl flex items-center gap-2"
                >

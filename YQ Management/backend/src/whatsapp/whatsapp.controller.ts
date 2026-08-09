@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { WhatsappService } from './whatsapp.service';
+import { WhatsappLogger } from './whatsapp.logger';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -19,7 +20,10 @@ import type { AuthenticatedRequest } from '../auth/types/auth.types';
 
 @Controller('whatsapp')
 export class WhatsappController {
-  constructor(private readonly whatsappService: WhatsappService) {}
+  constructor(
+    private readonly whatsappService: WhatsappService,
+    private readonly whatsappLogger: WhatsappLogger,
+  ) {}
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
@@ -171,5 +175,28 @@ export class WhatsappController {
   saveChatbotSettings(@Req() req: AuthenticatedRequest, @Body() body: any) {
     const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
     return this.whatsappService.saveChatbotSettings(targetId, body);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('frontend-log')
+  frontendLog(@Req() req: AuthenticatedRequest, @Body() body: { level: string; message: string; data?: any }) {
+    const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
+    const source = `Frontend-[Tenant-${targetId}]`;
+    const { level, message, data } = body;
+
+    switch (level?.toLowerCase()) {
+      case 'info':
+        this.whatsappLogger.info(source, message, data);
+        break;
+      case 'error':
+        this.whatsappLogger.error(source, message, data);
+        break;
+      case 'warn':
+        this.whatsappLogger.warn(source, message, data);
+        break;
+      default:
+        this.whatsappLogger.debug(source, message, data);
+    }
+    return { success: true };
   }
 }
