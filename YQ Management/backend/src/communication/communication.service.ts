@@ -154,7 +154,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'brevo',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -183,7 +183,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'brevo',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -212,7 +212,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'brevo',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -244,7 +244,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'brevo',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -277,7 +277,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'brevo',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -302,7 +302,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'evolution',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -334,7 +334,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'evolution',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId,
     });
@@ -364,7 +364,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'evolution',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -392,7 +392,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'evolution',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -421,7 +421,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'evolution',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -449,7 +449,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'evolution',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -477,7 +477,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'evolution',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -505,7 +505,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'evolution',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -535,7 +535,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'evolution',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });
@@ -563,7 +563,7 @@ export class CommunicationService {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'evolution',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: payload.workspaceId,
     });

@@ -8,8 +8,8 @@ export function useWhatsapp() {
     queryKey: ['whatsapp-status'],
     queryFn: () => fetchApi('/whatsapp/status'),
     refetchInterval: (data: any) => {
-      if (data?.qr || data?.state === 'connecting') return 1500;
-      return 30000;
+      if (data?.qr || data?.state === 'connecting') return 1000;
+      return 15000;
     },
   });
 
@@ -22,30 +22,45 @@ export function useWhatsapp() {
   const cachedQrQuery = useQuery({
     queryKey: ['whatsapp-cached-qr'],
     queryFn: () => fetchApi('/whatsapp/cached-qr'),
-    refetchInterval: 2000,
+    refetchInterval: 1000,
     retry: false,
-    staleTime: 1000,
+    staleTime: 500,
   });
 
   const connectMutation = useMutation({
     mutationFn: async () => {
+      console.log('[WhatsApp] Initiating connection request...');
       const status = await fetchApi('/whatsapp/status');
+      console.log('[WhatsApp] Current status before connect:', status);
       if (status?.state === 'open') return status;
       if (status?.state === 'connecting' && status.qr) return status;
-      return fetchApi('/whatsapp/connect', { method: 'POST' });
+      const res = await fetchApi('/whatsapp/connect', { method: 'POST' });
+      console.log('[WhatsApp] Connect response:', res);
+      return res;
     },
-    onSuccess: () => qc.invalidateQueries(['whatsapp-status', 'whatsapp-cached-qr']),
+    onSuccess: (data) => {
+      console.log('[WhatsApp] Connect mutation successful:', data);
+      qc.invalidateQueries({ queryKey: ['whatsapp-status'] });
+      qc.invalidateQueries({ queryKey: ['whatsapp-cached-qr'] });
+    },
+    onError: (error) => {
+      console.error('[WhatsApp] Connect mutation failed:', error);
+    }
   });
 
   const disconnectMutation = useMutation({
     mutationFn: () => fetchApi('/whatsapp/disconnect', { method: 'POST' }),
-    onSuccess: () => qc.invalidateQueries(['whatsapp-status', 'whatsapp-logs', 'whatsapp-cached-qr']),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['whatsapp-status'] });
+      qc.invalidateQueries({ queryKey: ['whatsapp-logs'] });
+      qc.invalidateQueries({ queryKey: ['whatsapp-cached-qr'] });
+    },
   });
 
   const pairingCodeMutation = useMutation({
     mutationFn: (phone: string) =>
       fetchApi('/whatsapp/pairing-code', { method: 'POST', body: JSON.stringify({ phoneNumber: phone }) }),
-    onSuccess: () => qc.invalidateQueries(['whatsapp-status']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['whatsapp-status'] }),
   });
 
   const testMutation = useMutation({

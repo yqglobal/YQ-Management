@@ -118,7 +118,7 @@ export class CommunicationController {
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
       provider: 'evolution',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: req.user.workspaceId,
     });

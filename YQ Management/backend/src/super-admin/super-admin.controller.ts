@@ -262,7 +262,7 @@ export class SuperAdminController {
       body: content,
       status: result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
       provider: 'evolution',
-      providerId: result.providerId,
+      providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: tenant.id,
     });

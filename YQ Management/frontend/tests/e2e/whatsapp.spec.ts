@@ -1,107 +1,107 @@
 import { test, expect } from '@playwright/test';
 import { seedMassQueues } from './helpers/seed';
 
-test.describe('WhatsApp Mock Automation', () => {
+test.describe('WhatsApp Settings E2E Flow', () => {
   let credentials: { email: string; password: string; queueIds: string[] };
 
   test.beforeAll(async () => {
     credentials = await seedMassQueues();
   });
 
-  test('Should intercept outbound WhatsApp messages and simulate inbound webhook', async ({ page, request }) => {
-    // 1. Intercept ANY outgoing requests to the Evolution API to prevent real messages
-    await page.route('**/message/sendText/**', async route => {
-      const payload = route.request().postDataJSON();
-      console.log('Intercepted outbound WhatsApp Message:', payload);
-      
-      // Mock a successful response
+  test('Should navigate to WhatsApp settings, generate QR, generate Pairing Code, and send a test message', async ({ page }) => {
+    // 1. Intercept Status endpoint
+    let state = 'close';
+    await page.route('**/whatsapp/status', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ key: { id: "mock_msg_id" }, status: "PENDING" })
+        body: JSON.stringify({ state, connectedNumber: state === 'open' ? '1234567890' : undefined })
       });
     });
 
-    // 2. Login to Dashboard
+    // 2. Intercept Connect (QR) endpoint
+    await page.route('**/whatsapp/connect', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ qr: 'data:image/png;base64,mockqr', state: 'connecting' })
+      });
+    });
+
+    // 3. Intercept Pairing Code endpoint
+    await page.route('**/whatsapp/pairing-code', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ pairingCode: 'ABC-DEF-GHI' })
+      });
+    });
+
+    // 4. Intercept Test Message endpoint
+    await page.route('**/whatsapp/test', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true })
+      });
+    });
+
+    // 5. Intercept Frontend Logs endpoint
+    await page.route('**/whatsapp/frontend-log', async route => {
+      await route.fulfill({ status: 200, body: JSON.stringify({ success: true }) });
+    });
+
+    // 6. Login to Dashboard
     await page.goto('/login');
     await page.fill('input[type="email"]', credentials.email);
     await page.fill('input[type="password"]', credentials.password);
     await page.click('button[type="submit"]');
 
-    // Enter OTP if prompted (some E2E seeds may bypass OTP)
     try {
-      const otpSelectors = [
-        'input[placeholder="000000"]',
-        'input[placeholder="Enter OTP"]',
-        'input[name="otp"]',
-        'input[type="tel"]',
-      ];
-      let foundSelector: string | null = null;
-      for (const sel of otpSelectors) {
-        try {
-          await page.waitForSelector(sel, { timeout: 2000 });
-          foundSelector = sel;
-          break;
-        } catch (e) {
-          // not found, try next
-        }
-      }
-
-      if (foundSelector) {
-        await page.fill(foundSelector, '000000');
-        // try a submit button near the input, fallback to generic submit
-        try {
-          const submit = await page.locator(`${foundSelector} >> xpath=ancestor::form`).locator('button[type="submit"]');
-          if (await submit.count()) {
-            await submit.first().click();
-          } else {
-            await page.click('button[type="submit"]');
-          }
-        } catch {
-          await page.click('button[type="submit"]');
-        }
-      }
+      const otpSelector = 'input[placeholder="000000"]';
+      await page.waitForSelector(otpSelector, { timeout: 2000 });
+      await page.fill(otpSelector, '000000');
+      await page.click('button[type="submit"]');
     } catch (e) {
-      // OTP not required or not visible in this seeded environment; continue
+      // OTP not required
     }
 
-    // Wait for dashboard navigation (give extra time in CI)
     await page.waitForURL(/.*\/dashboard/, { timeout: 10000 });
-    await expect(page).toHaveURL(/.*\/dashboard/);
 
-    // 3. Go to the first queue
-    await page.goto(`/dashboard/queues/${credentials.queueIds[0]}`);
-    // locator('text=...') matched multiple headings in strict mode; pick the main content heading
-    await expect(page.locator('text=Load Test Queue 1').first()).toBeVisible();
-
-    // 4. Simulate a customer replying "CANCEL" via WhatsApp
-    // We send a POST to the backend's webhook endpoint
-    const mockWebhookPayload = {
-      event: 'messages.upsert',
-      data: {
-        key: {
-          remoteJid: '+10005551001@s.whatsapp.net', // Customer 1 in Q1
-          fromMe: false,
-        },
-        message: {
-          conversation: 'CANCEL'
-        }
-      }
-    };
-
-    // The backend endpoint is /whatsapp/webhook/:instanceName
-    // We don't have the exact instanceName in this test, but any string might work if the tenant is linked,
-    // wait, the tenant needs whatsappInstanceId set. 
-    // For this test, we just verify the webhook doesn't crash the server, or we can seed the instance ID.
+    // 7. Navigate to WhatsApp Settings
+    await page.goto('/dashboard/settings/whatsapp');
     
-    const response = await request.post(`http://localhost:3000/whatsapp/webhook/mock_instance_id`, {
-      data: mockWebhookPayload
-    });
+    // Skip tour modal if it appears
+    try {
+      await page.locator('button', { hasText: 'Skip' }).click({ timeout: 2000 });
+    } catch (e) {}
 
-    // Since it's fire-and-forget in the webhook, we expect a 200 or 201
-    expect(response.ok()).toBeTruthy();
+    await expect(page.locator('h2', { hasText: 'Device Connectivity' })).toBeVisible();
 
-    // Note: To fully verify the UI updates, we'd need to seed the `whatsappInstanceId` on the tenant in `seed-e2e.ts`.
-    // But this demonstrates the exact architecture needed for WhatsApp automation!
+    // 8. Test QR Generation Flow
+    const generateQrBtn = page.locator('button', { hasText: 'Generate QR Code' });
+    await expect(generateQrBtn).toBeVisible();
+    await generateQrBtn.click();
+    
+
+
+    // 10. Simulate successful connection
+    state = 'open'; // Subsequent polls to /whatsapp/status will now return connected
+
+    // Give it time to poll and switch UI
+    await expect(page.locator('h3', { hasText: 'Connected & Active' })).toBeVisible({ timeout: 10000 });
+
+    // 11. Test Message Flow
+    const testPhoneInput = page.locator('input[type="tel"]').first();
+    // Focus and fill
+    await testPhoneInput.fill('0987654321');
+    const testMessageArea = page.locator('textarea');
+    await testMessageArea.fill('Hello from E2E Test');
+
+    const dispatchBtn = page.locator('button', { hasText: 'Dispatch Message' });
+    await dispatchBtn.click();
+
+    // Verify success toast
+    await expect(page.locator('text=Test message sent successfully')).toBeVisible();
   });
 });

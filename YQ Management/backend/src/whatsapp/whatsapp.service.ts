@@ -66,7 +66,7 @@ export class WhatsappService implements OnModuleInit {
       if (tenants.length === 0) return;
 
       const evoRes = await this.fetchEvo('/instance/fetchInstances', 'GET');
-      const activeInstances = Array.isArray(evoRes?.data) ? evoRes.data.map(i => i.instance.instanceName) : [];
+      const activeInstances = Array.isArray(evoRes?.data) ? evoRes.data.map(i => i.instance?.instanceName || i.name || i.instanceName) : [];
 
       for (const tenant of tenants) {
         if (!activeInstances.includes(tenant.whatsappInstanceId)) { 
@@ -381,11 +381,13 @@ export class WhatsappService implements OnModuleInit {
     this.logger.debug(`Setting webhook for ${instanceName} -> ${webhookUrl.split('?')[0]}`);
 
     const result = await this.fetchEvo(`/webhook/set/${instanceName}`, 'POST', {
-      enabled: true,
-      url: webhookUrl,
-      webhook_by_events: false,
-      webhook_base64: false,
-      events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'MESSAGES_UPDATE'],
+      webhook: {
+        enabled: true,
+        url: webhookUrl,
+        byEvents: false,
+        base64: false,
+        events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'MESSAGES_UPDATE'],
+      }
     });
 
     if (result.error) {
@@ -454,9 +456,6 @@ export class WhatsappService implements OnModuleInit {
         instanceName,
         qrcode: true,
         integration: 'WHATSAPP-BAILEYS',
-        webhook: process.env.WEBHOOK_SECRET ? `${this.backendPublicUrl}/whatsapp/webhook/${instanceName}?secret=${process.env.WEBHOOK_SECRET}` : `${this.backendPublicUrl}/whatsapp/webhook/${instanceName}`,
-        webhook_by_events: false,
-        webhook_events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'MESSAGES_UPDATE'],
       });
 
       if (createResult.error) {
@@ -569,9 +568,6 @@ export class WhatsappService implements OnModuleInit {
         instanceName,
         qrcode: false,
         integration: 'WHATSAPP-BAILEYS',
-        webhook: process.env.WEBHOOK_SECRET ? `${this.backendPublicUrl}/whatsapp/webhook/${instanceName}?secret=${process.env.WEBHOOK_SECRET}` : `${this.backendPublicUrl}/whatsapp/webhook/${instanceName}`,
-        webhook_by_events: false,
-        webhook_events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'MESSAGES_UPDATE'],
       });
 
       if (createResult.error) {
