@@ -209,7 +209,7 @@ export default function WhatsAppSettingsPage() {
                         <button
                           onClick={() => {
                             logToBackend('info', 'User clicked Connect WhatsApp QR');
-                            connectMutation.mutate();
+                            connectMutation.mutate(false);
                           }}
                           disabled={connectMutation.isPending}
                           className="w-full py-4 bg-[#25D366] hover:bg-[#1DA851] text-white font-semibold rounded-2xl transition-all shadow-lg shadow-[#25D366]/30 flex flex-col items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 group"
@@ -240,9 +240,9 @@ export default function WhatsAppSettingsPage() {
                       
                       <div className="flex items-center gap-3 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-gray-200 dark:border-zinc-700">
                         <button
-                          onClick={() => connectMutation.mutate()}
+                          onClick={() => connectMutation.mutate(true)}
                           disabled={connectMutation.isPending}
-                          className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors group"
+                          className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors group"
                         >
                           <RefreshCw className={`w-4 h-4 ${connectMutation.isPending ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
                           {connectMutation.isPending ? 'Refreshing...' : 'Refresh QR'}

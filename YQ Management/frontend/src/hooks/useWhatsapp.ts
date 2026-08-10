@@ -28,13 +28,16 @@ export function useWhatsapp() {
   });
 
   const connectMutation = useMutation({
-    mutationFn: async () => {
-      console.log('[WhatsApp] Initiating connection request...');
+    mutationFn: async (forceRefresh?: boolean) => {
+      console.log('[WhatsApp] Initiating connection request... forceRefresh:', forceRefresh);
       const status = await fetchApi('/whatsapp/status');
       console.log('[WhatsApp] Current status before connect:', status);
       if (status?.state === 'open') return status;
-      if (status?.state === 'connecting' && status.qr) return status;
-      const res = await fetchApi('/whatsapp/connect', { method: 'POST' });
+      if (!forceRefresh && status?.state === 'connecting' && status.qr) return status;
+      const res = await fetchApi('/whatsapp/connect', { 
+        method: 'POST',
+        body: JSON.stringify({ forceRefresh })
+      });
       console.log('[WhatsApp] Connect response:', res);
       return res;
     },

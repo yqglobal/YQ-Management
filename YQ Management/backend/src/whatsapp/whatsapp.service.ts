@@ -450,21 +450,33 @@ export class WhatsappService implements OnModuleInit {
     return tenant;
   }
 
-  async connect(tenantId: string) {
+  async connect(tenantId: string, forceRefresh = false) {
     const tenant = await this.resolveTenant(tenantId);
     if (!tenant) throw new HttpException('Tenant not found', HttpStatus.NOT_FOUND);
 
     let instanceName = tenant.whatsappInstanceId;
     if (!instanceName) {
       instanceName = `tenant_${tenant.id.substring(0, 8)}`;
-      await this.prisma.tenant.update({ where: { id: tenant.id }, data: { whatsappInstanceId: instanceName } });
+      await this.prisma.tenant.update({
+        where: { id: tenant.id },
+        data: { whatsappInstanceId: instanceName },
+      });
     }
 
-    this.logger.log(`WhatsApp connect requested for tenant ${tenant.id} -> instance ${instanceName}`);
-    await this.logTenantEvent(tenant.id, 'CONNECT_REQUESTED', { instanceName });
+    this.logger.log(`WhatsApp connect requested for tenant ${tenant.id} -> instance ${instanceName}. forceRefresh=${forceRefresh}`);
+    await this.logTenantEvent(tenant.id, 'CONNECT_REQUESTED', { instanceName, forceRefresh });
 
-    // Step 1: Check connection state first
+    // Step 1: Check if instance exists in Evolution API
     let stateRes = await this.fetchEvo(`/instance/connectionState/${instanceName}`, 'GET');
+    
+    // If user explicitly requested a refresh, we delete the existing instance 
+    // to guarantee Evolution API generates a completely fresh session and QR.
+    if (forceRefresh && !stateRes.error) {
+      this.logger.log(`Force refresh requested. Deleting existing instance ${instanceName} to obtain fresh QR.`);
+      await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
+      stateRes = { error: { message: 'deleted', raw: '' }, status: 404, data: null };
+    }
+
     let needsCreation = stateRes.error && (stateRes.status === 404 || stateRes.status === 400);
 
     if (needsCreation) {
@@ -750,17 +762,8 @@ export class WhatsappService implements OnModuleInit {
     const state = this.extractState(stateResult.data);
     const isConnected = state === 'open';
 
-    let qr: string | null = this.extractQr(stateResult.data);
-    if (state === 'close' || (state === 'connecting' && !qr)) {
-      this.logger.debug(`Instance ${instanceName} is ${state}${state === 'connecting' && !qr ? ' without QR' : ''}. Attempting to connect to retrieve/generate QR.`);
-      const connectRes = await this.fetchEvo(
-        `/instance/connect/${instanceName}`,
-        'GET',
-      );
-      if (!connectRes.error) {
-        qr = this.extractQr(connectRes.data);
-      }
-    }
+    // DO NOT fetch /instance/connect here! Polling it breaks QR rotation in Baileys.
+    // The QR code is handled via /whatsapp/connect and cached via webhooks in Redis.
 
     if (isConnected && !tenant.whatsappConnected) {
       await this.prisma.tenant.update({
@@ -776,9 +779,9 @@ export class WhatsappService implements OnModuleInit {
 
     const finalState = isConnected
       ? ('open' as InstanceState)
-      : qr
+      : state === 'connecting'
         ? ('connecting' as InstanceState)
-        : state;
+        : ('close' as InstanceState);
 
     let connectedNumber: string | undefined;
     if (isConnected && stateResult.data?.ownerJid) {
@@ -792,7 +795,6 @@ export class WhatsappService implements OnModuleInit {
       state: finalState,
       whatsappConnected: isConnected,
       connectedNumber,
-      qr,
     };
   }
 
@@ -828,6 +830,17 @@ export class WhatsappService implements OnModuleInit {
 
     try {
       if (payload?.event === 'connection.update' && payload?.data) {
+        // Save rotated QR code to Redis if present
+        if (payload.data.qr || payload.data.base64) {
+          try {
+            const tenant = await this.prisma.tenant.findFirst({ where: { whatsappInstanceId: instanceName } });
+            if (tenant) {
+              const connectRaw = { base64: payload.data.base64, code: payload.data.qr };
+              await this.redisService.client.set(`whatsapp:debug:${tenant.id}:connectRaw`, JSON.stringify(connectRaw), 'EX', 300);
+            }
+          } catch(e) {}
+        }
+
         const state = payload.data.state;
         const statusCode = payload.data.statusReason || payload.data.statusCode || payload.data.reason;
         

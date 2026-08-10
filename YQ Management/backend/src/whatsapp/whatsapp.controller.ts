@@ -28,9 +28,9 @@ export class WhatsappController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
   @Post('connect')
-  connect(@Req() req: AuthenticatedRequest) {
+  connect(@Req() req: AuthenticatedRequest, @Body() body?: { forceRefresh?: boolean }) {
     const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
-    return this.whatsappService.connect(targetId);
+    return this.whatsappService.connect(targetId, body?.forceRefresh);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
