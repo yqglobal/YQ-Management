@@ -1,15 +1,67 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
+import { useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
+import { useAuth } from '../components/AuthContext';
+
+const SOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
 
 export function useWhatsapp() {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const socketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    if (!user?.tenantId) return;
+
+    if (!socketRef.current) {
+      socketRef.current = io(SOCKET_URL, { transports: ['websocket'] });
+      
+      socketRef.current.on('connect', () => {
+        socketRef.current?.emit('joinTenantRoom', user.tenantId);
+      });
+
+      socketRef.current.on('whatsapp_connection_update', (payload: any) => {
+        console.log('[WhatsApp Socket] Received connection update:', payload);
+        
+        // Instantly update the status query cache
+        qc.setQueryData(['whatsapp-status'], (old: any) => {
+          return {
+            ...old,
+            instanceName: payload.instanceName || old?.instanceName,
+            state: payload.state || old?.state,
+            qr: payload.qr || old?.qr,
+            qrType: payload.qrType || old?.qrType,
+          };
+        });
+
+        // Instantly update cached QR query cache if a QR is provided
+        if (payload.qr) {
+           qc.setQueryData(['whatsapp-cached-qr'], { qr: payload.qr });
+        }
+        
+        // Also invalidate to fetch fresh full state if needed, though cache is optimistic
+        qc.invalidateQueries({ queryKey: ['whatsapp-status'] });
+        qc.invalidateQueries({ queryKey: ['whatsapp-cached-qr'] });
+      });
+    }
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+  }, [user?.tenantId, qc]);
 
   const statusQuery = useQuery({
     queryKey: ['whatsapp-status'],
     queryFn: () => fetchApi('/whatsapp/status'),
     refetchInterval: (data: any) => {
-      if (data?.qr || data?.state === 'connecting') return 1000;
-      return 15000;
+      // With WebSockets, we don't need aggressive 1s polling. We can relax it significantly.
+      // But we still poll slowly as a fallback in case socket disconnects.
+      if (data?.qr || data?.state === 'connecting') return 10000;
+      return 30000;
     },
   });
 
@@ -22,7 +74,7 @@ export function useWhatsapp() {
   const cachedQrQuery = useQuery({
     queryKey: ['whatsapp-cached-qr'],
     queryFn: () => fetchApi('/whatsapp/cached-qr'),
-    refetchInterval: 1000,
+    refetchInterval: 10000, // Relaxed from 1s due to WebSocket push
     retry: false,
     staleTime: 500,
   });

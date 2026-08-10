@@ -8,6 +8,6 @@ import { WebhooksModule } from '../webhooks/webhooks.module';
   imports: [WebhooksModule],
   providers: [QueueService, QueueGateway],
   controllers: [QueueController],
-  exports: [QueueService],
+  exports: [QueueService, QueueGateway],
 })
 export class QueueModule {}

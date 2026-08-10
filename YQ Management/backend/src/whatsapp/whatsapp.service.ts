@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { Cron } from '@nestjs/schedule';
 import { WhatsappLogger } from './whatsapp.logger';
+import { QueueGateway } from '../queue/queue.gateway';
 
 interface EvolutionError {
   message: string;
@@ -35,6 +36,7 @@ export class WhatsappService implements OnModuleInit {
     private prisma: PrismaService,
     private redisService: RedisService,
     private readonly whatsappLogger: WhatsappLogger,
+    private readonly queueGateway: QueueGateway,
   ) { }
 
   async onModuleInit() {
@@ -850,6 +852,16 @@ export class WhatsappService implements OnModuleInit {
             if (tenant) {
               const connectRaw = { base64: payload.data.base64, code: payload.data.qr };
               await this.redisService.client.set(`whatsapp:debug:${tenant.id}:connectRaw`, JSON.stringify(connectRaw), 'EX', 300);
+              
+              // Broadcast the QR update instantly to the frontend via WebSockets
+              const qr = payload.data.base64 || payload.data.qr;
+              const qrType = payload.data.base64 ? 'base64' : 'text';
+              this.queueGateway.broadcastTenantUpdate(tenant.id, 'whatsapp_connection_update', {
+                instanceName,
+                state: 'connecting',
+                qr,
+                qrType,
+              });
             }
           } catch(e) {}
         }
@@ -866,9 +878,22 @@ export class WhatsappService implements OnModuleInit {
             this.logger.warn(`WhatsApp disconnected (Hard Logout - ${statusCode}) for instance ${instanceName}`);
             
             const tenant = await this.prisma.tenant.findFirst({ where: { whatsappInstanceId: instanceName } });
-            if (tenant) await this.logTenantEvent(tenant.id, 'DISCONNECTED', { reason: statusCode });
+            if (tenant) {
+              await this.logTenantEvent(tenant.id, 'DISCONNECTED', { reason: statusCode });
+              this.queueGateway.broadcastTenantUpdate(tenant.id, 'whatsapp_connection_update', {
+                instanceName,
+                state: 'close',
+              });
+            }
           } else {
              this.logger.warn(`WhatsApp connection closed temporarily (Code ${statusCode}) for instance ${instanceName}. Waiting for auto-recovery...`);
+             const tenant = await this.prisma.tenant.findFirst({ where: { whatsappInstanceId: instanceName } });
+             if (tenant) {
+               this.queueGateway.broadcastTenantUpdate(tenant.id, 'whatsapp_connection_update', {
+                 instanceName,
+                 state: 'connecting',
+               });
+             }
           }
         } else if (state === 'open') {
           await this.prisma.tenant.updateMany({
@@ -876,6 +901,13 @@ export class WhatsappService implements OnModuleInit {
             data: { whatsappConnected: true }
           });
           this.logger.log(`WhatsApp connected for instance ${instanceName}`);
+          const tenant = await this.prisma.tenant.findFirst({ where: { whatsappInstanceId: instanceName } });
+          if (tenant) {
+            this.queueGateway.broadcastTenantUpdate(tenant.id, 'whatsapp_connection_update', {
+              instanceName,
+              state: 'open',
+            });
+          }
         }
         return { success: true };
       }
