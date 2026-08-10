@@ -153,7 +153,7 @@ export default function HistoryPage() {
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recent Records</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-600 dark:text-zinc-400">
+            <table className="w-full text-left text-sm text-gray-600 dark:text-zinc-400 whitespace-nowrap">
               <thead className="text-xs uppercase bg-gray-100/50 dark:bg-black/40 text-gray-500 dark:text-zinc-500 font-bold tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Token ID</th>

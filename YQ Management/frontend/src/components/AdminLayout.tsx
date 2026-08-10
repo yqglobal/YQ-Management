@@ -112,11 +112,11 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle }: Admin
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 bg-black/50 z-[65] lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* Sidebar */}
-      <aside className={`w-64 bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-white/10 flex flex-col shrink-0 transition-transform duration-300 ease-in-out fixed inset-y-0 left-0 z-40 lg:relative lg:z-auto lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`w-64 bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-white/10 flex flex-col shrink-0 transition-transform duration-300 ease-in-out fixed inset-y-0 left-0 z-[70] lg:relative lg:z-auto lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-16 flex items-center px-6 border-b border-gray-200 dark:border-white/10 shrink-0">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-black text-white text-base shadow-[0_0_12px_rgba(99,102,241,0.4)] tracking-tighter">

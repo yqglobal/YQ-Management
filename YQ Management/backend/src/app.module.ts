@@ -32,6 +32,12 @@ import { MessagesModule } from './messages/messages.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
 import { AuditModule } from './audit/audit.module';
 import { WorkspaceModule } from './workspace/workspace.module';
+import { VisitModule } from './visit/visit.module';
+import { AppointmentModule } from './appointment/appointment.module';
+import { LocationModule } from './location/location.module';
+import { ServiceModule } from './service/service.module';
+import { StaffModule } from './staff/staff.module';
+import { ResourceModule } from './resource/resource.module';
 
 @Module({
   imports: [
@@ -94,6 +100,12 @@ import { WorkspaceModule } from './workspace/workspace.module';
     MessagesModule,
     WorkspaceModule,
     AuditModule,
+    VisitModule,
+    AppointmentModule,
+    LocationModule,
+    ServiceModule,
+    StaffModule,
+    ResourceModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

@@ -12,76 +12,19 @@
 # Error details
 
 ```
-Error: expect(locator).toBeVisible() failed
-
-Locator: locator('text=Test message sent successfully')
-Expected: visible
-Timeout: 5000ms
-Error: element(s) not found
-
+Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/login
 Call log:
-  - Expect "toBeVisible" with timeout 5000ms
-  - waiting for locator('text=Test message sent successfully')
+  - navigating to "http://localhost:3001/login", waiting until "load"
 
-```
-
-```yaml
-- complementary:
-  - link "Q Qmova":
-    - /url: /dashboard
-  - link "Dashboard":
-    - /url: /dashboard
-  - link "Queues 4":
-    - /url: /dashboard/queues
-  - link "Scanner":
-    - /url: /dashboard/scanner
-  - link "Analytics & Records":
-    - /url: /dashboard/history
-  - link "QR Display":
-    - /url: /dashboard/display-picker
-  - link "Team Members":
-    - /url: /dashboard/settings/staff
-  - link "Billing & Plans":
-    - /url: /dashboard/settings/billing
-  - link "Settings":
-    - /url: /dashboard/settings
-- banner:
-  - heading "WhatsApp Settings" [level=1]
-  - paragraph: Connect your WhatsApp account for instant messaging
-  - text: Connected
-  - button "Notifications & System Alerts"
-  - button "AD admin-1786300037538"
-- main:
-  - navigation:
-    - button "General"
-    - button "WhatsApp API"
-    - button "Staff & Invitations"
-    - button "Webhooks"
-    - button "Billing & Plans"
-  - heading "Device Connectivity" [level=2]
-  - paragraph: Manage your active WhatsApp connection
-  - heading "Connected & Active" [level=3]
-  - text: "+1234567890"
-  - paragraph: Your device is successfully paired. You can now send automated queue notifications and messages to your customers.
-  - button "Disconnect Device"
-  - heading "Send Test Message" [level=3]
-  - text: Recipient Number
-  - button "+1"
-  - textbox "234 567 8900": "0987654321"
-  - text: Message Content
-  - textbox "Type a test message...": Hello from E2E Test
-  - text: Test your integration by sending a direct message to any valid WhatsApp number. Standard messaging rates may apply if using official WhatsApp Business APIs.
-  - button "Dispatch Message"
-  - heading "System Logs Feed" [level=3]
-  - text: System idle. Awaiting connectivity events...
-- button "Open Next.js Dev Tools":
-  - img
-- alert
 ```
 
 # Test source
 
 ```ts
+  1   | import { test, expect } from '@playwright/test';
+  2   | import { seedMassQueues } from './helpers/seed';
+  3   | 
+  4   | test.describe('WhatsApp Settings E2E Flow', () => {
   5   |   let credentials: { email: string; password: string; queueIds: string[] };
   6   | 
   7   |   test.beforeAll(async () => {
@@ -132,7 +75,8 @@ Call log:
   52  |     });
   53  | 
   54  |     // 6. Login to Dashboard
-  55  |     await page.goto('/login');
+> 55  |     await page.goto('/login');
+      |                ^ Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/login
   56  |     await page.fill('input[type="email"]', credentials.email);
   57  |     await page.fill('input[type="password"]', credentials.password);
   58  |     await page.click('button[type="submit"]');
@@ -182,8 +126,7 @@ Call log:
   102 |     await dispatchBtn.click();
   103 | 
   104 |     // Verify success toast
-> 105 |     await expect(page.locator('text=Test message sent successfully')).toBeVisible();
-      |                                                                       ^ Error: expect(locator).toBeVisible() failed
+  105 |     await expect(page.locator('text=Test message sent successfully')).toBeVisible();
   106 |   });
   107 | });
   108 | 

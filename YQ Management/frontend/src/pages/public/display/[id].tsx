@@ -101,7 +101,7 @@ export default function QueueDisplay() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0F1C] text-white flex overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#0A0F1C] text-white flex flex-col lg:flex-row overflow-hidden font-sans">
       <Head>
         <title>{queueName} - Display</title>
       </Head>
@@ -132,7 +132,7 @@ export default function QueueDisplay() {
       </div>
 
       {/* LEFT PANEL - QR Code */}
-      <div className="w-[45%] flex flex-col items-center justify-center relative p-12 border-r border-white/5 bg-gradient-to-b from-[#0A0F1C] to-[#050811]">
+      <div className="w-full lg:w-[45%] flex flex-col items-center justify-center relative p-6 lg:p-12 border-b lg:border-b-0 lg:border-r border-white/5 bg-gradient-to-b from-[#0A0F1C] to-[#050811]">
         
         {/* Subtle background glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none"></div>

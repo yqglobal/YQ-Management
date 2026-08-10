@@ -270,7 +270,7 @@ export class QueueService {
   ) {
     const queueWithConfig = await this.prisma.queue.findUnique({
       where: { id: queueId },
-      select: { tokenDisplayConfig: true },
+      select: { tokenDisplayConfig: true, tenantId: true },
     });
 
     let displayId: string | undefined;
@@ -295,7 +295,7 @@ export class QueueService {
         customerName,
         phone,
         displayId,
-        status: TokenStatus.WAITING,
+        status: 'WAITING',
         isAppointment,
       },
     });
@@ -306,6 +306,38 @@ export class QueueService {
       Date.now(),
       token.id,
     );
+
+    // --- LEGACY QUEUE INTERCEPT: Parallel Visit Creation ---
+    // Look up or create Customer
+    const customer = await this.prisma.customer.findFirst({
+      where: { phone, tenantId: queueWithConfig?.tenantId || '' },
+    }) || await this.prisma.customer.create({
+      data: { name: customerName, phone, tenantId: queueWithConfig?.tenantId || '' }
+    }).catch(() => null);
+
+    // Fallback Location and Service for legacy queues
+    const location = await this.prisma.location.findFirst({
+      where: { tenantId: queueWithConfig?.tenantId || '' }
+    });
+    const service = await this.prisma.service.findFirst({
+      where: { tenantId: queueWithConfig?.tenantId || '' }
+    });
+
+    if (customer && location && service) {
+      await this.prisma.visit.create({
+        data: {
+          tenantId: location.tenantId,
+          customerId: customer.id,
+          locationId: location.id,
+          serviceId: service.id,
+          queueId: queueId,
+          source: isAppointment ? 'APPOINTMENT' : 'WALK_IN',
+          currentState: 'WAITING',
+          waitingStart: new Date(),
+        }
+      });
+    }
+    // -------------------------------------------------------
 
     this.queueGateway.broadcastQueueUpdate(queueId, 'token_joined', { token });
     const queue = await this.prisma.queue.findUnique({

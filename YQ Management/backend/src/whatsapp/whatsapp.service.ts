@@ -1470,4 +1470,32 @@ export class WhatsappService implements OnModuleInit {
       qr: qr || undefined,
     };
   }
+
+  async sendList(instanceName: string, number: string, title: string, description: string, buttonText: string, sections: any[]) {
+    if (!instanceName || !number || !sections) {
+      this.logger.warn(`sendList called with invalid params`);
+      return { success: false, error: 'Invalid parameters' };
+    }
+
+    const normalizedNumber = number.replace(/\D/g, '');
+    const result = await this.fetchEvo(
+      `/message/sendList/${instanceName}`,
+      'POST',
+      {
+        number: normalizedNumber,
+        title,
+        description,
+        buttonText,
+        footerText: 'Powered by YQ',
+        sections
+      }
+    );
+
+    if (result.error) {
+      this.logger.error(`Failed to send WhatsApp List to ${normalizedNumber}: ${result.error.message}`);
+      return { success: false, error: result.error.message };
+    }
+
+    return { success: true, providerId: result.data?.key?.id };
+  }
 }

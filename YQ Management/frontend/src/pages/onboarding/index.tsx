@@ -311,13 +311,13 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen flex font-sans">
+    <div className="min-h-screen flex flex-col lg:flex-row font-sans">
       <Head>
         <title>Onboarding | Qmova</title>
       </Head>
 
       {/* LEFT PANEL */}
-      <div className="w-1/3 min-h-screen bg-gradient-to-br from-[#1E3A8A] to-[#0F172A] p-12 flex flex-col text-white">
+      <div className="w-full lg:w-1/3 min-h-[40vh] lg:min-h-screen bg-gradient-to-br from-[#1E3A8A] to-[#0F172A] p-8 lg:p-12 flex flex-col text-white shrink-0">
         <div className="flex items-center gap-2.5 mb-24">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center font-black text-white text-base shadow-[0_0_15px_rgba(255,255,255,0.2)] tracking-tighter">
             Q
@@ -377,7 +377,7 @@ export default function Onboarding() {
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="flex-1 bg-[#F3F4F6] flex items-center justify-center p-12 overflow-y-auto">
+      <div className="flex-1 bg-[#F3F4F6] flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
         <div className="w-full max-w-2xl py-12">
           
           {step === 1 && (
