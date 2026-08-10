@@ -533,6 +533,18 @@ export class WhatsappService implements OnModuleInit {
     } else {
       this.logger.warn(`No QR found in connect response for ${instanceName}. Raw data: ${JSON.stringify(connectRes.data)}`);
       await this.logTenantEvent(tenant.id, 'QR_MISSING', { rawData: JSON.stringify(connectRes.data).substring(0, 200) });
+      
+      // AUTO-RECOVERY FIX: If the instance didn't return a QR code and is not 'open', it's likely stuck in a broken state
+      // (e.g. "conflict"). We should delete it from Evolution API so it can be cleanly recreated next time.
+      if (state !== 'open') {
+        this.logger.warn(`Instance ${instanceName} is broken (no QR and state is ${state}). Deleting from Evolution API for auto-recovery.`);
+        await this.logTenantEvent(tenant.id, 'INSTANCE_BROKEN_AUTO_DELETED', { instanceName });
+        await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
+        
+        try {
+          await this.redisService.client.del(`whatsapp:debug:${tenant.id}:connectRaw`);
+        } catch(e) {}
+      }
     }
 
     return {
@@ -609,7 +621,19 @@ export class WhatsappService implements OnModuleInit {
     const qr = this.extractQr(connectRes.data);
     const state = this.extractState(connectRes.data);
 
-    if (pairingCode) await this.logTenantEvent(tenant.id, 'PAIRING_CODE_GENERATED', { pairingCode });
+    if (pairingCode) {
+      await this.logTenantEvent(tenant.id, 'PAIRING_CODE_GENERATED', { pairingCode });
+    } else {
+      this.logger.warn(`No Pairing Code found in connect response for ${instanceName}. Raw data: ${JSON.stringify(connectRes.data)}`);
+      await this.logTenantEvent(tenant.id, 'PAIRING_CODE_MISSING', { rawData: JSON.stringify(connectRes.data).substring(0, 200) });
+      
+      // AUTO-RECOVERY FIX
+      if (state !== 'open') {
+        this.logger.warn(`Instance ${instanceName} is broken (no Pairing Code and state is ${state}). Deleting from Evolution API for auto-recovery.`);
+        await this.logTenantEvent(tenant.id, 'INSTANCE_BROKEN_AUTO_DELETED', { instanceName });
+        await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
+      }
+    }
 
     this.logger.log(`WhatsApp pairing code result for ${instanceName}: state=${state}, pairingCode=${pairingCode ? 'present' : 'missing'}`);
 
