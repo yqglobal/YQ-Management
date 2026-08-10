@@ -230,6 +230,7 @@ export class WhatsappService implements OnModuleInit {
     path: string,
     method: string = 'GET',
     body?: any,
+    timeoutMs: number = 15000,
   ): Promise<FetchEvoResult> {
     const startTime = Date.now();
     const fullUrl = `${this.evoUrl}${path}`;
@@ -253,7 +254,7 @@ export class WhatsappService implements OnModuleInit {
     this.whatsappLogger.logRequest(fullUrl, method, body);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 35000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const res = await fetch(fullUrl, {
@@ -605,6 +606,16 @@ export class WhatsappService implements OnModuleInit {
     await this.logTenantEvent(tenant.id, 'PAIRING_CODE_REQUESTED', { instanceName, phone: normalizedPhone });
 
     let stateRes = await this.fetchEvo(`/instance/connectionState/${instanceName}`, 'GET');
+    
+    // FORCE REFRESH for Pairing Code: If the instance exists but is not 'open',
+    // it might be stuck in a QR code session. We MUST delete it and recreate 
+    // it to guarantee Evolution API generates a pairing code instead of returning the old QR.
+    if (!stateRes.error && stateRes.data?.instance?.state !== 'open') {
+      this.logger.log(`Deleting existing non-open instance ${instanceName} to force fresh pairing code generation.`);
+      await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
+      stateRes = { error: { message: 'deleted', raw: '' }, status: 404, data: null };
+    }
+
     let needsCreation = stateRes.error && (stateRes.status === 404 || stateRes.status === 400);
 
     if (needsCreation) {
@@ -668,6 +679,8 @@ export class WhatsappService implements OnModuleInit {
         await this.logTenantEvent(tenant.id, 'INSTANCE_BROKEN_AUTO_DELETED', { instanceName });
         await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
       }
+      
+      throw new HttpException('Failed to generate pairing code. The backend auto-recovered the instance. Please try again in a moment.', HttpStatus.SERVICE_UNAVAILABLE);
     }
 
     this.logger.log(`WhatsApp pairing code result for ${instanceName}: state=${state}, pairingCode=${pairingCode ? 'present' : 'missing'}`);
