@@ -3,7 +3,7 @@ services:
     name: qmova-evolution-api
     runtime: image
     image:
-      url: evoapicloud/evolution-api:2.3.7
+      url: evoapicloud/evolution-api:v2.3.7
     envVars:
       - key: SERVER_PORT
         value: 8080
