@@ -47,7 +47,7 @@ export class WhatsappService implements OnModuleInit {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  @Cron('0 */10 * * * *')
+  @Cron('0 */5 * * * *')
   async handleCronSync() {
     this.logger.debug('Running background auto-recovery sync for WhatsApp instances...');
     await this.syncAllInstances();
@@ -56,17 +56,36 @@ export class WhatsappService implements OnModuleInit {
   /**
    * Syncs the database state of 'whatsappConnected: true' with the Evolution API.
    * If a tenant is supposed to be connected but their instance is missing/down, it attempts to recreate it.
+   * Also prunes stale instances stuck in connecting state for > 5 minutes.
    */
   async syncAllInstances() {
     try {
+      const evoRes = await this.fetchEvo('/instance/fetchInstances', 'GET');
+      const activeInstancesData = Array.isArray(evoRes?.data) ? evoRes.data : [];
+      const activeInstances = activeInstancesData.map((i: any) => i.instance?.instanceName || i.name || i.instanceName);
+
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+      // 1. Prune stale 'connecting' instances (timeout after 5 mins)
+      for (const instance of activeInstancesData) {
+        const status = instance.connectionStatus;
+        const updatedAtStr = instance.updatedAt || instance.createdAt;
+        if (!updatedAtStr) continue;
+        
+        const updatedAt = new Date(updatedAtStr);
+        if (status === 'connecting' && updatedAt < fiveMinutesAgo) {
+          const instanceName = instance.instance?.instanceName || instance.name || instance.instanceName;
+          if (instanceName) {
+            this.logger.warn(`Instance ${instanceName} stuck in connecting state for > 5 mins. Pruning...`);
+            await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
+          }
+        }
+      }
+
+      // 2. Sync tenants that should be connected
       const tenants = await this.prisma.tenant.findMany({
         where: { whatsappConnected: true, whatsappInstanceId: { not: null } },
       });
-
-      if (tenants.length === 0) return;
-
-      const evoRes = await this.fetchEvo('/instance/fetchInstances', 'GET');
-      const activeInstances = Array.isArray(evoRes?.data) ? evoRes.data.map(i => i.instance?.instanceName || i.name || i.instanceName) : [];
 
       for (const tenant of tenants) {
         if (!activeInstances.includes(tenant.whatsappInstanceId)) { 
@@ -456,6 +475,8 @@ export class WhatsappService implements OnModuleInit {
         instanceName,
         qrcode: true,
         integration: 'WHATSAPP-BAILEYS',
+        syncFullHistory: false,
+        readMessages: false,
       });
 
       if (createResult.error) {
@@ -580,6 +601,8 @@ export class WhatsappService implements OnModuleInit {
         instanceName,
         qrcode: false,
         integration: 'WHATSAPP-BAILEYS',
+        syncFullHistory: false,
+        readMessages: false,
       });
 
       if (createResult.error) {
@@ -1112,7 +1135,19 @@ export class WhatsappService implements OnModuleInit {
         `Failed to send WhatsApp message to ${normalizedNumber} on ${instanceName}: ${result.error.message}`,
       );
       const tenant = await this.prisma.tenant.findFirst({ where: { whatsappInstanceId: instanceName }});
-      if (tenant) await this.logTenantEvent(tenant.id, 'MESSAGE_SEND_FAILED', { number: normalizedNumber, error: result.error.message });
+      if (tenant) {
+        await this.logTenantEvent(tenant.id, 'MESSAGE_SEND_FAILED', { number: normalizedNumber, error: result.error.message });
+        
+        // AUTO-REPAIR: If error indicates instance is disconnected or broken
+        if (result.status === 401 || result.status === 404 || result.status === 428 || result.error.message.includes('not connected')) {
+          this.logger.warn(`Auto-repair triggered for ${instanceName}. Marking as disconnected due to send failure.`);
+          await this.prisma.tenant.update({
+            where: { id: tenant.id },
+            data: { whatsappConnected: false }
+          });
+          await this.logTenantEvent(tenant.id, 'DISCONNECTED', { reason: 'Message dispatch failed. Instance likely silent-disconnected.' });
+        }
+      }
       return { success: false, error: result.error.message };
     }
 
@@ -1308,6 +1343,8 @@ export class WhatsappService implements OnModuleInit {
         instanceName,
         qrcode: true,
         integration: 'WHATSAPP-BAILEYS',
+        syncFullHistory: false,
+        readMessages: false,
       });
     }
 
