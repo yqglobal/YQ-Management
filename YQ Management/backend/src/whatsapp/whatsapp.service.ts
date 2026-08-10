@@ -405,7 +405,7 @@ export class WhatsappService implements OnModuleInit {
         enabled: true,
         url: webhookUrl,
         byEvents: false,
-        base64: false,
+        base64: true,
         events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'MESSAGES_UPDATE'],
       }
     });
