@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
 import useWhatsapp from '../../../hooks/useWhatsapp';
+import { useAuth } from '../../../components/AuthContext';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
 import { Send, MessageSquare, QrCode, Loader2, AlertCircle, CheckCircle2, Phone, RefreshCw, Terminal, Smartphone } from 'lucide-react';
@@ -10,6 +11,7 @@ import PhoneInput from '../../../components/PhoneInput';
 import { toast } from 'sonner';
 
 export default function WhatsAppSettingsPage() {
+  const { user } = useAuth();
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrCodeType, setQrCodeType] = useState<'base64' | 'text' | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
@@ -346,6 +348,7 @@ export default function WhatsAppSettingsPage() {
           </section>
         )}
 
+        {user?.role === 'SUPER_ADMIN' && (
         <section className="pt-4 animate-in fade-in duration-700 delay-300">
           <div className="bg-[#0D1117] rounded-3xl overflow-hidden border border-gray-800 shadow-2xl">
             <div className="flex items-center gap-2 px-6 py-4 bg-[#161B22] border-b border-gray-800">
@@ -379,6 +382,7 @@ export default function WhatsAppSettingsPage() {
             </div>
           </div>
         </section>
+        )}
       </div>
     </SettingsLayout>
   );
