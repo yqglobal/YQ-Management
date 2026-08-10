@@ -299,7 +299,7 @@ export default function Onboarding() {
   };
 
   const handleConnectWhatsApp = () => {
-    connectWhatsAppMutation.mutate();
+    connectWhatsAppMutation.mutate(false);
   };
 
   const finishOnboarding = () => {
