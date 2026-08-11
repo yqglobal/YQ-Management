@@ -107,7 +107,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle }: Admin
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white flex overflow-hidden transition-colors">
+    <div className="h-screen w-full bg-gray-50 dark:bg-black text-gray-900 dark:text-white flex overflow-hidden transition-colors">
       <DashboardTour />
 
       {/* Mobile overlay */}
@@ -159,7 +159,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle }: Admin
 
         <div className="p-4 border-t border-gray-200 dark:border-white/10 space-y-1 shrink-0">
           {bottomItems.map((item) => {
-            if (item.adminOnly && (!user || user.role !== 'TENANT_ADMIN')) return null;
+            if (item.adminOnly && (!user || !['TENANT_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(user.role))) return null;
             const active = isActive(item.href);
             return (
               <Link

@@ -161,7 +161,7 @@ export default function Onboarding() {
               if (!companyName) setCompanyName(res.workspaceName);
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       }
 
       const savedStep = localStorage.getItem('onboarding_step');
@@ -177,7 +177,7 @@ export default function Onboarding() {
           if (parsed.companyName) setCompanyName(parsed.companyName);
           if (parsed.phone) setPhone(parsed.phone);
           if (parsed.selectedType) setSelectedType(parsed.selectedType);
-        } catch (e) {}
+        } catch (e) { }
       }
     }
   }, [router.query]);
@@ -200,10 +200,10 @@ export default function Onboarding() {
       const formattedPhone = phone.trim().startsWith('+') ? phone.trim() : `${countryCode} ${phone.trim().replace(/^0/, '')}`;
       return fetchApi('/auth/personal-settings', {
         method: 'PATCH',
-        body: JSON.stringify({ 
-          fullName, 
-          phone: formattedPhone, 
-          companyName: inviteCode ? (inviteInfo?.workspaceName || 'Team Workspace') : companyName 
+        body: JSON.stringify({
+          fullName,
+          phone: formattedPhone,
+          companyName: inviteCode ? (inviteInfo?.workspaceName || 'Team Workspace') : companyName
         }),
       });
     },
@@ -280,16 +280,16 @@ export default function Onboarding() {
   }, [step, cachedQrQuery.data]);
 
   useEffect(() => {
-     if (whatsappStatus?.state === 'open') {
-       setQrCode(null);
-       setPairingCode(null);
-       setPairingPhoneNumber('');
-     } else if (whatsappStatus?.state === 'connecting') {
-       if (whatsappStatus.qr) setQrCode(whatsappStatus.qr);
-     } else if (whatsappStatus?.state === 'close' || whatsappStatus?.state === 'unconfigured') {
-       setQrCode(null);
-     }
-   }, [whatsappStatus]);
+    if (whatsappStatus?.state === 'open') {
+      setQrCode(null);
+      setPairingCode(null);
+      setPairingPhoneNumber('');
+    } else if (whatsappStatus?.state === 'connecting') {
+      if (whatsappStatus.qr) setQrCode(whatsappStatus.qr);
+    } else if (whatsappStatus?.state === 'close' || whatsappStatus?.state === 'unconfigured') {
+      setQrCode(null);
+    }
+  }, [whatsappStatus]);
 
   const handleSetupQueues = () => {
     const template = BUSINESS_TEMPLATES.find(t => t.id === selectedType);
@@ -330,8 +330,8 @@ export default function Onboarding() {
             <>
               <h1 className="text-5xl font-bold mb-6 leading-tight">{inviteCode ? 'Join Your Team' : 'Welcome to Qmova'}</h1>
               <p className="text-blue-200/70 text-lg leading-relaxed">
-                {inviteCode 
-                  ? "Let's save your personal profile details before entering your workspace." 
+                {inviteCode
+                  ? "Let's save your personal profile details before entering your workspace."
                   : "Let's start by getting to know you and your business."}
               </p>
             </>
@@ -379,7 +379,7 @@ export default function Onboarding() {
       {/* RIGHT PANEL */}
       <div className="flex-1 bg-[#F3F4F6] flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
         <div className="w-full max-w-2xl py-12">
-          
+
           {step === 1 && (
             <div className="animate-in fade-in slide-in-from-right-8 duration-500 max-w-md mx-auto">
               <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
@@ -455,20 +455,19 @@ export default function Onboarding() {
 
           {step === 2 && (
             <div className="animate-in fade-in slide-in-from-right-8 duration-500">
-              
+
               <div className="grid grid-cols-2 gap-4 mb-8">
                 {BUSINESS_TEMPLATES.map((template) => {
                   const Icon = template.icon;
                   const isSelected = selectedType === template.id;
                   return (
-                    <div 
+                    <div
                       key={template.id}
                       onClick={() => setSelectedType(template.id)}
-                      className={`relative p-6 rounded-2xl cursor-pointer transition-all duration-200 border-2 ${
-                        isSelected 
-                          ? 'bg-white border-[#2563EB] shadow-[0_0_0_4px_rgba(37,99,235,0.1)]' 
+                      className={`relative p-6 rounded-2xl cursor-pointer transition-all duration-200 border-2 ${isSelected
+                          ? 'bg-white border-[#2563EB] shadow-[0_0_0_4px_rgba(37,99,235,0.1)]'
                           : 'bg-white/60 border-transparent hover:bg-white hover:shadow-md'
-                      }`}
+                        }`}
                     >
                       {isSelected && (
                         <div className="absolute top-4 right-4 w-6 h-6 bg-[#2563EB] rounded-full flex items-center justify-center text-white">
@@ -480,7 +479,7 @@ export default function Onboarding() {
                       </div>
                       <h3 className="text-lg font-bold text-gray-900 mb-1">{template.title}</h3>
                       <p className="text-sm text-gray-500">{template.description}</p>
-                      
+
                       <div className="mt-4 pt-4 border-t border-gray-100">
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Includes</p>
                         <ul className="text-sm text-gray-600 space-y-1">
@@ -498,14 +497,14 @@ export default function Onboarding() {
               </div>
 
               <div className="flex gap-4">
-                <button 
+                <button
                   type="button"
                   onClick={() => updateStep(1)}
                   className="w-1/3 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
                 >
                   Back
                 </button>
-                <button 
+                <button
                   onClick={handleSetupQueues}
                   disabled={setupQueuesMutation.isPending}
                   className="flex-1 flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
