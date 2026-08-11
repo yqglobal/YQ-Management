@@ -319,4 +319,52 @@ export class UsersService {
 
     return { success: true };
   }
+
+  async updateRole(tenantId: string, id: string, newRole: Role, currentUserId: string, currentUserEmail: string) {
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, email: true, tenantId: true },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found.');
+    }
+
+    if (targetUser.tenantId !== tenantId) {
+      throw new BadRequestException('User does not belong to this tenant.');
+    }
+
+    if (targetUser.role === 'TENANT_ADMIN' && newRole !== 'TENANT_ADMIN') {
+      const adminCount = await this.prisma.user.count({
+        where: { tenantId, role: 'TENANT_ADMIN' },
+      });
+
+      if (adminCount <= 1) {
+        throw new BadRequestException(
+          'Cannot demote the last admin. Transfer admin role to another user first.',
+        );
+      }
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id },
+      data: { role: newRole },
+      select: { id: true, email: true, role: true, workspaceId: true },
+    });
+
+    const workspace = await this.prisma.workspace.findFirst({
+      where: { tenantId },
+      select: { name: true },
+    });
+
+    const workspaceName = workspace?.name || 'Workspace Team';
+
+    if (newRole === 'TENANT_ADMIN') {
+      await this.emailService.sendAdminTransferEmail(currentUserEmail, updatedUser.email, workspaceName);
+    } else {
+      await this.emailService.sendRoleUpdatedEmail(updatedUser.email, workspaceName, newRole);
+    }
+
+    return { success: true, user: updatedUser };
+  }
 }

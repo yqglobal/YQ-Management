@@ -3,22 +3,19 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
   LayoutDashboard,
-  List,
   Scan,
-  History,
-  QrCode,
   Users,
   Settings,
   LogOut,
-  CreditCard,
   Menu,
   X,
   Bell,
   ChevronDown,
   Sun,
   Moon,
-  Hash,
   Shield,
+  CalendarCheck,
+  LineChart,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { DashboardTour } from './DashboardTour';
@@ -45,28 +42,19 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle }: Admin
 
   const initials = user?.email ? user.email.substring(0, 2).toUpperCase() : '??';
 
-  const [queueCount, setQueueCount] = useState(0);
-
-  useEffect(() => {
-    fetchApi('/queue').then((data: any) => {
-      if (Array.isArray(data)) setQueueCount(data.length);
-    }).catch(() => {});
-  }, []);
-
   const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'Queues', href: '/dashboard/queues', icon: List, id: 'tour-queues-nav' },
-    { label: 'Scanner', href: '/dashboard/scanner', icon: Scan },
-    { label: 'Analytics & Records', href: '/dashboard/history', icon: History },
-    { label: 'QR Display', href: '/dashboard/display-picker', icon: QrCode },
+    { label: 'Appointments', href: '/dashboard/appointments', icon: CalendarCheck },
+    { label: 'Locations & Services', href: '/dashboard/locations', icon: LayoutDashboard },
+    { label: 'People', href: '/dashboard/people', icon: Users },
+    { label: 'Analytics', href: '/dashboard/analytics', icon: LineChart },
+    { label: 'Check-in', href: '/dashboard/check-in', icon: Scan },
   ];
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.email?.toLowerCase() === 'yqbuddysa@gmail.com';
 
   const bottomItems = [
     ...(isSuperAdmin ? [{ label: 'Super Admin', href: '/super-admin', icon: Shield, adminOnly: true }] : []),
-    { label: 'Team Members', href: '/dashboard/settings/staff', icon: Users, adminOnly: true },
-    { label: 'Billing & Plans', href: '/dashboard/settings/billing', icon: CreditCard, adminOnly: true },
     { label: 'Settings', href: '/dashboard/settings', icon: Settings, id: 'tour-settings-nav', adminOnly: true },
   ];
 
@@ -130,31 +118,25 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle }: Admin
         </div>
 
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-{navItems.map((item) => {
-             const active = isActive(item.href);
-             const isQueues = item.href === '/dashboard/queues';
-             return (
-               <Link
-                 key={item.href}
-                 href={item.href}
-                 id={item.id}
-                 onClick={() => setMobileOpen(false)}
-                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                   active
-                     ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 font-medium border border-indigo-200 dark:border-indigo-500/20'
-                     : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white border border-transparent'
-                 }`}
-               >
-                 <item.icon className={`w-5 h-5 ${active ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-zinc-500'}`} />
-                 {item.label}
-                 {isQueues && queueCount > 0 && (
-                   <span className="ml-auto px-2 py-0.5 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-full">
-                     {queueCount}
-                   </span>
-                 )}
-               </Link>
-             );
-           })}
+          {navItems.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                id={(item as any).id}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                  active
+                    ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 font-medium border border-indigo-200 dark:border-indigo-500/20'
+                    : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white border border-transparent'
+                }`}
+              >
+                <item.icon className={`w-5 h-5 ${active ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-zinc-500'}`} />
+                {item.label}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="p-4 border-t border-gray-200 dark:border-white/10 space-y-1 shrink-0">
@@ -165,7 +147,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle }: Admin
               <Link
                 key={item.href}
                 href={item.href}
-                id={item.id}
+                id={(item as any).id}
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   active

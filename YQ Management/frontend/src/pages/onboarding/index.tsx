@@ -7,6 +7,7 @@ import { QrCode, Loader2, ArrowRight, Store, Activity, Pizza, Briefcase, Check, 
 import { QRCodeSVG } from 'qrcode.react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import useWhatsapp from '../../hooks/useWhatsapp';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const COUNTRY_CODES = [
   { code: '+27', label: '🇿🇦 +27 (ZA)' },
@@ -26,9 +27,9 @@ const BUSINESS_TEMPLATES = [
   {
     id: 'general',
     title: 'General',
-    description: 'Standard queue for everyday use.',
+    description: 'Standard setup for everyday use.',
     icon: Store,
-    queues: [
+    services: [
       {
         name: 'General Queue',
         formConfig: [
@@ -43,7 +44,7 @@ const BUSINESS_TEMPLATES = [
     title: 'Hospital & Clinic',
     description: 'Manage patient flow across departments.',
     icon: Activity,
-    queues: [
+    services: [
       {
         name: 'Walk-in Clinic',
         formConfig: [
@@ -74,7 +75,7 @@ const BUSINESS_TEMPLATES = [
     title: 'Restaurant & Fast Food',
     description: 'Order pickups and dine-in waitlists.',
     icon: Pizza,
-    queues: [
+    services: [
       {
         name: 'Order Pickup',
         formConfig: [
@@ -98,7 +99,7 @@ const BUSINESS_TEMPLATES = [
     title: 'Visa & Government',
     description: 'High-security document processing.',
     icon: Briefcase,
-    queues: [
+    services: [
       {
         name: 'Document Submission',
         formConfig: [
@@ -242,20 +243,31 @@ export default function Onboarding() {
   };
 
   const setupQueuesMutation = useMutation({
-    mutationFn: (template: typeof BUSINESS_TEMPLATES[number]) =>
-      Promise.all(template.queues.map(q =>
-        fetchApi('/queue', {
+    mutationFn: async (template: typeof BUSINESS_TEMPLATES[number]) => {
+      // 1. Create Default Location
+      const location = await fetchApi('/location', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Main Branch' }),
+      });
+      // 2. Create Services under that location
+      await Promise.all(template.services.map(s =>
+        fetchApi('/service', {
           method: 'POST',
-          body: JSON.stringify({ name: q.name, formConfig: q.formConfig }),
+          body: JSON.stringify({ 
+            name: s.name, 
+            locationId: location.id,
+            description: 'Created during setup'
+          }),
         })
-      )),
+      ));
+    },
     onSuccess: () => {
       updateStep(3);
-      queryClient.invalidateQueries({ queryKey: ['queues'] });
-      toast.success('Queues setup successfully');
+      queryClient.invalidateQueries({ queryKey: ['locations', 'services'] });
+      toast.success('Location & Services setup successfully');
     },
     onError: () => {
-      toast.error('Failed to setup your queues. Please try again.');
+      toast.error('Failed to setup your workspace. Please try again.');
     },
     onSettled: () => {
     },
@@ -339,7 +351,7 @@ export default function Onboarding() {
             <>
               <h1 className="text-5xl font-bold mb-6 leading-tight">What kind of business are you running?</h1>
               <p className="text-blue-200/70 text-lg leading-relaxed">
-                We'll automatically set up the perfect queues and custom form questions tailored to your industry.
+                We'll automatically set up the perfect locations and services tailored to your industry.
               </p>
             </>
           ) : step === 3 ? (
@@ -378,10 +390,17 @@ export default function Onboarding() {
 
       {/* RIGHT PANEL */}
       <div className="flex-1 bg-[#F3F4F6] flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
-        <div className="w-full max-w-2xl py-12">
-
-          {step === 1 && (
-            <div className="animate-in fade-in slide-in-from-right-8 duration-500 max-w-md mx-auto">
+        <div className="w-full max-w-2xl py-12 relative overflow-hidden">
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <motion.div 
+                key="step1"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="max-w-md mx-auto"
+              >
               <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Personal Information</h2>
                 <div className="space-y-4">
@@ -450,11 +469,17 @@ export default function Onboarding() {
                   {!savePersonalInfoMutation.isPending && <ArrowRight className="w-5 h-5" />}
                 </button>
               </div>
-            </div>
-          )}
+              </motion.div>
+            )}
 
-          {step === 2 && (
-            <div className="animate-in fade-in slide-in-from-right-8 duration-500">
+            {step === 2 && (
+              <motion.div 
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
 
               <div className="grid grid-cols-2 gap-4 mb-8">
                 {BUSINESS_TEMPLATES.map((template) => {
@@ -483,10 +508,10 @@ export default function Onboarding() {
                       <div className="mt-4 pt-4 border-t border-gray-100">
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Includes</p>
                         <ul className="text-sm text-gray-600 space-y-1">
-                          {template.queues.map(q => (
-                            <li key={q.name} className="flex items-center gap-2">
+                          {template.services.map(s => (
+                            <li key={s.name} className="flex items-center gap-2">
                               <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                              {q.name}
+                              {s.name}
                             </li>
                           ))}
                         </ul>
@@ -510,15 +535,22 @@ export default function Onboarding() {
                   className="flex-1 flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
                 >
                   {setupQueuesMutation.isPending && <Loader2 className="w-5 h-5 animate-spin" />}
-                  {setupQueuesMutation.isPending ? 'Setting up queues...' : 'Continue'}
+                  {setupQueuesMutation.isPending ? 'Setting up workspace...' : 'Continue'}
                   {!setupQueuesMutation.isPending && <ArrowRight className="w-5 h-5" />}
                 </button>
               </div>
-            </div>
-          )}
+              </motion.div>
+            )}
 
-          {step === 3 && (
-            <div className="max-w-lg mx-auto animate-in fade-in slide-in-from-right-8 duration-500 bg-white rounded-3xl p-10 shadow-xl border border-gray-100 text-center">
+            {step === 3 && (
+              <motion.div 
+                key="step3"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="max-w-lg mx-auto bg-white rounded-3xl p-10 shadow-xl border border-gray-100 text-center"
+              >
 
               {whatsappStatus?.state !== 'open' ? (
                 <>
@@ -670,14 +702,21 @@ export default function Onboarding() {
                   onClick={() => updateStep(2)}
                   className="text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1"
                 >
-                  ← Back to Queues
+                  ← Back to Setup
                 </button>
               </div>
-            </div>
-          )}
+              </motion.div>
+            )}
 
-          {step === 4 && (
-            <div className="max-w-md mx-auto animate-in fade-in slide-in-from-right-8 duration-500 bg-white rounded-3xl p-10 shadow-xl border border-gray-100 text-center">
+            {step === 4 && (
+              <motion.div 
+                key="step4"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="max-w-md mx-auto bg-white rounded-3xl p-10 shadow-xl border border-gray-100 text-center"
+              >
               <div className="w-20 h-20 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-6 shadow-sm border border-indigo-100">
                 <Users className="w-10 h-10" />
               </div>
@@ -714,9 +753,9 @@ export default function Onboarding() {
               >
                 ← Edit Personal Details
               </button>
-            </div>
-          )}
-
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

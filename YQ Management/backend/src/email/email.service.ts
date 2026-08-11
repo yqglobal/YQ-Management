@@ -283,4 +283,82 @@ export class EmailService {
       this.logger.error(`Failed to send invitation expiration notification to ${adminEmail}`, error);
     }
   }
+
+  async sendRoleUpdatedEmail(email: string, workspaceName: string, newRole: string) {
+    try {
+      if (!this.apiKey) {
+        this.logger.warn(`[MOCK EMAIL] Role updated for ${email} in ${workspaceName} to ${newRole}`);
+        return;
+      }
+
+      const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Role Updated</h2>
+      <p style="color: #4b5563; line-height: 1.6;">Your role in the workspace <strong>${workspaceName}</strong> has been updated.</p>
+      <p style="color: #4b5563; line-height: 1.6;">You are now assigned the role of <strong>${newRole}</strong>.</p>
+      <p style="color: #4b5563; line-height: 1.6;">If you believe this was a mistake, please contact your workspace administrator.</p>
+      ${generateButtonHtml('Go to Dashboard', 'https://yq-qmova.vercel.app/dashboard')}`;
+
+      const htmlContent = createBrandEmailLayout({
+        title: 'Your Qmova Role was Updated',
+        preheader: `Your role in ${workspaceName} was changed to ${newRole}`,
+        content,
+      });
+
+      await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'api-key': this.apiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: `${this.senderName} Notifications`, email: this.senderEmail },
+          to: [{ email }],
+          subject: `Your Role was updated in ${workspaceName}`,
+          htmlContent,
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      this.logger.log(`Sent role update notification to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send role update email to ${email}`, error);
+    }
+  }
+
+  async sendAdminTransferEmail(oldAdminEmail: string, newAdminEmail: string, workspaceName: string) {
+    try {
+      if (!this.apiKey) return;
+
+      const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Admin Privileges Granted</h2>
+      <p style="color: #4b5563; line-height: 1.6;">You have been granted full <strong>Admin</strong> privileges in the workspace <strong>${workspaceName}</strong> by ${oldAdminEmail}.</p>
+      <p style="color: #4b5563; line-height: 1.6;">You now have full control over the workspace settings, billing, and staff management.</p>
+      ${generateButtonHtml('Access Workspace', 'https://yq-qmova.vercel.app/dashboard')}`;
+
+      const htmlContent = createBrandEmailLayout({
+        title: 'You are now an Admin',
+        preheader: `You have been granted Admin privileges in ${workspaceName}`,
+        content,
+      });
+
+      await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'api-key': this.apiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: `${this.senderName} Notifications`, email: this.senderEmail },
+          to: [{ email: newAdminEmail }],
+          subject: `You are now an Admin in ${workspaceName}`,
+          htmlContent,
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      this.logger.log(`Sent admin transfer notification to ${newAdminEmail}`);
+    } catch (error) {
+      this.logger.error(`Failed to send admin transfer email to ${newAdminEmail}`, error);
+    }
+  }
 }

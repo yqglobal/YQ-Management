@@ -81,7 +81,7 @@ export class AuditInterceptor implements NestInterceptor {
           statusCode,
           durationMs,
           details: { request: safeBody, response: resData, error: error?.message } as any,
-          ipAddress: request.ip,
+          ipAddress: request.headers['x-forwarded-for'] || request.ip || request.connection?.remoteAddress,
           userAgent: request.headers['user-agent'],
         },
       })

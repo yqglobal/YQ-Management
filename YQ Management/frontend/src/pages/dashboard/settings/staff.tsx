@@ -101,6 +101,18 @@ export default function StaffDirectory() {
     onError: (e: Error) => toast.error(e.message || 'Failed to resend invitation')
   });
 
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ id, newRole }: { id: string, newRole: string }) => fetchApi(`/users/${id}/role`, {
+      method: 'POST',
+      body: JSON.stringify({ role: newRole })
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      toast.success('Role successfully updated!');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Failed to update role')
+  });
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
@@ -115,6 +127,20 @@ export default function StaffDirectory() {
     const label = isInvite ? 'invitation for' : 'member';
     if (!confirm(`Are you sure you want to remove this ${label} ${email}?`)) return;
     deleteStaff.mutate(id);
+  };
+
+  const handleRoleChange = (id: string, newRole: string, isInvite?: boolean) => {
+    if (isInvite) {
+      toast.warning('Cancel and send a new invitation to change roles for invited users.');
+      return;
+    }
+    if (newRole === 'TENANT_ADMIN') {
+      if (!confirm('Are you sure you want to grant this user Admin privileges? They will have full control over the workspace.')) return;
+    }
+    if (id === user?.userId && newRole !== 'TENANT_ADMIN') {
+      if (!confirm('Are you sure you want to demote yourself? You will lose admin privileges.')) return;
+    }
+    updateRoleMutation.mutate({ id, newRole });
   };
 
   const handleJoinWorkspace = async (e: React.FormEvent) => {
@@ -272,9 +298,25 @@ export default function StaffDirectory() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 border-gray-200 dark:border-white/10">
-                        <Shield className="w-3.5 h-3.5" /> {s.role}
-                      </span>
+                      {s.isInvite ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 border-gray-200 dark:border-white/10">
+                          <Shield className="w-3.5 h-3.5" /> {s.role}
+                        </span>
+                      ) : (
+                        <div className="relative w-36">
+                          <select
+                            value={s.role}
+                            onChange={(e) => handleRoleChange(s.id, e.target.value, s.isInvite)}
+                            disabled={!isAdmin || updateRoleMutation.isPending}
+                            className="w-full bg-transparent border-none appearance-none cursor-pointer focus:ring-0 text-sm font-medium text-gray-700 dark:text-zinc-300 px-2 py-1 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                          >
+                            <option value="OPERATOR">OPERATOR</option>
+                            <option value="MANAGER">MANAGER</option>
+                            <option value="TENANT_ADMIN">ADMIN</option>
+                          </select>
+                          <Shield className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {s.status === 'ACTIVE' || (!s.status && !s.isInvite) ? (

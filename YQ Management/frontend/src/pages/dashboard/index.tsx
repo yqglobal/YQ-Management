@@ -4,16 +4,19 @@ import AdminLayout from '../../components/AdminLayout';
 import { 
   Users, Clock, CalendarCheck, CheckCircle2, 
   Plus, Search, Filter, MoreVertical, Play, 
-  Pause, Check, X 
+  Pause, Check, X, AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { useRouter } from 'next/router';
+import { VisitDrawer } from '../../components/VisitDrawer';
 
 export default function Dashboard() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'ALL' | 'WAITING' | 'IN_SERVICE'>('ALL');
+  const [selectedVisit, setSelectedVisit] = useState<any | null>(null);
 
   // Fetch Visits instead of Queues
   const { data: visits = [], isLoading: isVisitsLoading } = useQuery({
@@ -90,6 +93,35 @@ export default function Dashboard() {
           />
         </div>
 
+        {/* Needs Attention */}
+        {waitingVisits.some((v: any) => v.waitingStart && (Date.now() - new Date(v.waitingStart).getTime()) > 15 * 60 * 1000) && (
+          <div className="bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+               <AlertCircle className="w-5 h-5 text-red-500" />
+               <h2 className="text-lg font-bold text-red-900 dark:text-red-400">Needs Attention</h2>
+            </div>
+            <div className="space-y-2">
+              {waitingVisits
+                .filter((v: any) => v.waitingStart && (Date.now() - new Date(v.waitingStart).getTime()) > 15 * 60 * 1000)
+                .map((v: any) => (
+                <div key={v.id} className="flex items-center justify-between bg-white dark:bg-black/20 p-3 rounded-lg border border-red-100 dark:border-red-500/20">
+                   <div>
+                     <p className="text-sm font-medium text-gray-900 dark:text-white">
+                       <span className="font-bold">{v.customer?.name || 'Walk-in'}</span> has been waiting for over 15 minutes.
+                     </p>
+                   </div>
+                   <button 
+                     onClick={() => setSelectedVisit(v)} 
+                     className="text-sm font-medium text-red-600 hover:text-red-700"
+                   >
+                     View Details
+                   </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Live Visits Table */}
         <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-md border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
           <div className="p-5 border-b border-gray-200 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -127,7 +159,11 @@ export default function Dashboard() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                 {displayVisits.map((visit: any) => (
-                  <tr key={visit.id} className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors group">
+                  <tr 
+                    key={visit.id} 
+                    className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors group cursor-pointer"
+                    onClick={() => setSelectedVisit(visit)}
+                  >
                     <td className="p-4">
                       <div className="font-medium text-gray-900 dark:text-white">{visit.customer?.name || 'Walk-in Customer'}</div>
                       <div className="text-xs text-gray-500">{visit.customer?.phone || 'No phone'}</div>
@@ -153,16 +189,36 @@ export default function Dashboard() {
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {visit.currentState === 'WAITING' && (
-                          <button className="p-1.5 bg-emerald-100 text-emerald-600 hover:bg-emerald-200 rounded-md transition-colors" title="Call Next">
+                          <button 
+                            className="p-1.5 bg-emerald-100 text-emerald-600 hover:bg-emerald-200 rounded-md transition-colors" 
+                            title="Call Next"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              fetchApi(`/visits/${visit.id}/start`, { method: 'POST' }).then(() => queryClient.invalidateQueries({ queryKey: ['visits'] }));
+                            }}
+                          >
                             <Play className="w-4 h-4" />
                           </button>
                         )}
                         {visit.currentState === 'IN_SERVICE' && (
-                          <button className="p-1.5 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-md transition-colors" title="Complete">
+                          <button 
+                            className="p-1.5 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-md transition-colors" 
+                            title="Complete"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              fetchApi(`/visits/${visit.id}/complete`, { method: 'POST' }).then(() => queryClient.invalidateQueries({ queryKey: ['visits'] }));
+                            }}
+                          >
                             <Check className="w-4 h-4" />
                           </button>
                         )}
-                        <button className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 rounded-md transition-colors">
+                        <button 
+                          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 rounded-md transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedVisit(visit);
+                          }}
+                        >
                           <MoreVertical className="w-4 h-4" />
                         </button>
                       </div>
@@ -186,6 +242,12 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <VisitDrawer 
+        isOpen={!!selectedVisit} 
+        onClose={() => setSelectedVisit(null)} 
+        visit={selectedVisit} 
+      />
     </AdminLayout>
   );
 }

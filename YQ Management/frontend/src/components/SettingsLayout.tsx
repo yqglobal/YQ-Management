@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import AdminLayout from './AdminLayout';
-import { Settings, MessageSquare, Users, CreditCard, Webhook } from 'lucide-react';
+import { Settings, MessageSquare, Users, CreditCard, Webhook, ArrowLeft } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 interface SettingsLayoutProps {
@@ -26,46 +26,24 @@ export default function SettingsLayout({ children, pageTitle = 'Settings', pageS
     { label: 'Billing & Plans', href: '/dashboard/settings/billing', icon: CreditCard, adminOnly: true },
   ];
 
-  // Filter tabs based on role
-  const visibleTabs = settingsTabs.filter(tab => !tab.adminOnly || isAdmin);
-
-  const isActive = (href: string) => {
-    if (href === '/dashboard/settings') {
-      return router.pathname === '/dashboard/settings';
-    }
-    return router.pathname === href;
-  };
-
   return (
     <AdminLayout pageTitle={pageTitle} pageSubtitle={pageSubtitle}>
-      <div className="flex flex-col md:flex-row gap-6 lg:gap-8 max-w-7xl mx-auto h-full min-h-[calc(100vh-120px)] p-4 sm:p-6 lg:p-8">
-
-        {/* Secondary Sidebar for Settings */}
-        <div className="w-full md:w-64 shrink-0">
-          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-2 sticky top-24">
-            <nav className="flex flex-col gap-1">
-              {visibleTabs.map((tab) => {
-                const active = isActive(tab.href);
-                return (
-                  <button
-                    key={tab.href}
-                    onClick={() => router.push(tab.href)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm w-full text-left ${active
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                        : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-zinc-200'
-                      }`}
-                  >
-                    <tab.icon className={`w-5 h-5 ${active ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-zinc-500'}`} />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </nav>
+      <div className="max-w-7xl mx-auto h-full min-h-[calc(100vh-120px)] p-4 sm:p-6 lg:p-8">
+        
+        {router.pathname !== '/dashboard/settings' && (
+          <div className="mb-6">
+            <Link 
+              href="/dashboard/settings"
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors shadow-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Settings
+            </Link>
           </div>
-        </div>
+        )}
 
         {/* Settings Content Area */}
-        <div className="flex-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 lg:p-8 shadow-sm h-fit">
+        <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-sm h-fit">
           {children}
         </div>
       </div>

@@ -3,7 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { CacheModule } from '@nestjs/cache-manager';
+import * as redisStore from 'cache-manager-redis-store';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { CacheInterceptor } from '@nestjs/cache-manager';
 import { LoggerModule } from 'nestjs-pino';
 import createLogRoutingTransport from './config/log-routing';
 import { AppController } from './app.controller';
@@ -38,6 +41,8 @@ import { LocationModule } from './location/location.module';
 import { ServiceModule } from './service/service.module';
 import { StaffModule } from './staff/staff.module';
 import { ResourceModule } from './resource/resource.module';
+import { CustomerModule } from './customer/customer.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -80,6 +85,13 @@ import { ResourceModule } from './resource/resource.module';
         port: Number(process.env.REDIS_PORT) || 6379,
       },
     }),
+    CacheModule.register({
+      isGlobal: true,
+      store: redisStore,
+      host: process.env.REDIS_HOST || 'localhost',
+      port: Number(process.env.REDIS_PORT) || 6379,
+      ttl: 60, // Default 60 seconds
+    }),
     ScheduleModule.forRoot(),
     TenantModule,
     PrismaModule,
@@ -106,6 +118,8 @@ import { ResourceModule } from './resource/resource.module';
     ServiceModule,
     StaffModule,
     ResourceModule,
+    CustomerModule,
+    TasksModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

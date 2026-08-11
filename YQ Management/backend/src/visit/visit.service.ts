@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
@@ -61,26 +61,50 @@ export class VisitService {
   }
 
   async checkIn(id: string, tenantId: string) {
-    await this.findOne(id, tenantId);
+    const visit = await this.findOne(id, tenantId);
+    
+    if (visit.currentState === 'CHECKED_IN' || visit.currentState === 'IN_SERVICE' || visit.currentState === 'COMPLETED') {
+      throw new ConflictException(`Visit is already ${visit.currentState.toLowerCase()}`);
+    }
+
     return this.prisma.visit.update({
       where: { id },
-      data: { currentState: 'CHECKED_IN', waitingStart: new Date() },
+      data: {
+        currentState: 'CHECKED_IN',
+        waitingStart: new Date(),
+      },
     });
   }
 
   async startService(id: string, tenantId: string) {
-    await this.findOne(id, tenantId);
+    const visit = await this.findOne(id, tenantId);
+
+    if (visit.currentState === 'IN_SERVICE' || visit.currentState === 'COMPLETED') {
+      throw new ConflictException(`Visit is already ${visit.currentState.toLowerCase()}`);
+    }
+
     return this.prisma.visit.update({
       where: { id },
-      data: { currentState: 'IN_SERVICE', serviceStart: new Date() },
+      data: {
+        currentState: 'IN_SERVICE',
+        serviceStart: new Date(),
+      },
     });
   }
 
   async completeService(id: string, tenantId: string) {
-    await this.findOne(id, tenantId);
+    const visit = await this.findOne(id, tenantId);
+
+    if (visit.currentState === 'COMPLETED') {
+      throw new ConflictException('Visit is already completed');
+    }
+
     return this.prisma.visit.update({
       where: { id },
-      data: { currentState: 'COMPLETED', serviceEnd: new Date() },
+      data: {
+        currentState: 'COMPLETED',
+        serviceEnd: new Date(),
+      },
     });
   }
 }

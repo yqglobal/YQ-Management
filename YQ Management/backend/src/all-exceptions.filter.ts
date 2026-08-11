@@ -37,14 +37,25 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     this.logger.error(errorLog, 'Unhandled exception');
 
+    let message: string | string[] = 'Internal server error';
+
+    if (exception instanceof HttpException) {
+      const responseBody = exception.getResponse();
+      message =
+        typeof responseBody === 'object' && responseBody !== null && 'message' in responseBody
+          ? (responseBody as any).message
+          : responseBody;
+    } else if (exception instanceof Error) {
+      message = exception.message;
+    }
+
+    const formattedMessage = Array.isArray(message) ? message : [message];
+
     response.status(status).json({
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
-      message:
-        exception instanceof Error
-          ? exception.message
-          : 'Internal server error',
+      message: formattedMessage,
     });
   }
 }

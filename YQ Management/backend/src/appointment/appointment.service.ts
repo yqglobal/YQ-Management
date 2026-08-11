@@ -66,7 +66,32 @@ export class AppointmentService {
   }
 
   async update(id: string, tenantId: string, updateAppointmentDto: UpdateAppointmentDto) {
-    await this.findOne(id, tenantId);
+    const existing = await this.findOne(id, tenantId);
+
+    // If updating time or staff, check for conflicts
+    const staffId = updateAppointmentDto.staffId !== undefined ? updateAppointmentDto.staffId : existing.staffId;
+    const scheduledStart = updateAppointmentDto.scheduledStart || existing.scheduledStart;
+    const scheduledEnd = updateAppointmentDto.scheduledEnd || existing.scheduledEnd;
+    const status = updateAppointmentDto.status || existing.status;
+
+    if (staffId && !['CANCELLED', 'NO_SHOW', 'MISSED'].includes(status)) {
+      const conflict = await this.prisma.appointment.findFirst({
+        where: {
+          id: { not: id },
+          staffId: staffId,
+          status: { notIn: ['CANCELLED', 'NO_SHOW', 'MISSED'] },
+          OR: [
+            {
+              scheduledStart: { lt: scheduledEnd },
+              scheduledEnd: { gt: scheduledStart },
+            }
+          ]
+        }
+      });
+      if (conflict) {
+        throw new ConflictException('The selected staff member is already booked for this time slot.');
+      }
+    }
 
     return this.prisma.appointment.update({
       where: { id },
