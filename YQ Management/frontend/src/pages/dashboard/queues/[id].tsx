@@ -5,7 +5,7 @@ import AdminLayout from '../../../components/AdminLayout';
 import { Settings, ArrowLeft, Loader2, ListOrdered, Save, Calendar, CheckSquare, Settings2, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi } from '../../../lib/api';
 import { toast } from 'sonner';
 
 export default function QueueDetails() {
