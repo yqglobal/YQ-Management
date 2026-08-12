@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
@@ -18,12 +22,14 @@ export class AppointmentService {
             {
               scheduledStart: { lt: createAppointmentDto.scheduledEnd },
               scheduledEnd: { gt: createAppointmentDto.scheduledStart },
-            }
-          ]
-        }
+            },
+          ],
+        },
       });
       if (conflict) {
-        throw new ConflictException('The selected staff member is already booked for this time slot.');
+        throw new ConflictException(
+          'The selected staff member is already booked for this time slot.',
+        );
       }
     }
 
@@ -43,7 +49,7 @@ export class AppointmentService {
       },
       orderBy: {
         scheduledStart: 'asc',
-      }
+      },
     });
   }
 
@@ -65,13 +71,22 @@ export class AppointmentService {
     return appointment;
   }
 
-  async update(id: string, tenantId: string, updateAppointmentDto: UpdateAppointmentDto) {
+  async update(
+    id: string,
+    tenantId: string,
+    updateAppointmentDto: UpdateAppointmentDto,
+  ) {
     const existing = await this.findOne(id, tenantId);
 
     // If updating time or staff, check for conflicts
-    const staffId = updateAppointmentDto.staffId !== undefined ? updateAppointmentDto.staffId : existing.staffId;
-    const scheduledStart = updateAppointmentDto.scheduledStart || existing.scheduledStart;
-    const scheduledEnd = updateAppointmentDto.scheduledEnd || existing.scheduledEnd;
+    const staffId =
+      updateAppointmentDto.staffId !== undefined
+        ? updateAppointmentDto.staffId
+        : existing.staffId;
+    const scheduledStart =
+      updateAppointmentDto.scheduledStart || existing.scheduledStart;
+    const scheduledEnd =
+      updateAppointmentDto.scheduledEnd || existing.scheduledEnd;
     const status = updateAppointmentDto.status || existing.status;
 
     if (staffId && !['CANCELLED', 'NO_SHOW', 'MISSED'].includes(status)) {
@@ -84,12 +99,14 @@ export class AppointmentService {
             {
               scheduledStart: { lt: scheduledEnd },
               scheduledEnd: { gt: scheduledStart },
-            }
-          ]
-        }
+            },
+          ],
+        },
       });
       if (conflict) {
-        throw new ConflictException('The selected staff member is already booked for this time slot.');
+        throw new ConflictException(
+          'The selected staff member is already booked for this time slot.',
+        );
       }
     }
 

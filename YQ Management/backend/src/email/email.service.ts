@@ -1,5 +1,13 @@
-import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
-import { createBrandEmailLayout, generateOtpBoxHtml, generateButtonHtml } from './email-layout';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import {
+  createBrandEmailLayout,
+  generateOtpBoxHtml,
+  generateButtonHtml,
+} from './email-layout';
 
 @Injectable()
 export class EmailService {
@@ -14,7 +22,11 @@ export class EmailService {
     this.senderName = process.env.BREVO_SENDER_NAME || 'Qmova';
   }
 
-  async sendOTP(email: string, otpCode: string, purpose: 'signup' | 'login' | 'reset') {
+  async sendOTP(
+    email: string,
+    otpCode: string,
+    purpose: 'signup' | 'login' | 'reset',
+  ) {
     try {
       if (!this.apiKey) {
         this.logger.warn(`
@@ -111,7 +123,10 @@ export class EmailService {
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          sender: { name: `${this.senderName} Security`, email: this.senderEmail },
+          sender: {
+            name: `${this.senderName} Security`,
+            email: this.senderEmail,
+          },
           to: [{ email }],
           subject: 'Security Alert: New login to your Qmova Account',
           htmlContent,
@@ -184,7 +199,9 @@ export class EmailService {
   ) {
     try {
       if (!this.apiKey) {
-        this.logger.warn(`[MOCK EMAIL] Staff invitation to ${email} for workspace "${workspaceName}" (Role: ${role}). URL: ${inviteUrl}`);
+        this.logger.warn(
+          `[MOCK EMAIL] Staff invitation to ${email} for workspace "${workspaceName}" (Role: ${role}). URL: ${inviteUrl}`,
+        );
         return { success: true, mocked: true };
       }
 
@@ -225,7 +242,9 @@ export class EmailService {
 
       if (!res.ok) {
         const errorText = await res.text();
-        this.logger.error(`Brevo API error in sendStaffInvitation: ${errorText}`);
+        this.logger.error(
+          `Brevo API error in sendStaffInvitation: ${errorText}`,
+        );
         return { success: false, error: errorText };
       }
 
@@ -244,7 +263,9 @@ export class EmailService {
   ) {
     try {
       if (!this.apiKey) {
-        this.logger.warn(`[MOCK EMAIL] Invitation expired notice to admin ${adminEmail} for unaccepted invite ${staffEmail}`);
+        this.logger.warn(
+          `[MOCK EMAIL] Invitation expired notice to admin ${adminEmail} for unaccepted invite ${staffEmail}`,
+        );
         return;
       }
 
@@ -278,16 +299,27 @@ export class EmailService {
         signal: AbortSignal.timeout(10000),
       });
 
-      this.logger.log(`Sent invitation expiration notification to admin ${adminEmail}`);
+      this.logger.log(
+        `Sent invitation expiration notification to admin ${adminEmail}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to send invitation expiration notification to ${adminEmail}`, error);
+      this.logger.error(
+        `Failed to send invitation expiration notification to ${adminEmail}`,
+        error,
+      );
     }
   }
 
-  async sendRoleUpdatedEmail(email: string, workspaceName: string, newRole: string) {
+  async sendRoleUpdatedEmail(
+    email: string,
+    workspaceName: string,
+    newRole: string,
+  ) {
     try {
       if (!this.apiKey) {
-        this.logger.warn(`[MOCK EMAIL] Role updated for ${email} in ${workspaceName} to ${newRole}`);
+        this.logger.warn(
+          `[MOCK EMAIL] Role updated for ${email} in ${workspaceName} to ${newRole}`,
+        );
         return;
       }
 
@@ -311,7 +343,10 @@ export class EmailService {
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          sender: { name: `${this.senderName} Notifications`, email: this.senderEmail },
+          sender: {
+            name: `${this.senderName} Notifications`,
+            email: this.senderEmail,
+          },
           to: [{ email }],
           subject: `Your Role was updated in ${workspaceName}`,
           htmlContent,
@@ -325,7 +360,11 @@ export class EmailService {
     }
   }
 
-  async sendAdminTransferEmail(oldAdminEmail: string, newAdminEmail: string, workspaceName: string) {
+  async sendAdminTransferEmail(
+    oldAdminEmail: string,
+    newAdminEmail: string,
+    workspaceName: string,
+  ) {
     try {
       if (!this.apiKey) return;
 
@@ -348,7 +387,10 @@ export class EmailService {
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          sender: { name: `${this.senderName} Notifications`, email: this.senderEmail },
+          sender: {
+            name: `${this.senderName} Notifications`,
+            email: this.senderEmail,
+          },
           to: [{ email: newAdminEmail }],
           subject: `You are now an Admin in ${workspaceName}`,
           htmlContent,
@@ -358,7 +400,37 @@ export class EmailService {
 
       this.logger.log(`Sent admin transfer notification to ${newAdminEmail}`);
     } catch (error) {
-      this.logger.error(`Failed to send admin transfer email to ${newAdminEmail}`, error);
+      this.logger.error(
+        `Failed to send admin transfer email to ${newAdminEmail}`,
+        error,
+      );
     }
+  }
+
+  // --- Phase 1: Compliance & Production Email Placeholders ---
+
+  async sendWelcomeEmail(email: string, name: string) {
+    this.logger.log(`Placeholder: Sent Welcome email to ${email}`);
+    // TODO: Implement Brevo call with createBrandEmailLayout
+  }
+
+  async sendPolicyUpdateEmail(email: string, policyName: string, version: string) {
+    this.logger.log(`Placeholder: Sent Policy Update email to ${email}`);
+  }
+
+  async sendAccountDeletedEmail(email: string) {
+    this.logger.log(`Placeholder: Sent Account Deleted email to ${email}`);
+  }
+
+  async sendSubscriptionActivatedEmail(email: string, planName: string) {
+    this.logger.log(`Placeholder: Sent Subscription Activated email to ${email}`);
+  }
+
+  async sendSubscriptionCancelledEmail(email: string, planName: string) {
+    this.logger.log(`Placeholder: Sent Subscription Cancelled email to ${email}`);
+  }
+
+  async sendDemoRequestReceivedEmail(email: string) {
+    this.logger.log(`Placeholder: Sent Demo Request Received email to ${email}`);
   }
 }

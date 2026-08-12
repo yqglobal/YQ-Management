@@ -49,13 +49,17 @@ describe('AppointmentService', () => {
     });
 
     it('should throw ConflictException if staff is already booked', async () => {
-      mockPrismaService.appointment.findFirst.mockResolvedValue({ id: 'existing' });
+      mockPrismaService.appointment.findFirst.mockResolvedValue({
+        id: 'existing',
+      });
 
-      await expect(service.create({
-        staffId: 's1',
-        scheduledStart: new Date('2026-01-01T10:00:00Z'),
-        scheduledEnd: new Date('2026-01-01T11:00:00Z'),
-      } as any)).rejects.toThrow(ConflictException);
+      await expect(
+        service.create({
+          staffId: 's1',
+          scheduledStart: new Date('2026-01-01T10:00:00Z'),
+          scheduledEnd: new Date('2026-01-01T11:00:00Z'),
+        } as any),
+      ).rejects.toThrow(ConflictException);
 
       expect(mockPrismaService.appointment.create).not.toHaveBeenCalled();
     });
@@ -71,14 +75,18 @@ describe('AppointmentService', () => {
         scheduledEnd: new Date('2026-01-01T11:00:00Z'),
         status: 'SCHEDULED',
       });
-      
-      // overlapping appointment found
-      mockPrismaService.appointment.findFirst.mockResolvedValueOnce({ id: 'existing' });
 
-      await expect(service.update('app1', 't1', {
-        scheduledStart: new Date('2026-01-01T12:00:00Z'),
-        scheduledEnd: new Date('2026-01-01T13:00:00Z'),
-      } as any)).rejects.toThrow(ConflictException);
+      // overlapping appointment found
+      mockPrismaService.appointment.findFirst.mockResolvedValueOnce({
+        id: 'existing',
+      });
+
+      await expect(
+        service.update('app1', 't1', {
+          scheduledStart: new Date('2026-01-01T12:00:00Z'),
+          scheduledEnd: new Date('2026-01-01T13:00:00Z'),
+        } as any),
+      ).rejects.toThrow(ConflictException);
 
       expect(mockPrismaService.appointment.update).not.toHaveBeenCalled();
     });

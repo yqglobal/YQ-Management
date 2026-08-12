@@ -66,7 +66,8 @@ export class CommunicationController {
       to: body.to,
       subject: body.subject || 'Qmova System Verification Notice',
       htmlContent,
-      textContent: 'Qmova System Verification Notice: Your email service is operating normally.',
+      textContent:
+        'Qmova System Verification Notice: Your email service is operating normally.',
     });
 
     await this.communicationLogService.log({
@@ -106,7 +107,11 @@ export class CommunicationController {
   ) {
     const tenantId = req.user?.tenantId || req.user?.workspaceId;
     const result = tenantId
-      ? await this.whatsappService.sendToTenant(tenantId, body.phone, body.message || 'Test message from Qmova')
+      ? await this.whatsappService.sendToTenant(
+          tenantId,
+          body.phone,
+          body.message || 'Test message from Qmova',
+        )
       : { success: false, error: 'No tenant context for WhatsApp test' };
 
     await this.communicationLogService.log({

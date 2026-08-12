@@ -1,4 +1,10 @@
-import { Injectable, Logger, HttpException, HttpStatus, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  HttpException,
+  HttpStatus,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { Cron } from '@nestjs/schedule';
@@ -30,17 +36,20 @@ export class WhatsappService implements OnModuleInit {
   // points to the frontend (Vercel). Provide BACKEND_PUBLIC_URL to explicitly
   // direct Evolution webhooks to the backend (Render) public URL, e.g.
   // BACKEND_PUBLIC_URL=https://qmova-backend.onrender.com
-  private readonly backendPublicUrl = process.env.BACKEND_PUBLIC_URL || this.appUrl;
+  private readonly backendPublicUrl =
+    process.env.BACKEND_PUBLIC_URL || this.appUrl;
 
   constructor(
     private prisma: PrismaService,
     private redisService: RedisService,
     private readonly whatsappLogger: WhatsappLogger,
     private readonly queueGateway: QueueGateway,
-  ) { }
+  ) {}
 
   async onModuleInit() {
-    this.logger.log('WhatsappService initialized. Starting sync of WhatsApp instances...');
+    this.logger.log(
+      'WhatsappService initialized. Starting sync of WhatsApp instances...',
+    );
     // We wait briefly to ensure Prisma and Redis are fully connected
     setTimeout(() => this.syncAllInstances(), 5000);
   }
@@ -51,7 +60,9 @@ export class WhatsappService implements OnModuleInit {
 
   @Cron('0 */5 * * * *')
   async handleCronSync() {
-    this.logger.debug('Running background auto-recovery sync for WhatsApp instances...');
+    this.logger.debug(
+      'Running background auto-recovery sync for WhatsApp instances...',
+    );
     await this.syncAllInstances();
   }
 
@@ -63,8 +74,12 @@ export class WhatsappService implements OnModuleInit {
   async syncAllInstances() {
     try {
       const evoRes = await this.fetchEvo('/instance/fetchInstances', 'GET');
-      const activeInstancesData = Array.isArray(evoRes?.data) ? evoRes.data : [];
-      const activeInstances = activeInstancesData.map((i: any) => i.instance?.instanceName || i.name || i.instanceName);
+      const activeInstancesData = Array.isArray(evoRes?.data)
+        ? evoRes.data
+        : [];
+      const activeInstances = activeInstancesData.map(
+        (i: any) => i.instance?.instanceName || i.name || i.instanceName,
+      );
 
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
@@ -73,12 +88,17 @@ export class WhatsappService implements OnModuleInit {
         const status = instance.connectionStatus;
         const updatedAtStr = instance.updatedAt || instance.createdAt;
         if (!updatedAtStr) continue;
-        
+
         const updatedAt = new Date(updatedAtStr);
         if (status === 'connecting' && updatedAt < fiveMinutesAgo) {
-          const instanceName = instance.instance?.instanceName || instance.name || instance.instanceName;
+          const instanceName =
+            instance.instance?.instanceName ||
+            instance.name ||
+            instance.instanceName;
           if (instanceName) {
-            this.logger.warn(`Instance ${instanceName} stuck in connecting state for > 5 mins. Pruning...`);
+            this.logger.warn(
+              `Instance ${instanceName} stuck in connecting state for > 5 mins. Pruning...`,
+            );
             await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
           }
         }
@@ -90,14 +110,21 @@ export class WhatsappService implements OnModuleInit {
       });
 
       for (const tenant of tenants) {
-        if (!activeInstances.includes(tenant.whatsappInstanceId)) { 
-          this.logger.warn(`Tenant ${tenant.id} instance ${tenant.whatsappInstanceId} missing from Evolution API. Attempting auto-recovery.`);
-          await this.logTenantEvent(tenant.id, 'AUTO_RECOVERY_STARTED', { reason: 'Instance missing from Evolution API' });
+        if (!activeInstances.includes(tenant.whatsappInstanceId)) {
+          this.logger.warn(
+            `Tenant ${tenant.id} instance ${tenant.whatsappInstanceId} missing from Evolution API. Attempting auto-recovery.`,
+          );
+          await this.logTenantEvent(tenant.id, 'AUTO_RECOVERY_STARTED', {
+            reason: 'Instance missing from Evolution API',
+          });
           await this.connect(tenant.id); // Re-run connect to re-create instance & webhooks
         }
       }
     } catch (e) {
-      this.logger.error('Failed to sync WhatsApp instances during auto-recovery', e);
+      this.logger.error(
+        'Failed to sync WhatsApp instances during auto-recovery',
+        e,
+      );
     }
   }
 
@@ -170,11 +197,11 @@ export class WhatsappService implements OnModuleInit {
         action,
         details: details || {},
       };
-      
+
       const key = `whatsapp:logs:${tenantId}`;
       await this.redisService.client.lpush(key, JSON.stringify(logEntry));
       await this.redisService.client.ltrim(key, 0, 99); // Keep last 100 logs
-      
+
       this.logger.debug(`[Tenant ${tenantId}] logged action: ${action}`);
     } catch (e) {
       this.logger.error(`Failed to push tenant event log for ${tenantId}`, e);
@@ -185,7 +212,7 @@ export class WhatsappService implements OnModuleInit {
     try {
       const key = `whatsapp:logs:${tenantId}`;
       const logs = await this.redisService.client.lrange(key, 0, -1);
-      return logs.map(log => JSON.parse(log));
+      return logs.map((log) => JSON.parse(log));
     } catch (e) {
       this.logger.error(`Failed to fetch tenant event logs for ${tenantId}`, e);
       return [];
@@ -197,9 +224,15 @@ export class WhatsappService implements OnModuleInit {
     try {
       const raw = await this.redisService.client.get(key);
       if (!raw) return null;
-      try { return JSON.parse(raw); } catch { return raw; }
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return raw;
+      }
     } catch (e) {
-      this.logger.warn(`Failed to read debug key ${key}: ${e instanceof Error ? e.message : e}`);
+      this.logger.warn(
+        `Failed to read debug key ${key}: ${e instanceof Error ? e.message : e}`,
+      );
       return null;
     }
   }
@@ -215,15 +248,25 @@ export class WhatsappService implements OnModuleInit {
       const raw = await this.redisService.client.get(key);
       if (!raw) return null;
       let parsed: any = null;
-      try { parsed = JSON.parse(raw); } catch { parsed = raw; }
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        parsed = raw;
+      }
       const qr = this.extractQr(parsed);
       // Get TTL in seconds to inform frontend when cached QR expires
       let ttl = -2;
-      try { ttl = await this.redisService.client.ttl(key); } catch (e) { /* ignore */ }
+      try {
+        ttl = await this.redisService.client.ttl(key);
+      } catch (e) {
+        /* ignore */
+      }
       const expiresAt = ttl > 0 ? Date.now() + ttl * 1000 : null;
       return { qr: qr || null, expiresAt };
     } catch (e) {
-      this.logger.warn(`Failed to read cached connectRaw for tenant ${tenantId}: ${e instanceof Error ? e.message : e}`);
+      this.logger.warn(
+        `Failed to read cached connectRaw for tenant ${tenantId}: ${e instanceof Error ? e.message : e}`,
+      );
       return null;
     }
   }
@@ -239,10 +282,13 @@ export class WhatsappService implements OnModuleInit {
 
     if (!this.evoUrl) {
       const errorMsg = 'Evolution API URL is not configured.';
-      this.logger.warn({
-        evoRequest: { method, url: fullUrl, path, body },
-        error: errorMsg,
-      }, `Evolution API Skipped: ${method} ${path} -> ${errorMsg}`);
+      this.logger.warn(
+        {
+          evoRequest: { method, url: fullUrl, path, body },
+          error: errorMsg,
+        },
+        `Evolution API Skipped: ${method} ${path} -> ${errorMsg}`,
+      );
       return {
         status: 0,
         data: null,
@@ -250,9 +296,12 @@ export class WhatsappService implements OnModuleInit {
       };
     }
 
-    this.logger.log({
-      evoRequest: { method, url: fullUrl, path, body: body || null },
-    }, `Evolution API Request: ${method} ${path}`);
+    this.logger.log(
+      {
+        evoRequest: { method, url: fullUrl, path, body: body || null },
+      },
+      `Evolution API Request: ${method} ${path}`,
+    );
     this.whatsappLogger.logRequest(fullUrl, method, body);
 
     const controller = new AbortController();
@@ -280,31 +329,47 @@ export class WhatsappService implements OnModuleInit {
 
       if (!res.ok) {
         const evolutionError = this.buildEvolutionError(res.status, text);
-        this.logger.error({
-          evoRequest: { method, url: fullUrl, path, body },
-          evoResponse: { status: res.status, raw: text, parsed },
-          durationMs,
-        }, `Evolution API Failed [Status ${res.status}]: ${method} ${path} (${durationMs}ms) -> ${evolutionError.message}`);
-        this.whatsappLogger.logResponse(fullUrl, method, res.status, { raw: text, parsed, error: evolutionError });
+        this.logger.error(
+          {
+            evoRequest: { method, url: fullUrl, path, body },
+            evoResponse: { status: res.status, raw: text, parsed },
+            durationMs,
+          },
+          `Evolution API Failed [Status ${res.status}]: ${method} ${path} (${durationMs}ms) -> ${evolutionError.message}`,
+        );
+        this.whatsappLogger.logResponse(fullUrl, method, res.status, {
+          raw: text,
+          parsed,
+          error: evolutionError,
+        });
         return { status: res.status, data: parsed, error: evolutionError };
       }
 
-      this.logger.log({
-        evoRequest: { method, url: fullUrl, path, body },
-        evoResponse: { status: res.status, parsed },
-        durationMs,
-      }, `Evolution API Response [Status ${res.status}]: ${method} ${path} (${durationMs}ms) -> Success`);
+      this.logger.log(
+        {
+          evoRequest: { method, url: fullUrl, path, body },
+          evoResponse: { status: res.status, parsed },
+          durationMs,
+        },
+        `Evolution API Response [Status ${res.status}]: ${method} ${path} (${durationMs}ms) -> Success`,
+      );
       this.whatsappLogger.logResponse(fullUrl, method, res.status, parsed);
       return { status: res.status, data: parsed };
     } catch (error) {
       const durationMs = Date.now() - startTime;
       const evolutionError = this.classifyNetworkError(path, error);
-      this.logger.error({
-        evoRequest: { method, url: fullUrl, path, body },
-        evolutionError,
-        durationMs,
-      }, `Evolution API Network/Timeout Error: ${method} ${path} (${durationMs}ms) -> ${evolutionError.message}`);
-      this.whatsappLogger.error('Evolution-API-Network', `Network error for ${method} ${path}: ${evolutionError.message}`);
+      this.logger.error(
+        {
+          evoRequest: { method, url: fullUrl, path, body },
+          evolutionError,
+          durationMs,
+        },
+        `Evolution API Network/Timeout Error: ${method} ${path} (${durationMs}ms) -> ${evolutionError.message}`,
+      );
+      this.whatsappLogger.error(
+        'Evolution-API-Network',
+        `Network error for ${method} ${path}: ${evolutionError.message}`,
+      );
       return {
         status: evolutionError.status ?? 502,
         data: null,
@@ -321,10 +386,25 @@ export class WhatsappService implements OnModuleInit {
     if (typeof data === 'string' && data.startsWith('data:image')) return data;
     // Raw QR code text (the actual string that would be encoded in the QR)
     // Evolution API often returns this in the `code` field
-    if (typeof data?.code === 'string' && data.code.length > 10 && !data.code.startsWith('data:image')) return data.code;
-    if (typeof data?.qrCode === 'string' && data.qrCode.length > 10 && !data.qrCode.startsWith('data:image')) return data.qrCode;
-    if (typeof data?.qr_code === 'string' && data.qr_code.length > 10 && !data.qr_code.startsWith('data:image')) return data.qr_code;
-    // Base64 image in nested qrcode object  
+    if (
+      typeof data?.code === 'string' &&
+      data.code.length > 10 &&
+      !data.code.startsWith('data:image')
+    )
+      return data.code;
+    if (
+      typeof data?.qrCode === 'string' &&
+      data.qrCode.length > 10 &&
+      !data.qrCode.startsWith('data:image')
+    )
+      return data.qrCode;
+    if (
+      typeof data?.qr_code === 'string' &&
+      data.qr_code.length > 10 &&
+      !data.qr_code.startsWith('data:image')
+    )
+      return data.qr_code;
+    // Base64 image in nested qrcode object
     if (data?.qrcode?.base64) return data.qrcode.base64;
     if (data?.qrcode?.image) return data.qrcode.image;
     if (data?.qrcode?.dataUrl) return data.qrcode.dataUrl;
@@ -337,16 +417,26 @@ export class WhatsappService implements OnModuleInit {
     // Fallback: any string qrcode field
     if (typeof data?.qrcode === 'string') return data.qrcode;
     if (typeof data?.qr === 'string' && data.qr.length > 10) return data.qr;
-    if (typeof data?.qrCodeBase64 === 'string' && data.qrCodeBase64.length > 10) return data.qrCodeBase64;
+    if (typeof data?.qrCodeBase64 === 'string' && data.qrCodeBase64.length > 10)
+      return data.qrCodeBase64;
     // Raw long strings (can be a raw QR value like "2@abc123...")
     if (typeof data === 'string' && data.length > 10) return data;
-    if (typeof data?.response?.qrcode?.base64 === 'string') return data.response.qrcode.base64;
-    if (typeof data?.response?.qrcode?.image === 'string') return data.response.qrcode.image;
-    if (typeof data?.response?.qr === 'string' && data.response.qr.length > 10) return data.response.qr;
+    if (typeof data?.response?.qrcode?.base64 === 'string')
+      return data.response.qrcode.base64;
+    if (typeof data?.response?.qrcode?.image === 'string')
+      return data.response.qrcode.image;
+    if (typeof data?.response?.qr === 'string' && data.response.qr.length > 10)
+      return data.response.qr;
     // Additional nested fallbacks seen in some Evolution responses
-    if (typeof data?.payload?.qr === 'string' && data.payload.qr.length > 10) return data.payload.qr;
-    if (typeof data?.payload?.qrcode?.base64 === 'string') return data.payload.qrcode.base64;
-    if (typeof data?.data?.instance?.qrcode === 'string' && data.data.instance.qrcode.length > 10) return data.data.instance.qrcode;
+    if (typeof data?.payload?.qr === 'string' && data.payload.qr.length > 10)
+      return data.payload.qr;
+    if (typeof data?.payload?.qrcode?.base64 === 'string')
+      return data.payload.qrcode.base64;
+    if (
+      typeof data?.data?.instance?.qrcode === 'string' &&
+      data.data.instance.qrcode.length > 10
+    )
+      return data.data.instance.qrcode;
     return null;
   }
 
@@ -389,7 +479,9 @@ export class WhatsappService implements OnModuleInit {
       return;
     }
 
-    const secretParams = process.env.WEBHOOK_SECRET ? `?secret=${process.env.WEBHOOK_SECRET}` : '';
+    const secretParams = process.env.WEBHOOK_SECRET
+      ? `?secret=${process.env.WEBHOOK_SECRET}`
+      : '';
     // Prefer a dedicated backend public URL for webhooks. APP_URL may be the
     // frontend public address (Vercel) which will cause Evolution to POST to
     // a URL that doesn't exist. Use BACKEND_PUBLIC_URL in production to avoid
@@ -397,10 +489,17 @@ export class WhatsappService implements OnModuleInit {
     const webhookBase = this.backendPublicUrl;
     const webhookUrl = `${webhookBase}/whatsapp/webhook/${instanceName}${secretParams}`;
     // Warn if APP_URL looks like a frontend host and BACKEND_PUBLIC_URL wasn't set
-    if (!process.env.BACKEND_PUBLIC_URL && /vercel\.app|vercel\.com|now\.sh/.test(this.appUrl)) {
-      this.logger.warn(`APP_URL (${this.appUrl}) looks like a frontend host. Consider setting BACKEND_PUBLIC_URL to the backend public URL so Evolution webhooks target the backend: e.g. BACKEND_PUBLIC_URL=https://qmova-backend.onrender.com`);
+    if (
+      !process.env.BACKEND_PUBLIC_URL &&
+      /vercel\.app|vercel\.com|now\.sh/.test(this.appUrl)
+    ) {
+      this.logger.warn(
+        `APP_URL (${this.appUrl}) looks like a frontend host. Consider setting BACKEND_PUBLIC_URL to the backend public URL so Evolution webhooks target the backend: e.g. BACKEND_PUBLIC_URL=https://qmova-backend.onrender.com`,
+      );
     }
-    this.logger.debug(`Setting webhook for ${instanceName} -> ${webhookUrl.split('?')[0]}`);
+    this.logger.debug(
+      `Setting webhook for ${instanceName} -> ${webhookUrl.split('?')[0]}`,
+    );
 
     const result = await this.fetchEvo(`/webhook/set/${instanceName}`, 'POST', {
       webhook: {
@@ -409,7 +508,7 @@ export class WhatsappService implements OnModuleInit {
         byEvents: false,
         base64: true,
         events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'MESSAGES_UPDATE'],
-      }
+      },
     });
 
     if (result.error) {
@@ -455,7 +554,8 @@ export class WhatsappService implements OnModuleInit {
 
   async connect(tenantId: string, forceRefresh = false) {
     const tenant = await this.resolveTenant(tenantId);
-    if (!tenant) throw new HttpException('Tenant not found', HttpStatus.NOT_FOUND);
+    if (!tenant)
+      throw new HttpException('Tenant not found', HttpStatus.NOT_FOUND);
 
     let instanceName = tenant.whatsappInstanceId;
     if (!instanceName) {
@@ -466,26 +566,45 @@ export class WhatsappService implements OnModuleInit {
       });
     }
 
-    this.logger.log(`WhatsApp connect requested for tenant ${tenant.id} -> instance ${instanceName}. forceRefresh=${forceRefresh}`);
-    await this.logTenantEvent(tenant.id, 'CONNECT_REQUESTED', { instanceName, forceRefresh });
+    this.logger.log(
+      `WhatsApp connect requested for tenant ${tenant.id} -> instance ${instanceName}. forceRefresh=${forceRefresh}`,
+    );
+    await this.logTenantEvent(tenant.id, 'CONNECT_REQUESTED', {
+      instanceName,
+      forceRefresh,
+    });
 
     // Step 1: Check if instance exists in Evolution API
-    let stateRes = await this.fetchEvo(`/instance/connectionState/${instanceName}`, 'GET');
-    
-    // If user explicitly requested a refresh, we delete the existing instance 
+    let stateRes = await this.fetchEvo(
+      `/instance/connectionState/${instanceName}`,
+      'GET',
+    );
+
+    // If user explicitly requested a refresh, we delete the existing instance
     // to guarantee Evolution API generates a completely fresh session and QR.
     if (forceRefresh && !stateRes.error) {
-      this.logger.log(`Force refresh requested. Deleting existing instance ${instanceName} to obtain fresh QR.`);
+      this.logger.log(
+        `Force refresh requested. Deleting existing instance ${instanceName} to obtain fresh QR.`,
+      );
       await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
-      stateRes = { error: { message: 'deleted', raw: '' }, status: 404, data: null };
+      stateRes = {
+        error: { message: 'deleted', raw: '' },
+        status: 404,
+        data: null,
+      };
     }
 
-    let needsCreation = stateRes.error && (stateRes.status === 404 || stateRes.status === 400);
+    const needsCreation =
+      stateRes.error && (stateRes.status === 404 || stateRes.status === 400);
 
     if (needsCreation) {
-      this.logger.log(`Instance ${instanceName} not found, creating new instance for tenant ${tenant.id}.`);
-      await this.logTenantEvent(tenant.id, 'INSTANCE_CREATION_STARTED', { instanceName });
-      
+      this.logger.log(
+        `Instance ${instanceName} not found, creating new instance for tenant ${tenant.id}.`,
+      );
+      await this.logTenantEvent(tenant.id, 'INSTANCE_CREATION_STARTED', {
+        instanceName,
+      });
+
       let createResult = await this.fetchEvo('/instance/create', 'POST', {
         instanceName,
         qrcode: true,
@@ -511,75 +630,127 @@ export class WhatsappService implements OnModuleInit {
             'GET',
           );
         } else {
-          await this.logTenantEvent(tenant.id, 'INSTANCE_CREATION_FAILED', { error: createResult.error.message });
-          throw new HttpException(createResult.error.message, createResult.status === 401 ? HttpStatus.BAD_GATEWAY : HttpStatus.BAD_REQUEST);
+          await this.logTenantEvent(tenant.id, 'INSTANCE_CREATION_FAILED', {
+            error: createResult.error.message,
+          });
+          throw new HttpException(
+            createResult.error.message,
+            createResult.status === 401
+              ? HttpStatus.BAD_GATEWAY
+              : HttpStatus.BAD_REQUEST,
+          );
         }
       }
-      
-      await this.logTenantEvent(tenant.id, 'INSTANCE_CREATED', { instanceName });
+
+      await this.logTenantEvent(tenant.id, 'INSTANCE_CREATED', {
+        instanceName,
+      });
       // Attempt to ensure webhook is set after creation so Evolution sends events
       try {
         await this.setWebhook(instanceName);
       } catch (e) {
-        this.logger.warn(`setWebhook after creation failed for ${instanceName}: ${e instanceof Error ? e.message : e}`);
+        this.logger.warn(
+          `setWebhook after creation failed for ${instanceName}: ${e instanceof Error ? e.message : e}`,
+        );
       }
     }
     // Step 2: Request fresh connect (this forces Evolution to generate a new QR if not open)
-    let connectRes: FetchEvoResult = { status: 0, data: null, error: { message: 'no response', raw: '' } };
+    let connectRes: FetchEvoResult = {
+      status: 0,
+      data: null,
+      error: { message: 'no response', raw: '' },
+    };
     const maxAttempts = 3;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      connectRes = await this.fetchEvo(`/instance/connect/${instanceName}`, 'GET');
+      connectRes = await this.fetchEvo(
+        `/instance/connect/${instanceName}`,
+        'GET',
+      );
       if (!connectRes.error) break;
-      this.logger.warn(`Connect attempt ${attempt} failed for ${instanceName}: ${connectRes.error.message}`);
+      this.logger.warn(
+        `Connect attempt ${attempt} failed for ${instanceName}: ${connectRes.error.message}`,
+      );
       if (attempt < maxAttempts) await this.sleep(500);
     }
-    
+
     if (connectRes.error) {
-      await this.logTenantEvent(tenant.id, 'CONNECT_FAILED', { error: connectRes.error.message });
+      await this.logTenantEvent(tenant.id, 'CONNECT_FAILED', {
+        error: connectRes.error.message,
+      });
       throw new HttpException(connectRes.error.message, HttpStatus.BAD_GATEWAY);
     }
 
     // Log the raw connect response for debugging
-    this.logger.log(`[DEBUG] Raw connect response for ${instanceName}: ${JSON.stringify(connectRes.data)}`);
+    this.logger.log(
+      `[DEBUG] Raw connect response for ${instanceName}: ${JSON.stringify(connectRes.data)}`,
+    );
 
     // Persist raw connect response to Redis for short-term debugging (1 hour)
     try {
       // Keep cached connectRaw short-lived to avoid stale QR rendering on frontend
-      await this.redisService.client.set(`whatsapp:debug:${tenant.id}:connectRaw`, JSON.stringify(connectRes.data), 'EX', 300);
+      await this.redisService.client.set(
+        `whatsapp:debug:${tenant.id}:connectRaw`,
+        JSON.stringify(connectRes.data),
+        'EX',
+        300,
+      );
     } catch (e) {
-      this.logger.warn(`Failed to persist raw connect response for ${instanceName}: ${e instanceof Error ? e.message : e}`);
+      this.logger.warn(
+        `Failed to persist raw connect response for ${instanceName}: ${e instanceof Error ? e.message : e}`,
+      );
     }
 
     // Ensure webhook is set just in case (always try, even if creation path attempted earlier)
-    try { await this.setWebhook(instanceName); } catch (e) {
-      this.logger.warn(`setWebhook failed for ${instanceName}: ${e instanceof Error ? e.message : e}`);
+    try {
+      await this.setWebhook(instanceName);
+    } catch (e) {
+      this.logger.warn(
+        `setWebhook failed for ${instanceName}: ${e instanceof Error ? e.message : e}`,
+      );
     }
 
     const qr = this.extractQr(connectRes.data);
     const state = this.extractState(connectRes.data);
 
     if (qr) await this.logTenantEvent(tenant.id, 'QR_GENERATED');
-    this.logger.log(`WhatsApp connect result for ${instanceName}: state=${state}, qr=${qr ? 'present' : 'missing'}`);
-    
+    this.logger.log(
+      `WhatsApp connect result for ${instanceName}: state=${state}, qr=${qr ? 'present' : 'missing'}`,
+    );
+
     // Log the actual QR type so we can debug rendering issues
     if (qr) {
       const isBase64Image = qr.startsWith('data:image');
-      this.logger.log(`QR type for ${instanceName}: ${isBase64Image ? 'base64 image' : 'raw text string (length: ' + qr.length + ')'}`);
-      await this.logTenantEvent(tenant.id, 'QR_READY', { type: isBase64Image ? 'base64' : 'text', length: qr.length });
+      this.logger.log(
+        `QR type for ${instanceName}: ${isBase64Image ? 'base64 image' : 'raw text string (length: ' + qr.length + ')'}`,
+      );
+      await this.logTenantEvent(tenant.id, 'QR_READY', {
+        type: isBase64Image ? 'base64' : 'text',
+        length: qr.length,
+      });
     } else {
-      this.logger.warn(`No QR found in connect response for ${instanceName}. Raw data: ${JSON.stringify(connectRes.data)}`);
-      await this.logTenantEvent(tenant.id, 'QR_MISSING', { rawData: JSON.stringify(connectRes.data).substring(0, 200) });
-      
+      this.logger.warn(
+        `No QR found in connect response for ${instanceName}. Raw data: ${JSON.stringify(connectRes.data)}`,
+      );
+      await this.logTenantEvent(tenant.id, 'QR_MISSING', {
+        rawData: JSON.stringify(connectRes.data).substring(0, 200),
+      });
+
       // AUTO-RECOVERY FIX: If the instance didn't return a QR code and is not 'open', it's likely stuck in a broken state
       // (e.g. "conflict"). We should delete it from Evolution API so it can be cleanly recreated next time.
       if (state !== 'open') {
-        this.logger.warn(`Instance ${instanceName} is broken (no QR and state is ${state}). Deleting from Evolution API for auto-recovery.`);
-        await this.logTenantEvent(tenant.id, 'INSTANCE_BROKEN_AUTO_DELETED', { instanceName });
+        this.logger.warn(
+          `Instance ${instanceName} is broken (no QR and state is ${state}). Deleting from Evolution API for auto-recovery.`,
+        );
+        await this.logTenantEvent(tenant.id, 'INSTANCE_BROKEN_AUTO_DELETED', {
+          instanceName,
+        });
         await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
-        
+
         try {
-          await this.redisService.client.del(`whatsapp:debug:${tenant.id}:connectRaw`);
-        } catch(e) {}
+          await this.redisService.client.del(
+            `whatsapp:debug:${tenant.id}:connectRaw`,
+          );
+        } catch (e) {}
       }
     }
 
@@ -588,40 +759,69 @@ export class WhatsappService implements OnModuleInit {
       state: state === 'open' ? 'open' : 'connecting',
       qr: qr || undefined,
       // Signal to frontend whether QR is a base64 image or a raw text string
-      qrType: qr ? (qr.startsWith('data:image') ? 'base64' : 'text') : undefined,
+      qrType: qr
+        ? qr.startsWith('data:image')
+          ? 'base64'
+          : 'text'
+        : undefined,
     };
   }
 
   async generatePairingCode(tenantId: string, phoneNumber: string) {
-    if (!phoneNumber) throw new HttpException('Phone number is required for pairing code', HttpStatus.BAD_REQUEST);
+    if (!phoneNumber)
+      throw new HttpException(
+        'Phone number is required for pairing code',
+        HttpStatus.BAD_REQUEST,
+      );
     const normalizedPhone = phoneNumber.replace(/[\s+-]/g, '');
     const tenant = await this.resolveTenant(tenantId);
-    if (!tenant) throw new HttpException('Tenant not found', HttpStatus.NOT_FOUND);
+    if (!tenant)
+      throw new HttpException('Tenant not found', HttpStatus.NOT_FOUND);
 
     let instanceName = tenant.whatsappInstanceId;
     if (!instanceName) {
       instanceName = `tenant_${tenant.id.substring(0, 8)}`;
-      await this.prisma.tenant.update({ where: { id: tenant.id }, data: { whatsappInstanceId: instanceName } });
+      await this.prisma.tenant.update({
+        where: { id: tenant.id },
+        data: { whatsappInstanceId: instanceName },
+      });
     }
 
-    this.logger.log(`WhatsApp pairing code requested for tenant ${tenant.id} -> instance ${instanceName}, phone ${normalizedPhone}`);
-    await this.logTenantEvent(tenant.id, 'PAIRING_CODE_REQUESTED', { instanceName, phone: normalizedPhone });
+    this.logger.log(
+      `WhatsApp pairing code requested for tenant ${tenant.id} -> instance ${instanceName}, phone ${normalizedPhone}`,
+    );
+    await this.logTenantEvent(tenant.id, 'PAIRING_CODE_REQUESTED', {
+      instanceName,
+      phone: normalizedPhone,
+    });
 
-    let stateRes = await this.fetchEvo(`/instance/connectionState/${instanceName}`, 'GET');
-    
+    let stateRes = await this.fetchEvo(
+      `/instance/connectionState/${instanceName}`,
+      'GET',
+    );
+
     // FORCE REFRESH for Pairing Code: If the instance exists but is not 'open',
-    // it might be stuck in a QR code session. We MUST delete it and recreate 
+    // it might be stuck in a QR code session. We MUST delete it and recreate
     // it to guarantee Evolution API generates a pairing code instead of returning the old QR.
     if (!stateRes.error && stateRes.data?.instance?.state !== 'open') {
-      this.logger.log(`Deleting existing non-open instance ${instanceName} to force fresh pairing code generation.`);
+      this.logger.log(
+        `Deleting existing non-open instance ${instanceName} to force fresh pairing code generation.`,
+      );
       await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
-      stateRes = { error: { message: 'deleted', raw: '' }, status: 404, data: null };
+      stateRes = {
+        error: { message: 'deleted', raw: '' },
+        status: 404,
+        data: null,
+      };
     }
 
-    let needsCreation = stateRes.error && (stateRes.status === 404 || stateRes.status === 400);
+    const needsCreation =
+      stateRes.error && (stateRes.status === 404 || stateRes.status === 400);
 
     if (needsCreation) {
-      await this.logTenantEvent(tenant.id, 'INSTANCE_CREATION_STARTED', { instanceName });
+      await this.logTenantEvent(tenant.id, 'INSTANCE_CREATION_STARTED', {
+        instanceName,
+      });
       let createResult = await this.fetchEvo('/instance/create', 'POST', {
         instanceName,
         qrcode: false,
@@ -647,22 +847,38 @@ export class WhatsappService implements OnModuleInit {
             'GET',
           );
         } else {
-          await this.logTenantEvent(tenant.id, 'INSTANCE_CREATION_FAILED', { error: createResult.error.message });
-          throw new HttpException(createResult.error.message, createResult.status === 401 ? HttpStatus.BAD_GATEWAY : HttpStatus.BAD_REQUEST);
+          await this.logTenantEvent(tenant.id, 'INSTANCE_CREATION_FAILED', {
+            error: createResult.error.message,
+          });
+          throw new HttpException(
+            createResult.error.message,
+            createResult.status === 401
+              ? HttpStatus.BAD_GATEWAY
+              : HttpStatus.BAD_REQUEST,
+          );
         }
       }
-      await this.logTenantEvent(tenant.id, 'INSTANCE_CREATED', { instanceName });
+      await this.logTenantEvent(tenant.id, 'INSTANCE_CREATED', {
+        instanceName,
+      });
     }
 
-    const connectRes = await this.fetchEvo(`/instance/connect/${instanceName}?number=${normalizedPhone}`, 'GET');
-    
+    const connectRes = await this.fetchEvo(
+      `/instance/connect/${instanceName}?number=${normalizedPhone}`,
+      'GET',
+    );
+
     if (connectRes.error) {
-      await this.logTenantEvent(tenant.id, 'PAIRING_CODE_FAILED', { error: connectRes.error.message });
+      await this.logTenantEvent(tenant.id, 'PAIRING_CODE_FAILED', {
+        error: connectRes.error.message,
+      });
       throw new HttpException(connectRes.error.message, HttpStatus.BAD_GATEWAY);
     }
 
     if (!needsCreation) {
-      try { await this.setWebhook(instanceName); } catch (e) {}
+      try {
+        await this.setWebhook(instanceName);
+      } catch (e) {}
     }
 
     const pairingCode = this.extractPairingCode(connectRes.data);
@@ -670,22 +886,37 @@ export class WhatsappService implements OnModuleInit {
     const state = this.extractState(connectRes.data);
 
     if (pairingCode) {
-      await this.logTenantEvent(tenant.id, 'PAIRING_CODE_GENERATED', { pairingCode });
+      await this.logTenantEvent(tenant.id, 'PAIRING_CODE_GENERATED', {
+        pairingCode,
+      });
     } else {
-      this.logger.warn(`No Pairing Code found in connect response for ${instanceName}. Raw data: ${JSON.stringify(connectRes.data)}`);
-      await this.logTenantEvent(tenant.id, 'PAIRING_CODE_MISSING', { rawData: JSON.stringify(connectRes.data).substring(0, 200) });
-      
+      this.logger.warn(
+        `No Pairing Code found in connect response for ${instanceName}. Raw data: ${JSON.stringify(connectRes.data)}`,
+      );
+      await this.logTenantEvent(tenant.id, 'PAIRING_CODE_MISSING', {
+        rawData: JSON.stringify(connectRes.data).substring(0, 200),
+      });
+
       // AUTO-RECOVERY FIX
       if (state !== 'open') {
-        this.logger.warn(`Instance ${instanceName} is broken (no Pairing Code and state is ${state}). Deleting from Evolution API for auto-recovery.`);
-        await this.logTenantEvent(tenant.id, 'INSTANCE_BROKEN_AUTO_DELETED', { instanceName });
+        this.logger.warn(
+          `Instance ${instanceName} is broken (no Pairing Code and state is ${state}). Deleting from Evolution API for auto-recovery.`,
+        );
+        await this.logTenantEvent(tenant.id, 'INSTANCE_BROKEN_AUTO_DELETED', {
+          instanceName,
+        });
         await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
       }
-      
-      throw new HttpException('Failed to generate pairing code. The backend auto-recovered the instance. Please try again in a moment.', HttpStatus.SERVICE_UNAVAILABLE);
+
+      throw new HttpException(
+        'Failed to generate pairing code. The backend auto-recovered the instance. Please try again in a moment.',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
     }
 
-    this.logger.log(`WhatsApp pairing code result for ${instanceName}: state=${state}, pairingCode=${pairingCode ? 'present' : 'missing'}`);
+    this.logger.log(
+      `WhatsApp pairing code result for ${instanceName}: state=${state}, pairingCode=${pairingCode ? 'present' : 'missing'}`,
+    );
 
     return {
       instanceName,
@@ -715,24 +946,42 @@ export class WhatsappService implements OnModuleInit {
   }
 
   async testMessage(tenantId: string, phone: string, message: string) {
-    this.logger.log(`Initiating test message to ${phone} for tenant ${tenantId}`);
+    this.logger.log(
+      `Initiating test message to ${phone} for tenant ${tenantId}`,
+    );
     const tenant = await this.resolveTenant(tenantId);
     if (!tenant || !tenant.whatsappInstanceId) {
-      this.logger.warn(`Test message failed: WhatsApp not connected for tenant ${tenantId}`);
-      throw new HttpException('WhatsApp is not connected', HttpStatus.BAD_REQUEST);
+      this.logger.warn(
+        `Test message failed: WhatsApp not connected for tenant ${tenantId}`,
+      );
+      throw new HttpException(
+        'WhatsApp is not connected',
+        HttpStatus.BAD_REQUEST,
+      );
     }
-    
+
     try {
-      const result = await this.sendMessage(tenant.whatsappInstanceId, phone, message);
+      const result = await this.sendMessage(
+        tenant.whatsappInstanceId,
+        phone,
+        message,
+      );
       if (!result.success) {
         this.logger.error(`Test message to ${phone} failed: ${result.error}`);
-        throw new HttpException(result.error || 'Failed to send message', HttpStatus.BAD_GATEWAY);
+        throw new HttpException(
+          result.error || 'Failed to send message',
+          HttpStatus.BAD_GATEWAY,
+        );
       }
       this.logger.log(`Successfully sent test message to ${phone}`);
       return { success: true };
     } catch (error: any) {
-      this.logger.error(`Exception during test message to ${phone}: ${error.message}`);
-      throw error instanceof HttpException ? error : new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      this.logger.error(
+        `Exception during test message to ${phone}: ${error.message}`,
+      );
+      throw error instanceof HttpException
+        ? error
+        : new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -815,7 +1064,8 @@ export class WhatsappService implements OnModuleInit {
 
   async saveChatbotSettings(tenantId: string, settings: any) {
     const resolvedTenant = await this.resolveTenant(tenantId);
-    if (!resolvedTenant) throw new HttpException('Tenant not found', HttpStatus.NOT_FOUND);
+    if (!resolvedTenant)
+      throw new HttpException('Tenant not found', HttpStatus.NOT_FOUND);
     const tenant = await this.prisma.tenant.update({
       where: { id: resolvedTenant.id },
       data: {
@@ -838,9 +1088,16 @@ export class WhatsappService implements OnModuleInit {
 
     // Save last webhook payload for quick debugging (1 hour)
     try {
-      await this.redisService.client.set(`whatsapp:debug:${instanceName}:lastWebhook`, JSON.stringify(payload), 'EX', 3600);
+      await this.redisService.client.set(
+        `whatsapp:debug:${instanceName}:lastWebhook`,
+        JSON.stringify(payload),
+        'EX',
+        3600,
+      );
     } catch (e) {
-      this.logger.warn(`Failed to persist webhook payload for ${instanceName}: ${e instanceof Error ? e.message : e}`);
+      this.logger.warn(
+        `Failed to persist webhook payload for ${instanceName}: ${e instanceof Error ? e.message : e}`,
+      );
     }
 
     try {
@@ -848,65 +1105,112 @@ export class WhatsappService implements OnModuleInit {
         // Save rotated QR code to Redis if present
         if (payload.data.qr || payload.data.base64) {
           try {
-            const tenant = await this.prisma.tenant.findFirst({ where: { whatsappInstanceId: instanceName } });
+            const tenant = await this.prisma.tenant.findFirst({
+              where: { whatsappInstanceId: instanceName },
+            });
             if (tenant) {
-              const connectRaw = { base64: payload.data.base64, code: payload.data.qr };
-              await this.redisService.client.set(`whatsapp:debug:${tenant.id}:connectRaw`, JSON.stringify(connectRaw), 'EX', 300);
-              
+              const connectRaw = {
+                base64: payload.data.base64,
+                code: payload.data.qr,
+              };
+              await this.redisService.client.set(
+                `whatsapp:debug:${tenant.id}:connectRaw`,
+                JSON.stringify(connectRaw),
+                'EX',
+                300,
+              );
+
               // Broadcast the QR update instantly to the frontend via WebSockets
               const qr = payload.data.base64 || payload.data.qr;
               const qrType = payload.data.base64 ? 'base64' : 'text';
-              this.queueGateway.broadcastTenantUpdate(tenant.id, 'whatsapp_connection_update', {
-                instanceName,
-                state: 'connecting',
-                qr,
-                qrType,
-              });
+              this.queueGateway.broadcastTenantUpdate(
+                tenant.id,
+                'whatsapp_connection_update',
+                {
+                  instanceName,
+                  state: 'connecting',
+                  qr,
+                  qrType,
+                },
+              );
             }
-          } catch(e) {}
+          } catch (e) {}
         }
 
         const state = payload.data.state;
-        const statusCode = payload.data.statusReason || payload.data.statusCode || payload.data.reason;
-        
+        const statusCode =
+          payload.data.statusReason ||
+          payload.data.statusCode ||
+          payload.data.reason;
+
         if (state === 'close' || state === 'refused') {
-          if (statusCode === 401 || statusCode === 428 || statusCode === 403 || statusCode === '401' || statusCode === '428') {
+          if (
+            statusCode === 401 ||
+            statusCode === 428 ||
+            statusCode === 403 ||
+            statusCode === '401' ||
+            statusCode === '428'
+          ) {
             await this.prisma.tenant.updateMany({
               where: { whatsappInstanceId: instanceName },
-              data: { whatsappConnected: false }
+              data: { whatsappConnected: false },
             });
-            this.logger.warn(`WhatsApp disconnected (Hard Logout - ${statusCode}) for instance ${instanceName}`);
-            
-            const tenant = await this.prisma.tenant.findFirst({ where: { whatsappInstanceId: instanceName } });
+            this.logger.warn(
+              `WhatsApp disconnected (Hard Logout - ${statusCode}) for instance ${instanceName}`,
+            );
+
+            const tenant = await this.prisma.tenant.findFirst({
+              where: { whatsappInstanceId: instanceName },
+            });
             if (tenant) {
-              await this.logTenantEvent(tenant.id, 'DISCONNECTED', { reason: statusCode });
-              this.queueGateway.broadcastTenantUpdate(tenant.id, 'whatsapp_connection_update', {
-                instanceName,
-                state: 'close',
+              await this.logTenantEvent(tenant.id, 'DISCONNECTED', {
+                reason: statusCode,
               });
+              this.queueGateway.broadcastTenantUpdate(
+                tenant.id,
+                'whatsapp_connection_update',
+                {
+                  instanceName,
+                  state: 'close',
+                },
+              );
             }
           } else {
-             this.logger.warn(`WhatsApp connection closed temporarily (Code ${statusCode}) for instance ${instanceName}. Waiting for auto-recovery...`);
-             const tenant = await this.prisma.tenant.findFirst({ where: { whatsappInstanceId: instanceName } });
-             if (tenant) {
-               this.queueGateway.broadcastTenantUpdate(tenant.id, 'whatsapp_connection_update', {
-                 instanceName,
-                 state: 'connecting',
-               });
-             }
+            this.logger.warn(
+              `WhatsApp connection closed temporarily (Code ${statusCode}) for instance ${instanceName}. Waiting for auto-recovery...`,
+            );
+            const tenant = await this.prisma.tenant.findFirst({
+              where: { whatsappInstanceId: instanceName },
+            });
+            if (tenant) {
+              this.queueGateway.broadcastTenantUpdate(
+                tenant.id,
+                'whatsapp_connection_update',
+                {
+                  instanceName,
+                  state: 'connecting',
+                },
+              );
+            }
           }
         } else if (state === 'open') {
           await this.prisma.tenant.updateMany({
             where: { whatsappInstanceId: instanceName },
-            data: { whatsappConnected: true }
+            data: { whatsappConnected: true },
           });
           this.logger.log(`WhatsApp connected for instance ${instanceName}`);
-          const tenant = await this.prisma.tenant.findFirst({ where: { whatsappInstanceId: instanceName } });
+          const tenant = await this.prisma.tenant.findFirst({
+            where: { whatsappInstanceId: instanceName },
+          });
           if (tenant) {
-            this.queueGateway.broadcastTenantUpdate(tenant.id, 'whatsapp_connection_update', {
-              instanceName,
-              state: 'open',
-            });
+            this.queueGateway.broadcastTenantUpdate(
+              tenant.id,
+              'whatsapp_connection_update',
+              {
+                instanceName,
+                state: 'open',
+              },
+            );
           }
         }
         return { success: true };
@@ -924,11 +1228,16 @@ export class WhatsappService implements OnModuleInit {
             if (status === 2) statusStr = 'SENT (1 tick)';
             else if (status === 3) statusStr = 'DELIVERED (2 ticks)';
             else if (status === 4) statusStr = 'READ (blue ticks)';
-            
+
             if (statusStr) {
-              const tenant = await this.prisma.tenant.findFirst({ where: { whatsappInstanceId: instanceName }});
+              const tenant = await this.prisma.tenant.findFirst({
+                where: { whatsappInstanceId: instanceName },
+              });
               if (tenant) {
-                await this.logTenantEvent(tenant.id, 'MESSAGE_STATUS_UPDATE', { messageId, status: statusStr });
+                await this.logTenantEvent(tenant.id, 'MESSAGE_STATUS_UPDATE', {
+                  messageId,
+                  status: statusStr,
+                });
               }
             }
           }
@@ -954,12 +1263,21 @@ export class WhatsappService implements OnModuleInit {
       }
 
       if (messageId) {
-        const isDuplicate = await this.redisService.client.get(`webhook_processed:${messageId}`);
+        const isDuplicate = await this.redisService.client.get(
+          `webhook_processed:${messageId}`,
+        );
         if (isDuplicate) {
-          this.logger.debug(`Ignoring duplicate webhook for messageId ${messageId}`);
+          this.logger.debug(
+            `Ignoring duplicate webhook for messageId ${messageId}`,
+          );
           return { ignored: true, reason: 'duplicate' };
         }
-        await this.redisService.client.set(`webhook_processed:${messageId}`, '1', 'EX', 86400); // 24 hours
+        await this.redisService.client.set(
+          `webhook_processed:${messageId}`,
+          '1',
+          'EX',
+          86400,
+        ); // 24 hours
       }
 
       const phone = jid.split('@')[0];
@@ -1177,7 +1495,9 @@ export class WhatsappService implements OnModuleInit {
     }
 
     const normalizedNumber = number.replace(/\D/g, '');
-    this.logger.debug(`Sending message on ${instanceName} to normalized number: ${normalizedNumber}`);
+    this.logger.debug(
+      `Sending message on ${instanceName} to normalized number: ${normalizedNumber}`,
+    );
 
     const result = await this.fetchEvo(
       `/message/sendText/${instanceName}`,
@@ -1192,26 +1512,49 @@ export class WhatsappService implements OnModuleInit {
       this.logger.error(
         `Failed to send WhatsApp message to ${normalizedNumber} on ${instanceName}: ${result.error.message}`,
       );
-      const tenant = await this.prisma.tenant.findFirst({ where: { whatsappInstanceId: instanceName }});
+      const tenant = await this.prisma.tenant.findFirst({
+        where: { whatsappInstanceId: instanceName },
+      });
       if (tenant) {
-        await this.logTenantEvent(tenant.id, 'MESSAGE_SEND_FAILED', { number: normalizedNumber, error: result.error.message });
-        
+        await this.logTenantEvent(tenant.id, 'MESSAGE_SEND_FAILED', {
+          number: normalizedNumber,
+          error: result.error.message,
+        });
+
         // AUTO-REPAIR: If error indicates instance is disconnected or broken
-        if (result.status === 401 || result.status === 404 || result.status === 428 || result.error.message.includes('not connected')) {
-          this.logger.warn(`Auto-repair triggered for ${instanceName}. Marking as disconnected due to send failure.`);
+        if (
+          result.status === 401 ||
+          result.status === 404 ||
+          result.status === 428 ||
+          result.error.message.includes('not connected')
+        ) {
+          this.logger.warn(
+            `Auto-repair triggered for ${instanceName}. Marking as disconnected due to send failure.`,
+          );
           await this.prisma.tenant.update({
             where: { id: tenant.id },
-            data: { whatsappConnected: false }
+            data: { whatsappConnected: false },
           });
-          await this.logTenantEvent(tenant.id, 'DISCONNECTED', { reason: 'Message dispatch failed. Instance likely silent-disconnected.' });
+          await this.logTenantEvent(tenant.id, 'DISCONNECTED', {
+            reason:
+              'Message dispatch failed. Instance likely silent-disconnected.',
+          });
         }
       }
       return { success: false, error: result.error.message };
     }
 
-    this.logger.log(`Sent WhatsApp message to ${normalizedNumber} on ${instanceName}`);
-    const tenant = await this.prisma.tenant.findFirst({ where: { whatsappInstanceId: instanceName }});
-    if (tenant) await this.logTenantEvent(tenant.id, 'MESSAGE_SENT', { number: normalizedNumber, providerId: result.data?.key?.id });
+    this.logger.log(
+      `Sent WhatsApp message to ${normalizedNumber} on ${instanceName}`,
+    );
+    const tenant = await this.prisma.tenant.findFirst({
+      where: { whatsappInstanceId: instanceName },
+    });
+    if (tenant)
+      await this.logTenantEvent(tenant.id, 'MESSAGE_SENT', {
+        number: normalizedNumber,
+        providerId: result.data?.key?.id,
+      });
     return { success: true, providerId: result.data?.key?.id };
   }
 
@@ -1220,9 +1563,13 @@ export class WhatsappService implements OnModuleInit {
     if (!tenantId) {
       return { success: false, error: 'Missing tenantId' };
     }
-    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
     if (!tenant || !tenant.whatsappInstanceId) {
-      this.logger.warn(`Tenant ${tenantId} has no configured WhatsApp instance`);
+      this.logger.warn(
+        `Tenant ${tenantId} has no configured WhatsApp instance`,
+      );
       return { success: false, error: 'WhatsApp not configured for tenant' };
     }
     return this.sendMessage(tenant.whatsappInstanceId, number, text);
@@ -1268,7 +1615,9 @@ export class WhatsappService implements OnModuleInit {
       return { success: false, error: result.error.message };
     }
 
-    this.logger.log(`Sent WhatsApp buttons to ${normalizedNumber} on ${instanceName}`);
+    this.logger.log(
+      `Sent WhatsApp buttons to ${normalizedNumber} on ${instanceName}`,
+    );
     return { success: true, providerId: result.data?.key?.id };
   }
 
@@ -1503,7 +1852,14 @@ export class WhatsappService implements OnModuleInit {
     };
   }
 
-  async sendList(instanceName: string, number: string, title: string, description: string, buttonText: string, sections: any[]) {
+  async sendList(
+    instanceName: string,
+    number: string,
+    title: string,
+    description: string,
+    buttonText: string,
+    sections: any[],
+  ) {
     if (!instanceName || !number || !sections) {
       this.logger.warn(`sendList called with invalid params`);
       return { success: false, error: 'Invalid parameters' };
@@ -1519,12 +1875,14 @@ export class WhatsappService implements OnModuleInit {
         description,
         buttonText,
         footerText: 'Powered by YQ',
-        sections
-      }
+        sections,
+      },
     );
 
     if (result.error) {
-      this.logger.error(`Failed to send WhatsApp List to ${normalizedNumber}: ${result.error.message}`);
+      this.logger.error(
+        `Failed to send WhatsApp List to ${normalizedNumber}: ${result.error.message}`,
+      );
       return { success: false, error: result.error.message };
     }
 

@@ -9,14 +9,21 @@ export class AuditController {
   @Post('log')
   async logFrontendEvent(
     @Body() body: any,
-    @Req() request: Request & { user?: any }
+    @Req() request: Request & { user?: any },
   ) {
-    const { action, resource, resourceId, details, customerId, tenantId: bodyTenantId } = body;
-    
+    const {
+      action,
+      resource,
+      resourceId,
+      details,
+      customerId,
+      tenantId: bodyTenantId,
+    } = body;
+
     const user = request.user;
     const userId = user?.id || user?.userId || null;
     const tenantId = user?.tenantId || bodyTenantId || null;
-    
+
     await this.auditService.log(
       userId,
       tenantId,
@@ -30,7 +37,7 @@ export class AuditController {
       0,
       details,
       request.ip,
-      request.headers['user-agent']
+      request.headers['user-agent'],
     );
 
     return { success: true };

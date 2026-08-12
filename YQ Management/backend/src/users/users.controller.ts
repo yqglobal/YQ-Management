@@ -30,15 +30,15 @@ export class UsersController {
 
   @Post()
   createUser(@Req() req: AuthenticatedRequest, @Body() body: any) {
-    return this.usersService.createUser(
-      req.user.tenantId,
-      body,
-    );
+    return this.usersService.createUser(req.user.tenantId, body);
   }
 
   @Post('send-invite-email')
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
-  sendInviteEmail(@Req() req: AuthenticatedRequest, @Body() body: { email: string; code: string; role: string }) {
+  sendInviteEmail(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { email: string; code: string; role: string },
+  ) {
     return this.usersService.sendInviteEmail(req.user.tenantId, body);
   }
 
@@ -58,7 +58,7 @@ export class UsersController {
       id,
       body.role,
       req.user.userId,
-      req.user.email
+      req.user.email,
     );
   }
 

@@ -7,6 +7,7 @@ import { Plus, Trash2, Mail, Shield, User as UserIcon, Loader2, MailCheck, Alert
 import { useAuth } from '../../../components/AuthContext';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
+import { CreateStaffModal } from '../../../components/modals/CreateStaffModal';
 
 type StaffMember = {
   id: string;
@@ -33,6 +34,9 @@ export default function StaffDirectory() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [joiningWorkspace, setJoiningWorkspace] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState<'users' | 'providers'>('users');
+  const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
 
   React.useEffect(() => {
     if (user && user.role !== 'TENANT_ADMIN' && user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
@@ -43,8 +47,14 @@ export default function StaffDirectory() {
   const { data: staff = [], isLoading, isError } = useQuery<StaffMember[]>({
     queryKey: ['staff'],
     queryFn: () => fetchApi('/users'),
-    enabled: !!(user?.role === 'TENANT_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'),
+    enabled: !!(user?.role === 'TENANT_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && activeTab === 'users',
     staleTime: 30000,
+  });
+
+  const { data: serviceProviders = [], isLoading: isProvidersLoading } = useQuery({
+    queryKey: ['staffList'],
+    queryFn: () => fetchApi('/staff'),
+    enabled: !!(user?.role === 'TENANT_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && activeTab === 'providers',
   });
 
   const createStaff = useMutation({
@@ -214,7 +224,28 @@ export default function StaffDirectory() {
           </button>
         </div>
 
-        {inviteMessage && (
+        <div className="flex gap-4 border-b border-gray-200 dark:border-white/10 mb-6 pb-2">
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`pb-2 px-1 text-sm font-bold border-b-2 transition-colors ${
+              activeTab === 'users' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+            }`}
+          >
+            System Users
+          </button>
+          <button
+            onClick={() => setActiveTab('providers')}
+            className={`pb-2 px-1 text-sm font-bold border-b-2 transition-colors ${
+              activeTab === 'providers' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+            }`}
+          >
+            Service Providers
+          </button>
+        </div>
+
+        {activeTab === 'users' && (
+          <>
+            {inviteMessage && (
           <div className={`p-4 rounded-xl border flex items-start gap-3 ${inviteMessage.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400'}`}>
             {inviteMessage.type === 'success' ? <MailCheck className="w-5 h-5 shrink-0 mt-0.5" /> : <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />}
             <div><h3 className="font-bold">{inviteMessage.type === 'success' ? 'Success' : 'Error'}</h3><p className="text-sm opacity-90">{inviteMessage.text}</p></div>
@@ -381,6 +412,62 @@ export default function StaffDirectory() {
             </tbody>
           </table>
         </div>
+        </>
+        )}
+
+        {activeTab === 'providers' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-white dark:bg-zinc-900/50 p-6 rounded-3xl border border-gray-200 dark:border-white/10 shadow-sm">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Service Providers</h2>
+                <p className="text-sm text-gray-500">Manage the staff members who provide services (e.g., Doctors, Barbers).</p>
+              </div>
+              <button 
+                onClick={() => setIsStaffModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+              >
+                <Plus className="w-4 h-4" /> Add Provider
+              </button>
+            </div>
+            
+            <div className="bg-white dark:bg-zinc-900/50 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100 dark:divide-white/5">
+              {isProvidersLoading ? (
+                <div className="p-8 text-center text-gray-500">Loading providers...</div>
+              ) : serviceProviders.length > 0 ? (
+                serviceProviders.map((provider: any) => (
+                  <div key={provider.id} className="p-5 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
+                        {provider.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white">{provider.name}</h3>
+                        <div className="flex gap-2 mt-1">
+                          <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${provider.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
+                            {provider.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-zinc-300 rounded-lg transition-colors">
+                      Edit
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="p-12 text-center text-gray-500">
+                  <p className="mb-4">No service providers added yet.</p>
+                  <button 
+                    onClick={() => setIsStaffModalOpen(true)}
+                    className="px-4 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Add a service provider
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* UNREGISTERED USER / INVITE SHARING MODAL */}
@@ -512,6 +599,11 @@ export default function StaffDirectory() {
           </div>
         </div>
       )}
+      
+      <CreateStaffModal 
+        isOpen={isStaffModalOpen}
+        onClose={() => setIsStaffModalOpen(false)}
+      />
     </SettingsLayout>
   );
 }

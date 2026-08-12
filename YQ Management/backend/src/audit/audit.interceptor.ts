@@ -36,14 +36,37 @@ export class AuditInterceptor implements NestInterceptor {
     const tenantId = user?.tenantId || request.body?.tenantId || null;
     const customerId = request.body?.customerId || null;
 
-    let safeBody = { ...request.body };
+    const safeBody = { ...request.body };
     if (safeBody.password) delete safeBody.password;
     if (safeBody.newPassword) delete safeBody.newPassword;
 
     return next.handle().pipe(
       tap({
-        next: (resData) => this.logAction(audit, request, response, safeBody, resData, startTime, tenantId, userId, customerId),
-        error: (err) => this.logAction(audit, request, response, safeBody, null, startTime, tenantId, userId, customerId, err),
+        next: (resData) =>
+          this.logAction(
+            audit,
+            request,
+            response,
+            safeBody,
+            resData,
+            startTime,
+            tenantId,
+            userId,
+            customerId,
+          ),
+        error: (err) =>
+          this.logAction(
+            audit,
+            request,
+            response,
+            safeBody,
+            null,
+            startTime,
+            tenantId,
+            userId,
+            customerId,
+            err,
+          ),
       }),
     );
   }
@@ -58,7 +81,7 @@ export class AuditInterceptor implements NestInterceptor {
     tenantId: string | null,
     userId: string | null,
     customerId: string | null,
-    error?: any
+    error?: any,
   ) {
     const durationMs = Date.now() - startTime;
     const statusCode = error ? error.status || 500 : response.statusCode;
@@ -80,14 +103,23 @@ export class AuditInterceptor implements NestInterceptor {
           method: request.method,
           statusCode,
           durationMs,
-          details: { request: safeBody, response: resData, error: error?.message } as any,
-          ipAddress: request.headers['x-forwarded-for'] || request.ip || request.connection?.remoteAddress,
+          details: {
+            request: safeBody,
+            response: resData,
+            error: error?.message,
+          } as any,
+          ipAddress:
+            request.headers['x-forwarded-for'] ||
+            request.ip ||
+            request.connection?.remoteAddress,
           userAgent: request.headers['user-agent'],
         },
       })
       .catch((err) => {
-        this.logger.error(`Failed to create absolute audit log: ${action}`, err);
+        this.logger.error(
+          `Failed to create absolute audit log: ${action}`,
+          err,
+        );
       });
   }
 }
-

@@ -47,22 +47,26 @@ describe('VisitService', () => {
       expect(mockPrismaService.visit.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'v1', tenantId: 't1' },
-        })
+        }),
       );
     });
 
     it('should throw NotFoundException if visit not found', async () => {
       mockPrismaService.visit.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne('v1', 't1')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('v1', 't1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('update', () => {
-    it('should throw NotFoundException if trying to update someone else\'s visit', async () => {
+    it("should throw NotFoundException if trying to update someone else's visit", async () => {
       mockPrismaService.visit.findFirst.mockResolvedValue(null);
-      
-      await expect(service.update('v1', 't1', { status: 'IN_SERVICE' } as any)).rejects.toThrow(NotFoundException);
+
+      await expect(
+        service.update('v1', 't1', { status: 'IN_SERVICE' } as any),
+      ).rejects.toThrow(NotFoundException);
       expect(mockPrismaService.visit.update).not.toHaveBeenCalled();
     });
   });
@@ -71,45 +75,64 @@ describe('VisitService', () => {
     it('should transition status to CHECKED_IN and set checkInTime', async () => {
       const mockVisit = { id: 'v1', tenantId: 't1', currentState: 'SCHEDULED' };
       mockPrismaService.visit.findFirst.mockResolvedValue(mockVisit);
-      mockPrismaService.visit.update.mockResolvedValue({ ...mockVisit, currentState: 'CHECKED_IN' });
+      mockPrismaService.visit.update.mockResolvedValue({
+        ...mockVisit,
+        currentState: 'CHECKED_IN',
+      });
 
       await service.checkIn('v1', 't1');
 
       expect(mockPrismaService.visit.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'v1' },
-          data: expect.objectContaining({ currentState: 'CHECKED_IN' })
-        })
+          data: expect.objectContaining({ currentState: 'CHECKED_IN' }),
+        }),
       );
     });
 
     it('should throw ConflictException if already checked in', async () => {
-      const mockVisit = { id: 'v1', tenantId: 't1', currentState: 'CHECKED_IN' };
+      const mockVisit = {
+        id: 'v1',
+        tenantId: 't1',
+        currentState: 'CHECKED_IN',
+      };
       mockPrismaService.visit.findFirst.mockResolvedValue(mockVisit);
 
-      await expect(service.checkIn('v1', 't1')).rejects.toThrow(ConflictException);
+      await expect(service.checkIn('v1', 't1')).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
   describe('startService', () => {
     it('should transition status to IN_SERVICE', async () => {
-      const mockVisit = { id: 'v1', tenantId: 't1', currentState: 'CHECKED_IN' };
+      const mockVisit = {
+        id: 'v1',
+        tenantId: 't1',
+        currentState: 'CHECKED_IN',
+      };
       mockPrismaService.visit.findFirst.mockResolvedValue(mockVisit);
-      
+
       await service.startService('v1', 't1');
 
       expect(mockPrismaService.visit.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ currentState: 'IN_SERVICE' })
-        })
+          data: expect.objectContaining({ currentState: 'IN_SERVICE' }),
+        }),
       );
     });
-    
+
     it('should throw ConflictException if already in service', async () => {
-      const mockVisit = { id: 'v1', tenantId: 't1', currentState: 'IN_SERVICE' };
+      const mockVisit = {
+        id: 'v1',
+        tenantId: 't1',
+        currentState: 'IN_SERVICE',
+      };
       mockPrismaService.visit.findFirst.mockResolvedValue(mockVisit);
 
-      await expect(service.startService('v1', 't1')).rejects.toThrow(ConflictException);
+      await expect(service.startService('v1', 't1')).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 });

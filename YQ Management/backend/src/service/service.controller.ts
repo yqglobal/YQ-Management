@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ServiceService } from './service.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
@@ -9,7 +19,16 @@ export class ServiceController {
   constructor(private readonly serviceService: ServiceService) {}
 
   @Post()
-  create(@Req() req: AuthenticatedRequest, @Body() body: { name: string; description?: string; expectedDuration?: number; locationId?: string }) {
+  create(
+    @Req() req: AuthenticatedRequest,
+    @Body()
+    body: {
+      name: string;
+      description?: string;
+      expectedDuration?: number;
+      locationId?: string;
+    },
+  ) {
     return this.serviceService.create(req.user.tenantId, body);
   }
 
@@ -24,7 +43,17 @@ export class ServiceController {
   }
 
   @Patch(':id')
-  update(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { name?: string; description?: string; expectedDuration?: number; locationId?: string }) {
+  update(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      expectedDuration?: number;
+      locationId?: string;
+    },
+  ) {
     return this.serviceService.update(id, req.user.tenantId, body);
   }
 

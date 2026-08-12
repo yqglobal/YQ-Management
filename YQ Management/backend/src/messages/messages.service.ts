@@ -44,7 +44,11 @@ export class MessagesService {
 
     // Notify customer via WhatsApp
     if (token.phone) {
-      await this.notificationsService.sendWhatsAppMessage(token.phone, text, token.queue?.tenantId);
+      await this.notificationsService.sendWhatsAppMessage(
+        token.phone,
+        text,
+        token.queue?.tenantId,
+      );
     }
 
     // Broadcast message to Dashboard & Live Status

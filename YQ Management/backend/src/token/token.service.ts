@@ -50,11 +50,18 @@ export class TokenService {
       'otp',
       { otp },
     );
-    await this.notificationsService.sendWhatsAppMessage(phone, message, queue.tenantId);
-         return { success: true, message: 'OTP sent' };
+    await this.notificationsService.sendWhatsAppMessage(
+      phone,
+      message,
+      queue.tenantId,
+    );
+    return { success: true, message: 'OTP sent' };
   }
 
-  private async generateDisplayId(queueId: string, tokenDisplayConfig: any): Promise<{ displayId: string; updatedConfig: any }> {
+  private async generateDisplayId(
+    queueId: string,
+    tokenDisplayConfig: any,
+  ): Promise<{ displayId: string; updatedConfig: any }> {
     const config = tokenDisplayConfig || {};
     const mode = config.generationMode || 'random';
     const format = config.format || 'alphanumeric';
@@ -63,12 +70,22 @@ export class TokenService {
     let numberPart: string;
 
     if (mode === 'sequential') {
-      const counter = await this.redisService.client.incr(`queue:${queueId}:sequence`);
+      const counter = await this.redisService.client.incr(
+        `queue:${queueId}:sequence`,
+      );
       numberPart = counter.toString();
-      return { displayId: format === 'alphanumeric' ? `${prefix}${numberPart}` : numberPart, updatedConfig: { ...config, counter } };
+      return {
+        displayId:
+          format === 'alphanumeric' ? `${prefix}${numberPart}` : numberPart,
+        updatedConfig: { ...config, counter },
+      };
     } else {
       numberPart = Math.floor(1000 + Math.random() * 9000).toString();
-      return { displayId: format === 'alphanumeric' ? `${prefix}${numberPart}` : numberPart, updatedConfig: config };
+      return {
+        displayId:
+          format === 'alphanumeric' ? `${prefix}${numberPart}` : numberPart,
+        updatedConfig: config,
+      };
     }
   }
 
@@ -114,8 +131,15 @@ export class TokenService {
     const isAppointment = !!scheduledFor;
     const scheduledDate = scheduledFor ? new Date(scheduledFor) : null;
 
-    const { displayId, updatedConfig } = await this.generateDisplayId(queueId, queue?.tokenDisplayConfig);
-    if (queue && updatedConfig && updatedConfig.counter !== (queue.tokenDisplayConfig as any)?.counter) {
+    const { displayId, updatedConfig } = await this.generateDisplayId(
+      queueId,
+      queue?.tokenDisplayConfig,
+    );
+    if (
+      queue &&
+      updatedConfig &&
+      updatedConfig.counter !== (queue.tokenDisplayConfig as any)?.counter
+    ) {
       await this.prisma.queue.update({
         where: { id: queueId },
         data: { tokenDisplayConfig: updatedConfig },
@@ -123,7 +147,9 @@ export class TokenService {
     }
 
     if (isAppointment && !queue?.allowAppointments) {
-      throw new BadRequestException('This queue does not accept future appointments.');
+      throw new BadRequestException(
+        'This queue does not accept future appointments.',
+      );
     }
 
     if (isAppointment && scheduledDate && scheduledDate <= new Date()) {
@@ -163,7 +189,8 @@ export class TokenService {
     }
 
     // Send confirmation
-    const displayCode = token.displayId || token.id.substring(0, 5).toUpperCase();
+    const displayCode =
+      token.displayId || token.id.substring(0, 5).toUpperCase();
     if (phone) {
       let message = '';
       if (isAppointment) {
@@ -189,7 +216,11 @@ export class TokenService {
         );
       }
       if (message) {
-        await this.notificationsService.sendWhatsAppMessage(phone, message, queue?.tenantId);
+        await this.notificationsService.sendWhatsAppMessage(
+          phone,
+          message,
+          queue?.tenantId,
+        );
       }
     }
 
@@ -197,7 +228,10 @@ export class TokenService {
   }
 
   async advanceQueue(queueId: string, tenantId: string) {
-    const queue = await this.prisma.queue.findUnique({ where: { id: queueId }, include: { tenant: true } });
+    const queue = await this.prisma.queue.findUnique({
+      where: { id: queueId },
+      include: { tenant: true },
+    });
     if (!queue || queue.tenantId !== tenantId) {
       throw new BadRequestException('Queue not found or unauthorized');
     }
@@ -225,7 +259,9 @@ export class TokenService {
     }
 
     // Pop the next token
-    const popped = await this.redisService.client.zpopmin(`queue:${queueId}:waiting`);
+    const popped = await this.redisService.client.zpopmin(
+      `queue:${queueId}:waiting`,
+    );
     const nextTokenId = popped && popped.length > 0 ? popped[0] : null;
     if (!nextTokenId) {
       await this.redisService.client.del(`queue:${queueId}:serving`);
@@ -268,8 +304,13 @@ export class TokenService {
     }
 
     // Notify the next person in line
-    const upcoming = await this.redisService.client.zrange(`queue:${queueId}:waiting`, 0, 0);
-    const upcomingTokenId = upcoming && upcoming.length > 0 ? upcoming[0] : null;
+    const upcoming = await this.redisService.client.zrange(
+      `queue:${queueId}:waiting`,
+      0,
+      0,
+    );
+    const upcomingTokenId =
+      upcoming && upcoming.length > 0 ? upcoming[0] : null;
     if (upcomingTokenId) {
       const upcomingToken = await this.prisma.token.findUnique({
         where: { id: upcomingTokenId },
@@ -438,7 +479,10 @@ export class TokenService {
       throw new HttpException('Token not found', HttpStatus.NOT_FOUND);
     }
     if (token.queue.tenantId !== tenantId) {
-      throw new HttpException('Unauthorized access to tenant resources', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Unauthorized access to tenant resources',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     // Remove from current queue's serving key if it's there
@@ -449,10 +493,7 @@ export class TokenService {
       await this.redisService.client.del(`queue:${token.queueId}:serving`);
     } else if (token.status === TokenStatus.WAITING) {
       // Remove from old queue sorted set
-      await this.redisService.client.zrem(
-        `queue:${token.queueId}:waiting`,
-        id,
-      );
+      await this.redisService.client.zrem(`queue:${token.queueId}:waiting`, id);
     }
 
     const updatedToken = await this.prisma.token.update({
@@ -537,7 +578,11 @@ export class TokenService {
     });
 
     const pipeline = this.redisService.client.multi();
-    pipeline.zadd(`queue:${token.queueId}:waiting`, Date.now(), updatedToken.id);
+    pipeline.zadd(
+      `queue:${token.queueId}:waiting`,
+      Date.now(),
+      updatedToken.id,
+    );
     pipeline.publish(
       'queue_events',
       JSON.stringify({

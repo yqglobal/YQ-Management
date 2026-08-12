@@ -19,7 +19,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       // Keep retries limited to avoid noisy infinite retry logs
       maxRetriesPerRequest: 5,
       // Reconnect strategy: exponential backoff up to ~30s
-      retryStrategy: (times: number) => Math.min(30000, Math.pow(2, times) * 100),
+      retryStrategy: (times: number) =>
+        Math.min(30000, Math.pow(2, times) * 100),
       // Do not block the event loop indefinitely when offline
       enableOfflineQueue: false,
     } as any;
@@ -32,12 +33,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     this.client.on('connect', () => this.logger.log('Redis connected'));
     this.client.on('ready', () => this.logger.log('Redis ready'));
     this.client.on('close', () => this.logger.warn('Redis connection closed'));
-    this.client.on('reconnecting', () => this.logger.warn('Redis reconnecting'));
+    this.client.on('reconnecting', () =>
+      this.logger.warn('Redis reconnecting'),
+    );
     this.client.on('error', (err) => this.logger.error(`Redis Error: ${err}`));
 
     // Subscriber mirrors some events for better debugging
-    this.subscriber.on('error', (err) => this.logger.error(`Redis Subscriber Error: ${err}`));
-    this.subscriber.on('connect', () => this.logger.log('Redis subscriber connected'));
+    this.subscriber.on('error', (err) =>
+      this.logger.error(`Redis Subscriber Error: ${err}`),
+    );
+    this.subscriber.on('connect', () =>
+      this.logger.log('Redis subscriber connected'),
+    );
   }
 
   onModuleDestroy() {

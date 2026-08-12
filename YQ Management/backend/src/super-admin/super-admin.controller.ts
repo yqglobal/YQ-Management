@@ -17,7 +17,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { SuperAdminService } from './super-admin.service';
 import type { EmailProvider } from '../communication/interfaces/email.provider';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
-import { CommunicationLogService, CommunicationChannel, CommunicationStatus } from '../communication/logging/communication-log.service';
+import {
+  CommunicationLogService,
+  CommunicationChannel,
+  CommunicationStatus,
+} from '../communication/logging/communication-log.service';
 import { TemplateService } from '../communication/templates/template.service';
 import { PaymentsService } from '../payments/payments.service';
 import { createBrandEmailLayout } from '../email/email-layout';
@@ -71,19 +75,30 @@ export class SuperAdminController {
   }
 
   @Get('users')
-  async getUsers(@Req() req: any, @Query('search') search?: string, @Query('role') role?: string) {
+  async getUsers(
+    @Req() req: any,
+    @Query('search') search?: string,
+    @Query('role') role?: string,
+  ) {
     this.checkSuperAdmin(req);
     return this.superAdminService.getAllUsers({ search, role });
   }
 
   @Post('users')
-  async createUser(@Req() req: any, @Body() body: { email: string; role: string; tenantId: string }) {
+  async createUser(
+    @Req() req: any,
+    @Body() body: { email: string; role: string; tenantId: string },
+  ) {
     this.checkSuperAdmin(req);
     return this.superAdminService.createUser(body);
   }
 
   @Patch('users/:id')
-  async updateUser(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+  async updateUser(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     this.checkSuperAdmin(req);
     return this.superAdminService.updateUser(id, body);
   }
@@ -114,9 +129,18 @@ export class SuperAdminController {
   }
 
   @Get('plans')
-  async listPlans(@Req() req: any, @Query('status') statusFilter?: string, @Query('offset') offset?: number, @Query('limit') limit?: number) {
+  async listPlans(
+    @Req() req: any,
+    @Query('status') statusFilter?: string,
+    @Query('offset') offset?: number,
+    @Query('limit') limit?: number,
+  ) {
     this.checkSuperAdmin(req);
-    return this.superAdminService.listPlans(statusFilter, offset ?? 0, limit ?? 50);
+    return this.superAdminService.listPlans(
+      statusFilter,
+      offset ?? 0,
+      limit ?? 50,
+    );
   }
 
   @Post('plans')
@@ -138,13 +162,21 @@ export class SuperAdminController {
   }
 
   @Patch('plans/:id/status')
-  async changePlanStatus(@Req() req: any, @Param('id') id: string, @Body() dto: { status: string }) {
+  async changePlanStatus(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: { status: string },
+  ) {
     this.checkSuperAdmin(req);
     return this.superAdminService.changePlanStatus(id, dto.status);
   }
 
   @Post('plans/:id/duplicate')
-  async duplicatePlan(@Req() req: any, @Param('id') id: string, @Body() dto: { name: string }) {
+  async duplicatePlan(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: { name: string },
+  ) {
     this.checkSuperAdmin(req);
     return this.superAdminService.duplicatePlan(id, dto.name);
   }
@@ -169,27 +201,37 @@ export class SuperAdminController {
       },
       whatsapp: {
         provider: 'Evolution API',
-        configured: !!process.env.EVOLUTION_API_KEY && !!process.env.EVOLUTION_API_URL,
+        configured:
+          !!process.env.EVOLUTION_API_KEY && !!process.env.EVOLUTION_API_URL,
         url: process.env.EVOLUTION_API_URL || 'Not set',
-        backendPublicUrl: process.env.BACKEND_PUBLIC_URL || process.env.APP_URL || 'Not set',
+        backendPublicUrl:
+          process.env.BACKEND_PUBLIC_URL || process.env.APP_URL || 'Not set',
         webhookSecret: process.env.WEBHOOK_SECRET ? 'Configured' : 'Not set',
         model: 'Per-tenant instances (tenant_{id})',
       },
       payments: {
         provider: 'Ozow Payments Gateway',
-        configured: !!process.env.OZOW_SITE_CODE && !!process.env.OZOW_PRIVATE_KEY,
+        configured:
+          !!process.env.OZOW_SITE_CODE && !!process.env.OZOW_PRIVATE_KEY,
         siteCode: process.env.OZOW_SITE_CODE || 'Not set',
-        mode: process.env.OZOW_IS_TEST === 'true' || process.env.NODE_ENV !== 'production' ? 'Sandbox Mode' : 'Production Mode (Bank Direct)',
+        mode:
+          process.env.OZOW_IS_TEST === 'true' ||
+          process.env.NODE_ENV !== 'production'
+            ? 'Sandbox Mode'
+            : 'Production Mode (Bank Direct)',
       },
       otp: {
         engine: 'Redis OTP Storage (5 min expiry)',
         status: 'Active',
-      }
+      },
     };
   }
 
   @Post('communication/test-email')
-  async testEmail(@Req() req: any, @Body() body: { to: string; subject?: string; type?: 'standard' | 'otp' }) {
+  async testEmail(
+    @Req() req: any,
+    @Body() body: { to: string; subject?: string; type?: 'standard' | 'otp' },
+  ) {
     this.checkSuperAdmin(req);
     let subject = body.subject || 'Qmova Platform Service Verification';
     let htmlContent = createBrandEmailLayout({
@@ -199,13 +241,16 @@ export class SuperAdminController {
       <p style="color: #4b5563; line-height: 1.6;">This notification confirms that the Qmova email communication channel is operational and correctly configured with your email service provider.</p>
       <p style="color: #4b5563; line-height: 1.6; font-size: 14px;">No further action is required from system administrators.</p>`,
     });
-    let textContent = 'Qmova Communication Service Verification: Your email channel is operational.';
+    let textContent =
+      'Qmova Communication Service Verification: Your email channel is operational.';
     let logType = 'diagnostic';
     let otpCode = '';
 
     if (body.type === 'otp') {
       otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const template = this.templateService.renderEmail('login_otp', { otp: otpCode });
+      const template = this.templateService.renderEmail('login_otp', {
+        otp: otpCode,
+      });
       subject = body.subject || 'Your Qmova Authentication Code';
       htmlContent = template.html;
       textContent = template.text || '';
@@ -224,16 +269,26 @@ export class SuperAdminController {
       recipient: body.to,
       subject,
       body: textContent,
-      status: result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
       provider: 'brevo',
       providerId: result.providerId,
       errorMessage: result.error,
     });
-    return { success: result.success, error: result.error, otp: otpCode || undefined };
+    return {
+      success: result.success,
+      error: result.error,
+      otp: otpCode || undefined,
+    };
   }
 
   @Post('communication/test-whatsapp')
-  async testWhatsApp(@Req() req: any, @Body() body: { phone: string; message?: string; type?: 'standard' | 'otp' }) {
+  async testWhatsApp(
+    @Req() req: any,
+    @Body()
+    body: { phone: string; message?: string; type?: 'standard' | 'otp' },
+  ) {
     this.checkSuperAdmin(req);
     let content = body.message || 'Test message from Qmova system.';
     let logType = 'test';
@@ -251,22 +306,37 @@ export class SuperAdminController {
     });
 
     if (!tenant) {
-      return { success: false, error: 'No tenant has WhatsApp connected. Connect WhatsApp for a tenant first.' };
+      return {
+        success: false,
+        error:
+          'No tenant has WhatsApp connected. Connect WhatsApp for a tenant first.',
+      };
     }
 
-    const result = await this.whatsappService.sendToTenant(tenant.id, body.phone, content);
+    const result = await this.whatsappService.sendToTenant(
+      tenant.id,
+      body.phone,
+      content,
+    );
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,
       type: logType,
       recipient: body.phone,
       body: content,
-      status: result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
       workspaceId: tenant.id,
     });
-    return { success: result.success, error: result.error, otp: otpCode || undefined, tenant: tenant.name };
+    return {
+      success: result.success,
+      error: result.error,
+      otp: otpCode || undefined,
+      tenant: tenant.name,
+    };
   }
 
   @Get('communication/templates/email')
@@ -274,7 +344,9 @@ export class SuperAdminController {
     this.checkSuperAdmin(req);
     return this.templateService.getEmailTemplateKeys().map((key: string) => ({
       key,
-      name: key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+      name: key
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (l: string) => l.toUpperCase()),
     }));
   }
 
@@ -284,7 +356,9 @@ export class SuperAdminController {
     const defaultKeys = this.templateService.getWhatsAppTemplateKeys();
     return defaultKeys.map((key: string) => ({
       key,
-      name: key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+      name: key
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (l: string) => l.toUpperCase()),
     }));
   }
 
@@ -305,14 +379,26 @@ export class SuperAdminController {
   }
 
   @Post('system-toggles')
-  updateSystemToggle(@Req() req: any, @Body() body: { service: string; enabled: boolean }) {
+  updateSystemToggle(
+    @Req() req: any,
+    @Body() body: { service: string; enabled: boolean },
+  ) {
     this.checkSuperAdmin(req);
-    return this.superAdminService.updateSystemToggle(body.service, body.enabled);
+    return this.superAdminService.updateSystemToggle(
+      body.service,
+      body.enabled,
+    );
   }
 
   @Post('payments/test-redirect')
-  async testPaymentRedirect(@Req() req: any, @Body() body: { amount?: number; isTestMode?: boolean }) {
+  async testPaymentRedirect(
+    @Req() req: any,
+    @Body() body: { amount?: number; isTestMode?: boolean },
+  ) {
     this.checkSuperAdmin(req);
-    return this.paymentsService.generateTestPaymentLink(body.amount || 10.00, body.isTestMode || false);
+    return this.paymentsService.generateTestPaymentLink(
+      body.amount || 10.0,
+      body.isTestMode || false,
+    );
   }
 }

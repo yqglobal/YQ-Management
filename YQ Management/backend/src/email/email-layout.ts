@@ -6,7 +6,14 @@ export function createBrandEmailLayout(options: {
   brandColor?: string;
   logoUrl?: string;
 }): string {
-  const { title, preheader, headerTitle = 'QMOVA', content, brandColor = '#4f46e5', logoUrl } = options;
+  const {
+    title,
+    preheader,
+    headerTitle = 'QMOVA',
+    content,
+    brandColor = '#4f46e5',
+    logoUrl,
+  } = options;
   const year = new Date().getFullYear();
 
   const logoHtml = logoUrl
@@ -90,7 +97,11 @@ export function generateOtpBoxHtml(otp: string): string {
 </table>`;
 }
 
-export function generateButtonHtml(text: string, url: string = '#', brandColor: string = '#4f46e5'): string {
+export function generateButtonHtml(
+  text: string,
+  url: string = '#',
+  brandColor: string = '#4f46e5',
+): string {
   return `<table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 36px 0;">
   <tr>
     <td align="center">

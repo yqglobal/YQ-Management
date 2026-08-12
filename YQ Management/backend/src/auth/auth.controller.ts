@@ -37,7 +37,11 @@ export class AuthController {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isSuperAdmin = user.role === 'SUPER_ADMIN' || user.email?.toLowerCase() === 'yqbuddysa@gmail.com' || user.email?.toLowerCase() === process.env.SUPER_ADMIN_EMAIL?.toLowerCase();
+    const isSuperAdmin =
+      user.role === 'SUPER_ADMIN' ||
+      user.email?.toLowerCase() === 'yqbuddysa@gmail.com' ||
+      user.email?.toLowerCase() ===
+        process.env.SUPER_ADMIN_EMAIL?.toLowerCase();
     if (isSuperAdmin) {
       const { access_token } = await this.authService.login(user);
       res.cookie('token', access_token, {
@@ -56,9 +60,17 @@ export class AuthController {
 
   @UseGuards(ThrottlerGuard)
   @Post('resend-otp')
-  async resendOtp(@Body() body: { email: string; purpose: 'signup' | 'login' | 'reset' }) {
-    await this.authService.generateAndSendOTP(body.email, body.purpose || 'login');
-    return { success: true, message: 'A new verification code has been sent to your email.' };
+  async resendOtp(
+    @Body() body: { email: string; purpose: 'signup' | 'login' | 'reset' },
+  ) {
+    await this.authService.generateAndSendOTP(
+      body.email,
+      body.purpose || 'login',
+    );
+    return {
+      success: true,
+      message: 'A new verification code has been sent to your email.',
+    };
   }
 
   @UseGuards(ThrottlerGuard)
@@ -85,7 +97,12 @@ export class AuthController {
   @Post('logout')
   async logout(@Req() req: any, @Res({ passthrough: true }) res: any) {
     if (req.user?.jti) {
-      await this.redisService.client.set(`blocklist:${req.user.jti}`, '1', 'EX', 7 * 24 * 60 * 60);
+      await this.redisService.client.set(
+        `blocklist:${req.user.jti}`,
+        '1',
+        'EX',
+        7 * 24 * 60 * 60,
+      );
     }
     res.clearCookie('token', { path: '/' });
     return { success: true, message: 'Logged out successfully' };
@@ -158,8 +175,13 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN' || req.user?.email?.toLowerCase() === 'yqbuddysa@gmail.com' || req.user?.email?.toLowerCase() === process.env.SUPER_ADMIN_EMAIL?.toLowerCase();
-    const isNewUser = req.user.isNewUser || (!req.user.workspaceId && !isSuperAdmin);
+    const isSuperAdmin =
+      req.user?.role === 'SUPER_ADMIN' ||
+      req.user?.email?.toLowerCase() === 'yqbuddysa@gmail.com' ||
+      req.user?.email?.toLowerCase() ===
+        process.env.SUPER_ADMIN_EMAIL?.toLowerCase();
+    const isNewUser =
+      req.user.isNewUser || (!req.user.workspaceId && !isSuperAdmin);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
     if (isSuperAdmin) {
       res.redirect(`${frontendUrl}/super-admin?token=${access_token}`);
@@ -181,16 +203,33 @@ export class AuthController {
   async updatePersonalSettings(
     @Req() req: AuthenticatedRequest,
     @Body()
-    body: { theme?: string; language?: string; notificationsEnabled?: boolean; fullName?: string; phone?: string; location?: string; companyName?: string },
+    body: {
+      theme?: string;
+      language?: string;
+      notificationsEnabled?: boolean;
+      fullName?: string;
+      phone?: string;
+      location?: string;
+      companyName?: string;
+    },
   ) {
     let currentSettings = req.user.personalSettings || {};
-    
-    if (body.theme !== undefined) currentSettings = { ...currentSettings, theme: body.theme };
-    if (body.language !== undefined) currentSettings = { ...currentSettings, language: body.language };
-    if (body.notificationsEnabled !== undefined) currentSettings = { ...currentSettings, notificationsEnabled: body.notificationsEnabled };
-    if (body.fullName !== undefined) currentSettings = { ...currentSettings, fullName: body.fullName };
-    if (body.phone !== undefined) currentSettings = { ...currentSettings, phone: body.phone };
-    if (body.location !== undefined) currentSettings = { ...currentSettings, location: body.location };
+
+    if (body.theme !== undefined)
+      currentSettings = { ...currentSettings, theme: body.theme };
+    if (body.language !== undefined)
+      currentSettings = { ...currentSettings, language: body.language };
+    if (body.notificationsEnabled !== undefined)
+      currentSettings = {
+        ...currentSettings,
+        notificationsEnabled: body.notificationsEnabled,
+      };
+    if (body.fullName !== undefined)
+      currentSettings = { ...currentSettings, fullName: body.fullName };
+    if (body.phone !== undefined)
+      currentSettings = { ...currentSettings, phone: body.phone };
+    if (body.location !== undefined)
+      currentSettings = { ...currentSettings, location: body.location };
 
     const updates = { personalSettings: currentSettings };
 
@@ -200,10 +239,17 @@ export class AuthController {
       select: { id: true, email: true, role: true, personalSettings: true },
     });
 
-    if (body.companyName && (req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN' || req.user.role === 'TENANT_ADMIN')) {
+    if (
+      body.companyName &&
+      (req.user.role === 'ADMIN' ||
+        req.user.role === 'SUPER_ADMIN' ||
+        req.user.role === 'TENANT_ADMIN')
+    ) {
       if (req.user.tenantId) {
         try {
-          const tenant = await this.usersService['prisma'].tenant.findUnique({ where: { id: req.user.tenantId } });
+          const tenant = await this.usersService['prisma'].tenant.findUnique({
+            where: { id: req.user.tenantId },
+          });
           if (tenant) {
             await this.usersService['prisma'].tenant.update({
               where: { id: req.user.tenantId },
@@ -211,12 +257,16 @@ export class AuthController {
             });
           }
         } catch (error) {
-          new Logger(AuthController.name).warn(`Could not update tenant name: ${error}`);
+          new Logger(AuthController.name).warn(
+            `Could not update tenant name: ${error}`,
+          );
         }
       }
       if (req.user.workspaceId) {
         try {
-          const existingWs = await this.usersService['prisma'].workspace.findUnique({
+          const existingWs = await this.usersService[
+            'prisma'
+          ].workspace.findUnique({
             where: { id: req.user.workspaceId },
           });
           if (existingWs) {
@@ -225,7 +275,9 @@ export class AuthController {
               data: { name: body.companyName },
             });
           } else if (req.user.tenantId) {
-            const tenantWs = await this.usersService['prisma'].workspace.findFirst({
+            const tenantWs = await this.usersService[
+              'prisma'
+            ].workspace.findFirst({
               where: { tenantId: req.user.tenantId },
             });
             if (tenantWs) {
@@ -236,7 +288,10 @@ export class AuthController {
             } else {
               const newWs = await this.usersService['prisma'].workspace.create({
                 data: {
-                  id: req.user.workspaceId !== req.user.tenantId ? req.user.workspaceId : undefined,
+                  id:
+                    req.user.workspaceId !== req.user.tenantId
+                      ? req.user.workspaceId
+                      : undefined,
                   name: body.companyName,
                   subdomain: `${body.companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now()}`,
                   ownerId: req.user.sub,
@@ -250,7 +305,9 @@ export class AuthController {
             }
           }
         } catch (error) {
-          new Logger(AuthController.name).error(`Error updating or creating workspace: ${error}`);
+          new Logger(AuthController.name).error(
+            `Error updating or creating workspace: ${error}`,
+          );
         }
       }
     }
@@ -272,20 +329,22 @@ export class AuthController {
 
   @UseGuards(ThrottlerGuard)
   @Post('reset-password')
-  async resetPassword(@Body() body: { email: string; otp: string; password: string }) {
+  async resetPassword(
+    @Body() body: { email: string; otp: string; password: string },
+  ) {
     // This will throw if OTP is invalid/expired
     await this.authService.verifyOTP(body.email, body.otp);
-    
+
     // Once verified, we can update the password
     const user = await this.usersService.findOneByEmail(body.email);
     if (!user) throw new UnauthorizedException('User not found');
 
     const bcrypt = require('bcrypt');
     const hashedPassword = await bcrypt.hash(body.password, 10);
-    
+
     await this.usersService['prisma'].user.update({
       where: { id: user.id },
-      data: { password: hashedPassword }
+      data: { password: hashedPassword },
     });
 
     return { success: true, message: 'Password reset successfully' };

@@ -79,10 +79,7 @@ export class QueueController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   @Delete(':id')
-  async deleteQueue(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  async deleteQueue(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.queueService.deleteQueueForTenant(id, req.user.tenantId);
   }
 

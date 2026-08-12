@@ -20,15 +20,33 @@ export class PrismaService
       query: {
         $allModels: {
           async $allOperations({ model, operation, args, query }) {
-            const modelsWithTenant = ['Visit', 'Appointment', 'Customer', 'Location', 'Service', 'Staff', 'Resource', 'Notification', 'User', 'Workspace'];
+            const modelsWithTenant = [
+              'Visit',
+              'Appointment',
+              'Customer',
+              'Location',
+              'Service',
+              'Staff',
+              'Resource',
+              'Notification',
+              'User',
+              'Workspace',
+            ];
             if (modelsWithTenant.includes(model)) {
-              if (operation.startsWith('find') || operation === 'update' || operation === 'delete' || operation === 'count') {
+              if (
+                operation.startsWith('find') ||
+                operation === 'update' ||
+                operation === 'delete' ||
+                operation === 'count'
+              ) {
                 const where = (args as any).where;
                 if (!where || !where.tenantId) {
                   // In a strict mode we would throw an error here,
                   // but because some background jobs or superadmin actions might not have a tenantId,
                   // we log a warning instead of throwing an error for now.
-                  console.warn(`[Prisma Security Warning] ${operation} on ${model} without tenantId filter!`);
+                  console.warn(
+                    `[Prisma Security Warning] ${operation} on ${model} without tenantId filter!`,
+                  );
                 }
               }
             }

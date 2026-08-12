@@ -56,7 +56,11 @@ describe('WhatsappService (e2e)', () => {
       const result = await service.fetchEvo('/instance/fetchInstances', 'GET');
       // If the API is correctly configured, it should return an array (even if empty) or a successful response
       expect(result.error).toBeUndefined();
-      expect(Array.isArray(result.data) || result.data?.length >= 0 || result.data?.instances).toBeDefined();
+      expect(
+        Array.isArray(result.data) ||
+          result.data?.length >= 0 ||
+          result.data?.instances,
+      ).toBeDefined();
     });
 
     // We can't automatically scan the QR code in an automated test without manual intervention,
@@ -69,21 +73,31 @@ describe('WhatsappService (e2e)', () => {
       });
 
       try {
-        const result = await service.generatePairingCode('test-tenant-id', testPhone);
+        const result = await service.generatePairingCode(
+          'test-tenant-id',
+          testPhone,
+        );
         expect(result).toBeDefined();
         expect(result.instanceName).toEqual(testInstanceName);
         expect(result.pairingCode).toBeDefined();
       } catch (e: any) {
         // If it throws, we catch and log (could be due to existing instance conflict)
-        console.warn('Pairing code test failed, might be normal if instance exists or no API key:', e.message);
+        console.warn(
+          'Pairing code test failed, might be normal if instance exists or no API key:',
+          e.message,
+        );
       }
     }, 15000); // Wait up to 15 seconds for connection attempt
-    
+
     it('should fail gracefully when sending a message from an unauthenticated instance', async () => {
-        const result = await service.sendMessage(testInstanceName, testPhone, 'Automated e2e test message');
-        // Because the instance is not fully authenticated (we didn't scan QR), it should fail.
-        expect(result.success).toBe(false);
-        expect(result.error).toBeDefined();
+      const result = await service.sendMessage(
+        testInstanceName,
+        testPhone,
+        'Automated e2e test message',
+      );
+      // Because the instance is not fully authenticated (we didn't scan QR), it should fail.
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     }, 10000);
   });
 });

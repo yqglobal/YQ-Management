@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { CustomerService } from './customer.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
@@ -9,7 +17,10 @@ export class CustomerController {
   constructor(private readonly customerService: CustomerService) {}
 
   @Post()
-  create(@Req() req: AuthenticatedRequest, @Body() body: { name: string; phone?: string; email?: string }) {
+  create(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { name: string; phone?: string; email?: string },
+  ) {
     return this.customerService.create(req.user.tenantId, body);
   }
 

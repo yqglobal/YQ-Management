@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { LocationService } from './location.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
@@ -9,7 +19,10 @@ export class LocationController {
   constructor(private readonly locationService: LocationService) {}
 
   @Post()
-  create(@Req() req: AuthenticatedRequest, @Body() body: { name: string; address?: string }) {
+  create(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { name: string; address?: string },
+  ) {
     return this.locationService.create(req.user.tenantId, body);
   }
 
@@ -24,7 +37,11 @@ export class LocationController {
   }
 
   @Patch(':id')
-  update(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { name?: string; address?: string }) {
+  update(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { name?: string; address?: string },
+  ) {
     return this.locationService.update(id, req.user.tenantId, body);
   }
 

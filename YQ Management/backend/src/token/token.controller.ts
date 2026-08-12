@@ -62,7 +62,10 @@ export class TokenController {
 
   @Post(':id/checkin')
   @UseGuards(ThrottlerGuard, AuthGuard('jwt'), WorkspaceGuard)
-  async checkInToken(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+  async checkInToken(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
     return this.tokenService.checkIn(id, req.user.tenantId);
   }
 
@@ -75,19 +78,28 @@ export class TokenController {
 
   @UseGuards(ThrottlerGuard, AuthGuard('jwt'), WorkspaceGuard)
   @Post(':id/complete')
-  async completeToken(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+  async completeToken(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
     return this.tokenService.completeToken(id, req.user.tenantId);
   }
 
   @UseGuards(ThrottlerGuard, AuthGuard('jwt'), WorkspaceGuard)
   @Post('advance/:queueId')
-  async advanceQueue(@Req() req: AuthenticatedRequest, @Param('queueId') queueId: string) {
+  async advanceQueue(
+    @Req() req: AuthenticatedRequest,
+    @Param('queueId') queueId: string,
+  ) {
     return this.tokenService.advanceQueue(queueId, req.user.tenantId);
   }
 
   @UseGuards(ThrottlerGuard, AuthGuard('jwt'), WorkspaceGuard)
   @Post('validate')
-  async validateToken(@Req() req: AuthenticatedRequest, @Body() body: { tokenId: string }) {
+  async validateToken(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { tokenId: string },
+  ) {
     return this.tokenService.validateToken(body.tokenId, req.user.tenantId);
   }
 
@@ -98,6 +110,10 @@ export class TokenController {
     @Param('id') id: string,
     @Body() body: { nextQueueId: string },
   ) {
-    return this.tokenService.transferToken(id, body.nextQueueId, req.user.tenantId);
+    return this.tokenService.transferToken(
+      id,
+      body.nextQueueId,
+      req.user.tenantId,
+    );
   }
 }

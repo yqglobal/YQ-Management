@@ -22,7 +22,9 @@ export class ProviderRegistry {
   getProvider(name: PaymentProviderName): PaymentProvider {
     const provider = this.providers.get(name);
     if (!provider) {
-      throw new BadRequestException(`Payment provider "${name}" is not registered`);
+      throw new BadRequestException(
+        `Payment provider "${name}" is not registered`,
+      );
     }
     return provider;
   }

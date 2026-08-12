@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
@@ -11,7 +21,10 @@ export class AppointmentController {
   constructor(private readonly appointmentService: AppointmentService) {}
 
   @Post()
-  create(@Req() req: AuthenticatedRequest, @Body() createAppointmentDto: CreateAppointmentDto) {
+  create(
+    @Req() req: AuthenticatedRequest,
+    @Body() createAppointmentDto: CreateAppointmentDto,
+  ) {
     createAppointmentDto.tenantId = req.user.tenantId;
     return this.appointmentService.create(createAppointmentDto);
   }
@@ -27,8 +40,16 @@ export class AppointmentController {
   }
 
   @Patch(':id')
-  update(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() updateAppointmentDto: UpdateAppointmentDto) {
-    return this.appointmentService.update(id, req.user.tenantId, updateAppointmentDto);
+  update(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() updateAppointmentDto: UpdateAppointmentDto,
+  ) {
+    return this.appointmentService.update(
+      id,
+      req.user.tenantId,
+      updateAppointmentDto,
+    );
   }
 
   @Delete(':id')

@@ -30,9 +30,13 @@ export class QueueService {
   ) {
     let resolvedWorkspaceId = workspaceId;
     if (workspaceId) {
-      const ws = await this.prisma.workspace.findUnique({ where: { id: workspaceId } });
+      const ws = await this.prisma.workspace.findUnique({
+        where: { id: workspaceId },
+      });
       if (!ws && tenantId) {
-        const tenantWs = await this.prisma.workspace.findFirst({ where: { tenantId } });
+        const tenantWs = await this.prisma.workspace.findFirst({
+          where: { tenantId },
+        });
         if (tenantWs) resolvedWorkspaceId = tenantWs.id;
         else resolvedWorkspaceId = undefined;
       }
@@ -145,10 +149,13 @@ export class QueueService {
     });
 
     if (!queue) throw new NotFoundException('Queue not found');
-    if (!queue.allowAppointments) throw new BadRequestException('Appointments are not enabled for this queue');
+    if (!queue.allowAppointments)
+      throw new BadRequestException(
+        'Appointments are not enabled for this queue',
+      );
 
     const granularityMins = queue.appointmentGranularityMins || 15;
-    
+
     // Parse the date (assuming format YYYY-MM-DD)
     const targetDate = new Date(date);
     if (isNaN(targetDate.getTime())) {
@@ -281,12 +288,16 @@ export class QueueService {
     let counter = config.counter || 0;
 
     if (mode === 'sequential') {
-      counter = await this.redisService.client.incr(`queue:${queueId}:sequence`);
+      counter = await this.redisService.client.incr(
+        `queue:${queueId}:sequence`,
+      );
       const numberPart = counter.toString();
-      displayId = format === 'alphanumeric' ? `${prefix}${numberPart}` : numberPart;
+      displayId =
+        format === 'alphanumeric' ? `${prefix}${numberPart}` : numberPart;
     } else {
       const numberPart = Math.floor(1000 + Math.random() * 9000).toString();
-      displayId = format === 'alphanumeric' ? `${prefix}${numberPart}` : numberPart;
+      displayId =
+        format === 'alphanumeric' ? `${prefix}${numberPart}` : numberPart;
     }
 
     const token = await this.prisma.token.create({
@@ -309,18 +320,26 @@ export class QueueService {
 
     // --- LEGACY QUEUE INTERCEPT: Parallel Visit Creation ---
     // Look up or create Customer
-    const customer = await this.prisma.customer.findFirst({
-      where: { phone, tenantId: queueWithConfig?.tenantId || '' },
-    }) || await this.prisma.customer.create({
-      data: { name: customerName, phone, tenantId: queueWithConfig?.tenantId || '' }
-    }).catch(() => null);
+    const customer =
+      (await this.prisma.customer.findFirst({
+        where: { phone, tenantId: queueWithConfig?.tenantId || '' },
+      })) ||
+      (await this.prisma.customer
+        .create({
+          data: {
+            name: customerName,
+            phone,
+            tenantId: queueWithConfig?.tenantId || '',
+          },
+        })
+        .catch(() => null));
 
     // Fallback Location and Service for legacy queues
     const location = await this.prisma.location.findFirst({
-      where: { tenantId: queueWithConfig?.tenantId || '' }
+      where: { tenantId: queueWithConfig?.tenantId || '' },
     });
     const service = await this.prisma.service.findFirst({
-      where: { tenantId: queueWithConfig?.tenantId || '' }
+      where: { tenantId: queueWithConfig?.tenantId || '' },
     });
 
     if (customer && location && service) {
@@ -334,7 +353,7 @@ export class QueueService {
           source: isAppointment ? 'APPOINTMENT' : 'WALK_IN',
           currentState: 'WAITING',
           waitingStart: new Date(),
-        }
+        },
       });
     }
     // -------------------------------------------------------

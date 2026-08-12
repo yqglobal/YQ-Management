@@ -5,7 +5,15 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ServiceService {
   constructor(private prisma: PrismaService) {}
 
-  async create(tenantId: string, data: { name: string; description?: string; expectedDuration?: number; locationId?: string }) {
+  async create(
+    tenantId: string,
+    data: {
+      name: string;
+      description?: string;
+      expectedDuration?: number;
+      locationId?: string;
+    },
+  ) {
     return this.prisma.extendedClient.service.create({
       data: {
         tenantId,
@@ -33,17 +41,28 @@ export class ServiceService {
     return service;
   }
 
-  async update(id: string, tenantId: string, data: { name?: string; description?: string; expectedDuration?: number; locationId?: string }) {
-    return this.prisma.extendedClient.service.update({
-      where: { id_tenantId: { id, tenantId } },
-      data,
-    }).catch(async () => {
+  async update(
+    id: string,
+    tenantId: string,
+    data: {
+      name?: string;
+      description?: string;
+      expectedDuration?: number;
+      locationId?: string;
+    },
+  ) {
+    return this.prisma.extendedClient.service
+      .update({
+        where: { id_tenantId: { id, tenantId } },
+        data,
+      })
+      .catch(async () => {
         const exists = await this.findOne(id, tenantId);
         return this.prisma.extendedClient.service.update({
-            where: { id: exists.id },
-            data,
+          where: { id: exists.id },
+          data,
         });
-    });
+      });
   }
 
   async remove(id: string, tenantId: string) {

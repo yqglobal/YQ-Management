@@ -33,9 +33,17 @@ export class WebhookProcessService {
 
     // Strict Redis Lock for Idempotency
     const lockKey = `webhook_lock:${providerEventId || body.TransactionReference}`;
-    const acquiredLock = await this.redisService.client.set(lockKey, '1', 'EX', 3600, 'NX');
+    const acquiredLock = await this.redisService.client.set(
+      lockKey,
+      '1',
+      'EX',
+      3600,
+      'NX',
+    );
     if (!acquiredLock) {
-      this.logger.log(`Webhook already processing for ${lockKey}, dropping duplicate`);
+      this.logger.log(
+        `Webhook already processing for ${lockKey}, dropping duplicate`,
+      );
       return { success: true };
     }
 

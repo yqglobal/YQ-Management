@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsEnum, IsDateString, IsInt, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsDateString,
+  IsInt,
+  IsObject,
+} from 'class-validator';
 import { VisitSource, VisitState } from '@prisma/client';
 
 export class CreateVisitDto {

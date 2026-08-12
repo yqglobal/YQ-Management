@@ -28,19 +28,23 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: any) {
     if (payload.jti) {
-      const isBlocked = await this.redisService.client.get(`blocklist:${payload.jti}`);
+      const isBlocked = await this.redisService.client.get(
+        `blocklist:${payload.jti}`,
+      );
       if (isBlocked) {
         throw new UnauthorizedException('Session expired');
       }
     }
 
     if (payload.sub) {
-      const isUserBlocked = await this.redisService.client.get(`blocklist_user:${payload.sub}`);
+      const isUserBlocked = await this.redisService.client.get(
+        `blocklist_user:${payload.sub}`,
+      );
       if (isUserBlocked) {
         throw new UnauthorizedException('Access revoked');
       }
     }
-    
+
     return {
       userId: payload.sub,
       sub: payload.sub,

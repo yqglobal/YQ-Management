@@ -8,12 +8,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import { toast } from 'sonner';
 import { CreateServiceModal } from '../../../../components/modals/CreateServiceModal';
+import { CreateResourceModal } from '../../../../components/modals/CreateResourceModal';
 
 export default function LocationDetails() {
   const router = useRouter();
   const { id } = router.query;
   const [activeTab, setActiveTab] = useState<'services' | 'resources' | 'settings'>('services');
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [isResourceModalOpen, setIsResourceModalOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -29,6 +31,12 @@ export default function LocationDetails() {
       const allServices = await fetchApi('/service');
       return allServices.filter((s: any) => s.locationId === id || !s.locationId);
     },
+    enabled: !!id,
+  });
+
+  const { data: resources = [], isLoading: isResourcesLoading } = useQuery({
+    queryKey: ['resources', id],
+    queryFn: () => fetchApi(`/resource?locationId=${id}`),
     enabled: !!id,
   });
 
@@ -153,12 +161,51 @@ export default function LocationDetails() {
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">Resources</h2>
                   <p className="text-sm text-gray-500">Manage rooms, equipment, or staff at this location.</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
+                <button 
+                  onClick={() => setIsResourceModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                >
                   <Plus className="w-4 h-4" /> Add Resource
                 </button>
               </div>
-              <div className="bg-white dark:bg-zinc-900/50 border border-gray-200 dark:border-white/10 rounded-2xl p-12 text-center text-gray-500">
-                Resource management coming soon.
+              <div className="bg-white dark:bg-zinc-900/50 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100 dark:divide-white/5">
+                {isResourcesLoading ? (
+                  <div className="p-8 text-center text-gray-500">Loading resources...</div>
+                ) : resources.length > 0 ? (
+                  resources.map((resource: any) => (
+                    <div key={resource.id} className="p-5 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
+                          {resource.name.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900 dark:text-white">{resource.name}</h3>
+                          <div className="flex gap-2 mt-1">
+                            <span className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-zinc-400 text-xs font-medium">
+                              {resource.type || 'ROOM'}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${resource.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
+                              {resource.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <button className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-zinc-300 rounded-lg transition-colors">
+                        Edit
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-12 text-center text-gray-500">
+                    <p className="mb-4">No resources assigned to this location yet.</p>
+                    <button 
+                      onClick={() => setIsResourceModalOpen(true)}
+                      className="px-4 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Add a resource
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -189,6 +236,12 @@ export default function LocationDetails() {
       <CreateServiceModal 
         isOpen={isServiceModalOpen}
         onClose={() => setIsServiceModalOpen(false)}
+        locationId={id as string}
+      />
+
+      <CreateResourceModal 
+        isOpen={isResourceModalOpen}
+        onClose={() => setIsResourceModalOpen(false)}
         locationId={id as string}
       />
     </AdminLayout>

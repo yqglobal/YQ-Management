@@ -30,13 +30,17 @@ export class CommunicationService {
   private async resolveTenantId(workspaceId: string): Promise<string | null> {
     if (!workspaceId) return null;
     try {
-      const workspace = await this.whatsappService['prisma'].workspace.findUnique({
+      const workspace = await this.whatsappService[
+        'prisma'
+      ].workspace.findUnique({
         where: { id: workspaceId },
         select: { tenantId: true },
       });
       return workspace?.tenantId || null;
     } catch (e) {
-      this.logger.warn(`Failed to resolve tenant for workspace ${workspaceId}: ${e instanceof Error ? e.message : e}`);
+      this.logger.warn(
+        `Failed to resolve tenant for workspace ${workspaceId}: ${e instanceof Error ? e.message : e}`,
+      );
       return null;
     }
   }

@@ -42,7 +42,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const responseBody = exception.getResponse();
       message =
-        typeof responseBody === 'object' && responseBody !== null && 'message' in responseBody
+        typeof responseBody === 'object' &&
+        responseBody !== null &&
+        'message' in responseBody
           ? (responseBody as any).message
           : responseBody;
     } else if (exception instanceof Error) {

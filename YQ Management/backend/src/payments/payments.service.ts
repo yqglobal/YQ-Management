@@ -1,4 +1,9 @@
-import { Injectable, Logger, InternalServerErrorException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as crypto from 'crypto';
 
@@ -15,9 +20,11 @@ export class PaymentsService {
     process.env.FRONTEND_URL || 'http://localhost:3001';
 
   private getOzowCheckoutUrl() {
-    const sandboxMode = process.env.OZOW_IS_TEST !== undefined
-      ? (process.env.OZOW_IS_TEST === 'true' || process.env.OZOW_IS_TEST === '1')
-      : process.env.NODE_ENV !== 'production';
+    const sandboxMode =
+      process.env.OZOW_IS_TEST !== undefined
+        ? process.env.OZOW_IS_TEST === 'true' ||
+          process.env.OZOW_IS_TEST === '1'
+        : process.env.NODE_ENV !== 'production';
 
     return sandboxMode
       ? 'https://sandbox.ozow.com/checkout'
@@ -45,7 +52,7 @@ export class PaymentsService {
       throw new BadRequestException('Plan not found');
     }
 
-    // Example calculation: If yearly, maybe a discount, else 12x. 
+    // Example calculation: If yearly, maybe a discount, else 12x.
     // Here we'll just assume plan.price is monthly. Yearly = price * 12 * 0.9 (10% discount)
     let finalAmount = plan.price;
     if (billingInterval === 'yearly' && plan.billingInterval === 'monthly') {
@@ -82,7 +89,12 @@ export class PaymentsService {
       errorUrl: `${this.frontendUrl}/dashboard/settings/billing?status=error`,
       successUrl: `${this.frontendUrl}/dashboard/settings/billing?status=success`,
       notifyUrl: `${this.baseUrl}/payments/webhook`,
-      isTest: process.env.OZOW_IS_TEST !== undefined ? process.env.OZOW_IS_TEST : (process.env.NODE_ENV === 'production' ? 'false' : 'true'),
+      isTest:
+        process.env.OZOW_IS_TEST !== undefined
+          ? process.env.OZOW_IS_TEST
+          : process.env.NODE_ENV === 'production'
+            ? 'false'
+            : 'true',
     };
 
     // 3. Generate SHA512 Hash
@@ -101,10 +113,13 @@ export class PaymentsService {
     };
   }
 
-  async generateTestPaymentLink(amount: number = 10.00, isTestMode: boolean = false) {
+  async generateTestPaymentLink(
+    amount: number = 10.0,
+    isTestMode: boolean = false,
+  ) {
     const formattedAmount = Number(amount).toFixed(2);
     const txRef = `TEST-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    
+
     const payload = {
       siteCode: this.siteCode || 'YQB-YQB-001',
       countryCode: 'ZA',
@@ -116,7 +131,13 @@ export class PaymentsService {
       errorUrl: `${this.frontendUrl}/super-admin/system-control?payment_status=error`,
       successUrl: `${this.frontendUrl}/super-admin/system-control?payment_status=success`,
       notifyUrl: `${this.baseUrl}/payments/webhook`,
-      isTest: isTestMode ? 'true' : (process.env.OZOW_IS_TEST !== undefined ? process.env.OZOW_IS_TEST : (process.env.NODE_ENV === 'production' ? 'false' : 'true')),
+      isTest: isTestMode
+        ? 'true'
+        : process.env.OZOW_IS_TEST !== undefined
+          ? process.env.OZOW_IS_TEST
+          : process.env.NODE_ENV === 'production'
+            ? 'false'
+            : 'true',
     };
 
     const stringToHash =
@@ -153,7 +174,9 @@ export class PaymentsService {
     }
 
     if (transaction.status !== 'PENDING') {
-      this.logger.log(`Transaction ${TransactionReference} already processed with status ${transaction.status}`);
+      this.logger.log(
+        `Transaction ${TransactionReference} already processed with status ${transaction.status}`,
+      );
       return { success: true };
     }
 
@@ -212,7 +235,12 @@ export class PaymentsService {
   }
 
   async createCheckout(dto: any, workspaceId: string) {
-    return this.generatePaymentLink(workspaceId, null, dto.planId || 'standard-plan', dto.billingInterval || 'monthly');
+    return this.generatePaymentLink(
+      workspaceId,
+      null,
+      dto.planId || 'standard-plan',
+      dto.billingInterval || 'monthly',
+    );
   }
 
   async getPaymentStatus(transactionRef: string) {

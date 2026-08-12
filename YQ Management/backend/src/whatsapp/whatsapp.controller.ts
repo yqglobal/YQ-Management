@@ -28,8 +28,14 @@ export class WhatsappController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
   @Post('connect')
-  connect(@Req() req: AuthenticatedRequest, @Body() body?: { forceRefresh?: boolean }) {
-    const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
+  connect(
+    @Req() req: AuthenticatedRequest,
+    @Body() body?: { forceRefresh?: boolean },
+  ) {
+    const targetId =
+      req.user.tenantId ||
+      (req.user as any).workspaceId ||
+      (req.user as any).userId;
     return this.whatsappService.connect(targetId, body?.forceRefresh);
   }
 
@@ -37,7 +43,10 @@ export class WhatsappController {
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
   @Post('generate-validation-code')
   async generateValidationCode(@Req() req: AuthenticatedRequest) {
-    const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
+    const targetId =
+      req.user.tenantId ||
+      (req.user as any).workspaceId ||
+      (req.user as any).userId;
     return this.whatsappService.generateValidationCode(targetId);
   }
 
@@ -48,11 +57,11 @@ export class WhatsappController {
     @Req() req: AuthenticatedRequest,
     @Body() body: { phoneNumber: string },
   ) {
-    const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
-    return this.whatsappService.generatePairingCode(
-      targetId,
-      body.phoneNumber,
-    );
+    const targetId =
+      req.user.tenantId ||
+      (req.user as any).workspaceId ||
+      (req.user as any).userId;
+    return this.whatsappService.generatePairingCode(targetId, body.phoneNumber);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -62,7 +71,10 @@ export class WhatsappController {
     @Req() req: AuthenticatedRequest,
     @Body() body: { validationCode: string },
   ) {
-    const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
+    const targetId =
+      req.user.tenantId ||
+      (req.user as any).workspaceId ||
+      (req.user as any).userId;
     return this.whatsappService.connectWithValidationCode(
       targetId,
       body.validationCode,
@@ -73,7 +85,10 @@ export class WhatsappController {
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
   @Post('disconnect')
   disconnect(@Req() req: AuthenticatedRequest) {
-    const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
+    const targetId =
+      req.user.tenantId ||
+      (req.user as any).workspaceId ||
+      (req.user as any).userId;
     return this.whatsappService.disconnect(targetId);
   }
 
@@ -84,12 +99,11 @@ export class WhatsappController {
     @Req() req: AuthenticatedRequest,
     @Body() body: { phone: string; message: string },
   ) {
-    const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
-    return this.whatsappService.testMessage(
-      targetId,
-      body.phone,
-      body.message,
-    );
+    const targetId =
+      req.user.tenantId ||
+      (req.user as any).workspaceId ||
+      (req.user as any).userId;
+    return this.whatsappService.testMessage(targetId, body.phone, body.message);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -105,7 +119,10 @@ export class WhatsappController {
   @UseGuards(AuthGuard('jwt'))
   @Get('cached-qr')
   async getCachedQr(@Req() req: AuthenticatedRequest) {
-    const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
+    const targetId =
+      req.user.tenantId ||
+      (req.user as any).workspaceId ||
+      (req.user as any).userId;
     if (!targetId) return { qr: null };
     const result = await this.whatsappService.getCachedQr(targetId);
     if (!result) return { qr: null };
@@ -131,15 +148,17 @@ export class WhatsappController {
   ) {
     const secret = req.query.secret;
     const expectedSecret = process.env.WEBHOOK_SECRET;
-    
+
     if (!expectedSecret) {
-      throw new UnauthorizedException('Webhook secret is not configured on the server');
+      throw new UnauthorizedException(
+        'Webhook secret is not configured on the server',
+      );
     }
 
     if (secret !== expectedSecret) {
       throw new UnauthorizedException('Invalid webhook secret');
     }
-    
+
     return this.whatsappService.handleWebhook(instanceName, body);
   }
 
@@ -177,14 +196,23 @@ export class WhatsappController {
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
   @Post('settings')
   saveChatbotSettings(@Req() req: AuthenticatedRequest, @Body() body: any) {
-    const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
+    const targetId =
+      req.user.tenantId ||
+      (req.user as any).workspaceId ||
+      (req.user as any).userId;
     return this.whatsappService.saveChatbotSettings(targetId, body);
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Post('frontend-log')
-  frontendLog(@Req() req: AuthenticatedRequest, @Body() body: { level: string; message: string; data?: any }) {
-    const targetId = req.user.tenantId || (req.user as any).workspaceId || (req.user as any).userId;
+  frontendLog(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { level: string; message: string; data?: any },
+  ) {
+    const targetId =
+      req.user.tenantId ||
+      (req.user as any).workspaceId ||
+      (req.user as any).userId;
     const source = `Frontend-[Tenant-${targetId}]`;
     const { level, message, data } = body;
 

@@ -94,6 +94,14 @@ enum VisitState {
   TRANSFERRED
 }
 
+enum PolicyType {
+  TERMS_OF_SERVICE
+  PRIVACY_POLICY
+  COOKIE_POLICY
+  REFUND_POLICY
+  DATA_PROCESSING_AGREEMENT
+}
+
 model Tenant {
   id                 String            @id @default(uuid())
   name               String
@@ -136,6 +144,10 @@ model User {
   personalSettings Json?
   tenant           Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   workspace        Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  policyAcceptances PolicyAcceptance[]
+  cookiePreferences CookiePreference[]
+  sessions          UserSession[]
 
   @@index([tenantId])
   @@index([workspaceId])
@@ -664,4 +676,70 @@ model Visit {
   @@index([currentState])
   @@index([customerId])
   @@index([queueId])
+}
+
+model Policy {
+  id        String       @id @default(uuid())
+  type      PolicyType
+  version   String       // e.g., "1.0.0"
+  content   String       @db.Text
+  active    Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  acceptances PolicyAcceptance[]
+
+  @@unique([type, version])
+}
+
+model PolicyAcceptance {
+  id        String   @id @default(uuid())
+  userId    String
+  policyId  String
+  ipAddress String?
+  userAgent String?
+  acceptedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  policy Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([policyId])
+}
+
+model CookiePreference {
+  id            String   @id @default(uuid())
+  userId        String?  // Optional, can be anonymous
+  anonymousId   String?  @unique // For non-logged in users
+  necessary     Boolean  @default(true)
+  analytics     Boolean  @default(false)
+  functional    Boolean  @default(false)
+  marketing     Boolean  @default(false)
+  ipAddress     String?
+  userAgent     String?
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([anonymousId])
+}
+
+model UserSession {
+  id           String   @id @default(uuid())
+  userId       String
+  token        String   @unique
+  ipAddress    String?
+  userAgent    String?
+  deviceInfo   Json?
+  lastActiveAt DateTime @default(now())
+  expiresAt    DateTime
+  isRevoked    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
 }

@@ -31,18 +31,24 @@ export class LocationService {
     return location;
   }
 
-  async update(id: string, tenantId: string, data: { name?: string; address?: string }) {
-    return this.prisma.extendedClient.location.update({
-      where: { id_tenantId: { id, tenantId } },
-      data,
-    }).catch(async (e: any) => {
+  async update(
+    id: string,
+    tenantId: string,
+    data: { name?: string; address?: string },
+  ) {
+    return this.prisma.extendedClient.location
+      .update({
+        where: { id_tenantId: { id, tenantId } },
+        data,
+      })
+      .catch(async (e: any) => {
         // Safe update
         const exists = await this.findOne(id, tenantId);
         return this.prisma.extendedClient.location.update({
-            where: { id: exists.id },
-            data,
+          where: { id: exists.id },
+          data,
         });
-    });
+      });
   }
 
   async remove(id: string, tenantId: string) {

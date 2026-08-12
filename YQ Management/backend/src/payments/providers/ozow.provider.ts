@@ -36,9 +36,11 @@ export class OzowProvider implements PaymentProvider {
     const baseUrl =
       provider.baseUrl || process.env.BACKEND_URL || 'http://localhost:3000';
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-    const sandboxMode = process.env.OZOW_SANDBOX !== undefined
-      ? (process.env.OZOW_SANDBOX === 'true' || process.env.OZOW_SANDBOX === '1')
-      : provider.sandboxEnabled === true;
+    const sandboxMode =
+      process.env.OZOW_SANDBOX !== undefined
+        ? process.env.OZOW_SANDBOX === 'true' ||
+          process.env.OZOW_SANDBOX === '1'
+        : provider.sandboxEnabled === true;
 
     const bankReference = `QMOVA-${internalRef.substring(4, 12)}`;
     const amount = input.amount.toFixed(2);

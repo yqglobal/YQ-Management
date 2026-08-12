@@ -28,7 +28,9 @@ export class KeepAliveService {
     try {
       toggles = this.superAdminService.getSystemToggles() || toggles;
     } catch (err) {
-      this.logger.warn('Failed to read Super Admin toggles — skipping keep-alive checks this run');
+      this.logger.warn(
+        'Failed to read Super Admin toggles — skipping keep-alive checks this run',
+      );
       return;
     }
 
@@ -36,7 +38,9 @@ export class KeepAliveService {
       if (toggles.keepAliveBackend !== false) {
         this.pingBackend();
       } else {
-        this.logger.warn('Backend keep-alive ping is DISABLED via Super Admin toggle.');
+        this.logger.warn(
+          'Backend keep-alive ping is DISABLED via Super Admin toggle.',
+        );
       }
     } catch (err) {
       this.logger.error('Error while pinging backend in keep-alive cron', err);
@@ -46,10 +50,15 @@ export class KeepAliveService {
       if (toggles.keepAliveWhatsapp !== false) {
         this.pingEvolutionApi();
       } else {
-        this.logger.warn('Evolution API keep-alive ping is DISABLED via Super Admin toggle.');
+        this.logger.warn(
+          'Evolution API keep-alive ping is DISABLED via Super Admin toggle.',
+        );
       }
     } catch (err) {
-      this.logger.error('Error while pinging Evolution API in keep-alive cron', err);
+      this.logger.error(
+        'Error while pinging Evolution API in keep-alive cron',
+        err,
+      );
     }
   }
 

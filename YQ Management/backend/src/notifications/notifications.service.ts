@@ -47,9 +47,17 @@ export class NotificationsService implements OnModuleInit {
 
       let result: any;
       if (tenantId) {
-        result = await this.whatsappService.sendToTenant(tenantId, cleanNumber, body.trim());
+        result = await this.whatsappService.sendToTenant(
+          tenantId,
+          cleanNumber,
+          body.trim(),
+        );
       } else if (this.instanceName) {
-        result = await this.whatsappService.sendMessage(this.instanceName, cleanNumber, body.trim());
+        result = await this.whatsappService.sendMessage(
+          this.instanceName,
+          cleanNumber,
+          body.trim(),
+        );
       } else {
         this.logger.warn(
           `[MOCK WHATSAPP] Evolution instance not configured. To: ${to} | Body: ${body}`,
@@ -60,7 +68,9 @@ export class NotificationsService implements OnModuleInit {
       if (result.success) {
         this.logger.log(`Sent WhatsApp message to ${cleanNumber}`);
       } else {
-        this.logger.error(`Failed to send WhatsApp message to ${cleanNumber}: ${result.error}`);
+        this.logger.error(
+          `Failed to send WhatsApp message to ${cleanNumber}: ${result.error}`,
+        );
       }
       return result;
     } catch (error) {

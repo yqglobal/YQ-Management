@@ -5,7 +5,10 @@ import { PrismaService } from '../prisma/prisma.service';
 export class CustomerService {
   constructor(private prisma: PrismaService) {}
 
-  async create(tenantId: string, data: { name: string; phone?: string; email?: string }) {
+  async create(
+    tenantId: string,
+    data: { name: string; phone?: string; email?: string },
+  ) {
     return this.prisma.extendedClient.customer.create({
       data: {
         tenantId,

@@ -58,10 +58,16 @@ export class WhatsappLogger {
   }
 
   logResponse(url: string, method: string, status: number, responseData?: any) {
-    this.info('Evolution-API-Response', `${method} ${url} - Status ${status}`, { responseData });
+    this.info('Evolution-API-Response', `${method} ${url} - Status ${status}`, {
+      responseData,
+    });
   }
 
   logWebhook(instanceName: string, eventType: string, payload?: any) {
-    this.info('Evolution-API-Webhook', `Incoming webhook from ${instanceName}: ${eventType}`, { payload });
+    this.info(
+      'Evolution-API-Webhook',
+      `Incoming webhook from ${instanceName}: ${eventType}`,
+      { payload },
+    );
   }
 }

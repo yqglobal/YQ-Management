@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { createBrandEmailLayout, generateOtpBoxHtml, generateButtonHtml } from '../../email/email-layout';
+import {
+  createBrandEmailLayout,
+  generateOtpBoxHtml,
+  generateButtonHtml,
+} from '../../email/email-layout';
 
 export interface TemplateVariables {
   [key: string]: string | number | undefined;
@@ -17,7 +21,6 @@ export class TemplateService {
   private readonly logger = new Logger(TemplateService.name);
 
   constructor(private readonly prisma: PrismaService) {}
-
 
   private readonly emailTemplates: Record<string, Template> = {
     signup_otp: {
@@ -157,7 +160,8 @@ export class TemplateService {
       subject: 'Qmova Alert: Subscription Expired',
       html: createBrandEmailLayout({
         title: 'Subscription Expired',
-        preheader: 'Your subscription for Qmova has reached its expiration date.',
+        preheader:
+          'Your subscription for Qmova has reached its expiration date.',
         content: `<h2 style="color: #ef4444; margin-top: 0; font-size: 22px; font-weight: 700;">Subscription Expired</h2>
         <p style="color: #4b5563; line-height: 1.6;">The active billing cycle for workspace <strong>"{{workspace}}"</strong> has expired, and premium service capabilities are temporarily suspended.</p>
         <p style="color: #4b5563; line-height: 1.6;">To immediately reactivate your workspace queues and customer messaging infrastructure, please renew your subscription:</p>

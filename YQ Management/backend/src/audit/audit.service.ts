@@ -42,8 +42,10 @@ export class AuditService {
       });
       this.logger.log(`Audit: ${action} ${resource || ''} ${resourceId || ''}`);
     } catch (error) {
-      this.logger.error(`Failed to create audit log: ${action} ${resource}`, error);
+      this.logger.error(
+        `Failed to create audit log: ${action} ${resource}`,
+        error,
+      );
     }
   }
 }
-

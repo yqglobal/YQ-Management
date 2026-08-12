@@ -44,7 +44,7 @@ export class UsersService {
       select: { id: true, email: true, role: true },
     });
 
-    const staffList: any[] = activeUsers.map(u => ({
+    const staffList: any[] = activeUsers.map((u) => ({
       id: u.id,
       email: u.email,
       role: u.role,
@@ -61,7 +61,7 @@ export class UsersService {
       return staffList;
     }
 
-    const workspaceIds = workspaces.map(w => w.id);
+    const workspaceIds = workspaces.map((w) => w.id);
     const invites = await this.prisma.invitation.findMany({
       where: {
         workspaceId: { in: workspaceIds },
@@ -71,15 +71,25 @@ export class UsersService {
     });
 
     const now = new Date();
-    const tenantAdmin = activeUsers.find(u => u.role === 'TENANT_ADMIN' || u.role === 'SUPER_ADMIN') || activeUsers[0];
+    const tenantAdmin =
+      activeUsers.find(
+        (u) => u.role === 'TENANT_ADMIN' || u.role === 'SUPER_ADMIN',
+      ) || activeUsers[0];
     const workspaceName = workspaces[0]?.name || 'Workspace Team';
 
     for (const inv of invites) {
-      if (!inv.email || staffList.some(s => s.email?.toLowerCase() === inv.email?.toLowerCase())) {
+      if (
+        !inv.email ||
+        staffList.some(
+          (s) => s.email?.toLowerCase() === inv.email?.toLowerCase(),
+        )
+      ) {
         continue;
       }
 
-      const isExpired = (inv.expiresAt && inv.expiresAt < now) || (inv.usedCount >= inv.maxUses && inv.used);
+      const isExpired =
+        (inv.expiresAt && inv.expiresAt < now) ||
+        (inv.usedCount >= inv.maxUses && inv.used);
       if (isExpired && !inv.used) {
         await this.prisma.invitation.update({
           where: { id: inv.id },
@@ -141,7 +151,9 @@ export class UsersService {
     });
 
     if (!workspace) {
-      throw new BadRequestException('No active workspace found for this organization.');
+      throw new BadRequestException(
+        'No active workspace found for this organization.',
+      );
     }
 
     if (!existingUser) {
@@ -155,7 +167,13 @@ export class UsersService {
       const invite = existingInvite
         ? await this.prisma.invitation.update({
             where: { id: existingInvite.id },
-            data: { code, role: data.role as Role, expiresAt, used: false, usedCount: 0 },
+            data: {
+              code,
+              role: data.role as Role,
+              expiresAt,
+              used: false,
+              usedCount: 0,
+            },
           })
         : await this.prisma.invitation.create({
             data: {
@@ -176,12 +194,18 @@ export class UsersService {
         role: data.role,
         workspaceName: workspace.name,
         inviteUrl: `https://yq-qmova.vercel.app/register?inviteCode=${invite.code}`,
-        message: 'No Qmova account found for this email. An invitation join code has been generated.',
+        message:
+          'No Qmova account found for this email. An invitation join code has been generated.',
       };
     }
 
-    if (existingUser.tenantId === tenantId && existingUser.workspaceId === workspace.id) {
-      throw new BadRequestException('This user is already an active member of your team workspace.');
+    if (
+      existingUser.tenantId === tenantId &&
+      existingUser.workspaceId === workspace.id
+    ) {
+      throw new BadRequestException(
+        'This user is already an active member of your team workspace.',
+      );
     }
 
     const updatedUser = await this.prisma.user.update({
@@ -206,7 +230,10 @@ export class UsersService {
     };
   }
 
-  async sendInviteEmail(tenantId: string, data: { email: string; code: string; role: string }) {
+  async sendInviteEmail(
+    tenantId: string,
+    data: { email: string; code: string; role: string },
+  ) {
     const workspace = await this.prisma.workspace.findFirst({
       where: { tenantId },
       select: { id: true, name: true },
@@ -221,9 +248,14 @@ export class UsersService {
       data.code,
     );
     if (!res.success) {
-      throw new BadRequestException(res.error || 'Failed to dispatch Brevo invitation email.');
+      throw new BadRequestException(
+        res.error || 'Failed to dispatch Brevo invitation email.',
+      );
     }
-    return { success: true, message: 'Invitation email successfully sent via Brevo.' };
+    return {
+      success: true,
+      message: 'Invitation email successfully sent via Brevo.',
+    };
   }
 
   async resendInvite(tenantId: string, inviteId: string) {
@@ -275,7 +307,7 @@ export class UsersService {
         select: { id: true },
       });
       const targetInvite = await this.prisma.invitation.findFirst({
-        where: { id, workspaceId: { in: workspaces.map(w => w.id) } },
+        where: { id, workspaceId: { in: workspaces.map((w) => w.id) } },
       });
       if (targetInvite) {
         await this.prisma.invitation.delete({ where: { id: targetInvite.id } });
@@ -320,7 +352,13 @@ export class UsersService {
     return { success: true };
   }
 
-  async updateRole(tenantId: string, id: string, newRole: Role, currentUserId: string, currentUserEmail: string) {
+  async updateRole(
+    tenantId: string,
+    id: string,
+    newRole: Role,
+    currentUserId: string,
+    currentUserEmail: string,
+  ) {
     const targetUser = await this.prisma.user.findUnique({
       where: { id },
       select: { id: true, role: true, email: true, tenantId: true },
@@ -360,9 +398,17 @@ export class UsersService {
     const workspaceName = workspace?.name || 'Workspace Team';
 
     if (newRole === 'TENANT_ADMIN') {
-      await this.emailService.sendAdminTransferEmail(currentUserEmail, updatedUser.email, workspaceName);
+      await this.emailService.sendAdminTransferEmail(
+        currentUserEmail,
+        updatedUser.email,
+        workspaceName,
+      );
     } else {
-      await this.emailService.sendRoleUpdatedEmail(updatedUser.email, workspaceName, newRole);
+      await this.emailService.sendRoleUpdatedEmail(
+        updatedUser.email,
+        workspaceName,
+        newRole,
+      );
     }
 
     return { success: true, user: updatedUser };

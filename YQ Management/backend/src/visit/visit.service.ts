@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
@@ -62,9 +66,15 @@ export class VisitService {
 
   async checkIn(id: string, tenantId: string) {
     const visit = await this.findOne(id, tenantId);
-    
-    if (visit.currentState === 'CHECKED_IN' || visit.currentState === 'IN_SERVICE' || visit.currentState === 'COMPLETED') {
-      throw new ConflictException(`Visit is already ${visit.currentState.toLowerCase()}`);
+
+    if (
+      visit.currentState === 'CHECKED_IN' ||
+      visit.currentState === 'IN_SERVICE' ||
+      visit.currentState === 'COMPLETED'
+    ) {
+      throw new ConflictException(
+        `Visit is already ${visit.currentState.toLowerCase()}`,
+      );
     }
 
     return this.prisma.visit.update({
@@ -79,8 +89,13 @@ export class VisitService {
   async startService(id: string, tenantId: string) {
     const visit = await this.findOne(id, tenantId);
 
-    if (visit.currentState === 'IN_SERVICE' || visit.currentState === 'COMPLETED') {
-      throw new ConflictException(`Visit is already ${visit.currentState.toLowerCase()}`);
+    if (
+      visit.currentState === 'IN_SERVICE' ||
+      visit.currentState === 'COMPLETED'
+    ) {
+      throw new ConflictException(
+        `Visit is already ${visit.currentState.toLowerCase()}`,
+      );
     }
 
     return this.prisma.visit.update({

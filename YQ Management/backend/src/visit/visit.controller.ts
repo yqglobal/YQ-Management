@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { VisitService } from './visit.service';
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
@@ -11,7 +21,10 @@ export class VisitController {
   constructor(private readonly visitService: VisitService) {}
 
   @Post()
-  create(@Req() req: AuthenticatedRequest, @Body() createVisitDto: CreateVisitDto) {
+  create(
+    @Req() req: AuthenticatedRequest,
+    @Body() createVisitDto: CreateVisitDto,
+  ) {
     // Override tenantId with the authenticated user's tenantId for security
     createVisitDto.tenantId = req.user.tenantId;
     return this.visitService.create(createVisitDto);
@@ -28,7 +41,11 @@ export class VisitController {
   }
 
   @Patch(':id')
-  update(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() updateVisitDto: UpdateVisitDto) {
+  update(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() updateVisitDto: UpdateVisitDto,
+  ) {
     return this.visitService.update(id, req.user.tenantId, updateVisitDto);
   }
 

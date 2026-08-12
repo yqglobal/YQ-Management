@@ -24,7 +24,9 @@ export class NotificationsController {
         // Extract number from JID (e.g., 1234567890@s.whatsapp.net)
         const fromNumber = remoteJid.split('@')[0];
         // Try to resolve tenant by instanceName in header or query if provided
-        const instanceName = req.query.instanceName as string || req.headers['x-evolution-instance'] as string;
+        const instanceName =
+          (req.query.instanceName as string) ||
+          (req.headers['x-evolution-instance'] as string);
         // The NotificationsService currently does not need tenantId for replies,
         // but in future we may route these to the correct tenant if provided.
         await this.notificationsService.processWebhookReply(fromNumber, text);

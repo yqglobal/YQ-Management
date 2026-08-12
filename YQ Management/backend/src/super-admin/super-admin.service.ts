@@ -29,9 +29,14 @@ export class SuperAdminService {
 
   async getWhatsappInstances() {
     const tenants = await this.prisma.tenant.findMany({
-      select: { id: true, name: true, whatsappInstanceId: true, whatsappConnected: true }
+      select: {
+        id: true,
+        name: true,
+        whatsappInstanceId: true,
+        whatsappConnected: true,
+      },
     });
-    
+
     let activeInstances = [];
     try {
       const evoUrl = process.env.EVOLUTION_API_URL || 'http://localhost:8080';
@@ -43,23 +48,34 @@ export class SuperAdminService {
       });
       if (res.ok) {
         const data = await res.json();
-        activeInstances = Array.isArray(data) ? data.map(i => i.instance.instanceName) : [];
+        activeInstances = Array.isArray(data)
+          ? data.map((i) => i.instance.instanceName)
+          : [];
       }
     } catch (e) {
-      console.error('Failed to fetch Evolution API instances for super admin monitor', e);
+      console.error(
+        'Failed to fetch Evolution API instances for super admin monitor',
+        e,
+      );
     }
 
-    return tenants.map(t => ({
+    return tenants.map((t) => ({
       id: t.id,
       name: t.name,
       instanceId: t.whatsappInstanceId,
       dbConnected: t.whatsappConnected,
       evoActive: activeInstances.includes(t.whatsappInstanceId),
-      status: (!t.whatsappInstanceId) ? 'unconfigured' 
-              : (t.whatsappConnected && activeInstances.includes(t.whatsappInstanceId)) ? 'healthy'
-              : (t.whatsappConnected && !activeInstances.includes(t.whatsappInstanceId)) ? 'stale_db'
-              : (!t.whatsappConnected && activeInstances.includes(t.whatsappInstanceId)) ? 'stale_evo'
-              : 'disconnected'
+      status: !t.whatsappInstanceId
+        ? 'unconfigured'
+        : t.whatsappConnected && activeInstances.includes(t.whatsappInstanceId)
+          ? 'healthy'
+          : t.whatsappConnected &&
+              !activeInstances.includes(t.whatsappInstanceId)
+            ? 'stale_db'
+            : !t.whatsappConnected &&
+                activeInstances.includes(t.whatsappInstanceId)
+              ? 'stale_evo'
+              : 'disconnected',
     }));
   }
 
@@ -105,7 +121,9 @@ export class SuperAdminService {
             queues: { where: { status: { not: 'CLOSED' } } },
           },
         },
-        workspaces: { select: { id: true, name: true, subscriptionStatus: true } },
+        workspaces: {
+          select: { id: true, name: true, subscriptionStatus: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -151,7 +169,10 @@ export class SuperAdminService {
 
     return this.prisma.user.findMany({
       where,
-      include: { tenant: { select: { name: true } }, workspace: { select: { name: true } } },
+      include: {
+        tenant: { select: { name: true } },
+        workspace: { select: { name: true } },
+      },
       take: 100,
     });
   }
@@ -162,7 +183,11 @@ export class SuperAdminService {
         email: data.email,
         role: data.role as any,
         tenantId: data.tenantId,
-        personalSettings: { theme: 'light', language: 'en', notificationsEnabled: true },
+        personalSettings: {
+          theme: 'light',
+          language: 'en',
+          notificationsEnabled: true,
+        },
       },
     });
   }
@@ -179,16 +204,30 @@ export class SuperAdminService {
   async getPlatformAnalytics() {
     const totalTenants = await this.prisma.tenant.count();
     const totalUsers = await this.prisma.user.count();
-    const totalQueues = await this.prisma.queue.count({ where: { status: { not: 'CLOSED' } } });
-    const activeQueues = await this.prisma.queue.count({ where: { status: 'ACTIVE' } });
+    const totalQueues = await this.prisma.queue.count({
+      where: { status: { not: 'CLOSED' } },
+    });
+    const activeQueues = await this.prisma.queue.count({
+      where: { status: 'ACTIVE' },
+    });
     const totalTokens = await this.prisma.token.count();
-    const waitingTokens = await this.prisma.token.count({ where: { status: 'WAITING' } });
-    const servedTokens = await this.prisma.token.count({ where: { status: 'SERVING' } });
-    const completedTokens = await this.prisma.token.count({ where: { status: 'COMPLETED' } });
-    const missedTokens = await this.prisma.token.count({ where: { status: 'MISSED' } });
+    const waitingTokens = await this.prisma.token.count({
+      where: { status: 'WAITING' },
+    });
+    const servedTokens = await this.prisma.token.count({
+      where: { status: 'SERVING' },
+    });
+    const completedTokens = await this.prisma.token.count({
+      where: { status: 'COMPLETED' },
+    });
+    const missedTokens = await this.prisma.token.count({
+      where: { status: 'MISSED' },
+    });
 
     const recentTenants = await this.prisma.tenant.findMany({
-      where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+      where: {
+        createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      },
       select: { createdAt: true },
       orderBy: { createdAt: 'asc' },
     });
@@ -200,7 +239,12 @@ export class SuperAdminService {
 
     const topTenants = await this.prisma.tenant.findMany({
       include: {
-        _count: { select: { queues: { where: { status: { not: 'CLOSED' } } }, users: true } },
+        _count: {
+          select: {
+            queues: { where: { status: { not: 'CLOSED' } } },
+            users: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 10,
@@ -244,8 +288,12 @@ export class SuperAdminService {
     let realMRR = 0;
     const planCounts: { [key: string]: number } = {};
     allSubs.forEach((sub) => {
-      if ((sub.status === 'ACTIVE' || sub.status === 'TRIAL') && sub.plan?.price) {
-        const amount = sub.plan.interval === 'yearly' ? sub.plan.price / 12 : sub.plan.price;
+      if (
+        (sub.status === 'ACTIVE' || sub.status === 'TRIAL') &&
+        sub.plan?.price
+      ) {
+        const amount =
+          sub.plan.interval === 'yearly' ? sub.plan.price / 12 : sub.plan.price;
         if (sub.status === 'ACTIVE') {
           realMRR += amount;
         }
@@ -253,20 +301,24 @@ export class SuperAdminService {
       const planName = sub.plan?.name || 'Trial / Free';
       planCounts[planName] = (planCounts[planName] || 0) + 1;
     });
-    const trialCount = await this.prisma.tenant.count({ where: { subscriptionStatus: 'TRIAL' } });
+    const trialCount = await this.prisma.tenant.count({
+      where: { subscriptionStatus: 'TRIAL' },
+    });
     const realARR = realMRR * 12;
     const arpu = totalTenants > 0 ? realMRR / totalTenants : 0;
 
     const planTiers: any[] = plans.map((p) => ({
       tier: `${p.name} ($${p.price}/${p.interval === 'yearly' ? 'yr' : 'mo'})`,
       count: planCounts[p.name] || 0,
-      color: 'border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/5 text-blue-600',
+      color:
+        'border-blue-500/30 bg-blue-50/50 dark:bg-blue-500/5 text-blue-600',
     }));
     if (trialCount >= 0) {
       planTiers.unshift({
         tier: 'Trial & Free Workspaces',
         count: trialCount,
-        color: 'border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5 text-amber-600',
+        color:
+          'border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5 text-amber-600',
       });
     }
 
@@ -275,18 +327,44 @@ export class SuperAdminService {
       select: { id: true, name: true, whatsappPhone: true },
     });
     const geoCounts = {
-      ZAF: { region: 'South Africa (Johannesburg, Cape Town)', code: 'ZAF', tenants: 0, color: 'bg-indigo-600 dark:bg-indigo-500' },
-      USA: { region: 'United States & North America', code: 'USA', tenants: 0, color: 'bg-blue-600 dark:bg-blue-500' },
-      GBR: { region: 'United Kingdom & Europe', code: 'GBR/EUR', tenants: 0, color: 'bg-emerald-600 dark:bg-emerald-500' },
-      ARE: { region: 'United Arab Emirates & Middle East', code: 'ARE', tenants: 0, color: 'bg-amber-600 dark:bg-amber-500' },
-      APAC: { region: 'Asia Pacific (India & Australia)', code: 'APAC', tenants: 0, color: 'bg-purple-600 dark:bg-purple-500' },
+      ZAF: {
+        region: 'South Africa (Johannesburg, Cape Town)',
+        code: 'ZAF',
+        tenants: 0,
+        color: 'bg-indigo-600 dark:bg-indigo-500',
+      },
+      USA: {
+        region: 'United States & North America',
+        code: 'USA',
+        tenants: 0,
+        color: 'bg-blue-600 dark:bg-blue-500',
+      },
+      GBR: {
+        region: 'United Kingdom & Europe',
+        code: 'GBR/EUR',
+        tenants: 0,
+        color: 'bg-emerald-600 dark:bg-emerald-500',
+      },
+      ARE: {
+        region: 'United Arab Emirates & Middle East',
+        code: 'ARE',
+        tenants: 0,
+        color: 'bg-amber-600 dark:bg-amber-500',
+      },
+      APAC: {
+        region: 'Asia Pacific (India & Australia)',
+        code: 'APAC',
+        tenants: 0,
+        color: 'bg-purple-600 dark:bg-purple-500',
+      },
     };
     allTenants.forEach((t) => {
       const p = (t.whatsappPhone || '').replace(/\D/g, '');
       if (p.startsWith('1') && p.length === 11) geoCounts.USA.tenants++;
       else if (p.startsWith('44')) geoCounts.GBR.tenants++;
       else if (p.startsWith('971')) geoCounts.ARE.tenants++;
-      else if (p.startsWith('91') || p.startsWith('61') || p.startsWith('65')) geoCounts.APAC.tenants++;
+      else if (p.startsWith('91') || p.startsWith('61') || p.startsWith('65'))
+        geoCounts.APAC.tenants++;
       else geoCounts.ZAF.tenants++;
     });
     const geography = Object.values(geoCounts).map((g) => ({
@@ -297,13 +375,45 @@ export class SuperAdminService {
     // Real Traffic & Endpoint Telemetry
     const auditCount = await this.prisma.auditLog.count().catch(() => 0);
     const commCount = await this.prisma.communicationLog.count().catch(() => 0);
-    const whatsappTenants = await this.prisma.tenant.count({ where: { whatsappConnected: true } });
+    const whatsappTenants = await this.prisma.tenant.count({
+      where: { whatsappConnected: true },
+    });
     const trafficPages = [
-      { page: '/dashboard/queues', title: 'Live Queue Dashboard & Token Control', visits: (totalTokens + activeQueues * 25).toLocaleString(), percentage: 40, trend: 'Active' },
-      { page: '/dashboard/scanner', title: 'Staff QR Code Verification Scanner', visits: (completedTokens + servedTokens * 2).toLocaleString(), percentage: 25, trend: 'Active' },
-      { page: '/dashboard/display-picker', title: 'Live TV Lobby Display Screen & TTS Voice', visits: (activeQueues * 18 + waitingTokens).toLocaleString(), percentage: 20, trend: 'Active' },
-      { page: '/dashboard/settings/whatsapp', title: 'Automated WhatsApp Token Notifications', visits: (whatsappTenants * 15 + commCount).toLocaleString(), percentage: 10, trend: 'Active' },
-      { page: '/dashboard/history', title: 'Analytics & CSV Record Exports', visits: (auditCount + totalQueues * 3).toLocaleString(), percentage: 5, trend: 'Active' },
+      {
+        page: '/dashboard/queues',
+        title: 'Live Queue Dashboard & Token Control',
+        visits: (totalTokens + activeQueues * 25).toLocaleString(),
+        percentage: 40,
+        trend: 'Active',
+      },
+      {
+        page: '/dashboard/scanner',
+        title: 'Staff QR Code Verification Scanner',
+        visits: (completedTokens + servedTokens * 2).toLocaleString(),
+        percentage: 25,
+        trend: 'Active',
+      },
+      {
+        page: '/dashboard/display-picker',
+        title: 'Live TV Lobby Display Screen & TTS Voice',
+        visits: (activeQueues * 18 + waitingTokens).toLocaleString(),
+        percentage: 20,
+        trend: 'Active',
+      },
+      {
+        page: '/dashboard/settings/whatsapp',
+        title: 'Automated WhatsApp Token Notifications',
+        visits: (whatsappTenants * 15 + commCount).toLocaleString(),
+        percentage: 10,
+        trend: 'Active',
+      },
+      {
+        page: '/dashboard/history',
+        title: 'Analytics & CSV Record Exports',
+        visits: (auditCount + totalQueues * 3).toLocaleString(),
+        percentage: 5,
+        trend: 'Active',
+      },
     ];
 
     // Real Operational Wait Statistics
@@ -323,7 +433,7 @@ export class SuperAdminService {
       avgWaitMilli = Math.round(totalWait / recentTokens.length);
     }
     const avgWaitMins = Math.round(avgWaitMilli / 60000);
-    
+
     const hoursCount = new Array(24).fill(0);
     const allTokensForTime = await this.prisma.token.findMany({
       select: { joinedAt: true },
@@ -335,7 +445,10 @@ export class SuperAdminService {
     let maxHour = 10;
     let maxCount = 0;
     hoursCount.forEach((count, h) => {
-      if (count > maxCount) { maxCount = count; maxHour = h; }
+      if (count > maxCount) {
+        maxCount = count;
+        maxHour = h;
+      }
     });
     const peakWindow = `${String(maxHour).padStart(2, '0')}:00 - ${String((maxHour + 3) % 24).padStart(2, '0')}:00`;
 
@@ -377,7 +490,9 @@ export class SuperAdminService {
   async getAllSubscriptions() {
     return this.prisma.subscription.findMany({
       include: {
-        workspace: { select: { name: true, tenant: { select: { name: true } } } },
+        workspace: {
+          select: { name: true, tenant: { select: { name: true } } },
+        },
         plan: { select: { name: true, price: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -417,8 +532,8 @@ export class SuperAdminService {
         price: dto.price ?? 0,
         currency: dto.currency || 'ZAR',
         trialDays: dto.trialDays ?? 0,
-        features: (dto.features ?? null) as any,
-        limits: (dto.limits ?? null) as any,
+        features: dto.features ?? null,
+        limits: dto.limits ?? null,
         sortOrder: dto.sortOrder ?? 0,
       },
     });
@@ -428,7 +543,8 @@ export class SuperAdminService {
     const data: Record<string, unknown> = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.description !== undefined) data.description = dto.description;
-    if (dto.billingInterval !== undefined) data.billingInterval = dto.billingInterval;
+    if (dto.billingInterval !== undefined)
+      data.billingInterval = dto.billingInterval;
     if (dto.price !== undefined) data.price = dto.price;
     if (dto.currency !== undefined) data.currency = dto.currency;
     if (dto.trialDays !== undefined) data.trialDays = dto.trialDays;

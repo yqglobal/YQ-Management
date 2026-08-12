@@ -21,10 +21,13 @@ export class TasksService {
       where: {
         OR: [
           { expiresAt: { lt: now }, used: false },
-          { usedCount: { gte: this.prisma.invitation.fields.maxUses }, used: false }
-        ]
+          {
+            usedCount: { gte: this.prisma.invitation.fields.maxUses },
+            used: false,
+          },
+        ],
       },
-      include: { workspace: true }
+      include: { workspace: true },
     });
 
     if (expiredInvites.length === 0) {
@@ -38,21 +41,24 @@ export class TasksService {
       try {
         await this.prisma.invitation.update({
           where: { id: invite.id },
-          data: { used: true }
+          data: { used: true },
         });
         cleanupCount++;
 
         // Try to notify the tenant admin
         if (invite.email) {
           const tenantAdmin = await this.prisma.user.findFirst({
-            where: { tenantId: invite.workspace.tenantId, role: 'TENANT_ADMIN' }
+            where: {
+              tenantId: invite.workspace.tenantId,
+              role: 'TENANT_ADMIN',
+            },
           });
-          
+
           if (tenantAdmin?.email) {
             this.emailService.sendInvitationExpiredNotification(
               tenantAdmin.email,
               invite.email,
-              invite.workspace.name
+              invite.workspace.name,
             );
           }
         }
@@ -68,6 +74,8 @@ export class TasksService {
   async handleAuditLogPruning() {
     // Optionally delete audit logs older than 90 days.
     // We will keep them for now, but this is a placeholder.
-    this.logger.log('Audit Log cleanup check: Keeping all logs indefinitely as per policy.');
+    this.logger.log(
+      'Audit Log cleanup check: Keeping all logs indefinitely as per policy.',
+    );
   }
 }

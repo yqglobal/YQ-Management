@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, Logger, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -31,7 +36,10 @@ export class AuthService {
     return null;
   }
 
-  async generateAndSendOTP(email: string, purpose: 'signup' | 'login' | 'reset') {
+  async generateAndSendOTP(
+    email: string,
+    purpose: 'signup' | 'login' | 'reset',
+  ) {
     const otp = this.generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
@@ -71,9 +79,11 @@ export class AuthService {
     });
 
     // Fire and forget login notification
-    this.emailService.sendLoginNotification(email).catch((err) =>
-      this.logger.error(`Failed to send login notification to ${email}`, err),
-    );
+    this.emailService
+      .sendLoginNotification(email)
+      .catch((err) =>
+        this.logger.error(`Failed to send login notification to ${email}`, err),
+      );
 
     return user;
   }
@@ -89,7 +99,10 @@ export class AuthService {
         const tenant = await this.usersService['prisma'].tenant.create({
           data: {
             name: email.split('@')[0],
-            subdomain: `${email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now()}`,
+            subdomain: `${email
+              .split('@')[0]
+              .toLowerCase()
+              .replace(/[^a-z0-9]/g, '')}-${Date.now()}`,
           },
         });
         user = await this.usersService.create({
@@ -109,7 +122,9 @@ export class AuthService {
           ownerId: user.id,
           tenantId: tenant.id,
         });
-        user = await this.usersService['prisma'].user.findUnique({ where: { id: user.id } }) as any;
+        user = await this.usersService['prisma'].user.findUnique({
+          where: { id: user.id },
+        });
         this.logger.log(`New user created via Google SSO: ${email}`);
       } else if (!user.googleId) {
         // Link Google ID if account already exists with email
@@ -172,7 +187,9 @@ export class AuthService {
       where: { id: newUser.id },
     });
     if (!updatedUser) {
-      throw new InternalServerErrorException('User not found after workspace assignment');
+      throw new InternalServerErrorException(
+        'User not found after workspace assignment',
+      );
     }
 
     return updatedUser;
