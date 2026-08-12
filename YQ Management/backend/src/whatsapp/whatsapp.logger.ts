@@ -1,13 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class WhatsappLogger {
   private readonly logger = new Logger(WhatsappLogger.name);
   private logFilePath: string;
 
-  constructor() {
+  constructor(private readonly prisma: PrismaService) {
     // Ensure logs directory exists
     const logDir = path.join(process.cwd(), 'logs');
     if (!fs.existsSync(logDir)) {
@@ -16,7 +17,7 @@ export class WhatsappLogger {
     this.logFilePath = path.join(logDir, 'whatsapp-evo.log');
   }
 
-  private writeLog(level: string, source: string, message: string, data?: any) {
+  private async writeLog(level: string, source: string, message: string, data?: any) {
     try {
       const timestamp = new Date().toISOString();
       const logEntry = {
@@ -28,8 +29,17 @@ export class WhatsappLogger {
       };
 
       fs.appendFileSync(this.logFilePath, JSON.stringify(logEntry) + '\n');
+      
+      // Also write to global SystemLog table
+      await this.prisma.systemLog.create({
+        data: {
+          level,
+          message,
+          context: { source, data: data || null },
+        }
+      });
     } catch (e) {
-      this.logger.error(`Failed to write to whatsapp log file: ${e}`);
+      this.logger.error(`Failed to write to whatsapp log file or SystemLog: ${e}`);
     }
   }
 
