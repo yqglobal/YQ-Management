@@ -126,7 +126,7 @@ import { TasksModule } from './tasks/tasks.module';
     AppService,
     KeepAliveService,
     {
-      provide: 'APP_INTERCEPTOR',
+      provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
     },
     {

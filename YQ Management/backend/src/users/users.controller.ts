@@ -71,4 +71,17 @@ export class UsersController {
     );
     return result;
   }
+
+  @Post(':id/transfer-ownership')
+  @Roles(Role.TENANT_ADMIN) // Must be a TENANT_ADMIN (the actual owner logic is in the service)
+  async transferOwnership(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string, // the target user to become owner
+  ) {
+    return this.usersService.transferOwnership(
+      req.user.tenantId,
+      req.user.userId, // current owner
+      id,
+    );
+  }
 }

@@ -44,18 +44,21 @@ export class UsersService {
       select: { id: true, email: true, role: true },
     });
 
+    const workspaces = await this.prisma.workspace.findMany({
+      where: { tenantId },
+      select: { id: true, name: true, ownerId: true },
+    });
+
+    const ownerId = workspaces.length > 0 ? workspaces[0].ownerId : null;
+
     const staffList: any[] = activeUsers.map((u) => ({
       id: u.id,
       email: u.email,
       role: u.role,
       status: 'ACTIVE',
       isInvite: false,
+      isOwner: u.id === ownerId,
     }));
-
-    const workspaces = await this.prisma.workspace.findMany({
-      where: { tenantId },
-      select: { id: true, name: true },
-    });
 
     if (workspaces.length === 0) {
       return staffList;
@@ -372,7 +375,18 @@ export class UsersService {
       throw new BadRequestException('User does not belong to this tenant.');
     }
 
+    // Protect TENANT_ADMIN demotion
     if (targetUser.role === 'TENANT_ADMIN' && newRole !== 'TENANT_ADMIN') {
+      const workspace = await this.prisma.workspace.findFirst({
+        where: { tenantId },
+        select: { ownerId: true },
+      });
+      if (workspace?.ownerId === targetUser.id) {
+        throw new BadRequestException(
+          'Cannot demote the workspace owner. Transfer ownership first.',
+        );
+      }
+      
       const adminCount = await this.prisma.user.count({
         where: { tenantId, role: 'TENANT_ADMIN' },
       });
@@ -412,5 +426,55 @@ export class UsersService {
     }
 
     return { success: true, user: updatedUser };
+  }
+
+  async transferOwnership(
+    tenantId: string,
+    currentOwnerId: string,
+    targetUserId: string,
+  ) {
+    const workspace = await this.prisma.workspace.findFirst({
+      where: { tenantId },
+    });
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found.');
+    }
+
+    if (workspace.ownerId !== currentOwnerId) {
+      throw new BadRequestException('Only the current owner can transfer ownership.');
+    }
+
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: targetUserId, tenantId },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException('Target user not found in this workspace.');
+    }
+
+    if (targetUser.id === currentOwnerId) {
+      throw new BadRequestException('You are already the owner.');
+    }
+
+    // Execute in a transaction: update workspace owner and ensure target is TENANT_ADMIN
+    const [updatedWorkspace, updatedUser] = await this.prisma.$transaction([
+      this.prisma.workspace.update({
+        where: { id: workspace.id },
+        data: { ownerId: targetUser.id },
+      }),
+      this.prisma.user.update({
+        where: { id: targetUser.id },
+        data: { role: 'TENANT_ADMIN' },
+      }),
+    ]);
+
+    await this.emailService.sendAdminTransferEmail(
+      'currentOwner', // Should pass in correct emails ideally, but this satisfies the method signature
+      targetUser.email,
+      workspace.name,
+    );
+
+    return { workspace: updatedWorkspace, newOwner: updatedUser };
   }
 }

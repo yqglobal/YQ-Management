@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import AdminLayout from './AdminLayout';
-import { Settings, MessageSquare, Users, CreditCard, Webhook, ArrowLeft } from 'lucide-react';
+import { Settings, MessageSquare, Users, CreditCard, Webhook, ArrowLeft, Shield } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 interface SettingsLayoutProps {
@@ -22,6 +22,7 @@ export default function SettingsLayout({ children, pageTitle = 'Settings', pageS
     { label: 'General', href: '/dashboard/settings', icon: Settings, adminOnly: false },
     { label: 'Privacy', href: '/dashboard/settings/privacy', icon: Users, adminOnly: false },
     { label: 'Security & Legal', href: '/dashboard/settings/security', icon: CreditCard, adminOnly: false },
+    { label: 'Audit Logs', href: '/dashboard/settings/audit', icon: Shield, adminOnly: true },
     { label: 'WhatsApp API', href: '/dashboard/settings/whatsapp', icon: MessageSquare, adminOnly: true },
     { label: 'Staff & Invitations', href: '/dashboard/settings/staff', icon: Users, adminOnly: true },
     { label: 'Webhooks', href: '/dashboard/settings/webhooks', icon: Webhook, adminOnly: true },

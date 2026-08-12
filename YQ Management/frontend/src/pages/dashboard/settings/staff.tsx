@@ -17,6 +17,7 @@ type StaffMember = {
   code?: string;
   isInvite?: boolean;
   expiresAt?: string;
+  isOwner?: boolean;
 };
 
 export default function StaffDirectory() {
@@ -153,6 +154,25 @@ export default function StaffDirectory() {
     updateRoleMutation.mutate({ id, newRole });
   };
 
+  const transferOwnershipMutation = useMutation({
+    mutationFn: (targetUserId: string) => fetchApi(`/users/${targetUserId}/transfer-ownership`, {
+      method: 'POST',
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      toast.success('Ownership transferred successfully!');
+    },
+    onError: (e: Error) => toast.error(e.message || 'Failed to transfer ownership')
+  });
+
+  const handleTransferOwnership = (id: string, email: string) => {
+    if (confirm(`Are you sure you want to transfer WORKSPACE OWNERSHIP to ${email}? This action is irreversible and you will lose owner privileges.`)) {
+      if (confirm(`FINAL WARNING: Relinquishing ownership to ${email}?`)) {
+        transferOwnershipMutation.mutate(id);
+      }
+    }
+  };
+
   const handleJoinWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!joinCode) return;
@@ -193,11 +213,13 @@ export default function StaffDirectory() {
         email: currentUserEmail,
         role: user?.role || '',
         status: 'ACTIVE',
+        isOwner: staff.find(s => s.email?.toLowerCase() === currentUserEmail.toLowerCase())?.isOwner,
       });
     }
     return list;
   }, [staff, currentUserEmail, currentUserId, user?.role]);
 
+  const currentUserIsOwner = displayStaff.find(s => s.id === currentUserId)?.isOwner;
   const adminCount = displayStaff.filter((s) => s.role === 'TENANT_ADMIN' && !s.isInvite).length;
   const isLastAdmin = adminCount <= 1;
 
@@ -318,8 +340,8 @@ export default function StaffDirectory() {
                   <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02]">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${s.isInvite ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' : 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400'}`}>
-                          {s.isInvite ? <Mail className="w-3.5 h-3.5" /> : <UserIcon className="w-4 h-4" />}
+                        <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 font-bold flex items-center justify-center text-sm border border-indigo-200 dark:border-indigo-500/30">
+                          {s.email?.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-gray-900 dark:text-white">{s.email}</p>
@@ -400,6 +422,16 @@ export default function StaffDirectory() {
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
+                      
+                      {currentUserIsOwner && !s.isOwner && !s.isInvite && (
+                        <button
+                          onClick={() => handleTransferOwnership(s.id, s.email)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors ml-2"
+                          title="Transfer Workspace Ownership"
+                        >
+                          👑
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
