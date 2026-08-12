@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import TermsModal from './TermsModal';
+import { fetchApi } from '../lib/api';
 
 interface PolicyUpdateModalProps {
   isOpen: boolean;
@@ -51,8 +52,16 @@ export default function PolicyUpdateModal({ isOpen, onClose, policyType, version
             // or you log them out. For now, it just goes back to the prompt.
           }}
           type={policyType}
-          onAccept={() => {
-            // Trigger backend acceptance here
+          onAccept={async () => {
+            try {
+              const apiType = policyType === 'terms' ? 'TERMS_OF_SERVICE' : 'PRIVACY_POLICY';
+              await fetchApi('/policies/accept', {
+                method: 'POST',
+                body: JSON.stringify({ type: apiType, version })
+              });
+            } catch (err) {
+              console.error('Failed to accept policy', err);
+            }
             setShowDocument(false);
             onClose();
           }}

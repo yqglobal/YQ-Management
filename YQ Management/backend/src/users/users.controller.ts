@@ -62,6 +62,11 @@ export class UsersController {
     );
   }
 
+  @Delete('me')
+  async deleteMe(@Req() req: AuthenticatedRequest) {
+    return this.usersService.deleteMe(req.user.tenantId, req.user.userId);
+  }
+
   @Delete(':id')
   async deleteUser(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const result = await this.usersService.deleteUser(

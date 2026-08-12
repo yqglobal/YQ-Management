@@ -73,4 +73,34 @@ export class TenantService {
       },
     });
   }
+
+  async exportData(tenantId: string) {
+    this.logger.log(`Exporting data for tenant ${tenantId}`);
+    
+    // Fetch all relevant data for the tenant
+    const [tenant, workspaces, users, locations, staff, services, queues, customers, visits] = await Promise.all([
+      this.prisma.tenant.findUnique({ where: { id: tenantId } }),
+      this.prisma.workspace.findMany({ where: { tenantId } }),
+      this.prisma.user.findMany({ where: { tenantId }, select: { id: true, email: true, role: true } }), // Omit password/googleId
+      this.prisma.location.findMany({ where: { tenantId } }),
+      this.prisma.staff.findMany({ where: { tenantId } }),
+      this.prisma.service.findMany({ where: { tenantId } }),
+      this.prisma.queue.findMany({ where: { tenantId } }),
+      this.prisma.customer.findMany({ where: { tenantId } }),
+      this.prisma.visit.findMany({ where: { tenantId } })
+    ]);
+
+    return {
+      exportDate: new Date().toISOString(),
+      tenant,
+      workspaces,
+      users,
+      locations,
+      staff,
+      services,
+      queues,
+      customers,
+      visits
+    };
+  }
 }

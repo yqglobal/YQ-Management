@@ -22,6 +22,7 @@ export default function SettingsLayout({ children, pageTitle = 'Settings', pageS
     { label: 'General', href: '/dashboard/settings', icon: Settings, adminOnly: false },
     { label: 'Privacy', href: '/dashboard/settings/privacy', icon: Users, adminOnly: false },
     { label: 'Security & Legal', href: '/dashboard/settings/security', icon: CreditCard, adminOnly: false },
+    { label: 'Privacy & Compliance', href: '/dashboard/settings/compliance', icon: Shield, adminOnly: false },
     { label: 'Audit Logs', href: '/dashboard/settings/audit', icon: Shield, adminOnly: true },
     { label: 'WhatsApp API', href: '/dashboard/settings/whatsapp', icon: MessageSquare, adminOnly: true },
     { label: 'Staff & Invitations', href: '/dashboard/settings/staff', icon: Users, adminOnly: true },

@@ -71,11 +71,24 @@ export class TasksService {
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async handleAuditLogPruning() {
-    // Optionally delete audit logs older than 90 days.
-    // We will keep them for now, but this is a placeholder.
-    this.logger.log(
-      'Audit Log cleanup check: Keeping all logs indefinitely as per policy.',
-    );
+  async handleDataRetentionLifecycle() {
+    this.logger.log('Running data retention lifecycle check...');
+    // Section 20: Wipe Visits and Tokens older than 2 years
+    const twoYearsAgo = new Date();
+    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+
+    try {
+      const visitResult = await this.prisma.visit.deleteMany({
+        where: { createdAt: { lt: twoYearsAgo } }
+      });
+      
+      const tokenResult = await this.prisma.token.deleteMany({
+        where: { joinedAt: { lt: twoYearsAgo } }
+      });
+
+      this.logger.log(`Data Retention: Cleaned up ${visitResult.count} old visits and ${tokenResult.count} old tokens.`);
+    } catch (err) {
+      this.logger.error('Failed to run data retention cleanup', err);
+    }
   }
 }

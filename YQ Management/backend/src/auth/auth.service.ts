@@ -94,38 +94,9 @@ export class AuthService {
       let isNewUser = false;
 
       if (!user) {
-        // Auto-create account via Google SSO (Sign Up flow)
-        isNewUser = true;
-        const tenant = await this.usersService['prisma'].tenant.create({
-          data: {
-            name: email.split('@')[0],
-            subdomain: `${email
-              .split('@')[0]
-              .toLowerCase()
-              .replace(/[^a-z0-9]/g, '')}-${Date.now()}`,
-          },
-        });
-        user = await this.usersService.create({
-          email,
-          googleId,
-          role: 'TENANT_ADMIN',
-          tenantId: tenant.id,
-          personalSettings: {
-            theme: 'light',
-            language: 'en',
-            notificationsEnabled: true,
-          },
-        });
-        await this.workspaceService.createWorkspace({
-          name: email.split('@')[0],
-          subdomain: `ws-${Date.now()}`,
-          ownerId: user.id,
-          tenantId: tenant.id,
-        });
-        user = await this.usersService['prisma'].user.findUnique({
-          where: { id: user.id },
-        });
-        this.logger.log(`New user created via Google SSO: ${email}`);
+        // Stop auto-creating Ghost Tenants for unknown Google SSO logins.
+        this.logger.warn(`Unknown user attempted Google SSO: ${email}. Rejecting to prevent Ghost Tenant.`);
+        throw new UnauthorizedException('Account not found. Please register via email/password or accept an invite first.');
       } else if (!user.googleId) {
         // Link Google ID if account already exists with email
         user = await this.usersService['prisma'].user.update({

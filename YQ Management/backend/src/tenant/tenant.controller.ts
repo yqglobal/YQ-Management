@@ -38,6 +38,13 @@ export class TenantController {
   }
 
   @Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
+  @Get('export')
+  async exportData(@Req() req: AuthenticatedRequest) {
+    // Only TENANT_ADMIN or SUPER_ADMIN can export
+    return this.tenantService.exportData(req.user.tenantId);
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
   @Patch(':id')
   @UseGuards(WorkspaceGuard)
   async updateTenant(

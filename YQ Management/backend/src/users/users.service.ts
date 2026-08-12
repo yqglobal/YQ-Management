@@ -477,4 +477,31 @@ export class UsersService {
 
     return { workspace: updatedWorkspace, newOwner: updatedUser };
   }
+
+  async deleteMe(tenantId: string, userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId, tenantId },
+      include: {
+        workspace: true
+      }
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    // If the user is the owner of a workspace, delete the entire tenant to ensure data cleanup.
+    // In a real app we might prompt them to transfer ownership instead, but for compliance we delete.
+    const isOwner = user.workspace?.ownerId === userId;
+    
+    if (isOwner) {
+      await this.prisma.tenant.delete({
+        where: { id: tenantId }
+      });
+      return { success: true, message: 'Account and associated Workspace deleted completely.' };
+    } else {
+      await this.prisma.user.delete({
+        where: { id: userId }
+      });
+      return { success: true, message: 'Account deleted.' };
+    }
+  }
 }

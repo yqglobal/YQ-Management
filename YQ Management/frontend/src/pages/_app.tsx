@@ -8,6 +8,8 @@ import { TrackingProvider } from '../components/TrackingProvider';
 import { setApiRouter } from '../lib/api';
 import { useRouter } from 'next/router';
 
+import CookieBanner from '../components/CookieBanner';
+
 function AppRouterSetter() {
   const router = useRouter();
   setApiRouter(router);
@@ -24,8 +26,10 @@ export default function App({ Component, pageProps }: AppProps) {
           <TrackingProvider>
             <AppRouterSetter />
             <Component {...pageProps} />
+            <CookieBanner />
           </TrackingProvider>
         </AuthProvider>
+
       </ThemeProvider>
 
     </QueryClientProvider>

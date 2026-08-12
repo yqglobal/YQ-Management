@@ -45,6 +45,7 @@ import { ResourceModule } from './resource/resource.module';
 import { CustomerModule } from './customer/customer.module';
 import { TasksModule } from './tasks/tasks.module';
 import { SystemLogModule } from './system-log/system-log.module';
+import { PoliciesModule } from './policies/policies.module';
 
 @Module({
   imports: [
@@ -123,6 +124,7 @@ import { SystemLogModule } from './system-log/system-log.module';
     CustomerModule,
     TasksModule,
     SystemLogModule,
+    PoliciesModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
