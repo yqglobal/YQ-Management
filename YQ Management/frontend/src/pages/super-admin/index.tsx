@@ -4,6 +4,7 @@ import SuperAdminLayout from '../../components/SuperAdminLayout';
 import { fetchApi } from '../../lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { Building2, CreditCard, Users, Activity, ArrowUpRight } from 'lucide-react';
+import Link from 'next/link';
 
 export default function SuperAdminDashboard() {
   const { data: metrics, isLoading } = useQuery({
@@ -56,10 +57,10 @@ export default function SuperAdminDashboard() {
                 <span className="font-bold text-gray-700 dark:text-zinc-200">Add New Tenant</span>
                 <ArrowUpRight className="w-5 h-5 text-gray-400 dark:text-zinc-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
               </button>
-              <button className="w-full flex items-center justify-between p-4 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 hover:border-indigo-500 dark:hover:border-indigo-500/50 transition-colors group">
+              <Link href="/super-admin/system-logs" className="w-full flex items-center justify-between p-4 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 hover:border-indigo-500 dark:hover:border-indigo-500/50 transition-colors group">
                 <span className="font-bold text-gray-700 dark:text-zinc-200">System Logs</span>
                 <ArrowUpRight className="w-5 h-5 text-gray-400 dark:text-zinc-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
-              </button>
+              </Link>
             </div>
           </div>
 

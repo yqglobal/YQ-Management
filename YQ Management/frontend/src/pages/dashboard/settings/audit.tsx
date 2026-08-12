@@ -3,7 +3,7 @@ import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
-import { Shield, Activity, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Shield, Activity, ChevronDown, ChevronUp, Loader2, Search, Filter } from 'lucide-react';
 import { useAuth } from '../../../components/AuthContext';
 
 export default function AuditLogs() {
@@ -12,10 +12,20 @@ export default function AuditLogs() {
   const take = 50;
   
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [filterAction, setFilterAction] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['auditLogs', page],
-    queryFn: () => fetchApi(`/audit?skip=${page * take}&take=${take}`),
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['auditLogs', page, filterAction, filterStatus],
+    queryFn: () => {
+      const queryParams = new URLSearchParams({
+        skip: (page * take).toString(),
+        take: take.toString(),
+      });
+      if (filterAction) queryParams.append('action', filterAction);
+      if (filterStatus && filterStatus !== 'all') queryParams.append('status', filterStatus);
+      return fetchApi(`/audit?${queryParams.toString()}`);
+    },
     enabled: !!(user?.role === 'TENANT_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'),
   });
 
@@ -35,6 +45,39 @@ export default function AuditLogs() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Workspace Audit Logs</h1>
             <p className="text-gray-500 dark:text-zinc-400">View detailed history of all system events and API requests.</p>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 bg-white dark:bg-zinc-900/50 p-4 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
+          <div className="relative flex-1">
+            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by action (e.g. USER_LOGIN)"
+              value={filterAction}
+              onChange={(e) => {
+                setFilterAction(e.target.value);
+                setPage(0);
+              }}
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white"
+            />
+          </div>
+          <div className="relative min-w-[200px]">
+            <Filter className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <select
+              value={filterStatus}
+              onChange={(e) => {
+                setFilterStatus(e.target.value);
+                setPage(0);
+              }}
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-900 dark:text-white"
+            >
+              <option value="all">All Statuses</option>
+              <option value="success">Successful (2xx-3xx)</option>
+              <option value="error">Errors (4xx-5xx)</option>
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
         </div>
 

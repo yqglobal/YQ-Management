@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AuditService {
@@ -49,16 +50,45 @@ export class AuditService {
     }
   }
 
-  async getLogsForTenant(tenantId: string, skip = 0, take = 50) {
+  async getLogsForTenant(
+    tenantId: string, 
+    skip = 0, 
+    take = 50,
+    filters?: { action?: string; status?: string; startDate?: string; endDate?: string }
+  ) {
+    const where: Prisma.AuditLogWhereInput = { tenantId };
+
+    if (filters?.action) {
+      where.action = { contains: filters.action, mode: 'insensitive' };
+    }
+
+    if (filters?.status) {
+      if (filters.status === 'success') {
+        where.statusCode = { gte: 200, lt: 400 };
+      } else if (filters.status === 'error') {
+        where.statusCode = { gte: 400 };
+      }
+    }
+
+    if (filters?.startDate || filters?.endDate) {
+      where.createdAt = {};
+      if (filters.startDate) {
+        where.createdAt.gte = new Date(filters.startDate);
+      }
+      if (filters.endDate) {
+        where.createdAt.lte = new Date(filters.endDate);
+      }
+    }
+
     const [rawLogs, total] = await Promise.all([
       this.prisma.auditLog.findMany({
-        where: { tenantId },
+        where,
         orderBy: { createdAt: 'desc' },
         skip,
         take,
       }),
       this.prisma.auditLog.count({
-        where: { tenantId },
+        where,
       }),
     ]);
 

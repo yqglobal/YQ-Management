@@ -5,7 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { CacheInterceptor } from '@nestjs/cache-manager';
 import { LoggerModule } from 'nestjs-pino';
 import createLogRoutingTransport from './config/log-routing';
@@ -34,6 +34,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { MessagesModule } from './messages/messages.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
 import { AuditModule } from './audit/audit.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { WorkspaceModule } from './workspace/workspace.module';
 import { VisitModule } from './visit/visit.module';
 import { AppointmentModule } from './appointment/appointment.module';
@@ -43,6 +44,7 @@ import { StaffModule } from './staff/staff.module';
 import { ResourceModule } from './resource/resource.module';
 import { CustomerModule } from './customer/customer.module';
 import { TasksModule } from './tasks/tasks.module';
+import { SystemLogModule } from './system-log/system-log.module';
 
 @Module({
   imports: [
@@ -120,6 +122,7 @@ import { TasksModule } from './tasks/tasks.module';
     ResourceModule,
     CustomerModule,
     TasksModule,
+    SystemLogModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
@@ -128,6 +131,10 @@ import { TasksModule } from './tasks/tasks.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
     },
     {
       provide: APP_GUARD,

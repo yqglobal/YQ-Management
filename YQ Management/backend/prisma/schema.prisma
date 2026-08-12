@@ -743,3 +743,16 @@ model UserSession {
   @@index([userId])
   @@index([token])
 }
+
+model SystemLog {
+  id         String   @id @default(uuid())
+  level      String   // INFO, WARN, ERROR
+  message    String
+  stackTrace String?
+  context    Json?
+  tenantId   String?
+  createdAt  DateTime @default(now())
+
+  @@index([level])
+  @@index([createdAt])
+}

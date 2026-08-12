@@ -56,12 +56,17 @@ export class AuditController {
     @Req() request: AuthenticatedRequest,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
+    @Query('action') action?: string,
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
     const tenantId = request.user.tenantId;
     return this.auditService.getLogsForTenant(
       tenantId,
       skip ? parseInt(skip, 10) : 0,
       take ? parseInt(take, 10) : 50,
+      { action, status, startDate, endDate }
     );
   }
 }
