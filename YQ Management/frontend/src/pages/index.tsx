@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import MarketingLayout from '../components/MarketingLayout';
 import { 
   ArrowRight, 
   Smartphone, 
@@ -56,57 +57,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className={`min-h-screen bg-black text-zinc-50 ${geistSans.className} overflow-hidden`}>
-      <Head>
-        <title>Qmova | Intelligent Visit Management Platform</title>
-        <meta name="description" content="Premium B2B SaaS Visit Lifecycle and People Management Platform" />
-      </Head>
-
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-black text-white text-base shadow-[0_0_15px_rgba(99,102,241,0.5)] tracking-tighter">
-              Q
-            </div>
-            <span className="font-extrabold text-xl tracking-tight text-white">Qmova</span>
-          </div>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
-            <a href="#features" className="hover:text-white transition-colors">Platform</a>
-            <a href="#how-it-works" className="hover:text-white transition-colors">Lifecycle</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-          </div>
-          <div className="flex items-center gap-4">
-            {!loading && user ? (
-              <div className="flex items-center gap-4">
-                <Link 
-                  href="/dashboard" 
-                  className="px-5 py-2.5 rounded-full bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors"
-                >
-                  Dashboard
-                </Link>
-                <div className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center">
-                  <User className="w-5 h-5 text-zinc-400" />
-                </div>
-              </div>
-            ) : (
-              !loading && (
-                <>
-                  <Link href="/login" className="text-sm font-medium text-zinc-300 hover:text-white transition-colors">
-                    Log in
-                  </Link>
-                  <Link 
-                    href="/register" 
-                    className="px-5 py-2.5 rounded-full bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors"
-                  >
-                    Start Free Trial
-                  </Link>
-                </>
-              )
-            )}
-          </div>
-        </div>
-      </nav>
+    <MarketingLayout title="Qmova | Intelligent Visit Management Platform">
 
       {/* Hero Section */}
       <section className="relative pt-40 pb-20 md:pt-52 md:pb-32 px-6">
@@ -396,24 +347,6 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-6 border-t border-white/10 bg-zinc-950">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-black text-white text-xs tracking-tighter">
-              Q
-            </div>
-            <span className="font-extrabold text-lg tracking-tight text-white">Qmova</span>
-          </div>
-          <div className="flex gap-8 text-sm text-zinc-500">
-            <Link href="/login" className="hover:text-white transition-colors">Admin Login</Link>
-            <Link href="#" className="hover:text-white transition-colors">Documentation</Link>
-            <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
-          </div>
-          <p className="text-sm text-zinc-600">© 2026 Qmova Inc. All rights reserved.</p>
-        </div>
-      </footer>
-    </div>
+    </MarketingLayout>
   );
 }

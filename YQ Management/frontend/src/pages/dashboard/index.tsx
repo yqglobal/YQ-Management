@@ -11,12 +11,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { useRouter } from 'next/router';
 import { VisitDrawer } from '../../components/VisitDrawer';
+import { CreateVisitModal } from '../../components/modals/CreateVisitModal';
 
 export default function Dashboard() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'ALL' | 'WAITING' | 'IN_SERVICE'>('ALL');
   const [selectedVisit, setSelectedVisit] = useState<any | null>(null);
+  const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
 
   // Fetch Visits instead of Queues
   const { data: visits = [], isLoading: isVisitsLoading } = useQuery({
@@ -52,11 +54,17 @@ export default function Dashboard() {
             <p className="text-gray-500 dark:text-zinc-400">Manage walk-ins and appointments seamlessly.</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-900 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-xl font-semibold transition-all border border-gray-200 dark:border-white/10 shadow-sm hover:shadow-md">
+            <button 
+              onClick={() => router.push('/dashboard/appointments')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-900 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-xl font-semibold transition-all border border-gray-200 dark:border-white/10 shadow-sm hover:shadow-md"
+            >
               <CalendarCheck className="w-4 h-4" />
               Appointments
             </button>
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] border border-indigo-500/50 hover:-translate-y-0.5">
+            <button 
+              onClick={() => setIsVisitModalOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] border border-indigo-500/50 hover:-translate-y-0.5"
+            >
               <Plus className="w-5 h-5" />
               New Walk-in
             </button>
@@ -247,6 +255,11 @@ export default function Dashboard() {
         isOpen={!!selectedVisit} 
         onClose={() => setSelectedVisit(null)} 
         visit={selectedVisit} 
+      />
+      
+      <CreateVisitModal 
+        isOpen={isVisitModalOpen} 
+        onClose={() => setIsVisitModalOpen(false)} 
       />
     </AdminLayout>
   );

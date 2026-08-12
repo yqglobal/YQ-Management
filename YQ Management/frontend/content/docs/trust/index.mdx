@@ -1,0 +1,763 @@
+---
+title: Qmova Trust Center
+description: Qmova Trust Center and Security Posture.
+version: 1.0.0
+lastUpdated: 12 August 2026
+status: Published
+order: 3
+---
+
+# Qmova Trust Center
+
+**Intended Audience:** Customers, prospective enterprise customers, security teams, privacy teams, procurement teams, and other stakeholders evaluating Qmova
+
+---
+
+## At a Glance
+
+Qmova is a Visit Management Platform that helps organizations manage customer visits from booking through completion.
+
+Our approach to trust is built around a few simple principles:
+
+* **Customers control their operational data.** Organizations using Qmova determine how their Customer Data is collected and used within their Workspace.
+* **Qmova operates as infrastructure.** We provide the software and systems used to manage Appointments, Walk-ins, Queues, QR Check-ins, Visits, Notifications, and related workflows.
+* **Privacy and security are designed into the platform.** Access controls, authentication, audit logging, session management, policy versioning, and other safeguards are part of the platform architecture.
+* **Customer-owned WhatsApp infrastructure remains customer-controlled.** Customers connect their own WhatsApp environment rather than using a Qmova-owned WhatsApp identity for customer messaging.
+* **We aim for transparency.** Our legal, privacy, security, compliance, and operational documentation is designed to explain how Qmova operates without overstating our current certifications or capabilities.
+* **International use is supported.** Qmova is designed for customers operating across jurisdictions and considers applicable privacy requirements, including South African POPIA and GDPR-compatible privacy principles, where relevant.
+* **No unsupported certifications.** Qmova does not claim SOC 2, ISO 27001, HIPAA, or other certifications unless and until those certifications have actually been obtained.
+
+---
+
+## 1. About the Qmova Trust Center
+
+The Qmova Trust Center is the central source of information about how we approach:
+
+* security;
+* privacy;
+* data protection;
+* infrastructure;
+* availability;
+* incident response;
+* subprocessors;
+* compliance;
+* responsible disclosure; and
+* operational trust.
+
+It is intended to provide customers and prospective customers with enough information to understand how Qmova processes and protects information before entering into a commercial relationship or deploying the platform.
+
+The Trust Center should be read together with the applicable Qmova legal and operational documentation.
+
+---
+
+## 2. What Qmova Does
+
+Qmova is a multi-tenant, white-label Visit Management Platform.
+
+The platform is built around the concept of a **Visit**.
+
+A Visit can originate from:
+
+* an Appointment;
+* a Walk-in;
+* a Queue;
+* a Referral;
+* a Staff-created Visit.
+
+Customers can use Qmova to manage workflows including:
+
+* Appointment Scheduling;
+* Walk-in management;
+* Queue management;
+* QR Check-in;
+* Visit tracking;
+* Notifications;
+* Staff workflows;
+* analytics and reporting.
+
+Qmova is designed to support organizations such as:
+
+* hospitals and clinics;
+* government offices;
+* universities;
+* banks;
+* retail organizations;
+* restaurants;
+* salons;
+* service centers;
+* visa centers; and
+* municipal services.
+
+Qmova is not itself the service provider in these interactions. The Customer remains responsible for its relationship with its Visitors and for the services it provides to them.
+
+---
+
+## 3. Our Trust Principles
+
+### 3.1 Customer Control
+
+Customers use Qmova to operate their own customer-facing workflows.
+
+The Customer determines:
+
+* what information it collects;
+* which Services it provides;
+* which Visit information is recorded;
+* which Staff Members receive access;
+* how its Workspace is configured;
+* which integrations it enables; and
+* how it uses information generated through its operations.
+
+Qmova provides the infrastructure used to operate these workflows.
+
+---
+
+### 3.2 Data Responsibility
+
+Qmova distinguishes between information that we process for our own operational purposes and information that we process on behalf of Customers.
+
+For Customer Data, Qmova generally operates as a service provider or Data Processor, while the Customer determines the purposes for which that information is processed.
+
+For information relating to Qmova's own accounts, website, support operations, security, billing, and administration, Qmova may act as the relevant Data Controller.
+
+The exact allocation of responsibilities is described in the Qmova Privacy Policy and, where applicable, the Qmova Data Processing Addendum.
+
+---
+
+### 3.3 Least-Privilege Access
+
+Qmova uses role-based access controls to limit what authenticated users can access within the platform.
+
+Customer administrators are responsible for assigning appropriate roles and permissions within their Workspace.
+
+Qmova also maintains administrative and security controls intended to restrict internal access to information to authorized personnel and systems.
+
+---
+
+### 3.4 Accountability
+
+Qmova uses audit and policy-versioning mechanisms to improve accountability.
+
+Depending on the event, the platform can record information such as:
+
+* authentication events;
+* policy acceptance;
+* policy version;
+* account activity;
+* configuration changes;
+* administrative actions; and
+* other security or audit events.
+
+Logs and records are retained according to applicable operational and legal requirements.
+
+---
+
+## 4. Qmova Data Flow
+
+A simplified Qmova data flow looks like this:
+
+```text
+Visitor
+   │
+   │  Appointment / Walk-in / Queue / Referral
+   ▼
+Customer Workspace
+   │
+   ▼
+Qmova Platform
+   │
+   ├──────────────► Visit Management
+   │
+   ├──────────────► Appointment Scheduling
+   │
+   ├──────────────► Queue Management
+   │
+   ├──────────────► QR Check-in
+   │
+   ├──────────────► Notifications
+   │
+   └──────────────► Analytics & Audit Records
+                        │
+                        ▼
+               Qmova Infrastructure
+                        │
+             ┌──────────┼──────────┐
+             ▼          ▼          ▼
+         Database     Redis     Integrations
+                                  │
+                         ┌────────┴─────────┐
+                         ▼                  ▼
+                       Email            WhatsApp
+```
+
+The exact data flow depends on how a Customer configures its Workspace and which integrations it enables.
+
+---
+
+## 5. Who Controls the Data?
+
+For Customer Data, the primary responsibilities are divided as follows:
+
+| Party                | Primary responsibility                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Visitor              | Provides information to the Customer where requested                                                         |
+| Customer             | Determines why and how Customer Data is collected and used                                                   |
+| Qmova                | Provides the platform and processes Customer Data to provide the service                                     |
+| Third-party provider | Provides a specific infrastructure or integration service under its own contractual and security obligations |
+
+This distinction is important because Qmova generally does not determine the underlying business purpose for which a Customer collects information from its Visitors.
+
+Customers remain responsible for ensuring that their collection and use of personal information is lawful and appropriate for their business and industry.
+
+---
+
+## 6. Qmova Platform Architecture
+
+The current Qmova application architecture includes:
+
+**Frontend**
+
+* Next.js 15
+* TypeScript
+* Tailwind CSS
+* shadcn/ui
+
+**Backend**
+
+* NestJS
+* PostgreSQL
+* Redis
+* Socket.IO
+* Prisma
+
+**Authentication**
+
+* Google OAuth
+* Email authentication
+* OTP-based authentication using Brevo
+
+**Messaging**
+
+* Customer-connected WhatsApp infrastructure through Evolution API
+* Transactional email infrastructure through Brevo
+
+These technologies are implementation components of Qmova and may change as the platform evolves.
+
+Changes to internal implementation do not necessarily change the contractual or privacy responsibilities described in Qmova's legal documentation.
+
+---
+
+## 7. Customer-Owned WhatsApp Infrastructure
+
+Qmova's WhatsApp architecture is designed around Customer ownership.
+
+A Customer connects its own WhatsApp environment to Qmova rather than relying on a Qmova-owned WhatsApp number for customer communication.
+
+The intended relationship is:
+
+```text
+Customer
+   │
+   │ Owns and controls
+   ▼
+Customer WhatsApp Number
+   │
+   │ Connected by Customer
+   ▼
+WhatsApp Integration
+   │
+   ▼
+Qmova Infrastructure
+   │
+   ▼
+Customer's Visit Workflows
+```
+
+This means:
+
+* Qmova does not own the Customer's WhatsApp number.
+* Qmova does not represent itself as the Customer when communicating through the Customer's connected messaging environment.
+* The Customer controls which messaging environment it connects.
+* The Customer remains responsible for its messaging practices and communications.
+* Qmova provides infrastructure used to support the Customer's workflows.
+* Customers can disable or disconnect supported messaging integrations.
+
+Qmova does not maintain a Qmova-owned WhatsApp sender identity for Customer messaging as part of this architecture.
+
+Further details concerning messaging responsibilities and third-party providers are addressed in the Qmova Privacy Policy, DPA, and Subprocessor List.
+
+---
+
+## 8. Authentication and Account Security
+
+Qmova supports multiple authentication mechanisms, including:
+
+* Google OAuth;
+* email authentication; and
+* OTP-based authentication.
+
+Authentication is designed to provide users with secure access to their Qmova accounts while minimizing unnecessary information collection.
+
+Qmova also maintains account and session management functionality intended to help users and administrators manage access to their accounts.
+
+Where supported by the platform, users can review active sessions and initiate account deletion through account settings.
+
+Authentication events and other security-relevant activity may be logged for security, operational, and audit purposes.
+
+---
+
+## 9. Access Control and Auditability
+
+Qmova uses Role-Based Access Control (RBAC) to manage permissions within Customer Workspaces.
+
+The purpose of RBAC is to ensure that users receive access appropriate to their responsibilities rather than automatically receiving unrestricted access.
+
+Qmova also maintains audit functionality for relevant administrative and operational events.
+
+Depending on the feature and configuration, audit records may include:
+
+* who performed an action;
+* what type of action occurred;
+* when the action occurred;
+* the relevant Workspace or resource; and
+* information necessary to investigate or understand the event.
+
+Audit logging is intended to support accountability, security investigations, operational troubleshooting, and Customer administration.
+
+---
+
+## 10. Privacy and Data Protection
+
+Qmova is designed with privacy principles such as:
+
+* transparency;
+* purpose limitation;
+* data minimization;
+* access control;
+* storage limitation;
+* confidentiality; and
+* accountability
+
+in mind.
+
+These principles are particularly relevant to Qmova because the platform may be used across different industries and jurisdictions.
+
+Qmova is incorporated in South Africa and is intended to serve Customers internationally. Accordingly, our privacy documentation considers South African privacy requirements, including POPIA, together with GDPR-compatible data protection principles where applicable.
+
+The Qmova Privacy Policy provides the authoritative description of our privacy practices.
+
+Customers remain responsible for the legal basis and purposes applicable to their own processing activities.
+
+---
+
+## 11. Sensitive and Industry-Specific Information
+
+Qmova serves industries in which Customers may process information subject to additional legal or sector-specific requirements.
+
+For example, a healthcare organization may use Qmova to coordinate Visits, appointments, or service workflows involving patients.
+
+Qmova is a **Visit Management Platform**, not an Electronic Health Record (EHR) system.
+
+Customers determine what information they enter into their Workspace and are responsible for ensuring that their use of Qmova complies with applicable industry-specific requirements.
+
+Customers should not assume that the availability of a field in Qmova means that the collection or processing of that information is legally required or appropriate.
+
+Where a Customer's use case involves sensitive or regulated information, the Customer is responsible for evaluating whether Qmova's configured functionality is appropriate for that use case and for implementing any additional safeguards required by applicable law.
+
+---
+
+## 12. Security Controls
+
+Qmova's security program includes technical and organizational controls appropriate to the current architecture and stage of the platform.
+
+Controls currently incorporated into the platform and governance model include, as applicable:
+
+* role-based access control;
+* authenticated access;
+* account and session management;
+* audit logging;
+* policy-version tracking;
+* policy acceptance records;
+* cookie preference management;
+* administrative access controls;
+* data export and account-management workflows;
+* security and operational logging.
+
+Security controls will continue to evolve as the Qmova platform matures.
+
+Qmova does not represent that any security control can eliminate all security risk.
+
+The detailed Qmova Security Policy provides further information about our security practices.
+
+---
+
+## 13. Data Storage and Residency
+
+Qmova uses cloud infrastructure and managed services to operate the platform.
+
+Depending on the Customer's configuration, service provider selection, infrastructure architecture, and future deployment model, Customer Data may be processed or stored in jurisdictions outside the country where the Customer or Visitor is located.
+
+Qmova does not represent that all Customer Data is permanently stored in a single geographic location unless a separate contractual commitment expressly provides otherwise.
+
+Where applicable law imposes requirements concerning international transfers of personal information, Qmova will use legally appropriate transfer mechanisms and safeguards as applicable to the relevant processing activity.
+
+Specific infrastructure locations and subprocessors are maintained through Qmova's Subprocessor and infrastructure documentation as those arrangements evolve.
+
+---
+
+## 14. Subprocessors and Third-Party Providers
+
+Qmova relies on third-party infrastructure and service providers to operate portions of the platform.
+
+Depending on the service and deployment configuration, these providers may support:
+
+* authentication;
+* transactional email and OTP delivery;
+* WhatsApp connectivity;
+* hosting;
+* DNS and network services;
+* monitoring;
+* storage;
+* other infrastructure services.
+
+Qmova maintains a dedicated **Subprocessor List** identifying third-party organizations that process Customer Data on Qmova's behalf where applicable.
+
+Technical components such as PostgreSQL and Redis are not themselves subprocessors merely because they are technologies used within the Qmova application. The relevant third-party provider is identified where a managed external service processes Customer Data.
+
+The Subprocessor List is the authoritative source for Qmova's externally engaged subprocessors.
+
+---
+
+## 15. Data Retention and Deletion
+
+Qmova follows a retention approach intended to avoid keeping personal information longer than reasonably necessary for the applicable purpose, contractual requirements, security needs, or legal obligations.
+
+Retention can differ depending on the category of data.
+
+Relevant considerations may include:
+
+* the Customer's subscription;
+* Customer configuration;
+* legal obligations;
+* security and audit requirements;
+* dispute resolution;
+* backup lifecycle; and
+* operational requirements.
+
+Customer Data does not necessarily disappear from every backup system at the same moment that it is deleted from primary production systems.
+
+Where applicable, deletion processes include:
+
+```text
+Deletion Request
+       │
+       ▼
+Identity / Authorization Check
+       │
+       ▼
+Primary Data Deletion
+       │
+       ▼
+Relevant Secondary Systems
+       │
+       ▼
+Backup Expiration
+       │
+       ▼
+Deletion Lifecycle Complete
+```
+
+Detailed retention rules will be maintained in the Qmova Data Retention Policy.
+
+---
+
+## 16. Customer Data Exports
+
+Qmova recognizes that Customers need practical control over their operational information.
+
+Where supported by the platform and applicable subscription, Customers may be able to export their Qmova data.
+
+Available export formats, scope, and retention depend on the functionality provided at the time of the request.
+
+Customer export functionality is intended to support:
+
+* operational continuity;
+* data portability;
+* migration;
+* administrative requests; and
+* applicable privacy rights.
+
+---
+
+## 17. Cookies and Tracking
+
+Qmova may use cookies and similar technologies to provide authenticated sessions, maintain preferences, support security, and understand how the platform and website are used.
+
+Where applicable, Qmova provides users with controls for managing non-essential cookie categories.
+
+Qmova's Cookie Policy explains:
+
+* the types of cookies used;
+* the purposes of those cookies;
+* how preferences are managed; and
+* how users can change their choices.
+
+---
+
+## 18. Security Monitoring and Logs
+
+Maintaining appropriate logs is an important part of operating a secure SaaS platform.
+
+Depending on the system and event, Qmova may record:
+
+* login timestamps;
+* failed authentication attempts;
+* account security events;
+* policy acceptance events;
+* IP addresses;
+* administrative actions;
+* configuration changes;
+* API activity where necessary;
+* system errors;
+* operational events; and
+* security events.
+
+Logs may be used to:
+
+* detect suspicious activity;
+* investigate incidents;
+* troubleshoot service issues;
+* maintain auditability;
+* enforce security controls; and
+* satisfy legal or contractual requirements.
+
+Logging does not mean that Qmova monitors the content of every customer interaction manually.
+
+---
+
+## 19. Availability and Resilience
+
+Qmova is designed as a cloud-based SaaS platform and uses monitoring, persistent storage, database infrastructure, and other operational mechanisms to support service availability.
+
+Our resilience program includes, as applicable:
+
+* service monitoring;
+* operational logging;
+* database backup strategies;
+* incident investigation;
+* recovery procedures;
+* service continuity planning.
+
+Specific service commitments, maintenance provisions, service credits, and availability targets—where offered—are governed by the applicable Qmova Service Level Agreement.
+
+Qmova does not make an unconditional guarantee that the Platform will always be available or uninterrupted.
+
+---
+
+## 20. Security Incidents
+
+Qmova maintains processes for identifying, investigating, containing, and responding to security incidents.
+
+When an incident involving Customer Data is confirmed, Qmova will assess:
+
+* the nature and scope of the incident;
+* the information involved;
+* the affected Customers;
+* applicable contractual requirements; and
+* applicable legal notification obligations.
+
+Where notification is required, Qmova will notify affected Customers in accordance with applicable law and contractual obligations.
+
+The Qmova Security Policy and relevant contractual documentation provide additional information about incident handling.
+
+---
+
+## 21. Vulnerability Reporting
+
+Security researchers and other responsible parties are encouraged to report potential security vulnerabilities through Qmova's designated security reporting channel.
+
+Qmova intends to maintain a Responsible Disclosure Policy describing:
+
+* what should be reported;
+* how reports should be submitted;
+* information researchers should provide;
+* how reports are evaluated;
+* expected communication practices; and
+* prohibited activities during testing.
+
+For security-related matters, contact:
+
+**[security@qmova.com](mailto:security@qmova.com)**
+
+---
+
+## 22. Compliance Position
+
+Qmova is building its compliance program around responsible processing, security, privacy, accountability, and transparency.
+
+Our current documentation considers:
+
+* South African privacy requirements, including POPIA;
+* GDPR-compatible privacy principles where relevant;
+* international SaaS privacy practices;
+* contractual data-processing requirements; and
+* industry-specific customer responsibilities.
+
+Qmova does **not** currently claim:
+
+* SOC 2 certification;
+* ISO 27001 certification;
+* HIPAA compliance;
+* GDPR certification; or
+* any other certification that has not been formally obtained.
+
+Compliance initiatives that Qmova intends to pursue in the future are identified as **Roadmap** or **Planned** and should not be interpreted as current certifications or attestations.
+
+The Qmova Compliance Roadmap provides further information.
+
+---
+
+## 23. Customer Responsibilities
+
+Security and privacy are shared responsibilities.
+
+Customers are responsible for:
+
+* managing their Workspace users;
+* assigning appropriate roles and permissions;
+* protecting administrator accounts;
+* configuring their Services appropriately;
+* determining what information they collect;
+* establishing appropriate retention periods;
+* complying with industry-specific obligations;
+* obtaining any required notices or consents;
+* configuring integrations appropriately;
+* complying with third-party messaging requirements; and
+* responding to requests from their own Visitors where required.
+
+Qmova provides controls and infrastructure, but cannot determine whether a particular Customer's operational use of the platform complies with every law applicable to that Customer.
+
+---
+
+## 24. Enterprise Due Diligence
+
+Qmova recognizes that enterprise procurement and security teams may require information beyond what is appropriate for a public Trust Center.
+
+Where commercially and legally appropriate, Qmova may provide additional information during a customer security or privacy review.
+
+Depending on the relationship and stage of the review, this may include information concerning:
+
+* architecture;
+* data processing;
+* subprocessors;
+* security controls;
+* incident management;
+* retention;
+* availability;
+* privacy practices;
+* contractual safeguards; and
+* compliance roadmap.
+
+Confidential information may be subject to appropriate confidentiality obligations.
+
+---
+
+## 25. Roadmap and Continuous Improvement
+
+The Qmova trust program is expected to evolve as the company and platform mature.
+
+Planned or future initiatives may include improvements to:
+
+* security assurance;
+* independent security testing;
+* compliance frameworks;
+* operational resilience;
+* customer-facing security documentation;
+* privacy tooling;
+* audit capabilities; and
+* enterprise security reviews.
+
+Roadmap items are not current certifications, guarantees, or contractual commitments unless expressly incorporated into an applicable agreement.
+
+---
+
+## 26. Related Documentation
+
+The following documents form part of the Qmova trust and governance ecosystem:
+
+### Privacy & Data Protection
+
+* [Privacy Policy](/privacy)
+* Data Processing Addendum
+* Data Retention Policy
+* Cookie Policy
+* Subprocessor List
+
+### Security
+
+* Security Policy
+* Security Overview
+* Responsible Disclosure Policy
+* Incident Response documentation
+
+### Legal & Commercial
+
+* Terms of Service
+* Acceptable Use Policy
+* Refund and Cancellation Policy
+* Service Level Agreement
+
+### Compliance
+
+* Compliance Roadmap
+* Accessibility Statement
+* AI Usage Policy
+
+Where two documents address the same subject in different levels of detail, the more specific document should be treated as the primary reference for that subject.
+
+---
+
+## 27. Contact Qmova
+
+For questions relating to trust, security, privacy, or legal matters:
+
+**Privacy:**
+[privacy@qmova.com](mailto:privacy@qmova.com)
+
+**Security:**
+[security@qmova.com](mailto:security@qmova.com)
+
+**Legal:**
+[legal@qmova.com](mailto:legal@qmova.com)
+
+**Support:**
+[support@qmova.com](mailto:support@qmova.com)
+
+**Abuse:**
+[abuse@qmova.com](mailto:abuse@qmova.com)
+
+Company registration and registered-office information will be published once the relevant corporate details are finalized.
+
+---
+
+## 28. Document Governance
+
+**Document Owner:** Qmova Security, Privacy & Compliance Function
+
+**Classification:** Public
+
+**Review Frequency:** At least annually and whenever there is a material change to Qmova's architecture, data-processing practices, legal obligations, or security program.
+
+This document is informational and does not modify the terms of any contract between Qmova and a Customer. Where a signed agreement, Data Processing Addendum, Service Level Agreement, or other binding contractual document establishes a specific obligation, that contractual document governs the applicable obligation.
+
+---
+
+<VersionHistory 
+  updates={[
+    { version: '1.0.0', date: '2026-08-12', description: 'Initial Trust Center publication' }
+  ]} 
+/>
+
+---
+
+> **Qmova exists to provide the infrastructure that helps organizations manage Visits. Trust requires us to be clear about what we operate, what our Customers control, how information moves through the platform, and what protections we currently provide.**

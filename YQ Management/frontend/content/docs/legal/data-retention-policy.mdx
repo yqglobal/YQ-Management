@@ -1,0 +1,925 @@
+# Qmova Data Retention Policy
+
+**Version:** 1.0.0
+**Last Updated:** 12 August 2026
+**Status:** Public
+**Intended Audience:** Customers, Visitors, Qmova Users, privacy teams, security teams, procurement teams, legal teams, and Qmova personnel responsible for data management
+
+---
+
+# Table of Contents
+
+1. At a Glance
+2. Purpose
+3. Scope
+4. Retention Principles
+5. Data Ownership and Responsibility
+6. Data Categories
+7. Account Data
+8. Customer and Workspace Data
+9. Visit and Operational Data
+10. Appointment Data
+11. Queue and Check-in Data
+12. Notification Data
+13. Audit Logs
+14. Authentication and Security Logs
+15. Cookie and Consent Records
+16. Support and Communications Data
+17. Billing and Transaction Records
+18. API and Integration Data
+19. Backups
+20. Data Deletion Lifecycle
+21. Account Deletion
+22. Customer Subscription Termination
+23. Customer Data Export
+24. Legal and Regulatory Retention
+25. Security and Incident-Related Retention
+26. Aggregated and De-identified Data
+27. Data Minimization and Review
+28. Customer Responsibilities
+29. Data Retention Requests
+30. Exceptions
+31. International Considerations
+32. Relationship to Other Qmova Documents
+33. Policy Review
+34. Contact Information
+35. Document Governance
+36. Version History
+
+---
+
+# 1. At a Glance
+
+Qmova does not intend to retain Personal Information indefinitely.
+
+Our retention approach is based on a simple principle:
+
+> **Keep information for as long as it is reasonably necessary for its purpose, then delete, anonymize, or otherwise dispose of it appropriately.**
+
+In practice:
+
+* Customer Data is generally retained to provide the Services and according to the Customer's contractual and operational requirements.
+* Some security and audit information may need to be retained for longer periods to protect the Platform and investigate incidents.
+* Legal, regulatory, accounting, and dispute-related requirements may require certain information to be retained.
+* Deleting information from active production systems does not necessarily remove it immediately from backups.
+* Backup copies follow their own lifecycle and are not normally restored or accessed except when necessary.
+* Customers may export supported Customer Data before termination or deletion.
+* Customers remain responsible for determining appropriate retention periods for information they collect through their Workspaces.
+* Qmova periodically reviews retention practices to avoid unnecessary storage.
+
+This policy describes Qmova's retention framework. Specific retention periods may vary by data category, Customer agreement, legal requirement, and system architecture.
+
+---
+
+# 2. Purpose
+
+This Data Retention Policy establishes the principles Qmova uses to determine:
+
+* how long Personal Information is retained;
+* when information becomes eligible for deletion;
+* how deletion is performed;
+* how backups are handled;
+* how retention requirements interact with legal obligations;
+* how Customer Data is handled when a subscription ends.
+
+The policy supports Qmova's broader privacy, security, and data-governance framework.
+
+---
+
+# 3. Scope
+
+This Policy applies to information processed through:
+
+* Qmova accounts;
+* Customer Workspaces;
+* Visits;
+* Appointments;
+* Walk-ins;
+* Queues;
+* QR Check-in;
+* Notifications;
+* authentication;
+* support systems;
+* audit systems;
+* security systems;
+* APIs;
+* integrations;
+* Qmova websites and services.
+
+It applies to Personal Information and other information where retention is relevant to Qmova's operational responsibilities.
+
+Third-party systems may have their own retention periods and policies.
+
+---
+
+# 4. Retention Principles
+
+Qmova's retention practices are guided by the following principles.
+
+## Purpose Limitation
+
+Information should not be retained after the purpose for which it is needed has ended unless another lawful or legitimate purpose applies.
+
+## Data Minimization
+
+Qmova should avoid retaining more information than necessary.
+
+## Legal Compliance
+
+Information may need to be retained to comply with legal, regulatory, accounting, tax, or other applicable obligations.
+
+## Security
+
+Certain information may need to be retained to investigate security events, fraud, abuse, or unauthorized access.
+
+## Accountability
+
+Some information may need to be retained to demonstrate that important security, privacy, or contractual actions occurred.
+
+## Customer Control
+
+Customers remain responsible for determining appropriate retention for Customer Data within their own business context, subject to Qmova's technical capabilities and contractual terms.
+
+## Defined Lifecycle
+
+Information should have an identifiable lifecycle from creation through deletion, anonymization, or another appropriate disposition.
+
+---
+
+# 5. Data Ownership and Responsibility
+
+Qmova distinguishes between information processed for Qmova's own purposes and Customer Data processed on behalf of a Customer.
+
+## Qmova-Controlled Information
+
+Qmova may determine retention periods for information used for:
+
+* account administration;
+* security;
+* billing;
+* support;
+* legal compliance;
+* platform administration.
+
+## Customer Data
+
+For Customer Data processed on behalf of a Customer, the Customer generally determines the purpose and applicable retention requirements.
+
+Qmova processes Customer Data according to:
+
+* the Customer's documented instructions;
+* the Customer Agreement;
+* the Data Processing Addendum;
+* applicable law;
+* technical capabilities of the Services.
+
+---
+
+# 6. Data Categories
+
+Retention periods may differ based on the type of information.
+
+Qmova considers categories such as:
+
+| Data Category         | Primary Retention Driver                             |
+| --------------------- | ---------------------------------------------------- |
+| Account information   | Active account and legitimate operational needs      |
+| Workspace information | Customer relationship and operational requirements   |
+| Visit data            | Customer use and applicable retention requirements   |
+| Appointment data      | Customer workflow and operational requirements       |
+| Queue data            | Customer workflow and analytics requirements         |
+| Check-in information  | Visit lifecycle and operational needs                |
+| Notification records  | Delivery, troubleshooting, audit, and security needs |
+| Authentication logs   | Security and fraud prevention                        |
+| Audit logs            | Security, accountability, and legal requirements     |
+| Cookie preferences    | Consent and preference management                    |
+| Support records       | Customer support and dispute resolution              |
+| Billing records       | Contractual, accounting, tax, and legal requirements |
+| Backup data           | Backup and recovery lifecycle                        |
+
+The table is a framework rather than a universal retention schedule.
+
+---
+
+# 7. Account Data
+
+Account information may include:
+
+* name;
+* email address;
+* authentication identifiers;
+* Workspace memberships;
+* account preferences;
+* security settings.
+
+Account information may be retained while the account remains active.
+
+After account closure, Qmova may retain limited information where necessary for:
+
+* legal compliance;
+* security;
+* fraud prevention;
+* accounting;
+* dispute resolution;
+* recordkeeping.
+
+Information no longer required for an identified purpose becomes eligible for deletion according to the applicable lifecycle.
+
+---
+
+# 8. Customer and Workspace Data
+
+Customer Data stored within a Workspace is generally retained while:
+
+* the Workspace is active;
+* the Customer requires the information;
+* Qmova is contractually required to retain it;
+* another lawful purpose applies.
+
+Customers should configure their use of Qmova so that information is not collected or retained beyond what is appropriate for their operational purposes.
+
+Where a Customer requires a specific contractual retention period, the requirement should be documented in the applicable Customer Agreement or DPA.
+
+---
+
+# 9. Visit and Operational Data
+
+Visits form the core operational record within Qmova.
+
+Visit data may include:
+
+* Visitor information;
+* Service;
+* Location;
+* Visit status;
+* timestamps;
+* Staff assignment;
+* Queue information;
+* operational notes;
+* completion information.
+
+Visit data is generally retained for the period required to support:
+
+* Customer operations;
+* reporting;
+* analytics;
+* service history;
+* dispute resolution;
+* applicable legal requirements.
+
+Customers are responsible for determining how long they need Visit information for their own business purposes.
+
+---
+
+# 10. Appointment Data
+
+Appointment records may include:
+
+* scheduled time;
+* Visitor information;
+* Service;
+* Location;
+* Staff assignment;
+* appointment status;
+* cancellation;
+* rescheduling;
+* attendance information.
+
+Appointment data may be retained as part of the Visit Lifecycle and Customer operational history.
+
+A cancelled or completed Appointment is not necessarily deleted immediately because it may remain relevant to:
+
+* reporting;
+* operational history;
+* customer-service inquiries;
+* disputes;
+* legal requirements.
+
+---
+
+# 11. Queue and Check-in Data
+
+Queue and QR Check-in information may include:
+
+* Queue position;
+* Check-in time;
+* ticket information;
+* Visit identifier;
+* selected Service;
+* Location;
+* timestamps;
+* Queue status.
+
+This information may be retained to support:
+
+* current operations;
+* service analysis;
+* reporting;
+* Visit history;
+* security investigations.
+
+Customer-configured retention requirements may apply where supported.
+
+---
+
+# 12. Notification Data
+
+Notification records may include:
+
+* notification type;
+* recipient identifier;
+* timestamp;
+* delivery status;
+* provider response;
+* failure information.
+
+Qmova may retain notification records to:
+
+* confirm delivery attempts;
+* troubleshoot failures;
+* investigate abuse;
+* support customer-service requests;
+* maintain operational records.
+
+The full content of a notification does not necessarily need to be retained for the same period as its delivery metadata.
+
+Where possible, Qmova should distinguish between message content and delivery or operational metadata for retention purposes.
+
+---
+
+# 13. Audit Logs
+
+Audit Logs are retained to support:
+
+* accountability;
+* security investigations;
+* operational investigation;
+* access reviews;
+* configuration history.
+
+Audit events may include:
+
+* role changes;
+* permission changes;
+* administrative actions;
+* important configuration changes;
+* policy acceptance;
+* relevant Visit or operational actions.
+
+Audit Logs may be retained longer than ordinary operational data where necessary to provide meaningful security and accountability.
+
+Retention must still be proportionate to the purpose.
+
+---
+
+# 14. Authentication and Security Logs
+
+Security logs may include:
+
+* login timestamps;
+* failed login attempts;
+* IP addresses;
+* session events;
+* authentication provider events;
+* suspicious access attempts;
+* security alerts.
+
+These records may be retained to:
+
+* detect attacks;
+* investigate security events;
+* identify abuse;
+* establish timelines;
+* protect accounts.
+
+Because historical security information can be important when investigating an incident discovered after the original event, security logs may have retention periods different from ordinary Customer Data.
+
+---
+
+# 15. Cookie and Consent Records
+
+Qmova may retain information about cookie preferences and policy consent.
+
+Cookie preference records may include:
+
+* selected categories;
+* consent state;
+* timestamp;
+* policy or consent version;
+* relevant technical identifier.
+
+Policy acceptance records may include:
+
+* User;
+* policy;
+* policy version;
+* acceptance timestamp.
+
+These records may be retained to demonstrate:
+
+* which version was accepted;
+* when acceptance occurred;
+* what preference was selected.
+
+Retention of consent records may therefore continue after a particular cookie or policy is no longer active where necessary for accountability or legal purposes.
+
+---
+
+# 16. Support and Communications Data
+
+Qmova may retain support information such as:
+
+* support requests;
+* email correspondence;
+* ticket history;
+* troubleshooting information;
+* attachments;
+* resolution records.
+
+Support records may be retained to:
+
+* resolve recurring problems;
+* maintain customer-service history;
+* investigate disputes;
+* defend legal claims;
+* improve support operations.
+
+Sensitive information should not be submitted to support channels unnecessarily.
+
+---
+
+# 17. Billing and Transaction Records
+
+Qmova may retain:
+
+* subscription records;
+* invoices;
+* transaction references;
+* payment status;
+* billing contacts;
+* tax information where applicable.
+
+Financial and transaction records may require retention for:
+
+* accounting;
+* tax;
+* audit;
+* legal;
+* contractual purposes.
+
+Payment card information is not intentionally retained in Qmova's application unless explicitly required by a supported payment architecture.
+
+Where a third-party payment provider processes payment information, its own retention practices may apply.
+
+---
+
+# 18. API and Integration Data
+
+API and integration information may include:
+
+* API request metadata;
+* integration configuration;
+* webhook events;
+* authentication metadata;
+* delivery status;
+* integration errors.
+
+Qmova may retain relevant information to:
+
+* operate integrations;
+* troubleshoot failures;
+* investigate abuse;
+* maintain auditability;
+* secure API access.
+
+Customer Data transmitted through an integration remains subject to the applicable Customer instructions and processing terms.
+
+---
+
+# 19. Backups
+
+Backups are part of Qmova's resilience architecture.
+
+Deleting information from active systems does not necessarily delete every backup copy immediately.
+
+A simplified lifecycle is:
+
+```text id="n8zqfi"
+Active Production Data
+        │
+        ▼
+Deletion from Active System
+        │
+        ▼
+Backup Copy Remains During
+Applicable Backup Lifecycle
+        │
+        ▼
+Backup Rotation / Expiration
+        │
+        ▼
+Backup Copy No Longer Available
+```
+
+Backup systems are primarily maintained for:
+
+* recovery;
+* resilience;
+* protection from accidental loss;
+* certain security incidents.
+
+Backups are not intended to function as an alternative user-accessible archive.
+
+Qmova does not ordinarily restore deleted information merely because a backup copy exists.
+
+---
+
+# 20. Data Deletion Lifecycle
+
+Qmova generally follows a lifecycle similar to:
+
+```text id="y9uwuy"
+Data Created
+    │
+    ▼
+Active Use
+    │
+    ▼
+Retention Period
+    │
+    ├───────────────┐
+    │               │
+    ▼               ▼
+Deletion        Extended Retention
+                    │
+                    ▼
+               Legal / Security /
+               Dispute Requirement
+                    │
+                    ▼
+                  Deletion
+    │
+    ▼
+Backup Expiration
+    │
+    ▼
+Lifecycle Complete
+```
+
+The actual lifecycle varies by data category.
+
+---
+
+# 21. Account Deletion
+
+Where Qmova supports self-service account deletion, the request may result in deletion of applicable account information.
+
+Before deletion, Qmova may require:
+
+* authentication;
+* identity verification;
+* confirmation;
+* appropriate security checks.
+
+Where applicable, users may be provided with an opportunity to export supported information before deletion.
+
+Some information may be retained after account deletion where required for:
+
+* legal compliance;
+* security;
+* fraud prevention;
+* accounting;
+* dispute resolution;
+* auditability.
+
+---
+
+# 22. Customer Subscription Termination
+
+When a Customer's subscription or Customer Agreement ends, Customer Data is not necessarily deleted at the exact moment service access is disabled.
+
+Depending on the applicable agreement, the lifecycle may be:
+
+```text id="m5l6sw"
+Subscription Ends
+       │
+       ▼
+Access Restricted
+       │
+       ▼
+Applicable Export Period
+       │
+       ▼
+Deletion from Active Systems
+       │
+       ▼
+Backup Lifecycle
+       │
+       ▼
+Deletion Lifecycle Complete
+```
+
+The exact periods and process should be governed by:
+
+* the Customer Agreement;
+* the DPA;
+* applicable retention requirements;
+* Qmova's technical capabilities.
+
+Enterprise Customers may have different contractual retention and deletion provisions.
+
+---
+
+# 23. Customer Data Export
+
+Customers may be able to export supported operational information before deletion.
+
+Depending on the available functionality, an export may include:
+
+* Visits;
+* Appointments;
+* Queue information;
+* Services;
+* Workspace configuration;
+* other operational records.
+
+Export access is subject to:
+
+* authentication;
+* authorization;
+* security controls;
+* available functionality;
+* applicable subscription;
+* reasonable technical limitations.
+
+Customers should not treat export functionality as a replacement for maintaining their own legally required records.
+
+---
+
+# 24. Legal and Regulatory Retention
+
+Qmova may retain information beyond an ordinary operational lifecycle where required by law or reasonably necessary to:
+
+* comply with legal obligations;
+* satisfy tax or accounting requirements;
+* respond to lawful authority requests;
+* establish or defend legal claims;
+* preserve evidence;
+* meet contractual obligations.
+
+Where information is retained for a specific legal or dispute-related purpose, access and use should remain limited to that purpose where appropriate.
+
+---
+
+# 25. Security and Incident-Related Retention
+
+Information related to a security incident may need to be retained beyond ordinary operational periods.
+
+Examples include:
+
+* relevant audit logs;
+* authentication records;
+* security alerts;
+* incident timelines;
+* forensic information;
+* remediation records.
+
+This information may be retained to:
+
+* investigate the incident;
+* identify root cause;
+* meet legal obligations;
+* demonstrate appropriate response;
+* prevent recurrence.
+
+Retention should remain proportionate to the incident and purpose.
+
+---
+
+# 26. Aggregated and De-identified Data
+
+Qmova may create aggregated or de-identified information where permitted by applicable law.
+
+Such information may be retained after the underlying Personal Information has been deleted where it is no longer reasonably capable of being used to identify an individual.
+
+Potential uses may include:
+
+* operational statistics;
+* system-performance analysis;
+* capacity planning;
+* product improvement;
+* security analysis.
+
+Information that remains identifiable is not treated as permanently de-identified merely because it has been aggregated with other information.
+
+---
+
+# 27. Data Minimization and Review
+
+Retention is not a "keep everything forever" policy.
+
+Qmova may periodically review:
+
+* data categories;
+* storage locations;
+* retention periods;
+* security logs;
+* application records;
+* backup configurations.
+
+The purpose of these reviews is to identify information that can be:
+
+* deleted;
+* anonymized;
+* aggregated;
+* reduced;
+* moved to a more appropriate storage lifecycle.
+
+Retention requirements should be reviewed when:
+
+* a new feature is introduced;
+* a data category changes;
+* a legal requirement changes;
+* a Subprocessor changes;
+* the architecture changes.
+
+---
+
+# 28. Customer Responsibilities
+
+Customers are responsible for managing their own retention decisions for Customer Data.
+
+Customers should:
+
+* collect only information needed for their purposes;
+* establish appropriate internal retention policies;
+* remove unnecessary information;
+* restrict access to retained data;
+* comply with applicable legal requirements;
+* consider sector-specific retention rules;
+* request exports before terminating a service where necessary.
+
+Qmova does not determine how long a hospital, bank, university, government office, or other Customer is legally required to retain its operational records.
+
+---
+
+# 29. Data Retention Requests
+
+Customers may contact Qmova regarding retention requirements or contractual deletion instructions.
+
+Requests should be directed to:
+
+**[privacy@qmova.com](mailto:privacy@qmova.com)**
+
+Where the request concerns Customer Data processed on behalf of a Customer, Qmova may require confirmation that the requester is authorized by the Customer.
+
+Where a Customer requires a retention period different from Qmova's standard operational lifecycle, the parties may address that requirement through an applicable commercial or DPA arrangement where technically and legally feasible.
+
+---
+
+# 30. Exceptions
+
+There may be circumstances where information is retained longer than the ordinary lifecycle.
+
+Examples include:
+
+* litigation;
+* legal investigations;
+* regulatory obligations;
+* active security investigations;
+* fraud investigations;
+* unresolved disputes;
+* contractual obligations;
+* technical recovery requirements.
+
+When a legal hold or equivalent preservation requirement applies, relevant information should not be deleted until the requirement is released.
+
+Retained information should continue to receive appropriate security and access controls.
+
+---
+
+# 31. International Considerations
+
+Qmova serves Customers internationally.
+
+Retention requirements may differ between jurisdictions.
+
+For example, a Customer may be subject to:
+
+* South African privacy requirements;
+* GDPR requirements;
+* sector-specific regulations;
+* local recordkeeping laws;
+* tax requirements;
+* contractual retention obligations.
+
+Where Customer instructions conflict with mandatory legal retention obligations applicable to Qmova, Qmova may be required to retain the information for the legally required period.
+
+International processing and transfer requirements are addressed separately in the Qmova Privacy Policy and DPA.
+
+---
+
+# 32. Relationship to Other Qmova Documents
+
+This Policy works together with:
+
+### Privacy
+
+* Privacy Policy
+* Cookie Policy
+* Data Processing Addendum
+
+### Legal
+
+* Terms of Service
+* Service Level Agreement
+* Refund and Cancellation Policy
+* Acceptable Use Policy
+
+### Trust and Security
+
+* Qmova Trust Center
+* Architecture Overview
+* Security Overview
+* Security Policy
+* Subprocessor List
+
+### Compliance
+
+* Compliance Roadmap
+* Accessibility Statement
+* AI Usage Policy
+
+Where a Customer Agreement or DPA provides a specific retention or deletion commitment, that contractual commitment governs the applicable Customer relationship.
+
+---
+
+# 33. Policy Review
+
+This Data Retention Policy will be reviewed at least annually and whenever there is a material change to:
+
+* applicable privacy law;
+* Qmova's architecture;
+* data categories;
+* backup systems;
+* security logging;
+* Customer contracts;
+* retention requirements.
+
+Retention periods should not be added to production systems merely because they appear in documentation.
+
+The documented retention schedule must reflect actual operational capabilities.
+
+Where an operational retention period has not yet been finalized, Qmova should not represent a precise period as an existing guarantee.
+
+---
+
+# 34. Contact Information
+
+For data retention and deletion matters:
+
+**Privacy:**
+[privacy@qmova.com](mailto:privacy@qmova.com)
+
+For security-related retention matters:
+
+**Security:**
+[security@qmova.com](mailto:security@qmova.com)
+
+For contractual matters:
+
+**Legal:**
+[legal@qmova.com](mailto:legal@qmova.com)
+
+For general customer support:
+
+**Support:**
+[support@qmova.com](mailto:support@qmova.com)
+
+---
+
+# 35. Document Governance
+
+**Document Owner:** Qmova Privacy & Security Functions
+
+**Classification:** Public
+
+**Review Frequency:** At least annually and whenever a significant change occurs to Qmova's data architecture, retention requirements, backup systems, audit logging, applicable law, or Customer contractual obligations.
+
+This Policy describes Qmova's retention framework and principles.
+
+It should not be interpreted as establishing a specific retention period for every category of Customer Data unless that period is expressly stated in an applicable Customer Agreement or documented operational retention schedule.
+
+---
+
+# 36. Version History
+
+| Version | Date           | Summary                             |
+| ------- | -------------- | ----------------------------------- |
+| 1.0.0   | 12 August 2026 | Initial Qmova Data Retention Policy |
+
+---
+
+## Retention Principle
+
+> **Qmova retains information for as long as there is a valid operational, contractual, security, or legal reason to retain it—not indefinitely simply because storage is available.**

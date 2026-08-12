@@ -4,9 +4,11 @@ import AdminLayout from '../../../components/AdminLayout';
 import { Search, Plus, Filter, Users, Calendar, MapPin, Phone, Mail } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
+import { CreateCustomerModal } from '../../../components/modals/CreateCustomerModal';
 
 export default function PeoplePage() {
   const [search, setSearch] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch unique customers from visits for now (or a dedicated /customers endpoint if available)
   const { data: visits = [], isLoading } = useQuery({
@@ -47,7 +49,10 @@ export default function PeoplePage() {
             <p className="text-gray-500 dark:text-zinc-400">Customer directory and visit history.</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] border border-indigo-500/50 hover:-translate-y-0.5">
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] border border-indigo-500/50 hover:-translate-y-0.5"
+            >
               <Plus className="w-5 h-5" />
               Add Customer
             </button>
@@ -138,7 +143,10 @@ export default function PeoplePage() {
               <p className="text-sm text-gray-500 dark:text-zinc-400 max-w-sm mb-6">
                 Customers will appear here after their first booking or walk-in visit.
               </p>
-              <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-zinc-700 text-gray-900 dark:text-white rounded-lg font-medium transition-colors shadow-sm">
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-zinc-700 text-gray-900 dark:text-white rounded-lg font-medium transition-colors shadow-sm"
+              >
                 <Plus className="w-4 h-4" />
                 Add Customer Manually
               </button>
@@ -147,6 +155,11 @@ export default function PeoplePage() {
           </div>
         </div>
       </div>
+      
+      <CreateCustomerModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
     </AdminLayout>
   );
 }

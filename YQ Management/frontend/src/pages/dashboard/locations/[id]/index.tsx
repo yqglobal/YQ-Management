@@ -1,240 +1,211 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../../../components/AdminLayout';
-import { ArrowLeft, ExternalLink, Scan, Settings, QrCode, RefreshCw, AlertTriangle, Keyboard } from 'lucide-react';
+import { Settings, Users, ArrowLeft, Plus, MapPin, Loader2, Store, CalendarClock } from 'lucide-react';
 import Link from 'next/link';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
-import { useAuth } from '../../../../components/AuthContext';
-import { useQueueSocket } from '../../../../hooks/useQueueSocket';
 import { toast } from 'sonner';
-import { QueueHeader } from '../../../../components/queue/QueueHeader';
-import { QueueControls } from '../../../../components/queue/QueueControls';
-import { TokenList } from '../../../../components/queue/TokenList';
-import { SettingsPanel } from '../../../../components/queue/SettingsPanel';
-import { SharePanel } from '../../../../components/queue/SharePanel';
-import { ErrorBoundary } from '../../../../components/ErrorBoundary';
-// import { ChatDrawer } from '../../../../components/queue/ChatDrawer';
+import { CreateServiceModal } from '../../../../components/modals/CreateServiceModal';
 
-export default function QueueWorkspace() {
+export default function LocationDetails() {
   const router = useRouter();
-  const { user } = useAuth();
   const { id } = router.query;
-  const activeTab = (router.query.tab as 'workspace' | 'settings' | 'share') || 'workspace';
-  const setActiveTab = (tab: 'workspace' | 'settings' | 'share') => {
-    router.push({ query: { ...router.query, tab } }, undefined, { shallow: true });
-  };
-
-  // Chat State (disabled - ChatDrawer commented out)
-  // const [chatToken, setChatToken] = useState<any>(null);
-  // const [chatMessage, setChatMessage] = useState('');
-
-  // Settings Form Builder State
-  const [formConfig, setFormConfig] = useState<any[]>([]);
-  const [savingSettings, setSavingSettings] = useState(false);
-  const [queueName, setQueueName] = useState('');
-  const [nextQueueId, setNextQueueId] = useState<string>('');
-  const [allowAppointments, setAllowAppointments] = useState(false);
-  const [requireManualCheckIn, setRequireManualCheckIn] = useState(false);
-  const [appointmentGranularityMins, setAppointmentGranularityMins] = useState(15);
-  const [showName, setShowName] = useState(true);
-  const [showTokenNumber, setShowTokenNumber] = useState(true);
-  const [generationMode, setGenerationMode] = useState<'sequential' | 'random'>('random');
-  const [tokenFormat, setTokenFormat] = useState<'alphanumeric' | 'numeric'>('alphanumeric');
-  const [tokenPrefix, setTokenPrefix] = useState('CC');
-  const [ttsTemplate, setTtsTemplate] = useState('');
-
-  const { data: allQueues = [] } = useQuery({
-    queryKey: ['queues'],
-    queryFn: () => fetchApi('/queue'),
-  });
+  const [activeTab, setActiveTab] = useState<'services' | 'resources' | 'settings'>('services');
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
-  const { data: queue = null, refetch: refetchQueue, isLoading: isQueueLoading, error: queueError } = useQuery({
-    queryKey: ['queue', id],
+  const { data: location = null, isLoading: isLocationLoading } = useQuery({
+    queryKey: ['location', id],
+    queryFn: () => fetchApi(`/location/${id}`),
+    enabled: !!id,
+  });
+
+  const { data: services = [], isLoading: isServicesLoading } = useQuery({
+    queryKey: ['location', id, 'services'],
     queryFn: async () => {
-      const q = await fetchApi(`/queue/${id}`);
-      if (q) {
-        setQueueName(q.name);
-        setNextQueueId(q.nextQueueId || '');
-        setAllowAppointments(q.allowAppointments || false);
-        setRequireManualCheckIn(q.requireManualCheckIn || false);
-        setAppointmentGranularityMins(q.appointmentGranularityMins || 15);
-         setFormConfig(q.formConfig || [
-          { id: 'name', type: 'text', label: 'Full Name', required: true, system: true },
-          { id: 'phone', type: 'phone', label: 'WhatsApp Number', required: true, system: true },
-        ]);
-        const dc = q.tokenDisplayConfig || {};
-        setShowName(dc.showName !== false);
-        setShowTokenNumber(dc.showTokenNumber !== false);
-        setGenerationMode(dc.generationMode || 'random');
-        setTokenFormat(dc.format || 'alphanumeric');
-        setTokenPrefix(dc.prefix || 'CC');
-        setTtsTemplate(dc.ttsTemplate || '');
-       }
-       return q;
-     },
-    enabled: !!id,
-  });
-
-  const { data: tokens = [], refetch, isLoading: isTokensLoading, error: tokensError } = useQuery({
-    queryKey: ['queueTokens', id],
-    queryFn: () => fetchApi(`/queue/${id}/tokens`),
-    enabled: !!id,
-  });
-
-  const { joinRoom } = useQueueSocket({
-    queueId: id as string,
-    onTokenJoined: () => refetch(),
-    onTokenServing: () => refetch(),
-    onTokenCompleted: () => refetch(),
-    onTokenMissed: () => refetch(),
-    onNewMessage: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      const allServices = await fetchApi('/service');
+      return allServices.filter((s: any) => s.locationId === id || !s.locationId);
     },
+    enabled: !!id,
   });
 
-  useEffect(() => {
-    if (id) joinRoom(id as string);
-  }, [id, joinRoom]);
-
-  const servingToken = tokens.find((t: any) => t.status === 'SERVING');
-
-  const isOffline = !navigator.onLine;
-
-  const handleRetry = useCallback(() => {
-    refetch();
-    refetchQueue();
-  }, [refetch, refetchQueue]);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        e.preventDefault();
-        const nextBtn = document.querySelector('[data-shortcut="next"]') as HTMLElement;
-        nextBtn?.click();
-      }
-      if (e.key === 's' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        e.preventDefault();
-        const skipBtn = document.querySelector('[data-shortcut="skip"]') as HTMLElement;
-        skipBtn?.click();
-      }
-      if (e.key === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        e.preventDefault();
-        handleRetry();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleRetry]);
-
-  const isLoading = isQueueLoading || isTokensLoading;
-  const hasError = queueError || tokensError;
-
-  return (
-    <ErrorBoundary>
-      <AdminLayout pageTitle={queue?.name || 'Queue'} pageSubtitle="Queue workspace">
-        <Head>
-          <title>Manage {queueName || 'Queue'} | Qmova</title>
-        </Head>
-
-        {isOffline && (
-          <div className="max-w-6xl mx-auto mb-4 px-4 sm:px-6 lg:px-8">
-            <div className="p-3 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-xl flex items-center gap-3 text-yellow-700 dark:text-yellow-400 text-sm">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>You are offline. Some features may not work.</span>
-            <button onClick={handleRetry} className="ml-auto px-3 py-1 bg-yellow-100 dark:bg-yellow-500/20 rounded-lg text-xs font-medium hover:bg-yellow-200 dark:hover:bg-yellow-500/30 transition-colors">
-              Retry
-            </button>
-            </div>
-          </div>
-        )}
-
-        {hasError && !isLoading && (
-          <div className="max-w-6xl mx-auto mb-4 px-4 sm:px-6 lg:px-8">
-            <div className="p-6 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl text-center">
-            <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-red-700 dark:text-red-400 mb-2">Failed to load queue data</h3>
-            <p className="text-sm text-red-500 dark:text-red-400 mb-4">Please check your connection and try again.</p>
-            <button onClick={handleRetry} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 mx-auto">
-              <RefreshCw className="w-4 h-4" /> Retry
-            </button>
-            </div>
-          </div>
-        )}
-
-        <div className="max-w-6xl mx-auto space-y-8 pb-12 p-4 sm:p-6 lg:p-8">
-          <QueueHeader
-            queueName={queueName}
-            queueId={id as string}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            isAdmin={user?.role === 'TENANT_ADMIN'}
-          />
-
-          {isLoading && !hasError ? (
-            <div className="space-y-8 animate-in fade-in duration-300">
-              <div className="h-20 bg-gray-100 dark:bg-zinc-800 rounded-2xl animate-pulse" />
-              <div className="h-48 bg-gray-100 dark:bg-zinc-800 rounded-2xl animate-pulse" />
-              <div className="h-64 bg-gray-100 dark:bg-zinc-800 rounded-2xl animate-pulse" />
-            </div>
-          ) : activeTab === 'workspace' ? (
-            <div className="space-y-8 animate-in fade-in duration-300">
-              <p className="text-zinc-400 text-sm">Ready to serve visitors</p>
-              <QueueControls queueId={id as string} servingToken={servingToken} />
-              <TokenList
-                tokens={tokens}
-                queueId={id as string}
-                nextQueueId={queue?.nextQueueId}
-              />
-            </div>
-          ) : activeTab === 'share' ? (
-            <SharePanel queueId={id as string} />
-          ) : (
-             <SettingsPanel
-               queueId={id as string}
-               queueName={queueName}
-               formConfig={formConfig}
-               setQueueName={setQueueName}
-               setFormConfig={setFormConfig}
-               allQueues={allQueues}
-               nextQueueId={nextQueueId}
-               setNextQueueId={setNextQueueId}
-               allowAppointments={allowAppointments}
-               setAllowAppointments={setAllowAppointments}
-               requireManualCheckIn={requireManualCheckIn}
-               setRequireManualCheckIn={setRequireManualCheckIn}
-               appointmentGranularityMins={appointmentGranularityMins}
-               setAppointmentGranularityMins={setAppointmentGranularityMins}
-               showName={showName}
-               setShowName={setShowName}
-               showTokenNumber={showTokenNumber}
-               setShowTokenNumber={setShowTokenNumber}
-               generationMode={generationMode}
-               setGenerationMode={setGenerationMode}
-               tokenFormat={tokenFormat}
-               setTokenFormat={setTokenFormat}
-               tokenPrefix={tokenPrefix}
-               setTokenPrefix={setTokenPrefix}
-               ttsTemplate={ttsTemplate}
-               setTtsTemplate={setTtsTemplate}
-             />
-          )}
-        </div>
-
-        <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
-          <Keyboard className="w-3 h-3" />
-          <span>N = Next</span>
-          <span className="mx-1">·</span>
-          <span>S = Skip</span>
-          <span className="mx-1">·</span>
-          <span>R = Refresh</span>
+  if (isLocationLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
         </div>
       </AdminLayout>
-    </ErrorBoundary>
+    );
+  }
+
+  if (!location) {
+    return (
+      <AdminLayout>
+        <div className="p-8 text-center text-red-500">Location not found.</div>
+      </AdminLayout>
+    );
+  }
+
+  return (
+    <AdminLayout pageTitle={location.name} pageSubtitle="Manage location details and services">
+      <Head>
+        <title>{location.name} | Qmova Locations</title>
+      </Head>
+
+      <div className="max-w-6xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
+        
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <Link href="/dashboard/locations" className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors text-gray-500">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+              <Store className="w-8 h-8 text-indigo-500" />
+              {location.name}
+            </h1>
+            {location.address && (
+              <p className="text-gray-500 dark:text-zinc-400 mt-1 flex items-center gap-1.5">
+                <MapPin className="w-4 h-4" /> {location.address}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200 dark:border-white/10 gap-6">
+          <TabButton 
+            active={activeTab === 'services'} 
+            onClick={() => setActiveTab('services')}
+            icon={<CalendarClock className="w-4 h-4" />}
+            label="Services" 
+          />
+          <TabButton 
+            active={activeTab === 'resources'} 
+            onClick={() => setActiveTab('resources')}
+            icon={<Users className="w-4 h-4" />}
+            label="Resources" 
+          />
+          <TabButton 
+            active={activeTab === 'settings'} 
+            onClick={() => setActiveTab('settings')}
+            icon={<Settings className="w-4 h-4" />}
+            label="Settings" 
+          />
+        </div>
+
+        {/* Tab Content */}
+        <div className="pt-4">
+          {activeTab === 'services' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Services</h2>
+                  <p className="text-sm text-gray-500">Manage services offered at this location.</p>
+                </div>
+                <button 
+                  onClick={() => setIsServiceModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                >
+                  <Plus className="w-4 h-4" /> Add Service
+                </button>
+              </div>
+
+              <div className="bg-white dark:bg-zinc-900/50 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100 dark:divide-white/5">
+                {isServicesLoading ? (
+                  <div className="p-8 text-center text-gray-500">Loading services...</div>
+                ) : services.length > 0 ? (
+                  services.map((service: any) => (
+                    <div key={service.id} className="p-5 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors group">
+                      <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white">{service.name}</h3>
+                        {service.description && <p className="text-sm text-gray-500 mt-1">{service.description}</p>}
+                        <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-2">{service.expectedDuration} mins</p>
+                      </div>
+                      <button className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-zinc-300 rounded-lg transition-colors">
+                        Edit
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-12 text-center text-gray-500">
+                    <p className="mb-4">No services configured for this location yet.</p>
+                    <button 
+                      onClick={() => setIsServiceModalOpen(true)}
+                      className="px-4 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Add your first service
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'resources' && (
+            <div className="space-y-6">
+               <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Resources</h2>
+                  <p className="text-sm text-gray-500">Manage rooms, equipment, or staff at this location.</p>
+                </div>
+                <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
+                  <Plus className="w-4 h-4" /> Add Resource
+                </button>
+              </div>
+              <div className="bg-white dark:bg-zinc-900/50 border border-gray-200 dark:border-white/10 rounded-2xl p-12 text-center text-gray-500">
+                Resource management coming soon.
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="max-w-2xl bg-white dark:bg-zinc-900/50 border border-gray-200 dark:border-white/10 rounded-2xl p-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Location Settings</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Location Name</label>
+                  <input type="text" defaultValue={location.name} className="w-full bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Address</label>
+                  <input type="text" defaultValue={location.address} className="w-full bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+                <div className="pt-4 flex justify-end">
+                  <button className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition-colors shadow-sm">
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <CreateServiceModal 
+        isOpen={isServiceModalOpen}
+        onClose={() => setIsServiceModalOpen(false)}
+        locationId={id as string}
+      />
+    </AdminLayout>
+  );
+}
+
+function TabButton({ active, onClick, icon, label }: any) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`flex items-center gap-2 pb-3 px-2 border-b-2 font-medium text-sm transition-colors ${
+        active 
+          ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' 
+          : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+      }`}
+    >
+      {icon} {label}
+    </button>
   );
 }

@@ -1,0 +1,1102 @@
+# Qmova Architecture Overview
+
+**Version:** 1.0.0
+**Last Updated:** 12 August 2026
+**Status:** Public
+**Intended Audience:** Customers, prospective customers, enterprise security teams, privacy teams, procurement teams, technical reviewers, and integration partners
+
+---
+
+# Table of Contents
+
+1. At a Glance
+2. Purpose and Scope
+3. What Qmova Is
+4. Architecture Overview
+5. Core Platform Components
+6. Visit-Centric Architecture
+7. Multi-Tenant Architecture
+8. Customer Workspaces
+9. Application Request Flow
+10. Data Storage
+11. Real-Time Communication
+12. Authentication Architecture
+13. Authorization and Role-Based Access Control
+14. Audit and Accountability
+15. Notification Architecture
+16. Customer-Owned WhatsApp Architecture
+17. Email and OTP Architecture
+18. QR Check-in Architecture
+19. API Architecture
+20. Data Boundaries
+21. Third-Party Services
+22. Data Residency and Infrastructure
+23. Backups and Recovery
+24. Monitoring and Operational Logging
+25. Security Architecture Principles
+26. Shared Responsibility
+27. Changes to the Architecture
+28. Related Documentation
+29. Contact Information
+30. Version History
+
+---
+
+# 1. At a Glance
+
+Qmova is a cloud-based, multi-tenant Visit Management Platform.
+
+The platform is designed around a single operational concept: the **Visit**.
+
+A Visit may originate from an Appointment, Walk-in, Queue, Referral, or Staff-created workflow and can be tracked through its lifecycle until completion.
+
+At a high level:
+
+```text
+Visitor
+   │
+   ▼
+Customer Experience
+(Appointment / Walk-in / Queue / QR Check-in)
+   │
+   ▼
+Qmova Application
+   │
+   ├── Authentication
+   ├── Authorization
+   ├── Visit Management
+   ├── Appointment Scheduling
+   ├── Queue Management
+   ├── Notifications
+   ├── Analytics
+   └── Audit Logging
+   │
+   ├──────────────┬───────────────┐
+   ▼              ▼               ▼
+PostgreSQL      Redis       External Services
+                                   │
+                         ┌─────────┴─────────┐
+                         ▼                   ▼
+                      Brevo             WhatsApp
+```
+
+Qmova is designed with the following architectural principles:
+
+* Customers operate within logically isolated Workspaces.
+* Authentication and authorization are separated.
+* PostgreSQL provides persistent application data storage.
+* Redis supports transient and real-time operational state where required.
+* Socket.IO supports real-time application communication.
+* Third-party services are used for selected capabilities such as authentication, email, and WhatsApp connectivity.
+* Customers connect their own WhatsApp infrastructure.
+* Qmova does not use a shared Qmova-owned WhatsApp identity to send customer messages.
+* Security, auditability, and tenant isolation are considered throughout the application architecture.
+
+---
+
+# 2. Purpose and Scope
+
+This document provides a high-level description of the Qmova technical architecture.
+
+It is intended to help customers and reviewers understand:
+
+* how the major parts of Qmova interact;
+* how Customer Workspaces are logically separated;
+* how Visits move through the platform;
+* where persistent and transient data are processed;
+* how authentication and authorization work;
+* how external services integrate with Qmova;
+* how customer-owned messaging infrastructure is connected; and
+* the architectural principles used to support security and privacy.
+
+This document is deliberately high level.
+
+It does not disclose credentials, secrets, private network information, internal hostnames, infrastructure addresses, security-sensitive configurations, or other information that could materially increase security risk.
+
+---
+
+# 3. What Qmova Is
+
+Qmova is a **Visit Management Platform** for organizations that manage physical or scheduled interactions with people.
+
+The platform combines workflows that are often handled independently, including:
+
+* Appointment Scheduling;
+* Walk-in management;
+* Queue management;
+* QR Check-in;
+* Visit tracking;
+* notifications;
+* staff workflows; and
+* analytics.
+
+Qmova uses a **Visit-centric architecture**.
+
+Rather than treating appointments, queues, and walk-ins as completely separate operational systems, they can represent different ways in which a Visit enters and progresses through the platform.
+
+This allows Qmova to support a range of operating models while maintaining a common underlying Visit Lifecycle.
+
+---
+
+# 4. Architecture Overview
+
+The major layers of the current Qmova application are:
+
+```text
+┌───────────────────────────────────────────────────────────┐
+│                    Customer Interfaces                    │
+│                                                           │
+│  Web Application │ QR Check-in │ Appointment Experience  │
+└─────────────────────────────┬─────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────┐
+│                    Application Layer                      │
+│                                                           │
+│                    Next.js Frontend                       │
+└─────────────────────────────┬─────────────────────────────┘
+                              │
+                              ▼
+┌───────────────────────────────────────────────────────────┐
+│                     API / Backend Layer                    │
+│                                                           │
+│                     NestJS Backend                         │
+│                                                           │
+│  Authentication │ Authorization │ Visit Logic │ APIs      │
+│  Scheduling     │ Queue Logic  │ Notifications │ Audit   │
+└──────────────┬─────────────────────┬──────────────────────┘
+               │                     │
+               ▼                     ▼
+      ┌────────────────┐     ┌────────────────┐
+      │   PostgreSQL   │     │     Redis      │
+      │                │     │                │
+      │ Persistent     │     │ Transient /    │
+      │ application    │     │ real-time      │
+      │ data           │     │ state          │
+      └────────────────┘     └────────────────┘
+               │
+               │
+               ▼
+      ┌─────────────────────────┐
+      │ External Integrations   │
+      │                         │
+      │ Google OAuth            │
+      │ Brevo                   │
+      │ Evolution API /         │
+      │ Customer WhatsApp       │
+      └─────────────────────────┘
+```
+
+Individual deployments and infrastructure components may evolve over time without changing the conceptual architecture described here.
+
+---
+
+# 5. Core Platform Components
+
+## 5.1 Frontend
+
+The Qmova web application uses:
+
+* Next.js 15
+* TypeScript
+* Tailwind CSS
+* shadcn/ui
+
+The frontend provides the user-facing experience for Customer administrators, Staff Members, and Visitors interacting with supported Qmova workflows.
+
+Typical frontend responsibilities include:
+
+* presenting authenticated Workspace interfaces;
+* collecting form input;
+* displaying Visits and queues;
+* presenting Appointment information;
+* handling QR Check-in experiences;
+* displaying real-time status changes;
+* presenting analytics;
+* managing account and Workspace settings.
+
+The frontend does not independently determine authorization.
+
+Authorization decisions are enforced by the backend.
+
+---
+
+# 6. Backend Application
+
+Qmova uses NestJS for the primary backend application layer.
+
+The backend is responsible for application rules and server-side processing, including:
+
+* authentication workflows;
+* authorization;
+* Workspace access;
+* Visit creation and lifecycle management;
+* Appointment processing;
+* Queue management;
+* notifications;
+* audit events;
+* integrations;
+* API requests;
+* data validation;
+* business logic.
+
+The backend acts as the primary control point between user-facing applications, persistent data, transient state, and external services.
+
+---
+
+# 7. Visit-Centric Architecture
+
+The Visit is a central abstraction within Qmova.
+
+A Visit may be created through different entry paths.
+
+For example:
+
+```text
+                     ┌── Appointment
+                     │
+                     ├── Walk-in
+                     │
+Visitor / Staff ─────┼── Queue
+                     │
+                     ├── Referral
+                     │
+                     └── Staff-created Visit
+                              │
+                              ▼
+                         Visit Created
+                              │
+                              ▼
+                       Visit Lifecycle
+                              │
+                ┌─────────────┼─────────────┐
+                ▼             ▼             ▼
+             Waiting       In Service     Completed
+                │
+                ▼
+             Cancelled /
+             No-show /
+             Other configured state
+```
+
+The exact states and transitions available to a Customer may depend on Workspace configuration and product functionality.
+
+This abstraction allows Appointment-based and Walk-in workflows to coexist within the same operational platform.
+
+---
+
+# 8. Multi-Tenant Architecture
+
+Qmova operates as a multi-tenant SaaS platform.
+
+A Customer's environment is referred to as a **Workspace**.
+
+The term **Tenant** describes the logical isolation model used by the platform, while **Workspace** is the customer-facing product concept.
+
+A simplified model is:
+
+```text
+Qmova Platform
+│
+├── Workspace A
+│     ├── Users
+│     ├── Services
+│     ├── Visits
+│     ├── Appointments
+│     └── Operational Data
+│
+├── Workspace B
+│     ├── Users
+│     ├── Services
+│     ├── Visits
+│     ├── Appointments
+│     └── Operational Data
+│
+└── Workspace C
+      ├── Users
+      ├── Services
+      ├── Visits
+      ├── Appointments
+      └── Operational Data
+```
+
+The purpose of tenant isolation is to prevent users in one Workspace from accessing data belonging to another Workspace without appropriate authorization.
+
+Tenant context is therefore an important part of request processing and access control.
+
+---
+
+# 9. Customer Workspaces
+
+A Workspace represents the Customer's operational environment inside Qmova.
+
+Depending on the Customer's configuration, a Workspace may contain:
+
+* locations;
+* Services;
+* Staff Members;
+* roles;
+* permissions;
+* Visits;
+* Appointments;
+* Queue configurations;
+* notification settings;
+* integrations;
+* analytics;
+* audit records.
+
+The exact structure and available features may vary depending on the Customer's subscription and product configuration.
+
+---
+
+# 10. Application Request Flow
+
+A simplified authenticated request typically follows this sequence:
+
+```text
+User
+ │
+ ▼
+Qmova Frontend
+ │
+ ▼
+Backend API
+ │
+ ├── Authenticate
+ │
+ ├── Identify User
+ │
+ ├── Resolve Workspace
+ │
+ ├── Check Role / Permission
+ │
+ ├── Validate Request
+ │
+ ├── Execute Business Logic
+ │
+ ├── Read / Write Data
+ │
+ └── Record Relevant Audit Event
+ │
+ ▼
+Response
+ │
+ ▼
+Frontend
+```
+
+The backend is responsible for enforcing server-side authorization.
+
+A frontend control, hidden button, or user-interface restriction should not be considered a security boundary on its own.
+
+---
+
+# 11. Persistent Data Storage
+
+Qmova uses PostgreSQL as its primary relational data store.
+
+PostgreSQL is used for persistent application information such as, depending on the feature:
+
+* user records;
+* Workspace relationships;
+* Services;
+* Visits;
+* Appointments;
+* configuration;
+* audit records;
+* policy records;
+* consent records;
+* other application data.
+
+Qmova uses Prisma as the application data-access layer for PostgreSQL.
+
+The database schema is designed around the platform's multi-tenant and relational data model.
+
+---
+
+# 12. Redis
+
+Qmova uses Redis for operational workloads that benefit from low-latency, transient, or rapidly changing state.
+
+Depending on the feature, Redis may support:
+
+* queue state;
+* caching;
+* temporary application state;
+* coordination;
+* rate limiting;
+* real-time operational workloads.
+
+Redis should not be assumed to be the authoritative long-term source for every application record.
+
+Persistent information that must survive transient infrastructure events is maintained through the appropriate persistent storage mechanism.
+
+---
+
+# 13. Real-Time Communication
+
+Qmova uses Socket.IO to support real-time application updates.
+
+Real-time communication can be used for workflows where users need current operational state without repeatedly refreshing the page.
+
+Examples may include:
+
+* queue position changes;
+* Visit status updates;
+* staff workflow changes;
+* appointment state changes;
+* live operational dashboards.
+
+The backend remains the authoritative source for business rules and authorization.
+
+Real-time channels do not independently grant a user access to another Workspace's data.
+
+---
+
+# 14. Authentication Architecture
+
+Qmova supports multiple authentication methods.
+
+These currently include:
+
+* Google OAuth;
+* email authentication; and
+* OTP-based authentication.
+
+Authentication answers:
+
+> "Who is this user?"
+
+Authorization answers:
+
+> "What is this authenticated user allowed to access?"
+
+Qmova treats these as separate concerns.
+
+---
+
+# 15. Google OAuth
+
+When a user chooses Google authentication, Qmova relies on Google's OAuth authentication mechanisms to authenticate the user.
+
+Qmova is designed to request only the information and permissions necessary to support account authentication and associated account functionality.
+
+Depending on the authentication flow and provider response, information may include:
+
+* name;
+* email address;
+* profile information;
+* provider-specific user identifier.
+
+OAuth credentials and tokens are treated as authentication material and are not intended to be exposed through ordinary Customer-facing application interfaces.
+
+Users can discontinue use of Google authentication by using another supported authentication method where available and by following the applicable account-management process.
+
+Google operates independently of Qmova and its own privacy and security practices apply to Google's handling of information.
+
+---
+
+# 16. Email Authentication and OTP
+
+Qmova also supports email-based authentication and one-time passwords.
+
+OTP delivery uses Brevo as an external messaging provider.
+
+A simplified flow is:
+
+```text
+User
+ │
+ ▼
+Qmova Authentication
+ │
+ ▼
+OTP Generated
+ │
+ ▼
+Brevo
+ │
+ ▼
+User Email
+ │
+ ▼
+OTP Verification
+ │
+ ▼
+Authenticated Qmova Session
+```
+
+The exact lifetime and validation rules of OTP credentials may change as the authentication system evolves.
+
+---
+
+# 17. Authorization and Role-Based Access Control
+
+Qmova uses Role-Based Access Control to restrict functionality and data access according to user roles and permissions.
+
+A simplified model is:
+
+```text
+User
+ │
+ ▼
+Workspace Membership
+ │
+ ▼
+Assigned Role
+ │
+ ▼
+Permissions
+ │
+ ▼
+Resource Access
+```
+
+Authorization may be applied to:
+
+* Workspace resources;
+* administrative settings;
+* Staff functions;
+* operational workflows;
+* analytics;
+* integrations;
+* other protected functionality.
+
+Customer administrators are responsible for assigning appropriate access to their users.
+
+---
+
+# 18. Audit and Accountability
+
+Qmova maintains audit capabilities designed to record relevant administrative and security-related activity.
+
+Examples may include:
+
+* policy acceptance;
+* account changes;
+* authentication events;
+* role changes;
+* configuration changes;
+* administrative actions;
+* important Visit or operational changes.
+
+Audit records can help:
+
+* investigate security incidents;
+* understand operational changes;
+* support Customer administration;
+* demonstrate accountability;
+* troubleshoot unexpected activity.
+
+Not every application event necessarily becomes a permanent audit record.
+
+The specific events recorded may change as the product develops.
+
+---
+
+# 19. Appointment Architecture
+
+An Appointment represents a scheduled Visit.
+
+Customers may configure appointment workflows according to their operating requirements.
+
+Appointment functionality may include:
+
+* scheduling;
+* service selection;
+* customer information;
+* appointment status;
+* reminders;
+* arrival;
+* check-in;
+* queue participation where applicable;
+* completion or cancellation.
+
+Appointments and Walk-ins can ultimately enter the common Visit Lifecycle.
+
+This allows a Customer to operate a combined appointment and queue model without requiring completely separate customer records for each workflow.
+
+---
+
+# 20. Queue Architecture
+
+A Queue represents an ordered operational flow of waiting Visits.
+
+Depending on Customer configuration, Queue behavior may involve:
+
+* arrival time;
+* service requirements;
+* appointment status;
+* priority;
+* staff availability;
+* business rules;
+* operational state.
+
+Qmova's Queue functionality is designed to support real-world Visit operations rather than assuming every Customer follows a single fixed first-in-first-out model.
+
+The exact queue rules available to a Customer depend on the product functionality and configuration provided by Qmova.
+
+---
+
+# 21. QR Check-in Architecture
+
+QR Check-in provides a mechanism through which Visitors can access a Customer's designated check-in workflow.
+
+A simplified flow is:
+
+```text
+Visitor
+ │
+ ▼
+Scan Customer QR Code
+ │
+ ▼
+Qmova Check-in Experience
+ │
+ ▼
+Visit / Queue / Appointment Flow
+ │
+ ▼
+Confirmation / Ticket
+ │
+ ▼
+Visit Tracking
+```
+
+QR codes may identify an intended Customer location, Service, or check-in workflow depending on how the Customer configures them.
+
+QR codes do not independently grant administrative access to the Customer's Workspace.
+
+---
+
+# 22. Notification Architecture
+
+Qmova can use notification services to communicate operational events to Visitors and users.
+
+Depending on available functionality and Customer configuration, notifications may relate to:
+
+* appointment reminders;
+* queue updates;
+* Visit status;
+* check-in confirmation;
+* operational changes.
+
+Notifications may be delivered through external providers such as:
+
+* email infrastructure;
+* Customer-connected WhatsApp infrastructure;
+* other supported channels.
+
+Qmova is responsible for orchestrating supported notification workflows, while external providers remain responsible for their own messaging infrastructure.
+
+---
+
+# 23. Customer-Owned WhatsApp Architecture
+
+WhatsApp is treated differently from Qmova's core application infrastructure because the messaging identity belongs to the Customer.
+
+The conceptual relationship is:
+
+```text
+Customer
+ │
+ │ Owns
+ ▼
+WhatsApp Number / Account
+ │
+ │ Customer authorizes connection
+ ▼
+Evolution API Integration
+ │
+ ▼
+Qmova Messaging Workflow
+ │
+ ├── Appointment Notification
+ ├── Queue Notification
+ ├── Visit Update
+ └── Other Customer-configured Message
+```
+
+Qmova does not own the Customer's WhatsApp number.
+
+Qmova does not become the owner of the Customer's WhatsApp conversations merely because Qmova provides integration infrastructure.
+
+The Customer remains responsible for:
+
+* its WhatsApp account;
+* its recipients;
+* its messaging purposes;
+* applicable consents and notices;
+* message content;
+* compliance with applicable WhatsApp requirements.
+
+Qmova provides the software infrastructure required to connect supported messaging workflows.
+
+---
+
+# 24. Email Infrastructure
+
+Brevo is used for selected email functions, including OTP delivery and transactional messaging where configured.
+
+A simplified flow is:
+
+```text
+Qmova Backend
+      │
+      ▼
+Brevo
+      │
+      ▼
+Recipient Email Service
+      │
+      ▼
+Visitor / User
+```
+
+The exact email categories and templates may change as the platform evolves.
+
+Qmova remains responsible for the application event that triggers a notification, while Brevo provides the underlying email delivery infrastructure.
+
+---
+
+# 25. API Architecture
+
+Qmova uses a backend API to expose application functionality to the frontend and, where supported, external integrations.
+
+API responsibilities include:
+
+* authentication;
+* authorization;
+* data validation;
+* business operations;
+* Visit management;
+* Appointment management;
+* Queue operations;
+* Workspace configuration;
+* integrations.
+
+The API is not intended to bypass Workspace isolation.
+
+Authenticated API operations are expected to enforce the same authorization principles that apply to corresponding user-facing operations.
+
+Detailed endpoint-level documentation is maintained separately through the Qmova API Documentation.
+
+---
+
+# 26. Data Boundaries
+
+Qmova's architecture contains multiple logical trust boundaries.
+
+At a high level:
+
+```text
+Visitor / User
+      │
+      ▼
+Qmova Frontend
+      │
+      ▼
+Qmova Backend
+      │
+      ├──────────────► Workspace Authorization
+      │
+      ├──────────────► Business Logic
+      │
+      ▼
+Persistent / Operational Data
+      │
+      ├──────────────► PostgreSQL
+      │
+      └──────────────► Redis
+      │
+      ▼
+External Providers
+```
+
+The most important boundary for Customer data is between one Workspace and another.
+
+A user authenticated to one Workspace should not receive access to another Workspace's data solely because both Workspaces operate on the same Qmova platform.
+
+---
+
+# 27. Third-Party Services
+
+Qmova uses external providers for selected parts of the platform.
+
+Current categories include:
+
+| Service / Technology | Purpose                                    |
+| -------------------- | ------------------------------------------ |
+| Google OAuth         | User authentication                        |
+| Brevo                | OTP and transactional email infrastructure |
+| Evolution API        | WhatsApp connectivity infrastructure       |
+| PostgreSQL           | Persistent relational data storage         |
+| Redis                | Operational and transient state            |
+| Socket.IO            | Real-time application communication        |
+| Prisma               | Database access layer                      |
+
+The distinction between a technology and a third-party subprocessor is important.
+
+For example, PostgreSQL and Redis are technology components. The organization providing a managed hosting service for those technologies may be a separate subprocesssing entity.
+
+The authoritative list of external subprocessors is maintained in the Qmova Subprocessor List.
+
+---
+
+# 28. Data Residency and Infrastructure
+
+Qmova operates using cloud infrastructure.
+
+Infrastructure providers, deployment regions, and service locations may change as the platform scales.
+
+Accordingly:
+
+* the physical location of a particular processing environment may vary;
+* some information may be processed through providers operating in different jurisdictions;
+* international data-transfer requirements may apply.
+
+Qmova's Privacy Policy and DPA describe the applicable privacy and data-transfer principles.
+
+Where a Customer requires a specific data-residency commitment, that requirement should be addressed through the applicable commercial or contractual process rather than inferred from this general architecture document.
+
+---
+
+# 29. Backups and Recovery
+
+Qmova uses backup and recovery practices appropriate to the current production architecture.
+
+Backup objectives include helping protect against:
+
+* accidental data loss;
+* infrastructure failures;
+* operational errors;
+* certain security incidents.
+
+Backups are not treated as a substitute for primary data governance.
+
+Where information is deleted from production systems, copies may continue to exist temporarily within backup systems until they reach the end of their applicable backup lifecycle.
+
+Specific backup retention periods, recovery targets, and service commitments may be described in internal operational documentation or applicable Customer agreements.
+
+---
+
+# 30. Monitoring and Operational Logging
+
+Operating a SaaS platform requires monitoring the health and behavior of application infrastructure.
+
+Qmova may monitor:
+
+* application availability;
+* infrastructure health;
+* API behavior;
+* performance;
+* errors;
+* authentication events;
+* security events;
+* integration failures.
+
+Operational and security logs may be used to:
+
+* detect incidents;
+* troubleshoot problems;
+* identify abnormal behavior;
+* support service reliability;
+* investigate security events.
+
+Monitoring systems are designed to support the operation of the platform and are not intended to provide unrestricted internal access to Customer content.
+
+---
+
+# 31. Security Architecture Principles
+
+Qmova's architecture is guided by the following principles.
+
+## Least Privilege
+
+Users and internal systems should receive only the access required for their function.
+
+## Separation of Authentication and Authorization
+
+Successfully identifying a user does not by itself grant access to all platform resources.
+
+## Tenant Isolation
+
+Workspace boundaries should be enforced at the application and authorization layers.
+
+## Defense in Depth
+
+Security should not depend on a single control.
+
+## Auditability
+
+Relevant security and administrative events should be observable through appropriate logs and audit records.
+
+## Secure Defaults
+
+Where practical, system defaults should minimize unnecessary exposure or access.
+
+## Data Minimization
+
+Qmova should avoid collecting or retaining information that is not necessary for the applicable product or operational purpose.
+
+---
+
+# 32. Shared Responsibility
+
+Security is a shared responsibility between Qmova, its infrastructure providers, Customers, Staff Members, and Visitors.
+
+### Qmova is responsible for
+
+* operating the Qmova application;
+* maintaining application security controls;
+* managing platform infrastructure;
+* implementing access-control mechanisms;
+* maintaining relevant security and operational processes;
+* managing supported integrations.
+
+### Customers are responsible for
+
+* managing Workspace access;
+* protecting administrator accounts;
+* assigning appropriate roles;
+* configuring Services;
+* choosing what information to collect;
+* configuring supported integrations;
+* maintaining lawful operational practices;
+* protecting their own connected third-party accounts.
+
+### Visitors and Users are responsible for
+
+* protecting their authentication credentials;
+* using Qmova appropriately;
+* reporting suspicious account activity;
+* providing accurate information where required.
+
+---
+
+# 33. Architectural Change Management
+
+Qmova's architecture is expected to evolve.
+
+Changes may occur because of:
+
+* product development;
+* security improvements;
+* performance requirements;
+* infrastructure scaling;
+* new integrations;
+* provider changes;
+* regulatory requirements.
+
+A change to an implementation component does not necessarily constitute a material change to Qmova's contractual or privacy commitments.
+
+Where an architectural change materially affects Customers' rights, obligations, data processing, or security posture, Qmova will evaluate whether additional notice or documentation changes are required.
+
+This public Architecture Overview may therefore be updated from time to time.
+
+---
+
+# 34. Information Not Disclosed Publicly
+
+For security reasons, this document does not disclose information such as:
+
+* production credentials;
+* API secrets;
+* private network addresses;
+* internal hostnames;
+* encryption keys;
+* detailed firewall rules;
+* infrastructure access procedures;
+* exploitable system configurations;
+* internal security monitoring logic.
+
+Enterprise security reviews may be handled separately where appropriate and subject to confidentiality requirements.
+
+---
+
+# 35. Related Documentation
+
+This Architecture Overview should be read together with:
+
+### Trust
+
+* [Qmova Trust Center](/trust)
+* Security Overview
+* Security Policy
+* Responsible Disclosure Policy
+* Subprocessor List
+
+### Privacy
+
+* Privacy Policy
+* Data Processing Addendum
+* Data Retention Policy
+* Cookie Policy
+
+### Product
+
+* Product Documentation
+* Visit Lifecycle
+* Appointment Documentation
+* Queue Documentation
+* QR Check-in Documentation
+
+### API
+
+* API Overview
+* Authentication
+* Webhooks
+* Rate Limits
+* API Errors
+
+### Compliance
+
+* Compliance Roadmap
+* Accessibility Statement
+* AI Usage Policy
+
+---
+
+# 36. Contact Information
+
+For technical or trust-related questions:
+
+**Security:**
+[security@qmova.com](mailto:security@qmova.com)
+
+**Privacy:**
+[privacy@qmova.com](mailto:privacy@qmova.com)
+
+**Legal:**
+[legal@qmova.com](mailto:legal@qmova.com)
+
+**Support:**
+[support@qmova.com](mailto:support@qmova.com)
+
+---
+
+# 37. Document Governance
+
+**Document Owner:** Qmova Engineering & Security Function
+
+**Classification:** Public
+
+**Review Frequency:** At least annually and whenever there is a material architectural, infrastructure, security, or data-processing change.
+
+This document provides a high-level architectural description. It is not a guarantee that every implementation detail will remain unchanged and should not be interpreted as an exhaustive description of Qmova's internal infrastructure.
+
+---
+
+# 38. Version History
+
+| Version | Date           | Summary             |
+| ------- | -------------- | ------------------- |
+| 1.0.0   | 12 August 2026 | Initial publication |
+
+---
+
+## Architecture Principle
+
+> **Qmova's architecture is designed around the Visit, protected by Workspace isolation, controlled through authentication and authorization, supported by persistent and real-time infrastructure, and extended through customer-controlled integrations.**
+
+The architecture will evolve with the platform. The underlying principles of isolation, accountability, security, and responsible data processing remain foundational to Qmova.

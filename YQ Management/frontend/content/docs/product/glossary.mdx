@@ -1,0 +1,1058 @@
+# Qmova Glossary
+
+**Version:** 1.0.0
+**Last Updated:** 12 August 2026
+**Status:** Public
+**Intended Audience:** Customers, Visitors, Staff Members, developers, administrators, security teams, privacy teams, and documentation contributors
+
+---
+
+# Table of Contents
+
+1. At a Glance
+2. Purpose
+3. How to Use This Glossary
+4. Core Qmova Concepts
+5. Account and Organization Concepts
+6. Visit Management Concepts
+7. Scheduling and Queue Concepts
+8. Customer and Visitor Concepts
+9. Access and Security Concepts
+10. Communication and Integration Concepts
+11. Data and Privacy Concepts
+12. Platform and Technical Concepts
+13. Documentation Conventions
+14. Related Documentation
+15. Contact Information
+16. Document Governance
+17. Version History
+
+---
+
+# 1. At a Glance
+
+Qmova uses a specific set of terms to describe how the platform works.
+
+The most important concept is the **Visit**.
+
+A Visit represents an interaction between a Visitor and a Customer and can enter Qmova through different paths, including an Appointment, Walk-in, Queue, Referral, or Staff-created workflow.
+
+This glossary establishes the canonical meaning of Qmova terminology.
+
+The definitions in this document are intended to be used consistently throughout Qmova's:
+
+* Product Documentation;
+* API Documentation;
+* Trust Center;
+* Legal Center;
+* Compliance Documentation;
+* Help Center; and
+* customer-facing interfaces.
+
+Where a Qmova document uses a defined term with capitalization, it should generally be interpreted according to this glossary unless that document expressly provides a different definition.
+
+---
+
+# 2. Purpose
+
+Qmova operates across multiple industries and workflows.
+
+A hospital, bank, university, government office, salon, restaurant, or service center may use different language for similar operational concepts.
+
+Qmova therefore uses a common vocabulary so that the platform can represent different business models without changing the underlying terminology.
+
+This glossary establishes that vocabulary.
+
+It also helps prevent different Qmova documents from using multiple terms for the same concept.
+
+---
+
+# 3. How to Use This Glossary
+
+## 3.1 Canonical Terms
+
+Terms shown in **bold** represent Qmova's preferred terminology.
+
+Documentation contributors should use these terms instead of introducing synonyms when referring to the corresponding Qmova concept.
+
+For example, use:
+
+> **Workspace**
+
+rather than creating a separate term such as "Organization Portal", "Account Environment", or "Client Instance".
+
+---
+
+## 3.2 Product Terms vs. Generic Terms
+
+Some words have both a general meaning and a Qmova-specific meaning.
+
+For example:
+
+* "customer" can mean any customer in ordinary conversation;
+* **Customer** refers specifically to an organization using Qmova as a Customer.
+
+Capitalization is therefore meaningful in formal Qmova documentation.
+
+---
+
+## 3.3 Legal Definitions
+
+The definitions in legal agreements may be more specific where necessary to create contractual obligations.
+
+Where a contract expressly defines a term differently for legal purposes, the contractual definition governs that agreement.
+
+This glossary is primarily intended to establish consistent product and documentation terminology.
+
+---
+
+# 4. Core Qmova Concepts
+
+## 4.1 Visit
+
+A **Visit** is the central operational record representing an interaction between a Visitor and a Customer through Qmova.
+
+A Visit can originate from:
+
+* an Appointment;
+* a Walk-in;
+* a Queue;
+* a Referral; or
+* a Staff-created Visit.
+
+A Visit may contain information such as:
+
+* Visitor information;
+* Service;
+* location;
+* appointment details;
+* Queue status;
+* timestamps;
+* assigned Staff Member;
+* Visit status;
+* relevant operational notes.
+
+The precise information associated with a Visit depends on how the Customer configures its Workspace and the Qmova features it uses.
+
+---
+
+## 4.2 Visit Lifecycle
+
+The **Visit Lifecycle** is the progression of a Visit from creation through its final operational state.
+
+A simplified lifecycle may include:
+
+```text
+Created
+   │
+   ▼
+Scheduled / Waiting
+   │
+   ▼
+Checked In
+   │
+   ▼
+Queued
+   │
+   ▼
+In Service
+   │
+   ▼
+Completed
+```
+
+Other states may apply depending on the workflow, including:
+
+* Cancelled;
+* No-show;
+* Rescheduled;
+* Rejected;
+* Missed; or
+* other configured states.
+
+The exact lifecycle available to a Customer depends on Qmova functionality and Customer configuration.
+
+---
+
+## 4.3 Appointment
+
+An **Appointment** is a Visit that has been scheduled for a particular time, date, Service, Staff Member, location, or other configured resource.
+
+An Appointment may later become an active Visit in the Customer's operational workflow.
+
+An Appointment does not necessarily mean that the Visitor will immediately receive service upon arrival. The Customer may operate a Queue, verification process, or other arrival workflow.
+
+---
+
+## 4.4 Walk-in
+
+A **Walk-in** is a Visit initiated without a previously scheduled Appointment.
+
+A Walk-in may enter a Queue or another Customer-configured workflow after arrival.
+
+The Customer may collect information from the Visitor during the Walk-in creation or Check-in process.
+
+---
+
+## 4.5 Queue
+
+A **Queue** is an ordered operational flow of waiting Visits.
+
+A Queue may be used to manage Visitors waiting for:
+
+* a Service;
+* a Staff Member;
+* a location;
+* a resource; or
+* another Customer-defined operational process.
+
+Queue ordering may depend on Customer configuration and applicable business rules.
+
+Qmova does not assume that every Queue must operate using simple first-in-first-out ordering.
+
+---
+
+## 4.6 QR Check-in
+
+**QR Check-in** is a Qmova workflow that allows a Visitor to access a Customer's designated Check-in experience by scanning a QR code.
+
+Depending on configuration, QR Check-in may:
+
+* identify a location;
+* identify a Service;
+* initiate a Visit;
+* connect an existing Appointment;
+* place a Visitor into a Queue;
+* provide a digital ticket or confirmation.
+
+A QR Check-in flow does not by itself provide administrative access to a Workspace.
+
+---
+
+## 4.7 Check-in
+
+**Check-in** is the process through which Qmova records that a Visitor has arrived or otherwise entered a Customer's Visit workflow.
+
+Check-in may occur through:
+
+* QR Check-in;
+* Staff action;
+* another Customer-configured workflow.
+
+Check-in does not necessarily mean that service has begun.
+
+---
+
+## 4.8 Digital Ticket
+
+A **Digital Ticket** is a digital representation of a Visitor's position or status within a Customer's operational workflow.
+
+A Digital Ticket may contain information such as:
+
+* ticket number;
+* Queue position;
+* Visit status;
+* Service;
+* estimated waiting time;
+* instructions.
+
+The exact information displayed depends on the Customer's configuration and supported Qmova functionality.
+
+---
+
+# 5. Account and Organization Concepts
+
+## 5.1 Customer
+
+A **Customer** is an organization or business that subscribes to or otherwise uses Qmova.
+
+A Customer may operate one or more Workspaces depending on its Qmova configuration and commercial arrangement.
+
+A Customer determines how it uses Qmova for its own operational purposes.
+
+For privacy purposes, a Customer may act as a Data Controller for personal information it processes through Qmova, while Qmova generally acts as a Data Processor for that Customer Data.
+
+---
+
+## 5.2 Workspace
+
+A **Workspace** is a Customer's operational environment within Qmova.
+
+A Workspace may contain:
+
+* locations;
+* Services;
+* Staff Members;
+* Visits;
+* Appointments;
+* Queues;
+* roles;
+* permissions;
+* integrations;
+* configurations;
+* analytics.
+
+The Workspace is the primary customer-facing concept for the logical environment in which Customer operations take place.
+
+---
+
+## 5.3 Tenant
+
+A **Tenant** describes the logical isolation model used by Qmova to separate one Customer environment from another within the multi-tenant platform.
+
+In customer-facing documentation, Qmova generally prefers the term **Workspace**.
+
+The term **Tenant** may be used in technical, architectural, security, or legal contexts where describing the underlying multi-tenant model is useful.
+
+A Tenant and a Workspace generally refer to the same logical Customer environment, viewed from different perspectives.
+
+---
+
+## 5.4 Location
+
+A **Location** represents a physical or operational site associated with a Customer's Workspace.
+
+Examples may include:
+
+* a hospital branch;
+* a bank branch;
+* a university office;
+* a government service center;
+* a salon;
+* a restaurant.
+
+A Location may contain or provide:
+
+* Services;
+* Staff Members;
+* Queue workflows;
+* Appointment availability;
+* QR Check-in points.
+
+A Customer may have one or multiple Locations.
+
+---
+
+## 5.5 Service
+
+A **Service** is an offering, task, or operational category that a Customer provides through Qmova.
+
+Examples include:
+
+* medical consultation;
+* passport application;
+* account opening;
+* haircut;
+* customer support;
+* document verification.
+
+A Service can be associated with a Location, Staff Member, Appointment, Queue, or Visit depending on the Customer's configuration.
+
+---
+
+## 5.6 Staff Member
+
+A **Staff Member** is an authorized individual associated with a Customer's Workspace who performs or manages operational activities.
+
+A Staff Member may:
+
+* manage Visits;
+* serve Visitors;
+* manage Appointments;
+* manage Queues;
+* update Visit status;
+* access analytics;
+* administer specific areas of a Workspace.
+
+The exact capabilities of a Staff Member are determined by assigned roles and permissions.
+
+---
+
+## 5.7 Role
+
+A **Role** is a named collection of permissions assigned to a user within a Workspace.
+
+Examples may include administrative or operational roles.
+
+Roles are used to simplify access management by grouping related permissions.
+
+The exact roles available may vary as Qmova evolves.
+
+---
+
+## 5.8 Permission
+
+A **Permission** is an authorization that allows a user or role to perform a particular action or access a particular resource.
+
+Examples may include permission to:
+
+* view Visits;
+* manage Appointments;
+* update Queue state;
+* manage Staff Members;
+* change Workspace settings;
+* access analytics.
+
+Permissions are enforced through the application's authorization mechanisms.
+
+---
+
+# 6. Visit Management Concepts
+
+## 6.1 Visitor
+
+A **Visitor** is an individual who receives, requests, or participates in a service or interaction managed through a Customer's Qmova Workspace.
+
+A Visitor may interact with Qmova without creating a permanent user account.
+
+A Visitor can therefore be different from a Qmova **User**.
+
+For example, a Visitor may scan a QR Check-in code and join a Queue without registering for a Qmova account.
+
+---
+
+## 6.2 User
+
+A **User** is an individual who has an authenticated Qmova account and can access Qmova functionality according to their Workspace memberships and permissions.
+
+A User may also be a Staff Member, administrator, or other authorized participant.
+
+Not every Visitor is a User.
+
+---
+
+## 6.3 Visit Status
+
+A **Visit Status** describes the current operational state of a Visit.
+
+Examples may include:
+
+* scheduled;
+* waiting;
+* checked in;
+* queued;
+* called;
+* in service;
+* completed;
+* cancelled;
+* no-show.
+
+The exact status model depends on the Customer's workflow and Qmova's supported functionality.
+
+---
+
+## 6.4 Wait Time
+
+**Wait Time** is the amount of time a Visitor has waited or is expected to wait within a Customer's Visit workflow.
+
+Depending on context, Qmova may distinguish between:
+
+* actual wait time;
+* estimated wait time;
+* Queue wait time;
+* service wait time.
+
+Any estimated wait time should be understood as an operational estimate rather than a guarantee.
+
+---
+
+## 6.5 Estimated Wait Time
+
+**Estimated Wait Time** is a calculated approximation of how long a Visitor may wait before reaching a relevant point in the Visit Lifecycle.
+
+Estimates may depend on factors such as:
+
+* Queue position;
+* current processing speed;
+* active Visits;
+* Service configuration;
+* appointment schedules;
+* Customer-defined rules.
+
+Estimated Wait Time can change as real-world operating conditions change.
+
+---
+
+## 6.6 No-Show
+
+A **No-show** is a Visit or Appointment that is treated as missed because the Visitor did not arrive or complete the required arrival process within the applicable Customer workflow.
+
+The specific conditions for a No-show are determined by the Customer's configuration and operational policies.
+
+---
+
+## 6.7 Cancellation
+
+A **Cancellation** occurs when an Appointment or Visit is intentionally ended before completion according to the applicable workflow.
+
+A Cancellation may be performed by:
+
+* a Visitor;
+* a Staff Member;
+* a Customer administrator;
+* an automated workflow.
+
+---
+
+## 6.8 Referral
+
+A **Referral** is a Visit entry path in which an individual is directed to a Customer or Service through another person, organization, workflow, or system.
+
+The exact meaning and data associated with a Referral depend on the Customer's implementation.
+
+---
+
+# 7. Scheduling and Queue Concepts
+
+## 7.1 Scheduling
+
+**Scheduling** is the process of allocating an Appointment or expected Visit to a particular time, Service, Staff Member, Location, capacity, or combination of these.
+
+Qmova may support different scheduling models depending on product functionality.
+
+---
+
+## 7.2 Slot
+
+A **Slot** is a period of time made available for an Appointment or other scheduled activity.
+
+Slot duration and availability are determined by Customer configuration and supported scheduling functionality.
+
+---
+
+## 7.3 Queue Position
+
+**Queue Position** represents a Visitor's relative position within a Queue at a particular point in time.
+
+Queue position may change as Visits enter, leave, or move through the Queue.
+
+A Queue Position is not necessarily a permanent numerical value.
+
+---
+
+## 7.4 Calling
+
+**Calling** is the operational action of selecting or notifying a Visitor when their Visit is ready for the next stage of the workflow.
+
+Calling may trigger:
+
+* a display update;
+* staff notification;
+* Visitor notification;
+* status change.
+
+---
+
+## 7.5 Service Time
+
+**Service Time** is the period during which a Visitor is actively receiving a Service or being processed by a Staff Member.
+
+Service Time may be measured for operational analytics and may influence certain Queue or scheduling calculations where supported.
+
+---
+
+# 8. Customer and Visitor Concepts
+
+## 8.1 Customer Data
+
+**Customer Data** means information submitted to Qmova by or on behalf of a Customer for processing in connection with the Customer's use of the platform.
+
+Customer Data may include:
+
+* Visitor information;
+* Visits;
+* Appointments;
+* Queue records;
+* Service information;
+* Staff information;
+* operational notes;
+* notification records;
+* configurations.
+
+The exact scope depends on how the Customer uses Qmova.
+
+---
+
+## 8.2 Personal Information
+
+**Personal Information** means information relating to an identified or identifiable natural person, or equivalent information covered by applicable privacy laws.
+
+Depending on applicable law, this concept may be referred to as:
+
+* personal data;
+* personal information;
+* personally identifiable information; or
+* another legally equivalent term.
+
+Qmova generally uses **Personal Information** as its broad documentation term.
+
+---
+
+## 8.3 Sensitive Personal Information
+
+**Sensitive Personal Information** means categories of information that receive additional protection under applicable privacy laws.
+
+Depending on jurisdiction, this may include information such as:
+
+* health information;
+* biometric information;
+* financial information;
+* identification information;
+* information relating to children;
+* other specially protected categories.
+
+Qmova Customers are responsible for determining whether the information they process through a Workspace is subject to additional legal or regulatory requirements.
+
+---
+
+# 9. Access and Security Concepts
+
+## 9.1 Authentication
+
+**Authentication** is the process of verifying the identity of a user attempting to access Qmova.
+
+Qmova supports authentication mechanisms including Google OAuth, email authentication, and OTP-based authentication.
+
+---
+
+## 9.2 Authorization
+
+**Authorization** is the process of determining what an authenticated User is permitted to access or do.
+
+Authentication and authorization are separate security concepts.
+
+---
+
+## 9.3 Role-Based Access Control (RBAC)
+
+**Role-Based Access Control (RBAC)** is the mechanism used to assign permissions to Users through Roles.
+
+RBAC helps Customers manage access without individually configuring every permission for every User.
+
+---
+
+## 9.4 Session
+
+A **Session** represents an authenticated period during which a User is accessing Qmova.
+
+Session information may be used to maintain authentication and manage active access.
+
+Qmova may provide controls that allow Users to review or manage active sessions.
+
+---
+
+## 9.5 Audit Log
+
+An **Audit Log** is a record of relevant administrative, security, or operational actions.
+
+Depending on the event, an Audit Log may include:
+
+* actor;
+* action;
+* timestamp;
+* affected resource;
+* Workspace context;
+* other information necessary to understand the event.
+
+---
+
+## 9.6 Security Event
+
+A **Security Event** is an event that may be relevant to the security, integrity, availability, or confidentiality of Qmova systems or information.
+
+Examples may include:
+
+* failed authentication attempts;
+* suspicious access patterns;
+* unauthorized access attempts;
+* security configuration changes.
+
+A Security Event is not necessarily a confirmed Security Incident.
+
+---
+
+## 9.7 Security Incident
+
+A **Security Incident** is a confirmed or reasonably suspected event that may compromise the confidentiality, integrity, or availability of systems or information.
+
+Qmova assesses incidents based on their circumstances and applicable legal and contractual requirements.
+
+---
+
+# 10. Communication and Integration Concepts
+
+## 10.1 Notification
+
+A **Notification** is a communication generated through Qmova or a connected service in response to an operational or system event.
+
+Notifications may relate to:
+
+* Appointments;
+* Queue status;
+* Visit status;
+* Check-in;
+* account events;
+* other supported workflows.
+
+---
+
+## 10.2 Integration
+
+An **Integration** is a connection between Qmova and an external service or system.
+
+Examples include:
+
+* Google OAuth;
+* Brevo;
+* WhatsApp infrastructure;
+* APIs;
+* other supported services.
+
+---
+
+## 10.3 Customer-Owned WhatsApp
+
+**Customer-Owned WhatsApp** refers to Qmova's architecture in which a Customer connects and controls its own WhatsApp environment for supported messaging workflows.
+
+Under this model:
+
+* the Customer owns the WhatsApp number;
+* the Customer controls its messaging account;
+* Qmova provides integration infrastructure;
+* Qmova does not own the Customer's WhatsApp number.
+
+---
+
+## 10.4 Evolution API
+
+**Evolution API** is the WhatsApp connectivity infrastructure used by Qmova to support Customer-connected WhatsApp workflows.
+
+It is part of the technical messaging architecture and is not a Qmova-owned customer messaging identity.
+
+The specific hosting and operational arrangement for Evolution API is subject to the deployment architecture used by Qmova.
+
+---
+
+## 10.5 Brevo
+
+**Brevo** is a third-party communications service used by Qmova for functions such as:
+
+* OTP delivery;
+* transactional email;
+* other supported email notifications.
+
+Brevo operates independently from Qmova under its own service terms and privacy practices.
+
+---
+
+# 11. Data and Privacy Concepts
+
+## 11.1 Data Controller
+
+A **Data Controller** is an organization that determines the purposes and means of processing Personal Information.
+
+For Customer Data, the Customer will generally act as the relevant Data Controller where it determines why and how Visitor information is processed.
+
+Qmova may act as a Data Controller for information it processes for its own purposes, such as account administration, billing, security, and certain website operations.
+
+---
+
+## 11.2 Data Processor
+
+A **Data Processor** is an organization that processes Personal Information on behalf of a Data Controller.
+
+Qmova generally acts as a Data Processor when processing Customer Data according to the Customer's instructions and applicable contractual terms.
+
+---
+
+## 11.3 Subprocessor
+
+A **Subprocessor** is a third-party service provider engaged by Qmova to process Customer Data on Qmova's behalf in connection with providing the platform.
+
+A technology component is not automatically a Subprocessor merely because Qmova uses it.
+
+The Qmova Subprocessor List identifies relevant external organizations that qualify as Subprocessors.
+
+---
+
+## 11.4 Data Retention
+
+**Data Retention** is the period and conditions under which information is kept before deletion, anonymization, or another permitted disposition.
+
+Retention may depend on:
+
+* legal obligations;
+* contractual requirements;
+* security requirements;
+* Customer configuration;
+* operational needs;
+* backup lifecycles.
+
+---
+
+## 11.5 Data Export
+
+A **Data Export** is a mechanism through which applicable Customer or User information may be provided in a portable format.
+
+Export availability and scope depend on Qmova functionality, account type, applicable agreements, and legal requirements.
+
+---
+
+## 11.6 Data Deletion
+
+**Data Deletion** is the process of removing information from applicable active Qmova systems in accordance with the applicable deletion workflow and retention requirements.
+
+Deleted information may remain temporarily in backups until the relevant backup lifecycle expires.
+
+---
+
+## 11.7 Data Residency
+
+**Data Residency** refers to the geographic location or jurisdiction in which information is stored or processed.
+
+Because Qmova uses cloud and third-party infrastructure, processing may occur in multiple jurisdictions depending on the applicable architecture and providers.
+
+---
+
+## 11.8 Cookie
+
+A **Cookie** is a small data element stored by a website or application in a user's browser or device.
+
+Qmova may use Cookies for purposes such as:
+
+* authentication;
+* security;
+* preferences;
+* functionality;
+* analytics.
+
+---
+
+## 11.9 Consent
+
+**Consent** is a freely given, specific, informed, and appropriately recorded indication that an individual agrees to a specified processing activity where consent is the applicable legal basis.
+
+Consent requirements differ by jurisdiction and processing context.
+
+---
+
+# 12. Platform and Technical Concepts
+
+## 12.1 API
+
+An **API (Application Programming Interface)** is a programmatic interface through which software can communicate with Qmova or supported services.
+
+The Qmova API may be used for supported integrations, automation, and application workflows.
+
+---
+
+## 12.2 Webhook
+
+A **Webhook** is a mechanism through which Qmova or another service sends an event notification to a configured endpoint.
+
+Webhooks can be used to notify external systems when supported events occur.
+
+---
+
+## 12.3 Redis
+
+**Redis** is a data-store technology used by Qmova for selected transient, operational, caching, coordination, and real-time workloads.
+
+Redis is not necessarily the authoritative long-term source for all Qmova data.
+
+---
+
+## 12.4 PostgreSQL
+
+**PostgreSQL** is the relational database technology used by Qmova for persistent application data.
+
+---
+
+## 12.5 Prisma
+
+**Prisma** is the database access and ORM technology used by Qmova's backend to interact with PostgreSQL.
+
+---
+
+## 12.6 Socket.IO
+
+**Socket.IO** is the real-time communication technology used by Qmova for selected live application updates.
+
+Examples can include:
+
+* Queue changes;
+* Visit status updates;
+* real-time dashboards.
+
+---
+
+## 12.7 Tenant Isolation
+
+**Tenant Isolation** is the set of application, authorization, and infrastructure mechanisms intended to separate one Customer's Workspace data and access from another Customer's Workspace.
+
+Tenant Isolation is a core requirement of Qmova's multi-tenant architecture.
+
+---
+
+# 13. Documentation Conventions
+
+## 13.1 Customer vs. Visitor
+
+Use **Customer** for the organization purchasing or operating Qmova.
+
+Use **Visitor** for the individual receiving or requesting a service through the Customer.
+
+Do not use "customer" interchangeably for both concepts in formal Qmova documentation.
+
+---
+
+## 13.2 Workspace vs. Tenant
+
+Use **Workspace** in customer-facing product documentation.
+
+Use **Tenant** when discussing the technical multi-tenant isolation model.
+
+Avoid using "Tenant" as the primary user-interface term unless the context is technical or legal.
+
+---
+
+## 13.3 Appointment vs. Visit
+
+An **Appointment** is a scheduled interaction.
+
+A **Visit** is the broader operational record.
+
+An Appointment can therefore result in or represent a Visit, but the terms should not automatically be treated as synonyms.
+
+---
+
+## 13.4 Walk-in vs. Visit
+
+A **Walk-in** describes how a Visit originated.
+
+A **Visit** describes the resulting operational record.
+
+A Walk-in is therefore a type or origin of Visit rather than a replacement term for Visit.
+
+---
+
+## 13.5 Queue vs. Visit
+
+A **Queue** is the operational ordering mechanism.
+
+A **Visit** is the individual interaction moving through that mechanism.
+
+Do not refer to a Queue and a Visit as the same object.
+
+---
+
+## 13.6 Product Capitalization
+
+In formal Qmova documentation, capitalize defined product terms when they refer to the Qmova concept.
+
+Preferred:
+
+> The Visitor joined a Queue and their Visit moved to the next stage of the Visit Lifecycle.
+
+Avoid:
+
+> The customer joined a queue and their visit moved to the next stage.
+
+The second form may be acceptable in casual explanatory content, but formal product, legal, and technical documentation should use the canonical terminology.
+
+---
+
+# 14. Related Documentation
+
+This glossary should be used together with:
+
+### Product
+
+* Product Documentation
+* Visit Lifecycle
+* Appointment Documentation
+* Queue Documentation
+* QR Check-in Documentation
+* Workspace Documentation
+
+### Trust
+
+* Qmova Trust Center
+* Architecture Overview
+* Security Overview
+* Security Policy
+
+### Privacy and Legal
+
+* Privacy Policy
+* Terms of Service
+* Data Processing Addendum
+* Cookie Policy
+* Data Retention Policy
+* Subprocessor List
+
+### Compliance
+
+* Compliance Roadmap
+* Accessibility Statement
+* AI Usage Policy
+
+### API
+
+* API Documentation
+* Authentication
+* Webhooks
+* Rate Limits
+* Errors
+
+---
+
+# 15. Contact Information
+
+For documentation terminology or product documentation questions:
+
+**Support:**
+[support@qmova.com](mailto:support@qmova.com)
+
+For privacy-related questions:
+
+**Privacy:**
+[privacy@qmova.com](mailto:privacy@qmova.com)
+
+For security-related terminology or security documentation:
+
+**Security:**
+[security@qmova.com](mailto:security@qmova.com)
+
+For legal documentation:
+
+**Legal:**
+[legal@qmova.com](mailto:legal@qmova.com)
+
+---
+
+# 16. Document Governance
+
+**Document Owner:** Qmova Product & Documentation Function
+
+**Classification:** Public
+
+**Review Frequency:** Reviewed whenever Qmova introduces a significant product concept, changes core terminology, introduces a new architectural concept, or materially changes the meaning of an existing defined term.
+
+The glossary should remain aligned with Qmova's actual product behavior and must not define functionality that does not exist.
+
+When a product term changes, dependent documentation should be reviewed for consistency before the terminology change is treated as final.
+
+---
+
+# 17. Version History
+
+| Version | Date           | Summary                                         |
+| ------- | -------------- | ----------------------------------------------- |
+| 1.0.0   | 12 August 2026 | Initial canonical Qmova terminology publication |
+
+---
+
+## Canonical Vocabulary Principle
+
+> **Qmova uses a Visit-centric vocabulary so that Appointments, Walk-ins, Queues, and other entry paths can operate within a common Visit Lifecycle. Consistent terminology makes the product easier to understand and ensures that legal, technical, and customer documentation describe the same platform.**

@@ -1,0 +1,851 @@
+# Qmova Security Overview
+
+**Version:** 1.0.0
+**Last Updated:** 12 August 2026
+**Status:** Public
+**Intended Audience:** Customers, prospective customers, enterprise security teams, privacy teams, procurement teams, technical reviewers, and integration partners
+
+---
+
+# Table of Contents
+
+1. At a Glance
+2. Our Security Approach
+3. Security Principles
+4. Application Security
+5. Authentication
+6. Authorization and Role-Based Access Control
+7. Tenant Isolation
+8. Data Protection
+9. Database and Infrastructure Security
+10. Session and Account Security
+11. Audit Logging
+12. Security Monitoring
+13. Rate Limiting and Abuse Protection
+14. API Security
+15. Real-Time Communication Security
+16. QR Check-in Security
+17. Customer-Owned WhatsApp Security Model
+18. Third-Party Providers
+19. Backup and Recovery
+20. Availability and Resilience
+21. Security Incident Response
+22. Vulnerability Management
+23. Responsible Disclosure
+24. Customer Security Responsibilities
+25. Security and Privacy Relationship
+26. Compliance Position
+27. Security Roadmap
+28. Enterprise Security Reviews
+29. Related Documentation
+30. Contact Information
+31. Document Governance
+32. Version History
+
+---
+
+# 1. At a Glance
+
+Security is a foundational part of Qmova's architecture and operating model.
+
+Qmova is a multi-tenant Visit Management Platform that processes information on behalf of organizations managing customer Visits, Appointments, Walk-ins, Queues, QR Check-ins, Notifications, and related workflows.
+
+Our security approach is based on:
+
+* **Authentication** to establish the identity of users.
+* **Authorization** to determine what authenticated users are permitted to access.
+* **Role-Based Access Control (RBAC)** to limit access according to responsibilities.
+* **Tenant isolation** to separate Customer Workspaces.
+* **Encryption in transit** using secure network connections.
+* **Audit logging** for relevant administrative and security events.
+* **Session and account controls** to manage authenticated access.
+* **Monitoring and operational logging** to identify failures and suspicious activity.
+* **Backup and recovery practices** to support resilience.
+* **Responsible disclosure** to provide a channel for reporting potential vulnerabilities.
+
+Qmova does not claim that security risk can be eliminated completely.
+
+Our controls, processes, and documentation are continuously evaluated and improved as the platform evolves.
+
+---
+
+# 2. Our Security Approach
+
+Qmova's security model is designed around defense in depth.
+
+Rather than relying on a single security mechanism, the platform uses multiple layers of controls across:
+
+* identity;
+* authorization;
+* application logic;
+* tenant boundaries;
+* data storage;
+* infrastructure;
+* logging;
+* monitoring;
+* operational processes.
+
+A simplified security model is:
+
+```text id="7o8l8m"
+Identity
+   │
+   ▼
+Authentication
+   │
+   ▼
+Workspace Context
+   │
+   ▼
+Authorization / RBAC
+   │
+   ▼
+Application Validation
+   │
+   ▼
+Business Logic
+   │
+   ▼
+Protected Data
+   │
+   ├── Audit Logging
+   ├── Monitoring
+   └── Operational Controls
+```
+
+No single layer is expected to provide complete protection by itself.
+
+---
+
+# 3. Security Principles
+
+Qmova's security practices are guided by the following principles.
+
+## Least Privilege
+
+Access should be limited to what a user, system, or process needs to perform its intended function.
+
+## Defense in Depth
+
+Multiple independent or complementary controls should protect important systems and information.
+
+## Tenant Isolation
+
+Customer Workspaces must be logically separated so that authorized access in one Workspace does not automatically provide access to another.
+
+## Secure Authentication
+
+Authentication mechanisms should protect account access while collecting only the information necessary for the relevant workflow.
+
+## Authorization at the Server
+
+Security-sensitive authorization decisions must not depend solely on frontend behavior.
+
+## Auditability
+
+Important administrative and security events should be observable through appropriate logs and records.
+
+## Data Minimization
+
+The platform should avoid unnecessary collection and retention of personal information.
+
+## Continuous Improvement
+
+Security controls and processes should evolve as Qmova, its infrastructure, and its threat environment evolve.
+
+---
+
+# 4. Application Security
+
+Qmova is built using a modern web application architecture that separates the customer-facing frontend from the backend application layer.
+
+The current application stack includes:
+
+**Frontend**
+
+* Next.js 15
+* TypeScript
+* Tailwind CSS
+* shadcn/ui
+
+**Backend**
+
+* NestJS
+* Prisma
+* PostgreSQL
+* Redis
+* Socket.IO
+
+The backend is the primary enforcement point for:
+
+* authentication;
+* authorization;
+* request validation;
+* business rules;
+* data access;
+* integration logic.
+
+Frontend interfaces are not treated as security boundaries by themselves.
+
+A user being unable to see a button in the interface should not be relied upon as the only mechanism preventing access to the underlying operation.
+
+---
+
+# 5. Authentication
+
+Qmova supports multiple authentication mechanisms, including:
+
+* Google OAuth;
+* email authentication; and
+* OTP-based authentication.
+
+Authentication is intended to establish the identity of the user attempting to access the platform.
+
+Where external authentication providers are used, Qmova receives the information required for the applicable authentication flow and account functionality.
+
+Authentication-related activity may be logged for security and operational purposes.
+
+---
+
+# 6. Authorization and Role-Based Access Control
+
+Authentication answers:
+
+> Who is this user?
+
+Authorization answers:
+
+> What is this user allowed to do?
+
+Qmova uses Role-Based Access Control (RBAC) to apply permissions within Customer Workspaces.
+
+A simplified model is:
+
+```text id="q1ur1s"
+Authenticated User
+        │
+        ▼
+Workspace Membership
+        │
+        ▼
+Role
+        │
+        ▼
+Permissions
+        │
+        ▼
+Resource / Action
+```
+
+Authorization may apply to:
+
+* Workspace administration;
+* Staff management;
+* Services;
+* Visits;
+* Appointments;
+* Queues;
+* analytics;
+* integrations;
+* account settings;
+* other protected resources.
+
+Customers are responsible for assigning appropriate roles to their users.
+
+---
+
+# 7. Tenant Isolation
+
+Qmova operates as a multi-tenant SaaS platform.
+
+Each Customer operates within a logically isolated Workspace.
+
+Tenant isolation is a fundamental security requirement because multiple Customers share the same underlying application platform.
+
+The application therefore uses Workspace context and authorization checks when processing protected resources.
+
+Conceptually:
+
+```text id="xyd6ab"
+Request
+   │
+   ▼
+Authenticated User
+   │
+   ▼
+Workspace Context
+   │
+   ▼
+Authorization Check
+   │
+   ▼
+Requested Resource
+```
+
+A user authorized to access one Workspace should not be able to access another Workspace's data simply because both Workspaces operate on Qmova.
+
+---
+
+# 8. Data Protection
+
+Qmova uses technical and organizational measures intended to protect information against unauthorized access, alteration, disclosure, loss, and misuse.
+
+## Encryption in Transit
+
+Connections to Qmova services are intended to use HTTPS/TLS or equivalent secure transport mechanisms.
+
+This helps protect information while it moves between users, applications, and supported services.
+
+## Protection of Credentials
+
+Authentication credentials and other sensitive authentication material are not intended to be exposed through ordinary Customer-facing interfaces.
+
+Where passwords are used, they are not stored in plain text.
+
+## Data Minimization
+
+Qmova is designed to avoid requiring information that is not necessary for the relevant service.
+
+Customers remain responsible for determining what information they collect through their own Workspaces.
+
+---
+
+# 9. Database and Infrastructure Security
+
+Qmova uses PostgreSQL for persistent relational application data and Redis for selected operational and transient workloads.
+
+Access to application infrastructure is intended to be restricted to authorized systems and personnel.
+
+Infrastructure security may include controls such as:
+
+* authenticated administrative access;
+* access restriction;
+* environment separation;
+* operational monitoring;
+* logging;
+* backup procedures;
+* secure configuration management.
+
+Detailed internal infrastructure configurations are not publicly disclosed where doing so could materially increase security risk.
+
+---
+
+# 10. Session and Account Security
+
+Qmova maintains session and account-management mechanisms designed to reduce unauthorized account access.
+
+Security-related account capabilities include, as applicable:
+
+* authenticated sessions;
+* session management;
+* account security events;
+* policy acceptance records;
+* account deletion workflows;
+* authentication logging.
+
+Users are responsible for protecting access to their own accounts and promptly reporting suspicious activity.
+
+Workspace administrators are additionally responsible for removing access when Staff Members no longer require access to the Workspace.
+
+---
+
+# 11. Audit Logging
+
+Qmova maintains audit capabilities for important security and administrative activity.
+
+Depending on the operation, logs may record:
+
+* login events;
+* failed authentication attempts;
+* policy acceptance;
+* role changes;
+* permission changes;
+* configuration changes;
+* administrative actions;
+* important account events;
+* relevant Visit or operational changes.
+
+Audit logs are useful for:
+
+* investigating incidents;
+* identifying unexpected behavior;
+* understanding configuration changes;
+* supporting administrative accountability;
+* troubleshooting.
+
+Not every application event is necessarily retained as a permanent audit record.
+
+Logging behavior and retention may change as the platform evolves.
+
+---
+
+# 12. Security Monitoring
+
+Qmova uses operational and security monitoring to identify problems that could affect service reliability or security.
+
+Monitoring may cover:
+
+* service availability;
+* application errors;
+* infrastructure health;
+* API behavior;
+* authentication events;
+* security events;
+* integration failures;
+* abnormal system behavior.
+
+Monitoring helps Qmova:
+
+* detect failures;
+* investigate incidents;
+* identify suspicious activity;
+* troubleshoot operational problems;
+* maintain service reliability.
+
+Monitoring does not mean that Qmova continuously reviews the contents of every Customer interaction.
+
+---
+
+# 13. Rate Limiting and Abuse Protection
+
+Rate limiting and related controls may be used to help protect Qmova services against:
+
+* excessive requests;
+* automated abuse;
+* brute-force attempts;
+* resource exhaustion;
+* malformed or abusive traffic.
+
+The exact limits and thresholds may differ between endpoints and may change over time as Qmova evaluates service behavior and security requirements.
+
+Rate limits are not intended to replace other authentication, authorization, or application security controls.
+
+---
+
+# 14. API Security
+
+Qmova APIs are designed to enforce authentication and authorization for protected operations.
+
+API security principles include:
+
+* authenticated access where required;
+* server-side authorization;
+* request validation;
+* controlled resource access;
+* error handling;
+* rate limiting where appropriate;
+* logging of relevant security and operational events.
+
+API credentials, tokens, and other authentication material should be treated as confidential.
+
+Customers should never expose private credentials in client-side code, public repositories, or other publicly accessible locations.
+
+Detailed API security and usage requirements are maintained in the Qmova API Documentation.
+
+---
+
+# 15. Real-Time Communication Security
+
+Qmova uses Socket.IO for selected real-time application functionality.
+
+Real-time channels may support:
+
+* Queue changes;
+* Visit status changes;
+* live operational updates;
+* dashboard updates;
+* other time-sensitive application events.
+
+Real-time communication does not independently grant access to Customer data.
+
+Authorization remains an application-level requirement, and users should receive only events that their authenticated context permits them to receive.
+
+---
+
+# 16. QR Check-in Security
+
+Qmova supports QR-based Check-in workflows.
+
+A QR code may direct a Visitor to a Customer-controlled Qmova check-in experience.
+
+QR Check-in is designed to provide access to an intended workflow, not administrative privileges.
+
+For example, scanning a Customer's check-in QR code should not by itself provide access to:
+
+* Customer administration;
+* Staff functions;
+* analytics;
+* private Workspace information;
+* privileged APIs.
+
+Customers should treat publicly displayed QR codes as public entry points and configure the associated workflow accordingly.
+
+---
+
+# 17. Customer-Owned WhatsApp Security Model
+
+Qmova uses a customer-owned model for WhatsApp connectivity.
+
+The architecture is intentionally different from a model where a SaaS provider sends every customer's messages from one platform-owned WhatsApp identity.
+
+The conceptual flow is:
+
+```text id="z7qd77"
+Customer
+   │
+   ▼
+Customer-owned WhatsApp
+   │
+   ▼
+Customer-authorized connection
+   │
+   ▼
+Evolution API
+   │
+   ▼
+Qmova Messaging Workflow
+```
+
+Under this model:
+
+* Customers own their WhatsApp numbers.
+* Customers control their connected WhatsApp environment.
+* Qmova does not own Customer WhatsApp numbers.
+* Qmova does not use a Qmova-owned WhatsApp identity as the Customer's sender.
+* Customers remain responsible for their WhatsApp account and message content.
+* Customers are responsible for complying with applicable messaging requirements and third-party policies.
+
+Qmova provides infrastructure supporting the integration.
+
+Third-party messaging infrastructure remains subject to its own security and privacy controls.
+
+---
+
+# 18. Third-Party Providers
+
+Qmova relies on selected third-party providers as part of the platform architecture.
+
+Examples include:
+
+| Provider / Technology | Role                                       |
+| --------------------- | ------------------------------------------ |
+| Google                | OAuth authentication                       |
+| Brevo                 | OTP and transactional email infrastructure |
+| Evolution API         | WhatsApp connectivity infrastructure       |
+| PostgreSQL            | Persistent relational storage              |
+| Redis                 | Operational and transient state            |
+| Socket.IO             | Real-time communication                    |
+| Prisma                | Database access layer                      |
+
+The presence of a provider or technology in this document does not mean that every Customer Data category is necessarily processed by that provider.
+
+The applicable data flow depends on the Customer's configuration and the Qmova feature involved.
+
+The Qmova Subprocessor List identifies relevant external organizations that process Customer Data on Qmova's behalf.
+
+---
+
+# 19. Backup and Recovery
+
+Backups are an important component of Qmova's resilience strategy.
+
+Backup practices are intended to support recovery from situations such as:
+
+* accidental data deletion;
+* infrastructure failures;
+* operational mistakes;
+* certain security incidents.
+
+Backup copies may persist for a limited period after data has been removed from primary production systems.
+
+This is a normal characteristic of backup systems and does not necessarily indicate that deleted information remains actively available through the Qmova application.
+
+Recovery procedures are reviewed and improved as the platform matures.
+
+Specific service-level recovery commitments, if applicable, are governed by the relevant Customer agreement or Service Level Agreement.
+
+---
+
+# 20. Availability and Resilience
+
+Qmova is designed to provide a cloud-based service with operational monitoring and recovery mechanisms.
+
+Resilience practices may include:
+
+* application monitoring;
+* infrastructure monitoring;
+* backups;
+* incident response;
+* recovery procedures;
+* operational alerts;
+* service continuity planning.
+
+Qmova does not claim that service interruption is impossible.
+
+Where Qmova offers contractual availability commitments, those commitments are governed by the applicable Service Level Agreement.
+
+---
+
+# 21. Security Incident Response
+
+Qmova maintains processes for identifying, investigating, containing, and responding to security incidents.
+
+An incident response process may include:
+
+```text id="8y8opm"
+Detection
+   │
+   ▼
+Triage
+   │
+   ▼
+Containment
+   │
+   ▼
+Investigation
+   │
+   ▼
+Remediation
+   │
+   ▼
+Recovery
+   │
+   ▼
+Post-Incident Review
+```
+
+When an incident potentially involves Customer Data, Qmova assesses:
+
+* the scope of the incident;
+* the categories of information involved;
+* the affected systems;
+* affected Customers;
+* applicable contractual obligations; and
+* applicable legal notification requirements.
+
+Where notification is required, Qmova will notify affected Customers in accordance with applicable law and contractual commitments.
+
+---
+
+# 22. Vulnerability Management
+
+Qmova uses vulnerability management practices appropriate to the current stage and architecture of the platform.
+
+The program is intended to help identify and address weaknesses in:
+
+* application code;
+* dependencies;
+* infrastructure;
+* authentication mechanisms;
+* integrations;
+* configuration;
+* other relevant components.
+
+Security findings may be prioritized according to factors such as:
+
+* severity;
+* exploitability;
+* exposure;
+* affected systems;
+* potential impact.
+
+Remediation timelines may vary depending on the nature and severity of the issue.
+
+Qmova does not publicly disclose exploitable technical weaknesses before appropriate mitigation or coordinated disclosure.
+
+---
+
+# 23. Responsible Disclosure
+
+Qmova encourages responsible reporting of potential security vulnerabilities.
+
+Security researchers can report suspected vulnerabilities through:
+
+**[security@qmova.com](mailto:security@qmova.com)**
+
+Reports should provide enough information for Qmova to understand and reproduce the issue where possible.
+
+Qmova's Responsible Disclosure Policy provides the definitive guidance concerning:
+
+* acceptable testing;
+* prohibited activity;
+* reporting expectations;
+* coordinated disclosure;
+* communication with researchers.
+
+---
+
+# 24. Customer Security Responsibilities
+
+Security is a shared responsibility.
+
+Customers are responsible for:
+
+* protecting administrator accounts;
+* assigning appropriate Workspace roles;
+* removing inactive users;
+* protecting API credentials;
+* protecting connected third-party accounts;
+* configuring their Services appropriately;
+* reviewing Staff permissions;
+* maintaining secure devices and browsers;
+* ensuring lawful use of Customer Data;
+* following applicable third-party integration requirements.
+
+For example, if a Customer connects its own WhatsApp account, the Customer is responsible for safeguarding that account's credentials and maintaining its relationship with the relevant messaging service.
+
+---
+
+# 25. Security and Privacy Relationship
+
+Security and privacy address different questions.
+
+**Privacy** asks:
+
+> Why is information collected and how should it be used?
+
+**Security** asks:
+
+> How is information protected against unauthorized access, loss, or misuse?
+
+Qmova addresses both through complementary controls and documentation.
+
+The Privacy Policy explains how Qmova processes personal information.
+
+The Security Policy explains Qmova's security practices in greater detail.
+
+The Data Processing Addendum addresses contractual data-processing obligations for applicable Customer relationships.
+
+---
+
+# 26. Compliance Position
+
+Qmova's security program is designed with internationally recognized security and privacy practices in mind.
+
+Qmova does not currently claim:
+
+* SOC 2 certification;
+* ISO 27001 certification;
+* HIPAA compliance;
+* GDPR certification; or
+* any other certification or attestation that has not actually been obtained.
+
+Where a future compliance initiative is discussed, it will be identified as **Roadmap** or **Planned**.
+
+Security controls described on this page should not be interpreted as certification or independent audit attestation.
+
+---
+
+# 27. Security Roadmap
+
+Qmova's security program is expected to mature as the company grows.
+
+Potential future initiatives may include:
+
+* broader independent security assessments;
+* penetration testing programs;
+* expanded security monitoring;
+* formalized business continuity testing;
+* additional customer security tooling;
+* expanded security documentation;
+* additional compliance frameworks;
+* increased automation of security controls.
+
+Roadmap items are not current commitments or certifications unless separately agreed with a Customer.
+
+---
+
+# 28. Enterprise Security Reviews
+
+Enterprise Customers may require information that cannot appropriately be published publicly.
+
+Where appropriate, Qmova may participate in security and privacy reviews covering areas such as:
+
+* application architecture;
+* data flows;
+* access controls;
+* incident response;
+* subprocessors;
+* retention;
+* backup practices;
+* privacy safeguards;
+* security controls.
+
+Additional information may be provided subject to appropriate confidentiality and security considerations.
+
+Qmova does not provide sensitive operational information through this public document where disclosure could increase security risk.
+
+---
+
+# 29. Related Documentation
+
+### Trust
+
+* [Qmova Trust Center](/trust)
+* Architecture Overview
+* Security Policy
+* Responsible Disclosure Policy
+* Subprocessor List
+
+### Privacy
+
+* Privacy Policy
+* Data Processing Addendum
+* Data Retention Policy
+* Cookie Policy
+
+### Legal and Commercial
+
+* Terms of Service
+* Acceptable Use Policy
+* Service Level Agreement
+
+### Compliance
+
+* Compliance Roadmap
+* Accessibility Statement
+* AI Usage Policy
+
+---
+
+# 30. Contact Information
+
+For security and trust-related matters:
+
+**Security:**
+[security@qmova.com](mailto:security@qmova.com)
+
+**Privacy:**
+[privacy@qmova.com](mailto:privacy@qmova.com)
+
+**Legal:**
+[legal@qmova.com](mailto:legal@qmova.com)
+
+**Support:**
+[support@qmova.com](mailto:support@qmova.com)
+
+---
+
+# 31. Document Governance
+
+**Document Owner:** Qmova Security Function
+
+**Classification:** Public
+
+**Review Frequency:** At least annually and whenever there is a material change to Qmova's application architecture, security controls, infrastructure, or data-processing practices.
+
+This document provides a high-level overview of Qmova's security approach. It does not constitute a guarantee of security, a security certification, or an independent audit report.
+
+---
+
+# 32. Version History
+
+| Version | Date           | Summary             |
+| ------- | -------------- | ------------------- |
+| 1.0.0   | 12 August 2026 | Initial publication |
+
+---
+
+## Security Principle
+
+> **Qmova's security model is built around layered protection: authenticate the user, authorize the action, isolate the Workspace, protect the data, record important events, monitor the service, and continuously improve the controls around it.**

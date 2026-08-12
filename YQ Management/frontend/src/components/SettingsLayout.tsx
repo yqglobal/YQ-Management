@@ -20,6 +20,8 @@ export default function SettingsLayout({ children, pageTitle = 'Settings', pageS
 
   const settingsTabs = [
     { label: 'General', href: '/dashboard/settings', icon: Settings, adminOnly: false },
+    { label: 'Privacy', href: '/dashboard/settings/privacy', icon: Users, adminOnly: false },
+    { label: 'Security & Legal', href: '/dashboard/settings/security', icon: CreditCard, adminOnly: false },
     { label: 'WhatsApp API', href: '/dashboard/settings/whatsapp', icon: MessageSquare, adminOnly: true },
     { label: 'Staff & Invitations', href: '/dashboard/settings/staff', icon: Users, adminOnly: true },
     { label: 'Webhooks', href: '/dashboard/settings/webhooks', icon: Webhook, adminOnly: true },

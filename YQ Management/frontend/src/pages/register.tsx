@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ArrowRight, Lock, Mail, User, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { fetchApi, AuthStorage } from '../lib/api';
+import TermsModal from '../components/TermsModal';
 
 export default function Register() {
   const router = useRouter();
@@ -13,6 +14,10 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState('');
   
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [modalType, setModalType] = useState<'terms' | 'privacy' | null>(null);
+
   const [step, setStep] = useState<'details' | 'otp'>('details');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -239,9 +244,40 @@ export default function Register() {
                 </div>
               </div>
 
+              <div className="space-y-3 pt-2">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    disabled
+                    className="mt-1 w-4 h-4 rounded border-zinc-600 bg-zinc-900 focus:ring-indigo-500 accent-indigo-600 disabled:opacity-50"
+                  />
+                  <div className="text-sm text-zinc-400">
+                    I accept the{' '}
+                    <button type="button" onClick={() => setModalType('terms')} className="text-indigo-400 hover:underline">
+                      Terms of Service
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={privacyAccepted}
+                    disabled
+                    className="mt-1 w-4 h-4 rounded border-zinc-600 bg-zinc-900 focus:ring-indigo-500 accent-indigo-600 disabled:opacity-50"
+                  />
+                  <div className="text-sm text-zinc-400">
+                    I accept the{' '}
+                    <button type="button" onClick={() => setModalType('privacy')} className="text-indigo-400 hover:underline">
+                      Privacy Policy
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <button 
                 type="submit" 
-                disabled={loading}
+                disabled={loading || !termsAccepted || !privacyAccepted}
                 className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white text-black rounded-xl font-semibold hover:bg-zinc-200 transition-colors mt-8 disabled:opacity-70"
               >
                 {loading ? 'Creating Account...' : 'Continue'}
@@ -335,6 +371,16 @@ export default function Register() {
           </p>
         </div>
       </div>
+
+      <TermsModal 
+        isOpen={modalType !== null}
+        onClose={() => setModalType(null)}
+        type={modalType || 'terms'}
+        onAccept={() => {
+          if (modalType === 'terms') setTermsAccepted(true);
+          if (modalType === 'privacy') setPrivacyAccepted(true);
+        }}
+      />
     </div>
   );
 }

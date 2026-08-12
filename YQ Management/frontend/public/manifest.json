@@ -1,10 +1,10 @@
 {
-  "name": "Qmover Live Status",
-  "short_name": "Qmover",
-  "description": "Track your queue status in real time",
-  "start_url": "/",
+  "name": "Qmova Visit Management",
+  "short_name": "Qmova",
+  "description": "Enterprise-grade Visit Management and Customer Flow Platform.",
+  "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#000000",
   "theme_color": "#4f46e5",
   "icons": [
     {

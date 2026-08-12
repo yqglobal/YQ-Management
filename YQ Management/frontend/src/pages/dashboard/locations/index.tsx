@@ -7,7 +7,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
 import { toast } from 'sonner';
 
+import { useRouter } from 'next/router';
+
 export default function LocationsList() {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newLocationName, setNewLocationName] = useState('');
   const [newLocationAddress, setNewLocationAddress] = useState('');
@@ -97,7 +100,10 @@ export default function LocationsList() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-medium transition-colors border border-white/5">
+                  <button 
+                    onClick={() => router.push(`/dashboard/locations/${loc.id}`)}
+                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-medium transition-colors border border-white/5"
+                  >
                     Manage
                   </button>
                 </div>
