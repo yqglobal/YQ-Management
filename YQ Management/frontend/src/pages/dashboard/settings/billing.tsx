@@ -324,52 +324,56 @@ export default function BillingSettings() {
                   </div>
                 );
               })}
+              })}
+            </div>
+
+            {/* Enterprise Tier Section */}
+            <div className="mt-8 bg-gradient-to-r from-gray-900 to-black dark:from-zinc-900/90 dark:to-zinc-950 rounded-3xl border border-gray-800 dark:border-white/10 p-8 md:p-10 flex flex-col md:flex-row items-center justify-between relative text-white gap-8 overflow-hidden shadow-xl">
+              <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl"></div>
               
-              {/* Enterprise Tier Card */}
-              <div className="bg-gradient-to-b from-gray-900 to-black dark:from-zinc-900/90 dark:to-zinc-950 rounded-3xl border border-gray-800 dark:border-white/10 p-8 flex flex-col relative text-white">
-                <div className="absolute top-0 right-8 -translate-y-1/2 bg-white text-black text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
-                  <Building2 className="w-3 h-3" /> Custom
+              <div className="flex-1 relative z-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Building2 className="w-6 h-6 text-indigo-400" />
+                  <h3 className="text-2xl font-black">Enterprise</h3>
+                  <span className="bg-white/10 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ml-2">Custom</span>
                 </div>
-                <h3 className="text-xl font-bold mb-2">Enterprise</h3>
-                <p className="text-sm text-gray-400 h-10">Tailored infrastructure, SLA guarantees, and dedicated support.</p>
+                <p className="text-gray-400 max-w-xl text-sm leading-relaxed mb-6">
+                  Tailored infrastructure, SLA guarantees, dedicated support, and custom integrations for large organizations with high-volume requirements.
+                </p>
                 
-                <div className="my-6">
-                  <span className="text-4xl font-black">Custom</span>
-                  <span className="text-gray-400 ml-1">pricing</span>
-                </div>
-
-                <button 
-                  onClick={() => setShowEnterpriseModal(true)}
-                  className="w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all mb-8 bg-white hover:bg-gray-100 text-black"
-                >
-                  Contact Sales
-                </button>
-
-                <div className="space-y-4 flex-1">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">What is included:</p>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 max-w-2xl">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span className="text-sm text-gray-300">Unlimited Queues & Locations</span>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <span className="text-sm text-gray-300">Unlimited Tokens</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span className="text-sm text-gray-300">White-labeling & Custom Branding</span>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span className="text-sm text-gray-300">Dedicated Account Manager & SLA</span>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span className="text-sm text-gray-300">Custom API & HIS Integrations</span>
                   </div>
                 </div>
               </div>
-
+              
+              <div className="w-full md:w-auto shrink-0 relative z-10 flex flex-col md:items-end items-center mt-6 md:mt-0 pt-6 md:pt-0 border-t md:border-t-0 md:border-l border-white/10 md:pl-10">
+                <div className="mb-5 text-center md:text-right">
+                  <span className="text-4xl font-black block mb-1">Custom</span>
+                  <span className="text-gray-400 text-sm">pricing for your needs</span>
+                </div>
+                <button 
+                  onClick={() => setShowEnterpriseModal(true)}
+                  className="w-full md:w-auto px-8 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all bg-white hover:bg-gray-100 text-black shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                >
+                  Contact Sales <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
             
             <div className="mt-12 text-center p-6 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10">
