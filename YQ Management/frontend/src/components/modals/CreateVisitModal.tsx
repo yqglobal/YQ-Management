@@ -76,7 +76,7 @@ export function CreateVisitModal({ isOpen, onClose }: CreateVisitModalProps) {
   return (
     <>
       {createPortal(
-        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-[90] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
             <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">New Walk-in Visit</h2>

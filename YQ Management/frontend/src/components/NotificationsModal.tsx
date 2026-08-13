@@ -282,9 +282,9 @@ export default function NotificationsModal({ open, onClose }: NotificationsModal
   };
 
   return (
-    <div className="fixed inset-0 z-[999] flex items-start justify-end p-4 sm:p-6 md:pt-16 md:pr-12 pointer-events-none">
+    <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-[999] flex items-start justify-end p-4 sm:p-6 md:pt-16 md:pr-12 pointer-events-none">
       {/* Invisible backdrop to catch clicks outside */}
-      <div className="fixed inset-0 pointer-events-auto bg-black/20 backdrop-blur-[1px] sm:bg-transparent sm:backdrop-blur-none transition-opacity" onClick={onClose} />
+      <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md pointer-events-auto sm:bg-transparent sm: transition-opacity" onClick={onClose} />
 
       <div className="pointer-events-auto w-full sm:w-[420px] max-h-[85vh] flex flex-col bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl shadow-black/20 overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200 z-10">
         {/* Header */}

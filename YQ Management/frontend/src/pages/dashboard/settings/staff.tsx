@@ -500,7 +500,7 @@ export default function StaffDirectory() {
 
       {/* UNREGISTERED USER / INVITE SHARING MODAL */}
       {inviteModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative text-left">
             <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-5 border border-indigo-500/20">
               <Mail className="w-6 h-6" />
@@ -587,7 +587,7 @@ export default function StaffDirectory() {
 
       {/* JOIN ANOTHER WORKSPACE MODAL */}
       {showJoinModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative text-left">
             <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">Join Workspace Team</h2>
             <p className="text-sm text-gray-600 dark:text-zinc-400 mb-6">Enter the 8-character invitation code provided by your organization admin.</p>

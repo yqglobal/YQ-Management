@@ -200,7 +200,7 @@ export default function SuperAdminPlans() {
         )}
 
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => { setShowCreateModal(false); setEditingPlan(null); resetForm(); }}>
+          <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={() => { setShowCreateModal(false); setEditingPlan(null); resetForm(); }}>
             <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-gray-200 dark:border-white/10 shadow-xl p-6 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{editingPlan ? 'Edit Plan' : 'Create Plan'}</h2>
               <div className="space-y-4">

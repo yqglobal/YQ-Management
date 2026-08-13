@@ -17,7 +17,7 @@ export default function PolicyUpdateModal({ isOpen, onClose, policyType, version
   return (
     <>
       {isOpen && !showDocument && (
-        <div className="fixed inset-0 z-[110] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-md overflow-hidden flex flex-col shadow-2xl">
             <div className="p-6 border-b border-white/10 text-center">
               <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center mx-auto mb-4">

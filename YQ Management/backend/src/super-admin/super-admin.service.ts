@@ -590,4 +590,20 @@ export class SuperAdminService {
       },
     });
   }
+
+  async getEnterpriseInquiries() {
+    return this.prisma.enterpriseInquiry.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        tenant: { select: { name: true, subdomain: true } }
+      }
+    });
+  }
+
+  async updateEnterpriseInquiryStatus(id: string, status: string) {
+    return this.prisma.enterpriseInquiry.update({
+      where: { id },
+      data: { status }
+    });
+  }
 }

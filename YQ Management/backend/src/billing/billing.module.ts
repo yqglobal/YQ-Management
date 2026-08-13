@@ -11,10 +11,13 @@ import { UsageService } from '../usage/usage.service';
 import { ProviderRegistry } from './providers/provider-registry.service';
 import { BillingConfigService } from './config/billing-config.service';
 import { WebhookProcessService } from '../webhooks/webhook-process.service';
+import { EnterpriseInquiryController } from './enterprise-inquiry.controller';
+import { EnterpriseInquiryService } from './enterprise-inquiry.service';
+import { SystemLogModule } from '../system-log/system-log.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, PermissionsModule],
-  controllers: [BillingController],
+  imports: [PrismaModule, AuthModule, PermissionsModule, SystemLogModule],
+  controllers: [BillingController, EnterpriseInquiryController],
   providers: [
     PlansService,
     SubscriptionService,
@@ -24,6 +27,7 @@ import { WebhookProcessService } from '../webhooks/webhook-process.service';
     ProviderRegistry,
     BillingConfigService,
     WebhookProcessService,
+    EnterpriseInquiryService,
   ],
   exports: [
     PlansService,

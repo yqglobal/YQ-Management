@@ -102,7 +102,7 @@ export default function CookieConsent() {
 
       {/* Preferences Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-[110] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-white">Cookie Preferences</h2>

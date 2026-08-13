@@ -16,6 +16,8 @@ import {
   Shield,
   CalendarCheck,
   LineChart,
+  ListOrdered,
+  MapPin,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { DashboardTour } from './DashboardTour';
@@ -44,8 +46,9 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle }: Admin
 
   const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { label: 'Queues & Waitlists', href: '/dashboard/queues', icon: ListOrdered },
     { label: 'Appointments', href: '/dashboard/appointments', icon: CalendarCheck },
-    { label: 'Locations & Services', href: '/dashboard/locations', icon: LayoutDashboard },
+    { label: 'Locations & Services', href: '/dashboard/locations', icon: MapPin },
     { label: 'People', href: '/dashboard/people', icon: Users },
     { label: 'Analytics', href: '/dashboard/analytics', icon: LineChart },
     { label: 'Check-in', href: '/dashboard/check-in', icon: Scan },
@@ -100,7 +103,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle }: Admin
 
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="fixed inset-0 bg-black/50 z-[65] lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-[65] lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* Sidebar */}

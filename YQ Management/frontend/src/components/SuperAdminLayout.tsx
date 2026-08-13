@@ -16,6 +16,7 @@ import {
   X,
   Bell,
   Sliders,
+  Inbox,
 } from 'lucide-react';
 
 import { useTheme } from './ThemeProvider';
@@ -47,6 +48,7 @@ export default function SuperAdminLayout({
     { label: 'Businesses', href: '/super-admin/tenants', icon: Building2 },
     { label: 'Plans', href: '/super-admin/plans', icon: Package },
     { label: 'Subscriptions', href: '/super-admin/subscriptions', icon: CreditCard },
+    { label: 'Inquiries', href: '/super-admin/inquiries', icon: Inbox },
     { label: 'Analytics', href: '/super-admin/analytics', icon: TrendingUp },
     { label: 'Users', href: '/super-admin/users', icon: Users },
     { label: 'Notifications', href: '/super-admin/communication', icon: Mail },
@@ -123,7 +125,7 @@ export default function SuperAdminLayout({
         </div>
       </aside>
 
-      <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setSidebarOpen(false)} />
+      <div className="lg:hidden fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-40" onClick={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col h-screen relative">
         <header className="h-16 flex items-center justify-between px-6 border-b border-gray-200 dark:border-white/10 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md z-30 shrink-0">

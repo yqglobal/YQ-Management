@@ -401,4 +401,20 @@ export class SuperAdminController {
       body.isTestMode || false,
     );
   }
+
+  @Get('inquiries')
+  async getInquiries(@Req() req: any) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.getEnterpriseInquiries();
+  }
+
+  @Patch('inquiries/:id/status')
+  async updateInquiryStatus(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: { status: string },
+  ) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.updateEnterpriseInquiryStatus(id, body.status);
+  }
 }

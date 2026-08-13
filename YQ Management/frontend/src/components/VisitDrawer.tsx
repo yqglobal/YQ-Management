@@ -36,7 +36,7 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
       {/* Backdrop */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[80] transition-opacity" 
+          className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-[80] transition-opacity" 
           onClick={onClose}
         />
       )}

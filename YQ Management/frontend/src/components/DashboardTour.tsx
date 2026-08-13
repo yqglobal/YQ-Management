@@ -62,7 +62,7 @@ export function DashboardTour() {
   const step = STEPS[currentStep];
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
       <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">{step.title}</h3>

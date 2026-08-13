@@ -46,7 +46,7 @@ export function ChatDrawer({ chatToken, messages, chatMessage, setChatMessage, o
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/20 dark:bg-black/40 backdrop-blur-sm animate-in fade-in" onClick={onClose}>
+    <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-50 flex justify-end dark: animate-in fade-in" onClick={onClose}>
       <div className="w-[400px] h-full bg-white dark:bg-zinc-900 border-l border-gray-200 dark:border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between bg-gray-50 dark:bg-zinc-900">
           <div>

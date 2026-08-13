@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
-import { CheckCircle2, AlertCircle, Loader2, Zap } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, Zap, Building2, ArrowRight } from 'lucide-react';
 import { fetchApi } from '../../../lib/api';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
@@ -43,6 +43,8 @@ export default function BillingSettings() {
   const paymentFormRef = useRef<HTMLFormElement | null>(null);
   const [paymentData, setPaymentData] = useState<OzowPaymentData | null>(null);
   const [billingInterval, setBillingInterval] = useState('monthly');
+  const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
+  const [enterpriseForm, setEnterpriseForm] = useState({ name: '', companyName: '', email: '', phone: '', message: '' });
   const ozowFields = useMemo<Array<keyof OzowPaymentData>>(
     () => ['siteCode', 'countryCode', 'currencyCode', 'amount', 'transactionReference', 'bankReference', 'cancelUrl', 'errorUrl', 'successUrl', 'notifyUrl', 'isTest', 'hashCheck'],
     [],
@@ -76,6 +78,22 @@ export default function BillingSettings() {
     onError: () => {
       toast.error('Error generating payment link');
     },
+  });
+
+  const enterpriseMutation = useMutation({
+    mutationFn: (data: typeof enterpriseForm) => 
+      fetchApi('/billing/enterprise-inquiries', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      toast.success('Inquiry sent! Our sales team will contact you shortly.');
+      setShowEnterpriseModal(false);
+      setEnterpriseForm({ name: '', companyName: '', email: '', phone: '', message: '' });
+    },
+    onError: () => {
+      toast.error('Failed to send inquiry. Please try again later.');
+    }
   });
 
   const statusMessage = useMemo(() => {
@@ -306,6 +324,52 @@ export default function BillingSettings() {
                   </div>
                 );
               })}
+              
+              {/* Enterprise Tier Card */}
+              <div className="bg-gradient-to-b from-gray-900 to-black dark:from-zinc-900/90 dark:to-zinc-950 rounded-3xl border border-gray-800 dark:border-white/10 p-8 flex flex-col relative text-white">
+                <div className="absolute top-0 right-8 -translate-y-1/2 bg-white text-black text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                  <Building2 className="w-3 h-3" /> Custom
+                </div>
+                <h3 className="text-xl font-bold mb-2">Enterprise</h3>
+                <p className="text-sm text-gray-400 h-10">Tailored infrastructure, SLA guarantees, and dedicated support.</p>
+                
+                <div className="my-6">
+                  <span className="text-4xl font-black">Custom</span>
+                  <span className="text-gray-400 ml-1">pricing</span>
+                </div>
+
+                <button 
+                  onClick={() => setShowEnterpriseModal(true)}
+                  className="w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all mb-8 bg-white hover:bg-gray-100 text-black"
+                >
+                  Contact Sales
+                </button>
+
+                <div className="space-y-4 flex-1">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">What is included:</p>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span className="text-sm text-gray-300">Unlimited Queues & Locations</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span className="text-sm text-gray-300">Unlimited Tokens</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span className="text-sm text-gray-300">White-labeling & Custom Branding</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span className="text-sm text-gray-300">Dedicated Account Manager & SLA</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <span className="text-sm text-gray-300">Custom API & HIS Integrations</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
             
             <div className="mt-12 text-center p-6 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10">
@@ -318,6 +382,48 @@ export default function BillingSettings() {
         )}
 
       </div>
+
+      {/* Enterprise Contact Modal */}
+      {showEnterpriseModal && (
+        <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-3xl shadow-2xl w-full max-w-lg p-8" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Contact Sales</h2>
+            <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6">Tell us about your organization's needs, and our enterprise team will reach out to tailor a solution.</p>
+            
+            <form onSubmit={(e) => { e.preventDefault(); enterpriseMutation.mutate(enterpriseForm); }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Your Name *</label>
+                <input required type="text" value={enterpriseForm.name} onChange={(e) => setEnterpriseForm({...enterpriseForm, name: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Company Name *</label>
+                <input required type="text" value={enterpriseForm.companyName} onChange={(e) => setEnterpriseForm({...enterpriseForm, companyName: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Email Address *</label>
+                  <input required type="email" value={enterpriseForm.email} onChange={(e) => setEnterpriseForm({...enterpriseForm, email: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Phone Number</label>
+                  <input type="tel" value={enterpriseForm.phone} onChange={(e) => setEnterpriseForm({...enterpriseForm, phone: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">How can we help? *</label>
+                <textarea required rows={4} value={enterpriseForm.message} onChange={(e) => setEnterpriseForm({...enterpriseForm, message: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white resize-none" placeholder="Tell us about your setup, required integrations, and estimated volume..."></textarea>
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setShowEnterpriseModal(false)} className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-xl text-sm font-medium transition-colors">Cancel</button>
+                <button type="submit" disabled={enterpriseMutation.isPending} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50">
+                  {enterpriseMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                  Submit Inquiry
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </SettingsLayout>
   );
 }
