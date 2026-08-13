@@ -65,12 +65,7 @@ export default function WebhooksSettingsPage() {
 
       <div className="space-y-8 max-w-4xl">
         <section>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-xl">
-              <Webhook className="w-5 h-5" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">API Webhooks</h2>
-          </div>
+
 
           <div className="bg-gray-50/50 dark:bg-zinc-800/20 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6">
             <p className="text-gray-600 dark:text-zinc-400 mb-6">

@@ -38,15 +38,7 @@ export default function AuditLogs() {
       </Head>
 
       <div className="max-w-6xl space-y-6 pb-12">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-500/20">
-            <Shield className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Workspace Audit Logs</h1>
-            <p className="text-gray-500 dark:text-zinc-400">View detailed history of all system events and API requests.</p>
-          </div>
-        </div>
+
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 bg-white dark:bg-zinc-900/50 p-4 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
@@ -86,11 +78,11 @@ export default function AuditLogs() {
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 dark:bg-zinc-800/50 text-gray-500 dark:text-zinc-400 font-medium border-b border-gray-200 dark:border-white/10">
                 <tr>
-                  <th className="px-6 py-4">Timestamp</th>
+                  <th className="px-6 py-4 w-32">Timestamp</th>
                   <th className="px-6 py-4">User</th>
                   <th className="px-6 py-4">Action</th>
                   <th className="px-6 py-4">Resource</th>
-                  <th className="px-6 py-4">Status / IP</th>
+                  <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Details</th>
                 </tr>
               </thead>
@@ -108,13 +100,15 @@ export default function AuditLogs() {
                   data.data.map((log: any) => (
                     <React.Fragment key={log.id}>
                       <tr className="hover:bg-gray-50 dark:hover:bg-zinc-800/30 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-600 dark:text-zinc-400">
-                          {new Date(log.createdAt).toLocaleString()}
+                        <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-600 dark:text-zinc-400">
+                          {new Date(log.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="px-6 py-4">
                           {log.user ? (
                             <div>
-                              <p className="font-medium text-gray-900 dark:text-white">{log.user.email}</p>
+                              <p className="font-medium text-gray-900 dark:text-white truncate max-w-[150px]" title={log.user.personalSettings?.fullName || log.user.name || log.user.email}>
+                                {log.user.personalSettings?.fullName || log.user.name || log.user.email}
+                              </p>
                               <p className="text-xs text-gray-500">{log.user.role}</p>
                             </div>
                           ) : (
@@ -122,20 +116,17 @@ export default function AuditLogs() {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="font-medium text-gray-900 dark:text-white bg-gray-100 dark:bg-zinc-800 px-2 py-1 rounded">
+                          <span className="font-medium text-gray-900 dark:text-white bg-gray-100 dark:bg-zinc-800 px-2 py-1 rounded text-xs">
                             {log.action}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-gray-600 dark:text-zinc-400">
+                        <td className="px-6 py-4 text-xs text-gray-600 dark:text-zinc-400">
                           {log.resource || log.endpoint || '-'}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-1">
                             <span className={`inline-flex w-max px-2 py-0.5 rounded text-xs font-bold ${log.statusCode >= 200 && log.statusCode < 300 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400'}`}>
                               {log.statusCode || 'N/A'}
-                            </span>
-                            <span className="text-xs font-mono text-gray-500" title="IP Address">
-                              {log.ipAddress || 'Unknown IP'}
                             </span>
                           </div>
                         </td>

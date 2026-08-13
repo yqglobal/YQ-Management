@@ -68,12 +68,7 @@ export default function ProfileSettingsPage() {
 
       <div className="space-y-8 max-w-3xl p-6 md:p-8">
         <section>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl">
-              <User className="w-5 h-5" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Personal Information</h2>
-          </div>
+
 
           <div className="space-y-6">
             <div className="grid gap-6 p-6 border border-gray-200 dark:border-white/10 rounded-2xl bg-gray-50/50 dark:bg-zinc-800/20">

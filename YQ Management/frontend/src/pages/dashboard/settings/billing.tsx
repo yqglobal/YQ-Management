@@ -122,10 +122,7 @@ export default function BillingSettings() {
       </Head>
 
       <div className="max-w-6xl space-y-8 pb-12">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Billing & Subscriptions</h1>
-          <p className="text-gray-500 dark:text-zinc-400 mt-2">Manage your current plan, payment methods, and billing history.</p>
-        </div>
+
 
         {statusMessage && (
           <div className={`p-4 rounded-xl border ${statusMessage.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400'} flex items-start gap-3`}>

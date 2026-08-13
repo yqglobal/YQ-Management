@@ -232,14 +232,10 @@ export default function StaffDirectory() {
       </Head>
 
       <div className="max-w-4xl space-y-8 pb-12">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Staff Directory</h1>
-            <p className="text-gray-500 dark:text-zinc-400 mt-1">Manage roles, track 3-day invitations, and team permissions.</p>
-          </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
           <button
             onClick={() => setShowJoinModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-800 dark:text-zinc-200 font-bold text-sm transition-all border border-gray-200 dark:border-white/10 shrink-0"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-800 dark:text-zinc-200 font-bold text-sm transition-all border border-gray-200 dark:border-white/10 shrink-0 w-fit"
           >
             <KeyRound className="w-4 h-4 text-indigo-500" />
             <span>Join Another Workspace</span>
