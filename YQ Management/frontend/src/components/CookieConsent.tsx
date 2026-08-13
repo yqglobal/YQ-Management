@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
+import { fetchApi } from '../lib/api';
 export default function CookieConsent() {
   const [showBanner, setShowBanner] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -34,13 +34,30 @@ export default function CookieConsent() {
     saveConsent(preferences);
   };
 
-  const saveConsent = (prefs: any) => {
+  const saveConsent = async (prefs: any) => {
     localStorage.setItem('qmova_cookie_consent', JSON.stringify(prefs));
     setPreferences(prefs);
     setShowBanner(false);
     setShowModal(false);
     
-    // In a real app, this might trigger a backend save or load external scripts like GTM
+    // Save to backend
+    let anonymousId = localStorage.getItem('qmova_anonymous_id');
+    if (!anonymousId) {
+      anonymousId = crypto.randomUUID();
+      localStorage.setItem('qmova_anonymous_id', anonymousId);
+    }
+
+    try {
+      await fetchApi('/policies/cookie-preferences', {
+        method: 'POST',
+        body: JSON.stringify({
+          anonymousId,
+          preferences: prefs
+        })
+      });
+    } catch (err) {
+      console.error('Failed to save cookie preferences', err);
+    }
   };
 
   if (!showBanner && !showModal) return null;

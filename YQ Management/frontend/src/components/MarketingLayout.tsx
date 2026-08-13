@@ -5,7 +5,6 @@ import { useAuth } from './AuthContext';
 import { User, Menu, X } from 'lucide-react';
 import Footer from './Footer';
 import SEO from './SEO';
-import CookieConsent from './CookieConsent';
 import { Geist, Geist_Mono } from "next/font/google";
 
 const geistSans = Geist({
@@ -120,7 +119,6 @@ export default function MarketingLayout({ children, title, description }: Market
       </main>
 
       <Footer />
-      <CookieConsent />
     </div>
   );
 }
