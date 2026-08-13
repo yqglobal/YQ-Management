@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
-import { Save, UserCog, Loader2, User } from 'lucide-react';
+import { Save, Loader2, User } from 'lucide-react';
 import { useAuth } from '../../../components/AuthContext';
 import { fetchApi } from '../../../lib/api';
 import { toast } from 'sonner';
 
-export default function GeneralSettingsPage() {
+export default function ProfileSettingsPage() {
   const { user, refetch } = useAuth();
   const [language, setLanguage] = useState('en');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -15,8 +15,6 @@ export default function GeneralSettingsPage() {
   const [phone, setPhone] = useState('');
   const [location, setLocation] = useState('');
   const [email, setEmail] = useState('');
-  const [tenantName, setTenantName] = useState('');
-  const [tenantPrimaryColor, setTenantPrimaryColor] = useState('#4f46e5');
 
   useEffect(() => {
     if (user?.personalSettings?.language) {
@@ -39,24 +37,9 @@ export default function GeneralSettingsPage() {
     }
   }, [user]);
 
-  useEffect(() => {
-    // Fetch tenant details to prepopulate tenant name and primary color
-    if (user?.tenantId) {
-      fetchApi('/tenant').then((res) => {
-        if (res && res.length > 0) {
-          // Assuming the user is part of a single active tenant for now
-          const currentTenant = res.find((t: any) => t.id === user.tenantId) || res[0];
-          setTenantName(currentTenant.name || '');
-          setTenantPrimaryColor(currentTenant.branding?.primaryColor || '#4f46e5');
-        }
-      }).catch(err => console.error("Failed to fetch tenant details:", err));
-    }
-  }, [user]);
-
   const savePersonalSettings = async () => {
     setSavingPersonal(true);
     try {
-      // 1. Save User Personal Settings
       await fetchApi('/auth/personal-settings', {
         method: 'PATCH',
         body: JSON.stringify({
@@ -68,18 +51,8 @@ export default function GeneralSettingsPage() {
         }),
       });
 
-      // 2. Save Tenant Branding/Name if the user is an admin
-      if (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN') {
-        if (user.tenantId) {
-          await fetchApi(`/tenant/${user.tenantId}`, { 
-            method: 'PATCH', 
-            body: JSON.stringify({ name: tenantName, branding: { primaryColor: tenantPrimaryColor } }) 
-          });
-        }
-      }
-
       await refetch();
-      toast.success('Settings saved successfully');
+      toast.success('Profile settings saved successfully');
     } catch (err: any) {
       toast.error(err.message || 'Failed to save settings');
     } finally {
@@ -88,12 +61,12 @@ export default function GeneralSettingsPage() {
   };
 
   return (
-    <SettingsLayout pageTitle="General Settings" pageSubtitle="Manage your profile and display preferences">
+    <SettingsLayout pageTitle="Personal Profile" pageSubtitle="Manage your personal details and display preferences">
       <Head>
-        <title>General Settings | Qmova</title>
+        <title>Personal Profile | Qmova</title>
       </Head>
 
-      <div className="space-y-8 max-w-3xl">
+      <div className="space-y-8 max-w-3xl p-6 md:p-8">
         <section>
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl">
@@ -102,17 +75,17 @@ export default function GeneralSettingsPage() {
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Personal Information</h2>
           </div>
 
-          <div className="space-y-6 mb-12">
-            <div className="grid gap-6 p-6 border border-gray-200 dark:border-zinc-800 rounded-2xl bg-gray-50/50 dark:bg-zinc-800/20">
+          <div className="space-y-6">
+            <div className="grid gap-6 p-6 border border-gray-200 dark:border-white/10 rounded-2xl bg-gray-50/50 dark:bg-zinc-800/20">
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-gray-200 dark:border-zinc-800 pb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-gray-200 dark:border-white/10 pb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Email Address</label>
                   <input
                     type="email"
                     value={email}
                     disabled
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-xl bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-zinc-500 cursor-not-allowed"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-white/5 rounded-xl bg-gray-100 dark:bg-zinc-800/50 text-gray-500 dark:text-zinc-500 cursor-not-allowed"
                   />
                   <p className="text-xs text-gray-500 dark:text-zinc-500 mt-2">Email cannot be changed.</p>
                 </div>
@@ -122,7 +95,7 @@ export default function GeneralSettingsPage() {
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
                     placeholder="Jane Doe"
                   />
                 </div>
@@ -132,7 +105,7 @@ export default function GeneralSettingsPage() {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
                     placeholder="+1 555-0000"
                   />
                 </div>
@@ -142,7 +115,7 @@ export default function GeneralSettingsPage() {
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
                     placeholder="New York, NY"
                   />
                 </div>
@@ -153,7 +126,7 @@ export default function GeneralSettingsPage() {
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-white/10 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
                 >
                   <option value="en">English</option>
                   <option value="es">Español</option>
@@ -164,12 +137,12 @@ export default function GeneralSettingsPage() {
               </div>
 
               <div>
-                <label className="flex items-center gap-3 cursor-pointer p-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl hover:border-gray-300 dark:hover:border-zinc-700 transition-colors">
+                <label className="flex items-center gap-3 cursor-pointer p-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/5 rounded-xl hover:border-gray-300 dark:hover:border-white/10 transition-colors">
                   <input
                     type="checkbox"
                     checked={notificationsEnabled}
                     onChange={(e) => setNotificationsEnabled(e.target.checked)}
-                    className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 bg-white dark:bg-black/50"
                   />
                   <div>
                     <span className="block text-sm font-medium text-gray-900 dark:text-zinc-100">In-App Notifications</span>
@@ -179,55 +152,16 @@ export default function GeneralSettingsPage() {
               </div>
             </div>
           </div>
-
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl">
-              <UserCog className="w-5 h-5" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Workspace Configuration</h2>
-          </div>
-
-          <div className="space-y-6">
-            <div className="grid gap-6 p-6 border border-gray-200 dark:border-zinc-800 rounded-2xl bg-gray-50/50 dark:bg-zinc-800/20">
-              
-              <div className="space-y-4 border-b border-gray-200 dark:border-zinc-800 pb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Workspace / Company Name</label>
-                  <input
-                    type="text"
-                    value={tenantName}
-                    onChange={(e) => setTenantName(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-                    placeholder="E.g. Acme Corp"
-                  />
-                  <p className="text-sm text-gray-500 dark:text-zinc-500 mt-2">This is the name your customers will see on the queue portal.</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Brand Color</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={tenantPrimaryColor}
-                      onChange={(e) => setTenantPrimaryColor(e.target.value)}
-                      className="w-10 h-10 rounded cursor-pointer border-0 p-0"
-                    />
-                    <span className="text-sm font-mono text-gray-600 dark:text-zinc-400">{tenantPrimaryColor}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </section>
 
-        <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-zinc-800">
+        <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-white/10">
           <button
             onClick={savePersonalSettings}
             disabled={savingPersonal}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 text-white font-medium rounded-xl transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 hover:bg-gray-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white font-medium rounded-xl transition-all shadow-sm disabled:opacity-50"
           >
             {savingPersonal ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            Save Changes
+            Save Profile
           </button>
         </div>
       </div>
