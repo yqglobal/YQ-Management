@@ -112,6 +112,7 @@ model Tenant {
   whatsappPhone      String?
   chatbotEnabled     Boolean           @default(false)
   chatbotConfig      Json? // Stores custom button menus and automated replies
+  customerExperience Json? // Global settings for forms, feedback, and portal experience
   subscriptionStatus String            @default("TRIAL") // TRIAL, ACTIVE, EXPIRED
   users              User[]
   workspaces         Workspace[]
@@ -196,6 +197,7 @@ model Queue {
   id                 String      @id @default(uuid())
   tenantId           String
   workspaceId        String?
+  locationId         String?
   name               String
   status             QueueStatus
   nextQueueId        String? // For multi-step routing (e.g. Registration -> Billing)
@@ -208,10 +210,13 @@ model Queue {
   appointmentGranularityMins Int        @default(15) // e.g. 15 mins increments
   tenant                     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   workspace                  Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  location                   Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
   tokens                     Token[]
   visits                     Visit[]
+  services                   Service[]
 
   @@index([tenantId])
+  @@index([locationId])
 }
 
 model Token {
@@ -531,6 +536,7 @@ model Location {
   resources    Resource[]
   visits       Visit[]
   appointments Appointment[]
+  queues       Queue[]
 
   tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -554,6 +560,7 @@ model Service {
 
   visits       Visit[]
   appointments Appointment[]
+  queues       Queue[]
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)

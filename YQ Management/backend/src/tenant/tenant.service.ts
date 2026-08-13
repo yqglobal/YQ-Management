@@ -47,6 +47,18 @@ export class TenantService {
     return tenant;
   }
 
+  async getTenantById(id: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException(`Tenant with ID ${id} not found`);
+    }
+
+    return tenant;
+  }
+
   async createTenant(data: {
     name: string;
     subdomain: string;
@@ -61,7 +73,7 @@ export class TenantService {
     return this.prisma.tenant.findMany();
   }
 
-  async updateTenant(id: string, data: { name?: string; branding?: any }) {
+  async updateTenant(id: string, data: { name?: string; branding?: any; customerExperience?: any }) {
     const tenant = await this.prisma.tenant.findUnique({ where: { id } });
     if (!tenant) throw new NotFoundException('Tenant not found');
 
@@ -70,6 +82,7 @@ export class TenantService {
       data: {
         name: data.name !== undefined ? data.name : undefined,
         branding: data.branding !== undefined ? data.branding : undefined,
+        customerExperience: data.customerExperience !== undefined ? data.customerExperience : undefined,
       },
     });
   }

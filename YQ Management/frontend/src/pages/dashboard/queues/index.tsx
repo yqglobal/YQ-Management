@@ -13,6 +13,8 @@ export default function QueuesList() {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newQueueName, setNewQueueName] = useState('');
+  const [selectedLocationId, setSelectedLocationId] = useState('');
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
   const queryClient = useQueryClient();
 
@@ -21,12 +23,24 @@ export default function QueuesList() {
     queryFn: () => fetchApi('/queue'),
   });
 
+  const { data: locations = [] } = useQuery({
+    queryKey: ['locations'],
+    queryFn: () => fetchApi('/locations'),
+  });
+
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => fetchApi('/services'),
+  });
+
   const createQueueMutation = useMutation({
-    mutationFn: (data: { name: string }) =>
+    mutationFn: (data: { name: string, locationId?: string, serviceIds?: string[] }) =>
       fetchApi('/queue', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
       setIsModalOpen(false);
       setNewQueueName('');
+      setSelectedLocationId('');
+      setSelectedServiceIds([]);
       refetch();
       toast.success('Queue created successfully');
     },
@@ -38,8 +52,16 @@ export default function QueuesList() {
     if (!newQueueName.trim()) return;
 
     createQueueMutation.mutate({ 
-      name: newQueueName 
+      name: newQueueName,
+      locationId: selectedLocationId || undefined,
+      serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined
     });
+  };
+
+  const handleServiceToggle = (id: string) => {
+    setSelectedServiceIds(prev => 
+      prev.includes(id) ? prev.filter(sId => sId !== id) : [...prev, id]
+    );
   };
 
   const getStatusBadge = (status: string) => {
@@ -153,6 +175,42 @@ export default function QueuesList() {
                   placeholder="e.g. Walk-ins, VIP Queue, General Consult"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Primary Location (Optional)</label>
+                <select
+                  value={selectedLocationId}
+                  onChange={(e) => setSelectedLocationId(e.target.value)}
+                  className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                >
+                  <option value="">No specific location</option>
+                  {locations.map((loc: any) => (
+                    <option key={loc.id} value={loc.id}>{loc.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Supported Services</label>
+                <div className="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl p-3 max-h-48 overflow-y-auto space-y-2">
+                  {services.length === 0 ? (
+                    <p className="text-sm text-gray-500 p-2">No services found. Create some in Settings first.</p>
+                  ) : (
+                    services.map((service: any) => (
+                      <label key={service.id} className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={selectedServiceIds.includes(service.id)}
+                          onChange={() => handleServiceToggle(service.id)}
+                          className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900"
+                        />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{service.name}</span>
+                        <span className="text-xs text-gray-500 ml-auto">{service.estimatedDuration} mins</span>
+                      </label>
+                    ))
+                  )}
+                </div>
               </div>
 
               <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-white/10">

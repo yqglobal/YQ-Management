@@ -27,6 +27,8 @@ export class QueueService {
     name: string,
     formConfig?: any,
     tokenDisplayConfig?: any,
+    locationId?: string,
+    serviceIds?: string[]
   ) {
     let resolvedWorkspaceId = workspaceId;
     if (workspaceId) {
@@ -50,6 +52,8 @@ export class QueueService {
         status: QueueStatus.ACTIVE,
         formConfig,
         tokenDisplayConfig,
+        locationId,
+        services: serviceIds && serviceIds.length > 0 ? { connect: serviceIds.map(id => ({ id })) } : undefined,
       },
     });
 
@@ -70,11 +74,17 @@ export class QueueService {
       allowAppointments?: boolean;
       requireManualCheckIn?: boolean;
       appointmentGranularityMins?: number;
+      locationId?: string | null;
+      serviceIds?: string[];
     },
   ) {
+    const { serviceIds, ...rest } = data;
     return this.prisma.queue.update({
       where: { id: queueId },
-      data,
+      data: {
+        ...rest,
+        services: serviceIds ? { set: serviceIds.map(id => ({ id })) } : undefined,
+      },
     });
   }
 
@@ -89,6 +99,8 @@ export class QueueService {
       allowAppointments?: boolean;
       requireManualCheckIn?: boolean;
       appointmentGranularityMins?: number;
+      locationId?: string | null;
+      serviceIds?: string[];
     },
   ) {
     const queue = await this.prisma.queue.findFirst({
@@ -99,9 +111,13 @@ export class QueueService {
       throw new NotFoundException('Queue not found');
     }
 
+    const { serviceIds, ...rest } = data;
     return this.prisma.queue.update({
       where: { id: queueId },
-      data,
+      data: {
+        ...rest,
+        services: serviceIds ? { set: serviceIds.map(id => ({ id })) } : undefined,
+      },
     });
   }
 
@@ -118,6 +134,8 @@ export class QueueService {
     return this.prisma.queue.findMany({
       where: { tenantId },
       include: {
+        location: true,
+        services: true,
         _count: {
           select: {
             tokens: {
@@ -205,6 +223,7 @@ export class QueueService {
   async getQueueByIdForTenant(id: string, tenantId: string) {
     const queue = await this.prisma.queue.findFirst({
       where: { id, tenantId },
+      include: { location: true, services: true }
     });
 
     if (!queue) {

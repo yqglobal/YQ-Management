@@ -62,6 +62,11 @@ export class UsersController {
     );
   }
 
+  @Get('me/export')
+  async exportMyData(@Req() req: AuthenticatedRequest) {
+    return this.usersService.exportUserData(req.user.tenantId, req.user.userId);
+  }
+
   @Delete('me')
   async deleteMe(@Req() req: AuthenticatedRequest) {
     return this.usersService.deleteMe(req.user.tenantId, req.user.userId);

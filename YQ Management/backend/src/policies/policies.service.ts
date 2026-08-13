@@ -5,6 +5,14 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PoliciesService {
   constructor(private prisma: PrismaService) {}
 
+  async getAcceptedPolicies(userId: string) {
+    return this.prisma.extendedClient.policyAcceptance.findMany({
+      where: { userId },
+      include: { policy: true },
+      orderBy: { acceptedAt: 'desc' }
+    });
+  }
+
   async acceptPolicy(userId: string, policyType: any, version: string, ipAddress?: string, userAgent?: string) {
     // Upsert or find the policy
     let policy = await this.prisma.extendedClient.policy.findUnique({

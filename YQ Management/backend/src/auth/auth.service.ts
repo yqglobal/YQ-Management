@@ -112,7 +112,8 @@ export class AuthService {
     }
   }
 
-  async login(user: any) {
+  async login(user: any, ip?: string, userAgent?: string) {
+    const jti = require('crypto').randomUUID();
     const payload = {
       email: user.email,
       sub: user.id,
@@ -120,10 +121,27 @@ export class AuthService {
       tenantId: user.tenantId,
       workspaceId: user.workspaceId || user.tenantId,
       personalSettings: user.personalSettings,
-      jti: require('crypto').randomUUID(),
+      jti,
     };
+    const access_token = this.jwtService.sign(payload);
+
+    try {
+      await this.usersService['prisma'].userSession.create({
+        data: {
+          userId: user.id,
+          token: access_token,
+          ipAddress: ip,
+          userAgent: userAgent,
+          deviceInfo: { raw: userAgent },
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        }
+      });
+    } catch (e) {
+      this.logger.error('Failed to create session record', e);
+    }
+
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token,
     };
   }
 

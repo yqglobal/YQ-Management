@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../../components/AdminLayout';
-import { Settings, ArrowLeft, Loader2, ListOrdered, Save, Calendar, CheckSquare, Settings2, ShieldAlert } from 'lucide-react';
+import { Settings, ArrowLeft, Loader2, ListOrdered, Save, Calendar, CheckSquare, Settings2, ShieldAlert, MonitorPlay, Check, X as XIcon, User } from 'lucide-react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
@@ -11,7 +11,8 @@ import { toast } from 'sonner';
 export default function QueueDetails() {
   const router = useRouter();
   const { id } = router.query;
-  const [activeTab, setActiveTab] = useState<'general' | 'token' | 'form' | 'appointments'>('general');
+  const { id } = router.query;
+  const [activeTab, setActiveTab] = useState<'board' | 'general' | 'token' | 'appointments'>('board');
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState<any>({});
@@ -20,6 +21,13 @@ export default function QueueDetails() {
     queryKey: ['queue', id],
     queryFn: () => fetchApi(`/queue/${id}`),
     enabled: !!id,
+  });
+
+  const { data: tokens = [] } = useQuery({
+    queryKey: ['queue', id, 'tokens'],
+    queryFn: () => fetchApi(`/queue/${id}/tokens`),
+    enabled: !!id && activeTab === 'board',
+    refetchInterval: 5000,
   });
 
   useEffect(() => {
@@ -64,6 +72,24 @@ export default function QueueDetails() {
     const newStatus = queue.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
     updateStatusMutation.mutate(newStatus);
   };
+
+  const advanceTurnMutation = useMutation({
+    mutationFn: () => fetchApi(`/queue/${id}/advance`, { method: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] }),
+    onError: () => toast.error('Failed to call next patient')
+  });
+
+  const completeTokenMutation = useMutation({
+    mutationFn: (tokenId: string) => fetchApi(`/queue/tokens/${tokenId}/complete`, { method: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] }),
+    onError: () => toast.error('Failed to complete token')
+  });
+
+  const skipTokenMutation = useMutation({
+    mutationFn: (tokenId: string) => fetchApi(`/queue/tokens/${tokenId}/skip`, { method: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] }),
+    onError: () => toast.error('Failed to skip token')
+  });
 
   if (isLoading) {
     return (
@@ -133,6 +159,12 @@ export default function QueueDetails() {
         {/* Tabs */}
         <div className="flex border-b border-gray-200 dark:border-white/10 gap-6">
           <TabButton 
+            active={activeTab === 'board'} 
+            onClick={() => setActiveTab('board')}
+            icon={<MonitorPlay className="w-4 h-4" />}
+            label="Waitlist Board" 
+          />
+          <TabButton 
             active={activeTab === 'general'} 
             onClick={() => setActiveTab('general')}
             icon={<Settings className="w-4 h-4" />}
@@ -154,6 +186,76 @@ export default function QueueDetails() {
 
         {/* Tab Content */}
         <div className="pt-6">
+          {activeTab === 'board' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center bg-white dark:bg-zinc-900/50 border border-gray-200 dark:border-white/10 rounded-2xl p-6">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Active Waitlist</h2>
+                  <p className="text-gray-500 dark:text-zinc-400 mt-1">{tokens.length} people waiting in queue</p>
+                </div>
+                <button 
+                  onClick={() => advanceTurnMutation.mutate()}
+                  disabled={advanceTurnMutation.isPending || tokens.filter((t: any) => t.status === 'WAITING').length === 0}
+                  className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-colors shadow-lg disabled:opacity-50"
+                >
+                  {advanceTurnMutation.isPending ? 'Calling...' : 'Call Next Patient'}
+                </button>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {tokens.map((token: any) => (
+                  <div key={token.id} className={`bg-white dark:bg-zinc-900/50 border ${token.status === 'SERVING' ? 'border-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.2)]' : 'border-gray-200 dark:border-white/10'} rounded-2xl p-6 relative overflow-hidden`}>
+                    {token.status === 'SERVING' && (
+                      <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500 animate-pulse"></div>
+                    )}
+                    <div className="flex justify-between items-start mb-4">
+                      <span className="text-3xl font-black text-gray-900 dark:text-white">{token.displayId}</span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${token.status === 'SERVING' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>
+                        {token.status}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-gray-700 dark:text-zinc-300">
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{token.customerName}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-zinc-500">
+                        Joined: {new Date(token.joinedAt).toLocaleTimeString()}
+                      </div>
+                    </div>
+                    
+                    {token.status === 'SERVING' && (
+                      <div className="mt-6 flex gap-3 pt-4 border-t border-gray-100 dark:border-white/5">
+                        <button 
+                          onClick={() => completeTokenMutation.mutate(token.id)}
+                          disabled={completeTokenMutation.isPending}
+                          className="flex-1 flex justify-center items-center gap-2 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:text-emerald-400 rounded-lg font-semibold text-sm transition-colors"
+                        >
+                          <Check className="w-4 h-4" />
+                          Complete
+                        </button>
+                        <button 
+                          onClick={() => skipTokenMutation.mutate(token.id)}
+                          disabled={skipTokenMutation.isPending}
+                          className="flex-1 flex justify-center items-center gap-2 py-2 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 rounded-lg font-semibold text-sm transition-colors"
+                        >
+                          <XIcon className="w-4 h-4" />
+                          Skip
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {tokens.length === 0 && (
+                  <div className="col-span-full py-12 text-center text-gray-500 dark:text-zinc-500">
+                    No active tokens in queue.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {activeTab === 'general' && (
             <div className="bg-white dark:bg-zinc-900/50 border border-gray-200 dark:border-white/10 rounded-2xl p-6 space-y-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-white/10 pb-4">General Settings</h2>

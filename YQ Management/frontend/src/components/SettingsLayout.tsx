@@ -29,6 +29,7 @@ export default function SettingsLayout({ children, pageTitle = 'Settings', pageS
       items: [
         { label: 'General', href: '/dashboard/settings/workspace', icon: Briefcase, adminOnly: true },
         { label: 'Staff & Invitations', href: '/dashboard/settings/staff', icon: Users, adminOnly: true },
+        { label: 'Customer Experience', href: '/dashboard/settings/experience', icon: User, adminOnly: true },
         { label: 'Billing & Plans', href: '/dashboard/settings/billing', icon: CreditCard, adminOnly: true },
       ]
     },

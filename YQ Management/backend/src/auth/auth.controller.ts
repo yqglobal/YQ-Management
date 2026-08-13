@@ -9,6 +9,10 @@ import {
   Req,
   Res,
   Logger,
+  Ip,
+  Headers,
+  Delete,
+  Param,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
@@ -31,7 +35,12 @@ export class AuthController {
 
   @UseGuards(ThrottlerGuard)
   @Post('login')
-  async login(@Body() body: any, @Res({ passthrough: true }) res: any) {
+  async login(
+    @Body() body: any,
+    @Res({ passthrough: true }) res: any,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+  ) {
     const user = await this.authService.validateUser(body.email, body.password);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -43,7 +52,7 @@ export class AuthController {
       user.email?.toLowerCase() ===
         process.env.SUPER_ADMIN_EMAIL?.toLowerCase();
     if (isSuperAdmin) {
-      const { access_token } = await this.authService.login(user);
+      const { access_token } = await this.authService.login(user, ip, userAgent);
       res.cookie('token', access_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -78,10 +87,12 @@ export class AuthController {
   async verifyLogin(
     @Body() body: { email: string; otp: string },
     @Res({ passthrough: true }) res: any,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
   ) {
     const user = await this.authService.verifyOTP(body.email, body.otp);
 
-    const { access_token } = await this.authService.login(user);
+    const { access_token } = await this.authService.login(user, ip, userAgent);
 
     res.cookie('token', access_token, {
       httpOnly: true,
@@ -131,6 +142,8 @@ export class AuthController {
   async verifySignup(
     @Body() body: { email: string; otp: string },
     @Res({ passthrough: true }) res: any,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
   ) {
     const user = await this.authService.verifyOTP(body.email, body.otp);
 
@@ -143,7 +156,7 @@ export class AuthController {
         ),
       );
 
-    const { access_token } = await this.authService.login(user);
+    const { access_token } = await this.authService.login(user, ip, userAgent);
 
     res.cookie('token', access_token, {
       httpOnly: true,
@@ -164,8 +177,13 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req: any, @Res() res: any) {
-    const { access_token } = await this.authService.login(req.user);
+  async googleAuthRedirect(
+    @Req() req: any,
+    @Res() res: any,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+  ) {
+    const { access_token } = await this.authService.login(req.user, ip, userAgent);
 
     res.cookie('token', access_token, {
       httpOnly: true,
@@ -196,6 +214,55 @@ export class AuthController {
   @Get('me')
   getProfile(@Req() req: any) {
     return req.user;
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('sessions')
+  async getSessions(@Req() req: any) {
+    const sessions = await this.usersService['prisma'].userSession.findMany({
+      where: { userId: req.user.sub, isRevoked: false },
+      orderBy: { lastActiveAt: 'desc' }
+    });
+    
+    // We don't want to expose the raw JWT tokens to the frontend
+    return sessions.map(s => ({
+      id: s.id,
+      ipAddress: s.ipAddress,
+      userAgent: s.userAgent,
+      deviceInfo: s.deviceInfo,
+      lastActiveAt: s.lastActiveAt,
+      isCurrentSession: req.cookies?.token === s.token || req.headers.authorization?.includes(s.token)
+    }));
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('sessions/:id')
+  async revokeSession(@Req() req: any, @Param('id') id: string) {
+    const session = await this.usersService['prisma'].userSession.findUnique({
+      where: { id }
+    });
+    if (!session || session.userId !== req.user.sub) {
+      throw new UnauthorizedException('Session not found');
+    }
+    await this.usersService['prisma'].userSession.update({
+      where: { id },
+      data: { isRevoked: true }
+    });
+    
+    // Attempt to parse token for jti to blocklist it
+    try {
+      const decoded = this.authService['jwtService'].decode(session.token) as any;
+      if (decoded?.jti) {
+         await this.redisService.client.set(
+          `blocklist:${decoded.jti}`,
+          '1',
+          'EX',
+          7 * 24 * 60 * 60,
+        );
+      }
+    } catch(e) {}
+    
+    return { success: true };
   }
 
   @UseGuards(AuthGuard('jwt'))

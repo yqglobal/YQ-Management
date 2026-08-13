@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards, Ip, Headers } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, Ip, Headers, Get } from '@nestjs/common';
 import { PoliciesService } from './policies.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
@@ -7,6 +7,12 @@ import type { AuthenticatedRequest } from '../auth/types/auth.types';
 @Controller('policies')
 export class PoliciesController {
   constructor(private readonly policiesService: PoliciesService) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Get('accepted')
+  async getAcceptedPolicies(@Req() req: AuthenticatedRequest) {
+    return this.policiesService.getAcceptedPolicies(req.user.userId);
+  }
 
   @UseGuards(JwtAuthGuard)
   @Post('accept')

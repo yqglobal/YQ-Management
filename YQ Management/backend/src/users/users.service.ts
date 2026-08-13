@@ -478,6 +478,18 @@ export class UsersService {
     return { workspace: updatedWorkspace, newOwner: updatedUser };
   }
 
+  async exportUserData(tenantId: string, userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId, tenantId },
+      include: {
+        policyAcceptances: { include: { policy: true } },
+        cookiePreferences: true,
+        sessions: { select: { ipAddress: true, userAgent: true, lastActiveAt: true, deviceInfo: true } },
+      }
+    });
+    return user;
+  }
+
   async deleteMe(tenantId: string, userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId, tenantId },

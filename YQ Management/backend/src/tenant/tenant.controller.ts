@@ -44,13 +44,19 @@ export class TenantController {
     return this.tenantService.exportData(req.user.tenantId);
   }
 
+  @Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.ADMIN)
+  @Get('me')
+  async getMyTenant(@Req() req: AuthenticatedRequest) {
+    return this.tenantService.getTenantById(req.user.tenantId);
+  }
+
   @Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
   @Patch(':id')
   @UseGuards(WorkspaceGuard)
   async updateTenant(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { name?: string; branding?: any },
+    @Body() body: { name?: string; branding?: any; customerExperience?: any },
   ) {
     return this.tenantService.updateTenant(id, body);
   }
