@@ -8,26 +8,18 @@ import {
   Smartphone, 
   MessageSquare, 
   Clock, 
-  TrendingUp, 
   CheckCircle2, 
   User,
   CalendarDays,
   ShieldCheck,
-  Zap
+  Zap,
+  Building2,
+  Stethoscope,
+  ShoppingBag,
+  Tv
 } from 'lucide-react';
-import { Geist, Geist_Mono } from "next/font/google";
 import { useAuth } from '../components/AuthContext';
 import { fetchApi } from '../lib/api';
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 // Animation variants
 const fadeInUp: any = {
@@ -57,10 +49,10 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <MarketingLayout title="Qmova | Intelligent Visit Management Platform">
+    <MarketingLayout title="Qmova | Manage Queues & Appointments Effortlessly">
 
       {/* Hero Section */}
-      <section className="relative pt-40 pb-20 md:pt-52 md:pb-32 px-6">
+      <section className="relative pt-40 pb-20 md:pt-52 md:pb-32 px-6 overflow-hidden">
         {/* Animated Background Blobs */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-[500px] opacity-30 pointer-events-none">
           <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-screen filter blur-3xl opacity-70 animate-blob"></div>
@@ -74,38 +66,76 @@ export default function LandingPage() {
           animate="visible"
           variants={staggerContainer}
         >
-          <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-sm font-medium text-zinc-300 mb-8">
+          <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-sm font-medium text-zinc-300 mb-8">
             <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-            Visit-Centric Architecture Live
+            Elevate Your Customer Experience
           </motion.div>
-          <motion.h1 variants={fadeInUp} className="text-5xl md:text-7xl font-bold tracking-tight mb-8 leading-[1.1]">
-            Intelligent Operations.<br />
+          
+          <motion.h1 variants={fadeInUp} className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1] text-white">
+            Say Goodbye to <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
-              Seamless Visits.
+              Crowded Waiting Rooms.
             </span>
           </motion.h1>
-          <motion.p variants={fadeInUp} className="text-xl text-zinc-400 mb-12 max-w-2xl mx-auto leading-relaxed">
-            The premium people management platform that bridges physical locations with digital experiences. Unify walk-ins and appointments into one frictionless lifecycle.
+          
+          <motion.p variants={fadeInUp} className="text-xl text-zinc-400 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
+            Manage walk-ins and appointments in one place. Keep your customers updated via WhatsApp, organize your staff, and deliver a premium experience from arrival to departure.
           </motion.p>
+          
           <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link 
               href="/register" 
-              className="flex items-center gap-2 px-8 py-4 rounded-full bg-white text-black text-lg font-medium hover:scale-105 transition-transform"
+              className="flex items-center justify-center gap-2 px-8 py-4 w-full sm:w-auto rounded-full bg-white text-black text-lg font-medium hover:scale-105 transition-transform"
             >
-              Get Started Now
+              Start Free Trial
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link 
-              href="/dashboard" 
-              className="flex items-center gap-2 px-8 py-4 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white text-lg font-medium transition-colors backdrop-blur-sm"
+              href="/book-demo" 
+              className="flex items-center justify-center gap-2 px-8 py-4 w-full sm:w-auto rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white text-lg font-medium transition-colors backdrop-blur-sm"
             >
-              View Admin Dashboard
+              Book a Demo
             </Link>
           </motion.div>
         </motion.div>
       </section>
 
-      {/* How it works */}
+      {/* Target Audience Section */}
+      <section className="py-16 px-6 relative border-t border-white/5 bg-black/40">
+        <motion.div 
+          className="max-w-7xl mx-auto"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={staggerContainer}
+        >
+          <div className="text-center mb-12">
+            <p className="text-sm font-semibold text-zinc-500 uppercase tracking-widest">Built for modern businesses</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <motion.div variants={fadeInUp} className="flex flex-col items-center text-center p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors">
+              <Stethoscope className="w-10 h-10 text-indigo-400 mb-4" />
+              <h3 className="text-lg font-bold text-white mb-2">Clinics & Healthcare</h3>
+              <p className="text-zinc-400 text-sm">Respect patient privacy and reduce waiting room anxiety with private digital queues.</p>
+            </motion.div>
+            
+            <motion.div variants={fadeInUp} className="flex flex-col items-center text-center p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors">
+              <ShoppingBag className="w-10 h-10 text-purple-400 mb-4" />
+              <h3 className="text-lg font-bold text-white mb-2">Retail & Salons</h3>
+              <p className="text-zinc-400 text-sm">Let customers shop around or relax instead of standing in frustrating lines.</p>
+            </motion.div>
+            
+            <motion.div variants={fadeInUp} className="flex flex-col items-center text-center p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors">
+              <Building2 className="w-10 h-10 text-pink-400 mb-4" />
+              <h3 className="text-lg font-bold text-white mb-2">Offices & Government</h3>
+              <p className="text-zinc-400 text-sm">Streamline front-desk operations, reduce complaints, and serve visitors efficiently.</p>
+            </motion.div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* The Customer Journey */}
       <section id="how-it-works" className="py-24 bg-zinc-950 px-6 relative border-y border-white/5">
         <motion.div 
           className="max-w-7xl mx-auto"
@@ -115,26 +145,26 @@ export default function LandingPage() {
           variants={staggerContainer}
         >
           <motion.div variants={fadeInUp} className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">The Complete Visit Lifecycle</h2>
-            <p className="text-zinc-400">Three simple steps to manage your customers from arrival to departure.</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">The Perfect Customer Journey</h2>
+            <p className="text-zinc-400 text-lg max-w-2xl mx-auto">Three simple steps to give your customers the modern, stress-free experience they expect.</p>
           </motion.div>
           
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
                 icon: <CalendarDays className="w-8 h-8 text-indigo-400" />,
-                title: "1. Pre-Book or Walk-In",
-                desc: "Customers seamlessly book an appointment online or walk in and scan a QR code. Both flow into a single, unified operations board."
+                title: "1. Join the Queue",
+                desc: "Customers easily book ahead online or scan a QR code at your door to join a virtual queue—no physical waiting required."
               },
               {
                 icon: <Smartphone className="w-8 h-8 text-purple-400" />,
-                title: "2. Real-Time Tracking",
-                desc: "Customers receive a digital status card tracking their visit, staff assignment, and dynamic wait-time ETAs."
+                title: "2. Real-Time Updates",
+                desc: "Customers can relax anywhere. They receive a live digital ticket and WhatsApp notifications letting them know exactly when it's their turn."
               },
               {
                 icon: <MessageSquare className="w-8 h-8 text-pink-400" />,
-                title: "3. Service Delivery",
-                desc: "Staff are instantly notified when visitors arrive. Customers receive WhatsApp alerts the moment they are called."
+                title: "3. Smooth Service",
+                desc: "Your staff calls the next customer with a single click. The customer walks right in, resulting in zero friction and a five-star experience."
               }
             ].map((step, i) => (
               <motion.div 
@@ -146,7 +176,7 @@ export default function LandingPage() {
                 <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   {step.icon}
                 </div>
-                <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
+                <h3 className="text-xl font-semibold mb-3 text-white">{step.title}</h3>
                 <p className="text-zinc-400 leading-relaxed">{step.desc}</p>
               </motion.div>
             ))}
@@ -154,7 +184,7 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* Features Bento Grid */}
+      {/* Why Businesses Choose Qmova */}
       <section id="features" className="py-32 px-6">
         <motion.div 
           className="max-w-7xl mx-auto"
@@ -163,9 +193,9 @@ export default function LandingPage() {
           viewport={{ once: true, margin: "-100px" }}
           variants={staggerContainer}
         >
-          <motion.div variants={fadeInUp} className="mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">Enterprise-Grade Operations.</h2>
-            <p className="text-xl text-zinc-400 max-w-2xl">A complete suite designed to handle staff, locations, services, and visits with uncompromising security.</p>
+          <motion.div variants={fadeInUp} className="mb-16 text-center md:text-left">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight text-white">Why Businesses Choose Qmova.</h2>
+            <p className="text-xl text-zinc-400 max-w-2xl">A complete, easy-to-use platform designed to handle your staff, locations, services, and visits so you can focus on growing your business.</p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[280px]">
@@ -173,10 +203,10 @@ export default function LandingPage() {
             <motion.div variants={fadeInUp} className="md:col-span-2 rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 to-black p-8 relative overflow-hidden group">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-indigo-900/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <div className="relative z-10 h-full flex flex-col justify-between">
-                <Zap className="w-10 h-10 text-zinc-300" />
+                <Tv className="w-10 h-10 text-zinc-300" />
                 <div>
-                  <h3 className="text-2xl font-bold mb-2">Real-Time WebSockets</h3>
-                  <p className="text-zinc-400">No more polling. Our backend utilizes high-performance WebSockets to instantly push state changes to admin dashboards and digital signage screens.</p>
+                  <h3 className="text-2xl font-bold mb-2 text-white">Live TV & Digital Signage</h3>
+                  <p className="text-zinc-400">Turn any smart TV or tablet into a beautiful, real-time waiting list that calls out names and guides customers to the right counter instantly.</p>
                 </div>
               </div>
             </motion.div>
@@ -185,10 +215,10 @@ export default function LandingPage() {
             <motion.div variants={fadeInUp} className="rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 to-black p-8 relative overflow-hidden group">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <div className="relative z-10 h-full flex flex-col justify-between">
-                <Clock className="w-10 h-10 text-zinc-300" />
+                <User className="w-10 h-10 text-zinc-300" />
                 <div>
-                  <h3 className="text-2xl font-bold mb-2">Conflict-Free Scheduling</h3>
-                  <p className="text-zinc-400">Strict guards ensure appointments never overlap, maximizing staff utilization.</p>
+                  <h3 className="text-2xl font-bold mb-2 text-white">Smart Staff Organization</h3>
+                  <p className="text-zinc-400">Automatically route customers to the right staff member based on the service they need, preventing bottlenecks.</p>
                 </div>
               </div>
             </motion.div>
@@ -199,8 +229,8 @@ export default function LandingPage() {
               <div className="relative z-10 h-full flex flex-col justify-between">
                 <ShieldCheck className="w-10 h-10 text-zinc-300" />
                 <div>
-                  <h3 className="text-2xl font-bold mb-2">Strict Tenant Isolation</h3>
-                  <p className="text-zinc-400">Repository-level security interceptors guarantee your data is completely isolated.</p>
+                  <h3 className="text-2xl font-bold mb-2 text-white">Enterprise-Grade Privacy</h3>
+                  <p className="text-zinc-400">Your customer data is strictly isolated and protected, ensuring full compliance with privacy laws like POPIA and GDPR.</p>
                 </div>
               </div>
             </motion.div>
@@ -209,10 +239,10 @@ export default function LandingPage() {
             <motion.div variants={fadeInUp} className="md:col-span-2 rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 to-black p-8 relative overflow-hidden group">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <div className="relative z-10 h-full flex flex-col justify-between">
-                <TrendingUp className="w-10 h-10 text-zinc-300" />
+                <Clock className="w-10 h-10 text-zinc-300" />
                 <div>
-                  <h3 className="text-2xl font-bold mb-2">AI-Powered Wait Times & Caching</h3>
-                  <p className="text-zinc-400">Our engine calculates real-time throughput based on staff completion rates. Public endpoints are heavily cached via Redis for instant load times.</p>
+                  <h3 className="text-2xl font-bold mb-2 text-white">Accurate Wait Time Estimates</h3>
+                  <p className="text-zinc-400">Give your customers the gift of time. Our system calculates live estimated wait times so your visitors know exactly how long they have.</p>
                 </div>
               </div>
             </motion.div>
@@ -230,8 +260,8 @@ export default function LandingPage() {
           variants={staggerContainer}
         >
           <motion.div variants={fadeInUp} className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">Simple, transparent pricing</h2>
-            <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-10">Scale your locations and staff effortlessly. Upgrade or downgrade at any time.</p>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight text-white">Simple, transparent pricing</h2>
+            <p className="text-xl text-zinc-400 max-w-2xl mx-auto mb-10">Scale your locations and staff effortlessly. Upgrade or downgrade at any time as your business grows.</p>
             
             <div className="inline-flex items-center p-1 bg-white/5 rounded-full border border-white/10 backdrop-blur-sm">
               <button 
@@ -269,10 +299,10 @@ export default function LandingPage() {
                       Most Popular
                     </div>
                   )}
-                  <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                  <h3 className="text-2xl font-bold mb-2 text-white">{plan.name}</h3>
                   <p className="text-zinc-400 text-sm mb-6 h-10">{plan.description}</p>
                   <div className="mb-8">
-                    <span className="text-5xl font-black">{plan.currency === 'ZAR' ? 'R' : '$'}{price}</span>
+                    <span className="text-5xl font-black text-white">{plan.currency === 'ZAR' ? 'R' : '$'}{price}</span>
                     <span className="text-zinc-500 ml-2">/{billingInterval === 'yearly' ? 'year' : 'month'}</span>
                   </div>
                   
@@ -287,28 +317,28 @@ export default function LandingPage() {
                     <p className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-4">What's included:</p>
                     <div className="flex items-start gap-3">
                       <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-                      <span className="text-zinc-300 text-sm">Up to {plan.limits?.maxLocations || (index + 1) * 2} Locations</span>
+                      <span className="text-zinc-300 text-sm">Up to {plan.limits?.maxLocations || (index + 1) * 2} Physical Locations</span>
                     </div>
                     <div className="flex items-start gap-3">
                       <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-                      <span className="text-zinc-300 text-sm">Up to {plan.limits?.maxDailyVisits || (index + 1) * 500} Daily Visits</span>
+                      <span className="text-zinc-300 text-sm">Up to {plan.limits?.maxDailyVisits || (index + 1) * 500} Customers per day</span>
                     </div>
                     {plan.features?.whatsappNotifications && (
                       <div className="flex items-start gap-3">
                         <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-                        <span className="text-zinc-300 text-sm">WhatsApp Notifications</span>
+                        <span className="text-zinc-300 text-sm">Automated WhatsApp Alerts</span>
                       </div>
                     )}
                     {plan.features?.textToSpeech && (
                       <div className="flex items-start gap-3">
                         <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-                        <span className="text-zinc-300 text-sm">Digital Signage Integration</span>
+                        <span className="text-zinc-300 text-sm">TV Display & Voice Calling</span>
                       </div>
                     )}
                     {plan.features?.customBranding && (
                       <div className="flex items-start gap-3">
                         <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-                        <span className="text-zinc-300 text-sm">Custom Branding & Logo</span>
+                        <span className="text-zinc-300 text-sm">Add your own Business Logo</span>
                       </div>
                     )}
                   </div>
@@ -335,8 +365,8 @@ export default function LandingPage() {
           variants={fadeInUp}
           className="max-w-4xl mx-auto text-center relative z-10"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-8">Ready to elevate your customer experience?</h2>
-          <p className="text-xl text-zinc-300 mb-10 max-w-2xl mx-auto">Join modern businesses using Qmova to manage physical footfall with digital precision.</p>
+          <h2 className="text-4xl md:text-5xl font-bold mb-8 text-white">Ready to elevate your customer experience?</h2>
+          <p className="text-xl text-zinc-300 mb-10 max-w-2xl mx-auto">Join modern businesses using Qmova to manage physical footfall with digital precision and delight their customers.</p>
           <Link 
             href="/register" 
             className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white text-black text-lg font-medium hover:scale-105 transition-transform shadow-xl shadow-white/10"
