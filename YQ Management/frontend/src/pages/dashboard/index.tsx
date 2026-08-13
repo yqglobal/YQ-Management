@@ -12,6 +12,8 @@ import { fetchApi } from '../../lib/api';
 import { useRouter } from 'next/router';
 import { VisitDrawer } from '../../components/VisitDrawer';
 import { CreateVisitModal } from '../../components/modals/CreateVisitModal';
+import { WelcomeModal } from '../../components/modals/WelcomeModal';
+import { useEffect } from 'react';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -19,6 +21,17 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'ALL' | 'WAITING' | 'IN_SERVICE'>('ALL');
   const [selectedVisit, setSelectedVisit] = useState<any | null>(null);
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
+  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hasSeenIntro = localStorage.getItem('hasSeenIntro');
+      if (!hasSeenIntro) {
+        setIsWelcomeModalOpen(true);
+        localStorage.setItem('hasSeenIntro', 'true');
+      }
+    }
+  }, []);
 
   // Fetch Visits instead of Queues
   const { data: visits = [], isLoading: isVisitsLoading } = useQuery({
@@ -260,6 +273,11 @@ export default function Dashboard() {
       <CreateVisitModal 
         isOpen={isVisitModalOpen} 
         onClose={() => setIsVisitModalOpen(false)} 
+      />
+      
+      <WelcomeModal 
+        isOpen={isWelcomeModalOpen} 
+        onClose={() => setIsWelcomeModalOpen(false)} 
       />
     </AdminLayout>
   );

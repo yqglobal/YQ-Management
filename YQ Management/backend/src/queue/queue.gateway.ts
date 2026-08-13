@@ -8,7 +8,8 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleInit } from '@nestjs/common';
+import { RedisService } from '../redis/redis.service';
 
 @WebSocketGateway({
   cors: {
@@ -16,9 +17,39 @@ import { Logger } from '@nestjs/common';
     credentials: true,
   },
 })
-export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger(QueueGateway.name);
+
+  constructor(private readonly redisService: RedisService) {}
+
+  onModuleInit() {
+    this.redisService.subscriber.subscribe('queue_events', (err, count) => {
+      if (err) {
+        this.logger.error('Failed to subscribe to queue_events channel', err);
+      } else {
+        this.logger.log(`Subscribed to queue_events channel (${count})`);
+      }
+    });
+
+    this.redisService.subscriber.on('message', (channel, message) => {
+      if (channel === 'queue_events') {
+        try {
+          const payload = JSON.parse(message);
+          const { type, queueId, tenantId, ...data } = payload;
+          
+          if (queueId) {
+            this.broadcastQueueUpdate(queueId, type, data);
+          }
+          if (tenantId) {
+            this.broadcastTenantUpdate(tenantId, type, data);
+          }
+        } catch (error) {
+          this.logger.error('Failed to parse queue_events message', error);
+        }
+      }
+    });
+  }
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);

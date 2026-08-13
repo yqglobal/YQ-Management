@@ -129,6 +129,11 @@ export default function Onboarding() {
   const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
   const [countryCode, setCountryCode] = useState('+27');
+  
+  // New Step 2 State
+  const [locationName, setLocationName] = useState('Main Branch');
+  const [enableWaitlist, setEnableWaitlist] = useState(true);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
 
   // Invitation State
   const [inviteCode, setInviteCode] = useState<string | null>(null);
@@ -178,10 +183,20 @@ export default function Onboarding() {
           if (parsed.companyName) setCompanyName(parsed.companyName);
           if (parsed.phone) setPhone(parsed.phone);
           if (parsed.selectedType) setSelectedType(parsed.selectedType);
+          if (parsed.locationName) setLocationName(parsed.locationName);
+          if (parsed.enableWaitlist !== undefined) setEnableWaitlist(parsed.enableWaitlist);
         } catch (e) { }
       }
     }
   }, [router.query]);
+
+  // When selectedType changes, update selectedServices
+  useEffect(() => {
+    const template = BUSINESS_TEMPLATES.find(t => t.id === selectedType);
+    if (template) {
+      setSelectedServices(template.services.map(s => s.name));
+    }
+  }, [selectedType]);
 
   useEffect(() => {
     if (inviteCode && (step === 2 || step === 3)) {
@@ -191,9 +206,9 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('onboarding_form_data', JSON.stringify({ fullName, companyName, phone, selectedType }));
+      localStorage.setItem('onboarding_form_data', JSON.stringify({ fullName, companyName, phone, selectedType, locationName, enableWaitlist }));
     }
-  }, [fullName, companyName, phone, selectedType]);
+  }, [fullName, companyName, phone, selectedType, locationName, enableWaitlist]);
 
   const savePersonalInfoMutation = useMutation({
     mutationFn: () => {
@@ -244,13 +259,14 @@ export default function Onboarding() {
 
   const setupQueuesMutation = useMutation({
     mutationFn: async (template: typeof BUSINESS_TEMPLATES[number]) => {
-      // 1. Create Default Location
+      // 1. Create Location
       const location = await fetchApi('/location', {
         method: 'POST',
-        body: JSON.stringify({ name: 'Main Branch' }),
+        body: JSON.stringify({ name: locationName }),
       });
       // 2. Create Services under that location
-      await Promise.all(template.services.map(s =>
+      const servicesToCreate = template.services.filter(s => selectedServices.includes(s.name));
+      await Promise.all(servicesToCreate.map(s =>
         fetchApi('/service', {
           method: 'POST',
           body: JSON.stringify({ 
@@ -260,6 +276,20 @@ export default function Onboarding() {
           }),
         })
       ));
+      
+      // 3. Save Waitlist preference to Tenant
+      const tenant = await fetchApi('/tenant/me').catch(() => null);
+      if (tenant) {
+        await fetchApi(`/tenant/${tenant.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+             customerExperience: {
+               ...(tenant.customerExperience || {}),
+               enableWaitlist
+             }
+          })
+        }).catch(() => null);
+      }
     },
     onSuccess: () => {
       updateStep(3);
@@ -481,7 +511,7 @@ export default function Onboarding() {
                 transition={{ duration: 0.3 }}
               >
 
-              <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="grid grid-cols-2 gap-4 mb-6">
                 {BUSINESS_TEMPLATES.map((template) => {
                   const Icon = template.icon;
                   const isSelected = selectedType === template.id;
@@ -504,21 +534,61 @@ export default function Onboarding() {
                       </div>
                       <h3 className="text-lg font-bold text-gray-900 mb-1">{template.title}</h3>
                       <p className="text-sm text-gray-500">{template.description}</p>
-
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Includes</p>
-                        <ul className="text-sm text-gray-600 space-y-1">
-                          {template.services.map(s => (
-                            <li key={s.name} className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                              {s.name}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
                     </div>
                   );
                 })}
+              </div>
+              
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-8 space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Primary Location Name</label>
+                  <input
+                    type="text"
+                    value={locationName}
+                    onChange={(e) => setLocationName(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    placeholder="e.g. Downtown Clinic or Main Branch"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">You can add more locations later from the dashboard.</p>
+                </div>
+                
+                <div>
+                  <label className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={enableWaitlist} 
+                      onChange={(e) => setEnableWaitlist(e.target.checked)}
+                      className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" 
+                    />
+                    <div>
+                      <p className="font-bold text-gray-900">Enable Walk-in Waitlist</p>
+                      <p className="text-sm text-gray-500">Uncheck this if your business only operates by appointment.</p>
+                    </div>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Which services do you offer?</label>
+                  <div className="space-y-2">
+                    {BUSINESS_TEMPLATES.find(t => t.id === selectedType)?.services.map(s => (
+                      <label key={s.name} className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg cursor-pointer transition-colors">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedServices.includes(s.name)} 
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedServices([...selectedServices, s.name]);
+                            } else {
+                              setSelectedServices(selectedServices.filter(name => name !== s.name));
+                            }
+                          }}
+                          className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" 
+                        />
+                        <span className="font-medium text-gray-700">{s.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-4">

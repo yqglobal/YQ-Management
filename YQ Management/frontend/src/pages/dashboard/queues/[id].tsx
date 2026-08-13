@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 export default function QueueDetails() {
   const router = useRouter();
   const { id } = router.query;
-  const { id } = router.query;
   const [activeTab, setActiveTab] = useState<'board' | 'general' | 'token' | 'appointments'>('board');
   const queryClient = useQueryClient();
 
@@ -90,6 +89,26 @@ export default function QueueDetails() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] }),
     onError: () => toast.error('Failed to skip token')
   });
+
+  const transferTokenMutation = useMutation({
+    mutationFn: ({ tokenId, nextQueueId }: { tokenId: string, nextQueueId: string }) => 
+      fetchApi(`/token/${tokenId}/transfer`, { 
+        method: 'POST',
+        body: JSON.stringify({ nextQueueId })
+      }),
+    onSuccess: () => {
+      toast.success('Patient transferred successfully');
+      queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] });
+      setTransferTokenId(null);
+    },
+    onError: () => toast.error('Failed to transfer token')
+  });
+
+  const { data: allQueues } = useQuery({
+    queryKey: ['queues'], 
+    queryFn: () => fetchApi('/queue')
+  });
+  const [transferTokenId, setTransferTokenId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -242,6 +261,42 @@ export default function QueueDetails() {
                           <XIcon className="w-4 h-4" />
                           Skip
                         </button>
+                      </div>
+                    )}
+                    
+                    {token.status === 'SERVING' && (
+                      <div className="mt-3">
+                        {transferTokenId === token.id ? (
+                          <div className="flex gap-2">
+                            <select 
+                              className="flex-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-lg px-2 text-sm text-gray-700 dark:text-white"
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  transferTokenMutation.mutate({ tokenId: token.id, nextQueueId: e.target.value });
+                                }
+                              }}
+                              defaultValue=""
+                            >
+                              <option value="" disabled>Select Queue</option>
+                              {allQueues?.filter((q: any) => q.id !== queue.id).map((q: any) => (
+                                <option key={q.id} value={q.id}>{q.name}</option>
+                              ))}
+                            </select>
+                            <button 
+                              onClick={() => setTransferTokenId(null)}
+                              className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-400 rounded-lg text-sm"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setTransferTokenId(token.id)}
+                            className="w-full flex justify-center items-center gap-2 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400 rounded-lg font-semibold text-sm transition-colors"
+                          >
+                            Transfer to Another Queue
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

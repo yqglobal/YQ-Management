@@ -205,12 +205,24 @@ export class TokenService {
           },
         );
       } else {
+        // Fetch actual position in line
+        const position = await this.prisma.token.count({
+          where: {
+            queueId: token.queueId,
+            status: TokenStatus.WAITING,
+            joinedAt: { lte: token.joinedAt },
+          },
+        });
+        
+        const eta = await this.calculateETA(token.queueId, position);
+        
         message = await this.templateService.renderWhatsAppForWorkspace(
           queue?.workspaceId || null,
           'queue_joined',
           {
             name: customerName,
-            position: '1', // ETA and actual position can be fetched, simplified here
+            position: position.toString(),
+            eta: eta,
             link: `${process.env.APP_URL || 'http://localhost:3001'}/customer/status/${token.id}`,
           },
         );
@@ -337,8 +349,8 @@ export class TokenService {
     return nextToken;
   }
 
-  async completeToken(tokenId: string, tenantId: string) {
-    return this.queueService.completeToken(tokenId, tenantId);
+  async completeToken(tokenId: string, tenantId: string, operatorId?: string) {
+    return this.queueService.completeToken(tokenId, tenantId, operatorId);
   }
 
   async getTokenStatus(tokenId: string) {
@@ -554,6 +566,41 @@ export class TokenService {
     }
 
     return updatedToken;
+  }
+
+  async calculateETA(queueId: string, position: number): Promise<string> {
+    if (position <= 1) return 'less than 5 mins';
+
+    // Get last 10 completed tokens
+    const lastCompleted = await this.prisma.token.findMany({
+      where: { 
+        queueId, 
+        status: TokenStatus.COMPLETED,
+        servedAt: { not: null },
+        completedAt: { not: null }
+      },
+      orderBy: { completedAt: 'desc' },
+      take: 10,
+    });
+
+    let avgProcessingMins = 5; // Default fallback
+
+    if (lastCompleted.length > 0) {
+      let totalMs = 0;
+      lastCompleted.forEach(t => {
+        totalMs += t.completedAt!.getTime() - t.servedAt!.getTime();
+      });
+      avgProcessingMins = Math.max(1, Math.round(totalMs / lastCompleted.length / 60000));
+    }
+
+    const totalEtaMins = avgProcessingMins * position;
+    if (totalEtaMins < 60) {
+      return `approx ${totalEtaMins} mins`;
+    } else {
+      const hours = Math.floor(totalEtaMins / 60);
+      const mins = totalEtaMins % 60;
+      return `approx ${hours}h ${mins}m`;
+    }
   }
 
   async checkIn(tokenId: string, tenantId?: string) {

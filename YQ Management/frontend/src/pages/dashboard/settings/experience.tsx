@@ -17,6 +17,31 @@ interface FormField {
   options?: string[];
 }
 
+const PRESET_TEMPLATES = [
+  {
+    name: 'Hospital / Clinic',
+    fields: [
+      { id: 't_symptoms', type: 'textarea', label: 'Primary Symptoms', required: true },
+      { id: 't_fever', type: 'dropdown', label: 'Do you have a fever?', required: true, options: ['Yes', 'No'] },
+      { id: 't_travel', type: 'dropdown', label: 'Have you traveled recently?', required: false, options: ['Yes', 'No'] }
+    ]
+  },
+  {
+    name: 'Restaurant / Dining',
+    fields: [
+      { id: 't_party', type: 'dropdown', label: 'Party Size', required: true, options: ['1-2', '3-4', '5-6', '7+'] },
+      { id: 't_seating', type: 'dropdown', label: 'Seating Preference', required: false, options: ['Indoor', 'Outdoor', 'Any'] },
+      { id: 't_allergies', type: 'textarea', label: 'Any allergies?', required: false }
+    ]
+  },
+  {
+    name: 'General Queue',
+    fields: [
+      { id: 't_purpose', type: 'text', label: 'Purpose of Visit', required: true }
+    ]
+  }
+];
+
 export default function CustomerExperienceSettings() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'portal' | 'intake' | 'feedback'>('portal');
@@ -108,9 +133,28 @@ export default function CustomerExperienceSettings() {
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h2>
               <p className="text-sm text-gray-500 dark:text-zinc-500">{description}</p>
             </div>
-            <Button onClick={() => handleAddField(path)} variant="outline" className="flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Add Question
-            </Button>
+            <div className="flex gap-2">
+              {path === 'globalIntakeForm' && (
+                <select 
+                  onChange={(e) => {
+                    const t = PRESET_TEMPLATES.find(t => t.name === e.target.value);
+                    if (t) {
+                      setConfig((prev: any) => ({ ...prev, globalIntakeForm: t.fields }));
+                    }
+                    e.target.value = "";
+                  }}
+                  className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 outline-none hover:bg-gray-100 transition-colors"
+                >
+                  <option value="">Load Template...</option>
+                  {PRESET_TEMPLATES.map(t => (
+                    <option key={t.name} value={t.name}>{t.name}</option>
+                  ))}
+                </select>
+              )}
+              <Button onClick={() => handleAddField(path)} variant="outline" className="flex items-center gap-2">
+                <Plus className="w-4 h-4" /> Add Question
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-4">

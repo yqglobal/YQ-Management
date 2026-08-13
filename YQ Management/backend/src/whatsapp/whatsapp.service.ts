@@ -1387,11 +1387,11 @@ export class WhatsappService implements OnModuleInit {
           }
         }
 
-        await this.sendMessage(
-          instanceName,
-          jid,
-          "You don't have any active queues at the moment. Please scan a QR code to join a queue.",
-        );
+        const fallbackGreeting = "You don't have any active queues at the moment. Please scan a QR code to join a queue.";
+        const config = tenant.chatbotConfig as any;
+        const greeting = config?.welcomeMessage || fallbackGreeting;
+
+        await this.sendMessage(instanceName, jid, greeting);
         return { handled: true, action: 'greeting' };
       }
 
@@ -1425,7 +1425,7 @@ export class WhatsappService implements OnModuleInit {
       };
       const t = i18n[lang as keyof typeof i18n] || i18n.en;
 
-      if (text === 'STATUS' || text === t.btnStatus.toUpperCase()) {
+      if ((config?.quickReplies?.status !== false) && (text === 'STATUS' || text === t.btnStatus.toUpperCase())) {
         const position = await this.prisma.token.count({
           where: {
             queueId: activeToken.queueId,
@@ -1439,7 +1439,7 @@ export class WhatsappService implements OnModuleInit {
           .replace('{queueName}', activeToken.queue.name);
         await this.sendMessage(instanceName, jid, responseText);
         return { handled: true, action: 'status' };
-      } else if (text === 'CANCEL' || text === t.btnCancel.toUpperCase()) {
+      } else if ((config?.quickReplies?.cancel !== false) && (text === 'CANCEL' || text === t.btnCancel.toUpperCase())) {
         await this.prisma.token.update({
           where: { id: activeToken.id },
           data: { status: 'MISSED' },

@@ -442,7 +442,7 @@ export class QueueService {
     return token;
   }
 
-  async completeToken(tokenId: string, tenantId?: string) {
+  async completeToken(tokenId: string, tenantId?: string, operatorId?: string) {
     const token = await this.prisma.token.findUnique({
       where: { id: tokenId },
       include: { queue: true },
@@ -458,6 +458,7 @@ export class QueueService {
       data: {
         status: TokenStatus.COMPLETED,
         completedAt: new Date(),
+        operatorId: operatorId || undefined,
       },
     });
 

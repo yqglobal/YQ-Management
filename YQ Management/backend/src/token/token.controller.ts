@@ -82,7 +82,7 @@ export class TokenController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.tokenService.completeToken(id, req.user.tenantId);
+    return this.tokenService.completeToken(id, req.user.tenantId, req.user.userId);
   }
 
   @UseGuards(ThrottlerGuard, AuthGuard('jwt'), WorkspaceGuard)

@@ -149,6 +149,7 @@ model User {
   policyAcceptances PolicyAcceptance[]
   cookiePreferences CookiePreference[]
   sessions          UserSession[]
+  tokens            Token[]
 
   @@index([tenantId])
   @@index([workspaceId])
@@ -247,6 +248,9 @@ model Token {
 
   queue    Queue     @relation(fields: [queueId], references: [id], onDelete: Cascade)
   messages Message[]
+
+  operatorId String?
+  operator   User?   @relation(fields: [operatorId], references: [id])
 
   @@index([queueId, status])
   @@index([queueId, joinedAt])

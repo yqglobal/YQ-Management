@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import AdminLayout from './AdminLayout';
-import { User, Briefcase, Users, CreditCard, Webhook, MessageSquare, Shield, Lock, FileText } from 'lucide-react';
+import { User, Briefcase, Users, CreditCard, Webhook, MessageSquare, Shield, Lock, FileText, Bot, Volume2 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 interface SettingsLayoutProps {
@@ -30,7 +30,15 @@ export default function SettingsLayout({ children, pageTitle = 'Settings', pageS
         { label: 'General', href: '/dashboard/settings/workspace', icon: Briefcase, adminOnly: true },
         { label: 'Staff & Invitations', href: '/dashboard/settings/staff', icon: Users, adminOnly: true },
         { label: 'Customer Experience', href: '/dashboard/settings/experience', icon: User, adminOnly: true },
+        { label: 'QR Codes & Kiosk', href: '/dashboard/settings/qr-codes', icon: Briefcase, adminOnly: true },
         { label: 'Billing & Plans', href: '/dashboard/settings/billing', icon: CreditCard, adminOnly: true },
+      ]
+    },
+    {
+      title: 'Premium Add-ons',
+      items: [
+        { label: 'WhatsApp Chatbot', href: '/dashboard/settings/chatbot', icon: Bot, adminOnly: true },
+        { label: 'Audio Announcements', href: '/dashboard/settings/announcements', icon: Volume2, adminOnly: true },
       ]
     },
     {

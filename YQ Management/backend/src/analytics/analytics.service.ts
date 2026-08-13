@@ -27,6 +27,9 @@ export class AnalyticsService {
         servedAt: true,
         completedAt: true,
         rating: true,
+        operator: {
+          select: { id: true, email: true, personalSettings: true },
+        },
       },
     });
 
@@ -42,6 +45,11 @@ export class AnalyticsService {
 
     let totalRating = 0;
     let ratingCount = 0;
+
+    const operatorStats = new Map<
+      string,
+      { email: string; name: string; served: number; serviceTimeMs: number }
+    >();
 
     tokens.forEach((t) => {
       if (t.status === 'COMPLETED') totalCompleted++;
@@ -61,6 +69,22 @@ export class AnalyticsService {
       if (t.rating) {
         totalRating += t.rating;
         ratingCount++;
+      }
+
+      if (t.operator && t.status === 'COMPLETED' && t.servedAt && t.completedAt) {
+        const opId = t.operator.id;
+        const opEmail = t.operator.email;
+        const settings: any = t.operator.personalSettings || {};
+        const opName = settings.firstName
+          ? `${settings.firstName} ${settings.lastName || ''}`.trim()
+          : opEmail.split('@')[0];
+
+        if (!operatorStats.has(opId)) {
+          operatorStats.set(opId, { email: opEmail, name: opName, served: 0, serviceTimeMs: 0 });
+        }
+        const stats = operatorStats.get(opId)!;
+        stats.served++;
+        stats.serviceTimeMs += t.completedAt.getTime() - t.servedAt.getTime();
       }
     });
 
@@ -168,6 +192,16 @@ export class AnalyticsService {
       }));
     }
 
+    const staffPerformance = Array.from(operatorStats.values()).map((op) => ({
+      name: op.name,
+      email: op.email,
+      served: op.served,
+      avgServiceTimeMins:
+        op.served > 0 ? Math.floor(op.serviceTimeMs / op.served / 60000) : 0,
+    }));
+    // Sort leaderboard by most served
+    staffPerformance.sort((a, b) => b.served - a.served);
+
     return {
       kpis: {
         totalServed,
@@ -177,6 +211,7 @@ export class AnalyticsService {
         csatScore,
       },
       chartData,
+      staffPerformance,
     };
   }
 }

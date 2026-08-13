@@ -127,6 +127,7 @@ export default function SuperAdminPlans() {
             <p className="text-gray-500 dark:text-zinc-400 mt-2">Create and manage pricing plans for tenants</p>
           </div>
           <button
+            type="button"
             onClick={() => { setEditingPlan(null); resetForm(); setShowCreateModal(true); }}
             className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
           >
@@ -180,16 +181,16 @@ export default function SuperAdminPlans() {
                 </div>
 
                 <div className="flex items-center gap-2 pt-4 border-t border-gray-100 dark:border-white/5">
-                  <button onClick={() => openEdit(plan)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-400 dark:text-zinc-500 transition-colors" title="Edit">
+                  <button type="button" onClick={() => openEdit(plan)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-400 dark:text-zinc-500 transition-colors" title="Edit">
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => duplicateMutation.mutate({ id: plan.id, name: `${plan.name} (Copy)` })} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-400 dark:text-zinc-500 transition-colors" title="Duplicate">
+                  <button type="button" onClick={() => duplicateMutation.mutate({ id: plan.id, name: `${plan.name} (Copy)` })} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-400 dark:text-zinc-500 transition-colors" title="Duplicate">
                     <Copy className="w-4 h-4" />
                   </button>
-                  <button onClick={() => toggleStatusMutation.mutate({ id: plan.id, status: plan.active ? 'INACTIVE' : 'ACTIVE' })} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-400 dark:text-zinc-500 transition-colors" title="Toggle Status">
+                  <button type="button" onClick={() => toggleStatusMutation.mutate({ id: plan.id, status: plan.active ? 'INACTIVE' : 'ACTIVE' })} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-400 dark:text-zinc-500 transition-colors" title="Toggle Status">
                     {plan.active ? <ToggleRight className="w-4 h-4 text-emerald-400" /> : <ToggleLeft className="w-4 h-4 text-gray-400" />}
                   </button>
-                  <button onClick={() => deleteMutation.mutate(plan.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-gray-400 dark:text-zinc-500 hover:text-red-500 transition-colors" title="Delete">
+                  <button type="button" onClick={() => deleteMutation.mutate(plan.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg text-gray-400 dark:text-zinc-500 hover:text-red-500 transition-colors" title="Delete">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -252,28 +253,49 @@ export default function SuperAdminPlans() {
                 <div className="pt-4 border-t border-gray-100 dark:border-white/5 space-y-4">
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white">Features</h3>
                   
-                  <label className="flex items-center justify-between cursor-pointer py-1">
+                  <div className="flex items-center justify-between py-1">
                     <span className="text-sm text-gray-700 dark:text-zinc-300 font-medium">Text-to-Speech Announcements</span>
-                    <input type="checkbox" checked={formData.features?.textToSpeech || false} onChange={(e) => setFormData({ ...formData, features: { ...formData.features, textToSpeech: e.target.checked } })} className="sr-only peer" />
-                    <div className="relative w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                  </label>
+                    <button 
+                      type="button" 
+                      role="switch" 
+                      aria-checked={formData.features?.textToSpeech || false}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData({ ...formData, features: { ...formData.features, textToSpeech: !formData.features?.textToSpeech } }); }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-950 ${formData.features?.textToSpeech ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-zinc-700'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.features?.textToSpeech ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
 
-                  <label className="flex items-center justify-between cursor-pointer py-1">
+                  <div className="flex items-center justify-between py-1">
                     <span className="text-sm text-gray-700 dark:text-zinc-300 font-medium">WhatsApp Notifications</span>
-                    <input type="checkbox" checked={formData.features?.whatsappNotifications || false} onChange={(e) => setFormData({ ...formData, features: { ...formData.features, whatsappNotifications: e.target.checked } })} className="sr-only peer" />
-                    <div className="relative w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                  </label>
+                    <button 
+                      type="button" 
+                      role="switch" 
+                      aria-checked={formData.features?.whatsappNotifications || false}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData({ ...formData, features: { ...formData.features, whatsappNotifications: !formData.features?.whatsappNotifications } }); }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-950 ${formData.features?.whatsappNotifications ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-zinc-700'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.features?.whatsappNotifications ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
 
-                  <label className="flex items-center justify-between cursor-pointer py-1">
+                  <div className="flex items-center justify-between py-1">
                     <span className="text-sm text-gray-700 dark:text-zinc-300 font-medium">Custom Branding</span>
-                    <input type="checkbox" checked={formData.features?.customBranding || false} onChange={(e) => setFormData({ ...formData, features: { ...formData.features, customBranding: e.target.checked } })} className="sr-only peer" />
-                    <div className="relative w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                  </label>
+                    <button 
+                      type="button" 
+                      role="switch" 
+                      aria-checked={formData.features?.customBranding || false}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData({ ...formData, features: { ...formData.features, customBranding: !formData.features?.customBranding } }); }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-950 ${formData.features?.customBranding ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-zinc-700'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.features?.customBranding ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 mt-6">
-                <button onClick={() => { setShowCreateModal(false); setEditingPlan(null); resetForm(); }} className="px-4 py-2.5 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-zinc-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">Cancel</button>
-                <button onClick={handleSubmit} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors">{editingPlan ? 'Update Plan' : 'Create Plan'}</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setShowCreateModal(false); setEditingPlan(null); resetForm(); }} className="px-4 py-2.5 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-zinc-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">Cancel</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); handleSubmit(); }} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors">{editingPlan ? 'Update Plan' : 'Create Plan'}</button>
               </div>
             </div>
           </div>
