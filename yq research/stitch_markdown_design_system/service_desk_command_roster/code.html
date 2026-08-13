@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Service Desk - Qmova</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-low": "#f4f2fd",
+                        "secondary-fixed-dim": "#68dba9",
+                        "error-container": "#ffdad6",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#b15f00",
+                        "surface-container": "#eeedf7",
+                        "on-background": "#1a1b22",
+                        "surface-variant": "#e3e1ec",
+                        "tertiary-fixed-dim": "#ffb77d",
+                        "primary-container": "#007bb9",
+                        "secondary-fixed": "#85f8c4",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "outline-variant": "#bfc7d2",
+                        "surface-container-highest": "#e3e1ec",
+                        "surface-dim": "#dad9e3",
+                        "primary-fixed-dim": "#93ccff",
+                        "on-primary-container": "#fdfcff",
+                        "on-primary-fixed": "#001d31",
+                        "card": "#FFFFFF",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#002114",
+                        "outline": "#707881",
+                        "tertiary": "#8d4b00",
+                        "inverse-surface": "#2f3038",
+                        "surface-bright": "#fbf8ff",
+                        "canvas": "#FAFAFA",
+                        "surface-container-high": "#e8e7f1",
+                        "on-secondary-fixed-variant": "#005137",
+                        "inverse-on-surface": "#f1effa",
+                        "on-tertiary-fixed-variant": "#6e3900",
+                        "on-tertiary-fixed": "#2f1500",
+                        "tertiary-fixed": "#ffdcc3",
+                        "dark-canvas": "#09090B",
+                        "secondary": "#006c4a",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-surface": "#1a1b22",
+                        "secondary-container": "#82f5c1",
+                        "on-primary-fixed-variant": "#004b73",
+                        "dark-card": "#121214",
+                        "surface": "#fbf8ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#3f4850",
+                        "dark-border": "#27272A",
+                        "border": "#E4E4E7",
+                        "alert": "#E11D48",
+                        "background": "#fbf8ff",
+                        "on-secondary-container": "#00714e",
+                        "primary": "#006194",
+                        "primary-fixed": "#cce5ff",
+                        "inverse-primary": "#93ccff",
+                        "surface-tint": "#006398",
+                        "on-tertiary-container": "#fffbff"
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        full: "9999px"
+                    },
+                    spacing: {
+                        unit: "4px",
+                        "sidebar-w": "256px",
+                        "gutter": "24px",
+                        "header-h": "64px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px"
+                    },
+                    fontFamily: {
+                        "body-sm": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "data-mono-lg": ["Geist Mono"],
+                        "label-caps": ["Geist Mono"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "data-mono": ["Geist Mono"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"]
+                    },
+                    fontSize: {
+                        "body-sm": ["12px", { lineHeight: "18px", fontWeight: "400" }],
+                        "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "data-mono-lg": ["24px", { lineHeight: "32px", fontWeight: "700" }],
+                        "label-caps": ["11px", { lineHeight: "16px", fontWeight: "700" }],
+                        "headline-sm": ["18px", { lineHeight: "28px", fontWeight: "600" }],
+                        "data-mono": ["16px", { lineHeight: "24px", letterSpacing: "0.02em", fontWeight: "600" }],
+                        "headline-lg": ["30px", { lineHeight: "36px", letterSpacing: "-0.02em", fontWeight: "600" }],
+                        "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #E4E4E7;
+            border-radius: 4px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #27272A;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-canvas dark:bg-dark-canvas text-on-surface font-body-md h-screen w-full overflow-hidden flex flex-col md:flex-row">
+<!-- JSON Components Rendered Manually (TopAppBar & SideNavBar) -->
+<!-- Mobile Top App Bar (Only visible on small screens) -->
+<header class="md:hidden flex items-center justify-between w-full h-[64px] px-gutter border-b border-border dark:border-dark-border bg-surface dark:bg-dark-card z-50">
+<div class="font-headline-sm text-headline-sm font-semibold text-primary dark:text-primary-fixed-dim">Qmova</div>
+<div class="flex items-center gap-4 text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined cursor-pointer">notifications</span>
+<div class="w-8 h-8 rounded-full bg-surface-container overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A small, circular avatar portrait of a medical professional wearing scrubs, set against a sterile, bright clinical background. Art gallery minimal aesthetic with soft white lighting and clear focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcayTsLzOL08U3nXHNf4mvPQmWGkgWGEsE2faN5zljZLG6Fu0CIe5ifQ_QFhPiFItszHSOnrfAdoHRoOccyUBcKe6xcySKopNKD2wFNMkFy_bcMJdbnMTebzGEWONqLUsjcObcfh5OsikAffaZu4-k7w3VV5c8Kv4Y9l_64bVfWRSBi_OzfEW9qvOw1WCktWCtmoPeVA5UWvxteLVMmq2cgqShIaiLkm8BVHE7zVF7AcpWOKKL0YUd2w"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar (Desktop) -->
+<aside class="hidden md:flex flex-col h-full py-gutter px-4 w-[256px] border-r border-border dark:border-dark-border bg-surface dark:bg-dark-canvas z-40 fixed left-0 top-0 shrink-0">
+<div class="mb-8 px-4 flex flex-col">
+<div class="font-headline-md text-headline-md font-semibold text-primary dark:text-primary-fixed-dim flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary text-white flex items-center justify-center">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">local_hospital</span>
+</div>
+                Qmova
+            </div>
+<div class="text-on-surface-variant dark:text-outline font-body-sm text-body-sm mt-1">Management</div>
+</div>
+<nav class="flex-1 flex flex-col gap-2">
+<!-- Active Nav Item -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-primary dark:text-primary-fixed-dim font-semibold bg-surface-container-low dark:bg-surface-container-highest transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined">desktop_windows</span>
+                Service Desk
+            </a>
+<!-- Inactive Nav Items -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined">qr_code_scanner</span>
+                Scanner
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+                Calendar
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                Analytics
+            </a>
+</nav>
+<div class="mt-auto flex flex-col gap-2 pt-4 border-t border-border dark:border-dark-border">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer" href="#">
+<span class="material-symbols-outlined">help</span>
+                Support
+            </a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col md:ml-[256px] h-full overflow-hidden bg-canvas dark:bg-dark-canvas relative">
+<!-- TopAppBar (Desktop) -->
+<header class="hidden md:flex items-center justify-between px-gutter w-full h-[64px] border-b border-border dark:border-dark-border bg-surface dark:bg-dark-card z-30 shrink-0">
+<!-- Search Bar (Left) -->
+<div class="flex items-center w-96 relative">
+<span class="material-symbols-outlined absolute left-3 text-outline">search</span>
+<input class="w-full h-10 pl-10 pr-4 bg-surface-container dark:bg-dark-canvas border border-transparent focus:border-primary focus:ring-1 focus:ring-primary rounded-full text-body-sm outline-none transition-all dark:text-white" placeholder="Search visitors, tickets, or staff..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center bg-surface-container-low dark:bg-surface-container-highest rounded-full p-1 border border-border dark:border-dark-border mr-4">
+<span class="px-3 py-1 text-body-sm font-medium text-primary">Facility Selection</span>
+<span class="material-symbols-outlined text-sm px-2 text-primary">expand_more</span>
+</div>
+<button class="text-on-surface-variant dark:text-outline hover:bg-surface-container-high p-2 rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant dark:text-outline hover:bg-surface-container-high p-2 rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined">apps</span>
+</button>
+<div class="w-8 h-8 rounded-full border border-border dark:border-dark-border overflow-hidden cursor-pointer ml-2">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a clinical administrator in a pristine, bright environment. Soft, modern lighting highlights their confident posture. The image uses a minimalistic palette of whites, soft greys, and clinical blues, conveying trust and operational precision." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLYoUJQ7sxfKD7-9j6J0VYVplHxgcXZmiGFyi7F-RlGHbxABWINu3v76aY5NmAIdxpksT7uQO7Uapkg8XTRyYC-n9Ot7FDnSkKXXzepihY28FYVFVSn18ib86Q7M6dz0sMYN7q_8r6ergcD6FxPbpA1E26geoKyUefRBHNLEN5EkuKvFGKCdz3ClqzKWM8_kOXuYg8EHgdLXWt2IH7RMasOQjlFiYkW6DflrqwXiMVLNy41kcLbXS4aw"/>
+</div>
+</div>
+</header>
+<!-- Command Roster 3-Column Grid -->
+<div class="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden h-[calc(100vh-64px)] w-full">
+<!-- Column 1: Monitored Pipeline (col-span-3) -->
+<section class="hidden md:flex flex-col col-span-3 bg-card dark:bg-dark-card border-r border-border dark:border-dark-border p-6 h-full overflow-y-auto custom-scrollbar">
+<h2 class="font-headline-sm text-headline-sm text-on-surface dark:text-white mb-6">Service Pipelines</h2>
+<div class="space-y-4 mb-8">
+<label class="flex items-start gap-3 cursor-pointer group">
+<div class="relative flex items-center justify-center mt-1">
+<input checked="" class="peer sr-only" type="checkbox"/>
+<div class="w-5 h-5 border-2 border-outline rounded bg-transparent peer-checked:bg-primary peer-checked:border-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-medium text-body-md text-on-surface dark:text-white group-hover:text-primary transition-colors">Blood Diagnostics</span>
+<span class="text-body-sm text-outline">Lab Wing A • 12 Waiting</span>
+</div>
+</label>
+<label class="flex items-start gap-3 cursor-pointer group">
+<div class="relative flex items-center justify-center mt-1">
+<input checked="" class="peer sr-only" type="checkbox"/>
+<div class="w-5 h-5 border-2 border-outline rounded bg-transparent peer-checked:bg-primary peer-checked:border-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-medium text-body-md text-on-surface dark:text-white group-hover:text-primary transition-colors">MRI Scan</span>
+<span class="text-body-sm text-outline">Radiology • 4 Waiting</span>
+</div>
+</label>
+<label class="flex items-start gap-3 cursor-pointer group">
+<div class="relative flex items-center justify-center mt-1">
+<input class="peer sr-only" type="checkbox"/>
+<div class="w-5 h-5 border-2 border-outline rounded bg-transparent peer-checked:bg-primary peer-checked:border-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-medium text-body-md text-on-surface dark:text-white group-hover:text-primary transition-colors">Specialist Consult</span>
+<span class="text-body-sm text-outline">Floor 2 • 8 Waiting</span>
+</div>
+</label>
+</div>
+<div class="mt-4 pt-6 border-t border-border dark:border-dark-border">
+<h3 class="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-4">Active Allocations</h3>
+<div class="flex flex-wrap gap-2">
+<div class="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-container dark:bg-inverse-surface rounded-full border border-border dark:border-dark-border">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="text-body-sm font-medium">Exam Room 1</span>
+<button class="text-outline hover:text-alert transition-colors ml-1"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</div>
+<div class="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-container dark:bg-inverse-surface rounded-full border border-border dark:border-dark-border">
+<span class="w-2 h-2 rounded-full bg-sky-500"></span>
+<span class="text-body-sm font-medium">Dr. Vance</span>
+<button class="text-outline hover:text-alert transition-colors ml-1"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</div>
+<div class="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-container dark:bg-inverse-surface rounded-full border border-border dark:border-dark-border opacity-60 border-dashed">
+<span class="material-symbols-outlined text-[14px]">add</span>
+<span class="text-body-sm font-medium">Assign Resource</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Column 2: Priority Queue Pool (col-span-6) -->
+<section class="col-span-1 md:col-span-6 bg-canvas dark:bg-dark-canvas p-6 flex flex-col h-full overflow-hidden">
+<div class="flex items-center justify-between mb-6 shrink-0">
+<div class="flex items-center gap-3">
+<h2 class="font-headline-sm text-headline-sm text-on-surface dark:text-white">Active Processing Pool</h2>
+<span class="bg-primary/10 text-primary dark:bg-primary-fixed-dim/20 dark:text-primary-fixed-dim px-2.5 py-0.5 rounded-full font-data-mono text-body-sm font-semibold">16</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-outline hover:text-on-surface hover:bg-surface-container rounded transition-colors">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3 pb-8">
+<!-- Ticket Card - High Priority (Rose) -->
+<div class="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 flex items-center justify-between relative overflow-hidden group hover:border-alert/50 transition-colors cursor-pointer shadow-sm">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-alert"></div>
+<div class="flex flex-col gap-1 pl-2">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-data-mono text-data-mono text-alert">#LAB-104</span>
+<span class="font-label-caps text-[10px] bg-alert/10 text-alert px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Urgent</span>
+</div>
+<h3 class="font-semibold text-body-lg text-on-surface dark:text-white">Sarah Jenkins</h3>
+<div class="flex items-center gap-2 text-outline text-body-sm mt-0.5">
+<span class="material-symbols-outlined text-[14px]">bloodtype</span>
+<span>Blood Diagnostics</span>
+<span class="w-1 h-1 rounded-full bg-outline/50 mx-1"></span>
+<span>Walk-in</span>
+</div>
+</div>
+<div class="flex flex-col items-end gap-3">
+<div class="flex items-center gap-1.5 text-alert font-data-mono text-body-md font-semibold">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+                                -04:12 min
+                            </div>
+<button class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-body-sm h-[40px] flex items-center gap-2 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">campaign</span>
+                                Call Next
+                            </button>
+</div>
+</div>
+<!-- Ticket Card - Standard (Amber) -->
+<div class="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 flex items-center justify-between relative overflow-hidden group hover:border-tertiary-container/50 transition-colors cursor-pointer shadow-sm">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>
+<div class="flex flex-col gap-1 pl-2">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-data-mono text-data-mono text-on-surface dark:text-white">#MRI-082</span>
+</div>
+<h3 class="font-semibold text-body-lg text-on-surface dark:text-white">Michael Chen</h3>
+<div class="flex items-center gap-2 text-outline text-body-sm mt-0.5">
+<span class="material-symbols-outlined text-[14px]">radiology</span>
+<span>MRI Scan</span>
+<span class="w-1 h-1 rounded-full bg-outline/50 mx-1"></span>
+<span>Appt: 10:30 AM</span>
+</div>
+</div>
+<div class="flex flex-col items-end gap-3">
+<div class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-data-mono text-body-md">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+                                12:45 min wait
+                            </div>
+<button class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-body-sm h-[40px] flex items-center gap-2 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">campaign</span>
+                                Call Next
+                            </button>
+</div>
+</div>
+<!-- Ticket Card - Standard (Emerald/Called) -->
+<div class="bg-surface-container-low dark:bg-inverse-surface border-2 border-emerald-500 rounded-xl p-4 flex items-center justify-between relative overflow-hidden shadow-sm">
+<div class="flex flex-col gap-1 pl-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="font-data-mono text-data-mono text-emerald-600 dark:text-emerald-400">#SPC-021</span>
+<span class="font-label-caps text-[10px] bg-emerald-500 text-white px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">In Progress</span>
+</div>
+<h3 class="font-semibold text-body-lg text-on-surface dark:text-white">Elena Rodriguez</h3>
+<div class="flex items-center gap-2 text-outline text-body-sm mt-0.5">
+<span class="material-symbols-outlined text-[14px]">stethoscope</span>
+<span>Specialist Consult</span>
+<span class="w-1 h-1 rounded-full bg-outline/50 mx-1"></span>
+<span>Room 3</span>
+</div>
+</div>
+<div class="flex flex-col items-end gap-3">
+<div class="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-data-mono text-body-md">
+                                08:22 elapsed
+                            </div>
+<button class="bg-surface border border-border dark:border-dark-border text-on-surface dark:text-white px-4 py-2 rounded-lg font-medium text-body-sm h-[40px] flex items-center gap-2 hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                                Complete
+                            </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Column 3: Visitor Context & WhatsApp (col-span-3) -->
+<section class="hidden md:flex flex-col col-span-3 bg-card dark:bg-dark-card border-l border-border dark:border-dark-border h-full relative">
+<!-- Context Header -->
+<div class="p-6 border-b border-border dark:border-dark-border shrink-0">
+<div class="flex items-start justify-between mb-4">
+<div class="w-16 h-16 rounded-full bg-surface-container overflow-hidden border-2 border-surface">
+<img alt="Patient Photo" class="w-full h-full object-cover" data-alt="A softly lit, minimalist portrait of a patient in a pristine clinical waiting area. Focus is on the face conveying a subtle, calm expression. The background is a blurry clinical white, contributing to a modern art-gallery aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqNr0cxSjqNdg625Qdu4jR4AdTP-tYg3z5IzZIBxk2o7ImMvS_TdQiPMJAz4EQXWRSYN6gXTAcFAk-SA4LflmysNrptOfMSgXsbinScGu1F_0Abvv-JN6OAuGpTgaR2_lw2UoSRjOHnveW05WfaIm7SM8mpmzJfLaCQdtodukI573goblQnZ1J7Fm49lUWJqOqpyl-KIHr8FeJ7uwJOLbDFGt8pQHYBz2jiHf9lWbrh67jSxYG0RFDPQ"/>
+</div>
+<div class="font-data-mono text-data-mono text-alert font-bold">#LAB-104</div>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface dark:text-white font-semibold">Sarah Jenkins</h2>
+<div class="flex items-center gap-2 text-body-sm text-outline mt-1 font-data-mono">
+<span class="material-symbols-outlined text-[14px]">smartphone</span>
+                        +1 (555) 019-8234
+                    </div>
+<!-- Accordion / Metadata -->
+<div class="mt-6 border border-border dark:border-dark-border rounded-lg overflow-hidden bg-surface-container-low dark:bg-inverse-surface">
+<button class="w-full flex items-center justify-between p-3 text-body-sm font-medium text-on-surface dark:text-white hover:bg-surface-container transition-colors">
+<span>Intake Details</span>
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+<div class="p-3 pt-0 border-t border-border/50 text-body-sm text-outline space-y-2">
+<div class="flex justify-between"><span class="font-medium text-on-surface dark:text-white">Fasting:</span> <span>Yes (&gt;12hrs)</span></div>
+<div class="flex justify-between"><span class="font-medium text-on-surface dark:text-white">Referral:</span> <span>Dr. A. Smith</span></div>
+<div class="flex justify-between"><span class="font-medium text-on-surface dark:text-white">Priority:</span> <span class="text-alert font-medium">Urgent</span></div>
+</div>
+</div>
+</div>
+<!-- WhatsApp Chat Area -->
+<div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 bg-[#E5DDD5]/20 dark:bg-zinc-900/50 relative">
+<!-- Date Separator -->
+<div class="flex justify-center">
+<span class="bg-surface-container dark:bg-inverse-surface text-outline text-[10px] font-label-caps uppercase px-2 py-1 rounded shadow-sm">Today</span>
+</div>
+<!-- System Message (Left) -->
+<div class="flex max-w-[85%]">
+<div class="bg-white dark:bg-dark-card border border-border dark:border-dark-border rounded-lg rounded-tl-none p-3 shadow-sm">
+<p class="text-body-sm text-on-surface dark:text-white">Hello Sarah, you have been added to the waitlist for Blood Diagnostics. Your current position is #3. We will notify you when it's your turn.</p>
+<span class="text-[10px] text-outline font-data-mono flex justify-end mt-1">09:41 AM</span>
+</div>
+</div>
+<!-- Client Message (Right) -->
+<div class="flex max-w-[85%] ml-auto justify-end">
+<div class="bg-sky-100 dark:bg-sky-900/40 border border-sky-200 dark:border-sky-800 rounded-lg rounded-tr-none p-3 shadow-sm text-on-primary-fixed-variant dark:text-sky-100">
+<p class="text-body-sm">Thank you. Should I wait in the main lobby?</p>
+<span class="text-[10px] opacity-70 font-data-mono flex justify-end mt-1 items-center gap-1">
+                                09:43 AM 
+                                <span class="material-symbols-outlined text-[12px] text-sky-500">done_all</span>
+</span>
+</div>
+</div>
+<!-- System Message (Left) -->
+<div class="flex max-w-[85%]">
+<div class="bg-white dark:bg-dark-card border border-border dark:border-dark-border rounded-lg rounded-tl-none p-3 shadow-sm">
+<p class="text-body-sm text-on-surface dark:text-white">Yes, please have a seat in Wing A. We will call you shortly.</p>
+<span class="text-[10px] text-outline font-data-mono flex justify-end mt-1">09:44 AM</span>
+</div>
+</div>
+</div>
+<!-- Chat Input Fixed Bottom -->
+<div class="p-4 bg-surface dark:bg-dark-card border-t border-border dark:border-dark-border shrink-0 pb-6">
+<div class="relative flex items-end gap-2">
+<textarea class="w-full bg-white dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl p-3 pr-10 text-body-sm resize-none focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary custom-scrollbar h-[44px] overflow-hidden" placeholder="Type a message..." rows="1"></textarea>
+<button class="bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-200 dark:text-zinc-900 text-white w-[44px] h-[44px] rounded-xl flex items-center justify-center shrink-0 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<script>
+        // Simple auto-resize textarea logic
+        const tx = document.getElementsByTagName("textarea");
+        for (let i = 0; i < tx.length; i++) {
+          tx[i].setAttribute("style", "height:" + (tx[i].scrollHeight) + "px;overflow-y:hidden;");
+          tx[i].addEventListener("input", OnInput, false);
+        }
+
+        function OnInput() {
+          this.style.height = "auto";
+          this.style.height = (this.scrollHeight) + "px";
+          // max height cap
+          if(parseInt(this.style.height) > 100) {
+              this.style.height = "100px";
+              this.style.overflowY = "auto";
+          }
+        }
+    </script>
+</body></html>

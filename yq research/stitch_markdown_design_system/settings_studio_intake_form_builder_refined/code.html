@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Intake Form Builder - Settings Studio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600&amp;family=Geist+Mono:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#006194",
+                    "on-background": "#1a1b22",
+                    "primary-container": "#007bb9",
+                    "border": "#E4E4E7",
+                    "outline-variant": "#bfc7d2",
+                    "on-tertiary-fixed": "#2f1500",
+                    "secondary-fixed-dim": "#68dba9",
+                    "tertiary": "#8d4b00",
+                    "secondary-fixed": "#85f8c4",
+                    "secondary": "#006c4a",
+                    "on-surface-variant": "#3f4850",
+                    "card": "#FFFFFF",
+                    "surface-variant": "#e3e1ec",
+                    "inverse-primary": "#93ccff",
+                    "on-surface": "#1a1b22",
+                    "on-error-container": "#93000a",
+                    "secondary-container": "#82f5c1",
+                    "dark-canvas": "#09090B",
+                    "tertiary-container": "#b15f00",
+                    "outline": "#707881",
+                    "surface-container": "#eeedf7",
+                    "on-primary-container": "#fdfcff",
+                    "surface-tint": "#006398",
+                    "inverse-surface": "#2f3038",
+                    "on-tertiary-container": "#fffbff",
+                    "surface-bright": "#fbf8ff",
+                    "background": "#fbf8ff",
+                    "on-secondary-container": "#00714e",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "primary-fixed-dim": "#93ccff",
+                    "surface-container-highest": "#e3e1ec",
+                    "surface-container-high": "#e8e7f1",
+                    "primary-fixed": "#cce5ff",
+                    "tertiary-fixed-dim": "#ffb77d",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#dad9e3",
+                    "on-secondary-fixed-variant": "#005137",
+                    "surface": "#fbf8ff",
+                    "on-tertiary": "#ffffff",
+                    "canvas": "#FAFAFA",
+                    "dark-card": "#121214",
+                    "on-secondary-fixed": "#002114",
+                    "alert": "#E11D48",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed-variant": "#6e3900",
+                    "tertiary-fixed": "#ffdcc3",
+                    "surface-container-low": "#f4f2fd",
+                    "on-primary-fixed": "#001d31",
+                    "dark-border": "#27272A",
+                    "on-primary-fixed-variant": "#004b73",
+                    "inverse-on-surface": "#f1effa",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-desktop": "40px",
+                    "margin-mobile": "16px",
+                    "unit": "4px",
+                    "header-h": "64px",
+                    "gutter": "24px",
+                    "sidebar-w": "256px"
+            },
+            "fontFamily": {
+                    "body-sm": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "headline-md": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "body-lg": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "data-mono": [
+                            "Geist Mono"
+                    ],
+                    "headline-sm": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "headline-lg": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "label-caps": [
+                            "Geist Mono"
+                    ],
+                    "body-md": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "data-mono-lg": [
+                            "Geist Mono"
+                    ]
+            },
+            "fontSize": {
+                    "body-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "18px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-lg": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "data-mono": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "letterSpacing": "0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-sm": [
+                            "18px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-lg": [
+                            "30px",
+                            {
+                                    "lineHeight": "36px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "label-caps": [
+                            "11px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "data-mono-lg": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "700"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Drag and drop styling */
+        .draggable-item {
+            cursor: grab;
+        }
+        .draggable-item:active {
+            cursor: grabbing;
+        }
+        
+        /* Art Gallery Spacing */
+        .art-gallery-gap {
+            gap: clamp(2rem, 5vw, 4rem);
+        }
+    </style>
+</head>
+<body class="bg-canvas text-on-background min-h-screen flex font-body-md text-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- SideNavBar (from JSON) -->
+<nav class="bg-surface dark:bg-dark-canvas font-body-md text-body-md w-sidebar-w h-full fixed left-0 top-0 border-r border-border dark:border-dark-border flex flex-col py-margin-desktop z-50">
+<!-- Brand / Header -->
+<div class="px-gutter mb-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Qmova</h1>
+<p class="text-on-surface-variant font-body-sm text-body-sm mt-1">Global Admin</p>
+</div>
+<!-- Navigation Links -->
+<div class="flex flex-col flex-1 px-4 space-y-2 mt-4">
+<a class="flex items-center space-x-3 px-4 py-3 rounded text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95 transition-transform group" href="#">
+<span class="material-symbols-outlined" data-icon="desktop_windows">desktop_windows</span>
+<span>Service Desk</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 rounded text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95 transition-transform group" href="#">
+<span class="material-symbols-outlined" data-icon="qr_code_scanner">qr_code_scanner</span>
+<span>Scanner</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 rounded text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95 transition-transform group" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span>Calendar</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 rounded text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95 transition-transform group" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Analytics</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 rounded text-primary dark:text-primary-fixed font-bold border-r-2 border-primary bg-surface-container-low dark:bg-dark-card transition-colors active:scale-95 transition-transform group" href="#">
+<span class="material-symbols-outlined fill" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</div>
+<!-- User Avatar Placeholder (Footer of sidebar) -->
+<div class="mt-auto px-gutter flex items-center gap-3">
+<img alt="User Profile" class="w-10 h-10 rounded-full object-cover border border-border" data-alt="A small circular profile picture of an administrator, featuring a clean, professional headshot against a neutral gray background. The lighting is soft and flattering, suitable for a corporate or clinical software environment, maintaining a warm yet professional tone." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKEbgDkXsWHXNEsTExLP3Pa-p1EfVyrTxdBNUEJkQ75zO-VZOKSk_3T2rugynvIqpKS3AtN-maWD-opNM9a-s1qg9vvEdnQZmjQ7PZeIy_PejB3Wk5jjBs487fm6siOrqTiok7EOsZGBAFLJp5VvneynkGquO6UmNy7NmEdVsvyQKT8HfYZoAwAnbS-FXypuAv-jFeKAUZwuzbP_ccxDR36UeidVigO4U33JnHS6w9GohEKTopWklgYA"/>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md font-semibold">Admin User</span>
+</div>
+</div>
+</nav>
+<!-- Main Content Wrapper (offset by sidebar width) -->
+<div class="flex-1 ml-sidebar-w flex flex-col min-h-screen">
+<!-- TopNavBar (from JSON) -->
+<header class="bg-white dark:bg-dark-card font-body-md text-body-md h-header-h w-full sticky top-0 z-40 border-b border-border dark:border-dark-border flex items-center justify-between px-gutter">
+<!-- Context & Navigation Links -->
+<div class="flex items-center gap-8 h-full">
+<!-- Product Name / Context -->
+<div class="font-headline-sm text-headline-sm font-semibold text-on-surface dark:text-on-background mr-6">
+                    Settings Studio
+                </div>
+<nav class="hidden md:flex h-full items-end gap-6 pb-[1px]">
+<a class="text-on-surface-variant dark:text-surface-variant pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors cursor-pointer active:opacity-70" href="#">Locations &amp; Assets</a>
+<a class="text-on-surface-variant dark:text-surface-variant pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors cursor-pointer active:opacity-70" href="#">Service Studio</a>
+<a class="text-primary dark:text-primary-fixed font-bold border-b-2 border-primary pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors cursor-pointer active:opacity-70" href="#">Intake Forms</a>
+<a class="text-on-surface-variant dark:text-surface-variant pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors cursor-pointer active:opacity-70" href="#">Integrations</a>
+<a class="text-on-surface-variant dark:text-surface-variant pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors cursor-pointer active:opacity-70" href="#">Billing</a>
+</nav>
+</div>
+<!-- Actions & Search -->
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" data-icon="search">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface border border-border rounded-full text-body-md focus:outline-none focus:ring-1 focus:ring-primary w-64 transition-shadow" placeholder="Search settings..." type="text"/>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-70 rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-70 rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<img alt="Administrator Avatar" class="w-8 h-8 rounded-full object-cover border border-border ml-2" data-alt="A small circular avatar image representing an administrator in a software settings screen. Clean, minimal, neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4Bjx5_q2r_iAeIvmkffQprcVmNsAMTL3_vzZFHU6BpGAYivkqQONEn8uTl-Hb8cu3nrSowbrF369ZxWJB8-_iroNTBXS1v6Qlg887Ko5NzirZFDZQa8FFbW9ZDCbi3gZUx_DUCC8rojcaeUO08gOkQM_Wt9XDKR55K4munmRd97a5VvD55DmkMB_KiXjaXaxbdNrpYRVvFFVCuW3fLqMdDwUF5f10Mn3mP5-iVydea3jaehBP_bVCNA"/>
+</div>
+</header>
+<!-- Page Content: Intake Form Builder -->
+<main class="flex-1 p-margin-desktop flex flex-col">
+<!-- Page Header -->
+<div class="flex justify-between items-end mb-12">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Intake Form Builder</h2>
+<p class="text-on-surface-variant mt-2 max-w-xl">Design the preliminary questionnaire patients complete before arriving. Changes auto-save.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-6 py-2 bg-surface border border-border rounded text-on-surface font-semibold hover:bg-surface-variant transition-colors min-h-[44px]">Preview</button>
+<button class="px-6 py-2 bg-primary text-on-primary rounded font-semibold hover:bg-primary-container transition-colors min-h-[44px]">Publish Form</button>
+</div>
+</div>
+<!-- Builder Layout (Art Gallery Balanced) -->
+<div class="flex flex-1 art-gallery-gap">
+<!-- LEFT: Toolbox (1/3 width) -->
+<aside class="w-1/3 flex flex-col pr-8 border-r border-border">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-6">Form Elements</h3>
+<div class="space-y-4">
+<!-- Toolbox Item 1 -->
+<div class="draggable-item bg-card border border-border rounded p-4 flex items-center gap-4 hover:shadow-sm transition-shadow group">
+<div class="w-10 h-10 rounded bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined" data-icon="short_text">short_text</span>
+</div>
+<div class="flex-1">
+<h4 class="font-semibold text-on-surface">Short Text Input</h4>
+<p class="text-body-sm text-on-surface-variant">Single line text field</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant cursor-grab" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<!-- Toolbox Item 2 -->
+<div class="draggable-item bg-card border border-border rounded p-4 flex items-center gap-4 hover:shadow-sm transition-shadow group">
+<div class="w-10 h-10 rounded bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined" data-icon="checklist">checklist</span>
+</div>
+<div class="flex-1">
+<h4 class="font-semibold text-on-surface">Multiple Choice</h4>
+<p class="text-body-sm text-on-surface-variant">Radio or Checkboxes</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant cursor-grab" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<!-- Toolbox Item 3 -->
+<div class="draggable-item bg-card border border-border rounded p-4 flex items-center gap-4 hover:shadow-sm transition-shadow group">
+<div class="w-10 h-10 rounded bg-surface-container-low flex items-center justify-center text-secondary group-hover:bg-secondary-fixed transition-colors">
+<span class="material-symbols-outlined" data-icon="upload_file">upload_file</span>
+</div>
+<div class="flex-1">
+<h4 class="font-semibold text-on-surface">Medical Document</h4>
+<p class="text-body-sm text-on-surface-variant">Secure file upload</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant cursor-grab" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="pt-6 mt-6 border-t border-border border-dashed">
+<p class="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-4">Structural</p>
+<div class="draggable-item bg-card border border-border rounded p-3 flex items-center gap-3 hover:shadow-sm transition-shadow mb-3 group">
+<span class="material-symbols-outlined text-outline-variant" data-icon="title">title</span>
+<span class="font-semibold text-on-surface text-sm">Section Header</span>
+</div>
+<div class="draggable-item bg-card border border-border rounded p-3 flex items-center gap-3 hover:shadow-sm transition-shadow group">
+<span class="material-symbols-outlined text-outline-variant" data-icon="horizontal_rule">horizontal_rule</span>
+<span class="font-semibold text-on-surface text-sm">Divider</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- RIGHT: Canvas (2/3 width) -->
+<section class="w-2/3 flex justify-center items-start pt-8 pb-16">
+<!-- Mobile Device Simulator -->
+<div class="w-[375px] h-[700px] bg-zinc-900 rounded-[2.5rem] p-3 shadow-2xl relative border-[6px] border-zinc-800">
+<!-- Notch -->
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-zinc-900 rounded-b-2xl z-20"></div>
+<!-- Screen Content -->
+<div class="bg-canvas w-full h-full rounded-[2rem] overflow-hidden flex flex-col relative">
+<!-- Simulated Header -->
+<div class="bg-white border-b border-border pt-10 pb-4 px-6">
+<div class="font-headline-sm text-headline-sm font-semibold text-on-surface">Pre-Visit Questionnaire</div>
+<p class="text-body-sm text-on-surface-variant mt-1">Please complete before arrival.</p>
+</div>
+<!-- Scrollable Form Area -->
+<div class="flex-1 overflow-y-auto p-6 space-y-6">
+<!-- Question 1: Dropdown -->
+<div class="bg-card border border-border rounded-lg p-4 relative group cursor-pointer border-l-4 border-l-transparent hover:border-l-primary hover:shadow-sm transition-all">
+<div class="font-semibold text-on-surface mb-3 flex items-start gap-2">
+<span class="font-data-mono text-data-mono text-primary bg-primary-fixed px-2 py-0.5 rounded text-sm">Q1</span>
+                                        Reason for visit? <span class="text-alert">*</span>
+</div>
+<div class="w-full bg-surface border border-border rounded px-3 py-2 text-on-surface-variant flex justify-between items-center h-11">
+<span>Select an option...</span>
+<span class="material-symbols-outlined" data-icon="expand_more">expand_more</span>
+</div>
+<!-- Hover Actions Overlay -->
+<div class="absolute -right-2 -top-4 hidden group-hover:flex bg-white shadow-lg border border-border rounded-full p-1 gap-1 z-10">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-primary" title="Edit">
+<span class="material-symbols-outlined text-[18px]" data-icon="edit">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-tertiary" title="Logic">
+<span class="material-symbols-outlined text-[18px]" data-icon="account_tree">account_tree</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-alert" title="Delete">
+<span class="material-symbols-outlined text-[18px]" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Question 2: Radio Buttons (Active State focus example) -->
+<div class="bg-card border border-border rounded-lg p-4 relative group cursor-pointer border-l-4 border-l-primary shadow-sm transition-all">
+<div class="font-semibold text-on-surface mb-3 flex items-start gap-2">
+<span class="font-data-mono text-data-mono text-primary bg-primary-fixed px-2 py-0.5 rounded text-sm">Q2</span>
+                                        Have you fasted for 12 hours?
+                                    </div>
+<div class="space-y-3">
+<label class="flex items-center gap-3 p-2 border border-border rounded hover:bg-surface cursor-pointer">
+<div class="w-4 h-4 rounded-full border border-outline flex items-center justify-center"></div>
+<span class="text-on-surface">Yes</span>
+</label>
+<label class="flex items-center gap-3 p-2 border border-border rounded hover:bg-surface cursor-pointer">
+<div class="w-4 h-4 rounded-full border border-outline flex items-center justify-center"></div>
+<span class="text-on-surface">No</span>
+</label>
+</div>
+<!-- Always visible actions for 'Active' block simulation -->
+<div class="absolute -right-2 -top-4 flex bg-white shadow-lg border border-border rounded-full p-1 gap-1 z-10">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-primary" title="Edit">
+<span class="material-symbols-outlined text-[18px]" data-icon="edit">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-tertiary" title="Logic">
+<span class="material-symbols-outlined text-[18px]" data-icon="account_tree">account_tree</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-alert" title="Delete">
+<span class="material-symbols-outlined text-[18px]" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Drop Zone Placeholder -->
+<div class="border-2 border-dashed border-primary-fixed bg-surface-container-low rounded-lg h-24 flex items-center justify-center text-primary font-semibold opacity-70">
+                                    Drop new element here
+                                </div>
+</div>
+<!-- Simulated Footer Action -->
+<div class="p-6 border-t border-border bg-white">
+<button class="w-full bg-primary text-on-primary rounded font-semibold py-3 flex justify-center items-center h-12 opacity-50 cursor-not-allowed">
+                                    Submit
+                                </button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Qmova - Scanner</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;family=Geist+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e3e1ec",
+                        "inverse-primary": "#93ccff",
+                        "dark-card": "#121214",
+                        "card": "#FFFFFF",
+                        "on-tertiary-fixed-variant": "#6e3900",
+                        "tertiary-container": "#b15f00",
+                        "canvas": "#FAFAFA",
+                        "surface-tint": "#006398",
+                        "surface-dim": "#dad9e3",
+                        "tertiary": "#8d4b00",
+                        "outline-variant": "#bfc7d2",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#00714e",
+                        "on-secondary-fixed": "#002114",
+                        "on-tertiary-fixed": "#2f1500",
+                        "on-secondary-fixed-variant": "#005137",
+                        "dark-border": "#27272A",
+                        "on-primary-fixed-variant": "#004b73",
+                        "secondary-fixed-dim": "#68dba9",
+                        "on-surface-variant": "#3f4850",
+                        "outline": "#707881",
+                        "surface": "#fbf8ff",
+                        "on-primary": "#ffffff",
+                        "primary-fixed-dim": "#93ccff",
+                        "background": "#fbf8ff",
+                        "surface-container": "#eeedf7",
+                        "surface-container-low": "#f4f2fd",
+                        "on-surface": "#1a1b22",
+                        "secondary": "#006c4a",
+                        "inverse-on-surface": "#f1effa",
+                        "tertiary-fixed": "#ffdcc3",
+                        "on-primary-container": "#fdfcff",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#82f5c1",
+                        "dark-canvas": "#09090B",
+                        "primary": "#006194",
+                        "alert": "#E11D48",
+                        "on-background": "#1a1b22",
+                        "surface-container-highest": "#e3e1ec",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#007bb9",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed-dim": "#ffb77d",
+                        "inverse-surface": "#2f3038",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-container": "#fffbff",
+                        "border": "#E4E4E7",
+                        "surface-container-high": "#e8e7f1",
+                        "primary-fixed": "#cce5ff",
+                        "secondary-fixed": "#85f8c4",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-bright": "#fbf8ff",
+                        "on-primary-fixed": "#001d31"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "sidebar-w": "256px",
+                        "header-h": "64px",
+                        "gutter": "24px",
+                        "margin-mobile": "16px",
+                        "margin-desktop": "40px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "label-caps": ["Geist Mono"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "data-mono": ["Geist Mono"],
+                        "body-sm": ["Plus Jakarta Sans"],
+                        "data-mono-lg": ["Geist Mono"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-sm": ["18px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "data-mono": ["16px", { "lineHeight": "24px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "data-mono-lg": ["24px", { "lineHeight": "32px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .laser {
+            animation: scan 2.5s infinite linear;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        @keyframes scan {
+            0% { top: 10%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 90%; opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-canvas text-on-surface font-body-md h-screen overflow-hidden flex flex-col antialiased">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-dark-card border-b border-border dark:border-dark-border flat no shadows flex items-center justify-between px-gutter w-full ml-sidebar-w h-header-h transition-all duration-200 z-50 fixed top-0 right-0 w-[calc(100%-theme(spacing.sidebar-w))] h-header-h" style="width: calc(100% - 256px);">
+<div class="flex items-center gap-4">
+<!-- Search would go here if on_left -->
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim" data-icon="notifications">notifications</span>
+</button>
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim" data-icon="apps">apps</span>
+</button>
+<button class="bg-primary text-on-primary px-4 h-10 min-h-[44px] rounded-lg font-semibold hover:bg-primary-container transition-colors">Facility Selection</button>
+<img alt="User Profile" class="w-10 h-10 rounded-full object-cover border border-border" data-alt="A small circular avatar placeholder image with a solid gray background and a minimalist white outline icon of a person inside." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAd3wJVHWqeqVLpsVYSo8W0X_0GQcNs3mmIfF5jQPaxLzkK9wINrq9o9vfIsFvrGP1oZbR9HBgoqhly_xsdmy9XG8s3LY2-KgwL-U0BXEgQpiydyq6i_h7oUTGMB7dvphyVhvKjR5itB8rxkGMYQXCHfteNBoXs-ZvEqPFu5HrZh82yLgnkaqJ8kj2L2Nb3FtH8bBRAjXLI6AscJ0dLnnuysDwwMfimx4MbE9-t5YX_1jWrZX_OlTky3w"/>
+</div>
+</header>
+<!-- SideNavBar -->
+<nav class="bg-surface dark:bg-dark-canvas border-r border-border dark:border-dark-border flat no shadows flex flex-col h-full py-gutter px-4 fixed left-0 top-0 h-full w-sidebar-w z-50">
+<div class="mb-8 px-2 flex items-center gap-3">
+<div class="w-10 h-10 bg-primary text-on-primary rounded-lg flex items-center justify-center font-bold text-xl">Q</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-semibold text-primary dark:text-primary-fixed-dim">Qmova</h1>
+<p class="text-xs text-on-surface-variant font-medium tracking-wide uppercase">Management</p>
+</div>
+</div>
+<ul class="flex flex-col gap-2 flex-grow">
+<li>
+<a class="flex items-center gap-3 px-3 h-[44px] rounded-lg text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="desktop_windows">desktop_windows</span>
+<span class="font-medium">Service Desk</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 h-[44px] rounded-lg text-primary dark:text-primary-fixed-dim font-semibold border-r-2 border-primary dark:border-primary-fixed-dim bg-surface-container-low hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="qr_code_scanner" style="font-variation-settings: 'FILL' 1;">qr_code_scanner</span>
+<span class="font-medium">Scanner</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 h-[44px] rounded-lg text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-medium">Calendar</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 h-[44px] rounded-lg text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-medium">Analytics</span>
+</a>
+</li>
+</ul>
+<ul class="flex flex-col gap-2 mt-auto border-t border-border pt-4">
+<li>
+<a class="flex items-center gap-3 px-3 h-[44px] rounded-lg text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-medium">Settings</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 h-[44px] rounded-lg text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors cursor-pointer active:opacity-80" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-medium">Support</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<main class="ml-sidebar-w mt-header-h h-[calc(100vh-4rem)] bg-zinc-50 p-8 overflow-y-auto">
+<div class="max-w-7xl mx-auto">
+<header class="mb-8">
+<h2 class="text-3xl font-bold text-zinc-900 font-headline-lg">Concierge Intake &amp; Verification</h2>
+<p class="text-zinc-500 mt-2 font-body-lg">Scan digital passes or manually check-in walk-in visitors</p>
+</header>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+<!-- Left Column (Scanner) -->
+<div class="flex flex-col gap-6">
+<div class="bg-white rounded-2xl border border-zinc-200 p-8 shadow-sm flex-1 flex flex-col">
+<div class="aspect-square max-h-[400px] w-full mx-auto rounded-xl bg-zinc-950 relative overflow-hidden flex items-center justify-center mb-8">
+<!-- Reticle Corners -->
+<div class="absolute top-8 left-8 w-8 h-8 border-t-2 border-l-2 border-white/80 rounded-tl-lg"></div>
+<div class="absolute top-8 right-8 w-8 h-8 border-t-2 border-r-2 border-white/80 rounded-tr-lg"></div>
+<div class="absolute bottom-8 left-8 w-8 h-8 border-b-2 border-l-2 border-white/80 rounded-bl-lg"></div>
+<div class="absolute bottom-8 right-8 w-8 h-8 border-b-2 border-r-2 border-white/80 rounded-br-lg"></div>
+<!-- Laser -->
+<div class="laser h-0.5 w-3/4 bg-sky-500/80 shadow-[0_0_15px_rgba(14,165,233,0.5)]"></div>
+<span class="absolute bottom-4 text-zinc-400 text-xs font-mono tracking-widest uppercase">Camera Active: Awaiting QR...</span>
+</div>
+<div class="mt-auto">
+<label class="block text-sm font-semibold text-zinc-900 mb-3 font-body-md">Manual Phone Number Lookup</label>
+<div class="flex flex-col gap-3">
+<input class="h-12 w-full rounded-xl border border-zinc-200 px-4 font-data-mono text-lg focus:ring-1 focus:ring-sky-600 focus:border-sky-600 outline-none transition-all placeholder:text-zinc-400" placeholder="(555) 000-0000" type="text"/>
+<button class="h-12 min-h-[44px] bg-zinc-950 text-white rounded-xl w-full font-semibold hover:bg-zinc-800 transition-colors">Lookup Visitor</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (Verification) -->
+<div class="flex flex-col">
+<div class="bg-white rounded-2xl border border-zinc-200 p-8 shadow-sm flex-1 flex flex-col">
+<!-- Section A: Profile -->
+<div class="flex items-start justify-between mb-8 pb-8 border-b border-zinc-100">
+<div class="flex items-center gap-6">
+<div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-bold border-2 border-emerald-200">
+                                    SJ
+                                </div>
+<div>
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold mb-2">
+<i class="w-3.5 h-3.5" data-lucide="check-circle"></i>
+                                        Identity Verified
+                                    </div>
+<h3 class="text-2xl font-bold text-zinc-900 font-headline-md">Sarah Jenkins</h3>
+<p class="text-zinc-500 font-data-mono text-sm mt-1">+1 (555) 123-4567</p>
+</div>
+</div>
+</div>
+<!-- Section B: Details -->
+<div class="space-y-4 mb-8">
+<div class="bg-sky-50/50 rounded-xl p-5 border border-sky-100 flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<span class="text-zinc-500 text-sm font-medium">Scheduled Slot</span>
+<span class="font-data-mono font-bold text-sky-900 text-lg">10:30 AM</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-zinc-500 text-sm font-medium">Service Line</span>
+<span class="font-semibold text-zinc-900">Routine Blood Diagnostics</span>
+</div>
+</div>
+<div class="bg-zinc-50 rounded-xl p-4 border border-zinc-100 flex justify-between items-center">
+<span class="text-zinc-500 text-sm font-medium">Fasting status</span>
+<span class="font-semibold text-zinc-700">12 Hours</span>
+</div>
+</div>
+<!-- Section C: Action -->
+<div class="mt-auto pt-8 border-t border-zinc-100">
+<button class="h-16 min-h-[44px] w-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2">
+<i class="w-5 h-5" data-lucide="arrow-right-circle"></i>
+                                Confirm Arrival &amp; Route to Queue
+                            </button>
+<p class="text-center text-zinc-500 text-sm mt-4 font-body-sm">
+                                Visitor will be assigned ticket <span class="font-data-mono font-semibold">#LAB-105</span> and notified via WhatsApp.
+                            </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        lucide.createIcons({
+            strokeWidth: 1.5
+        });
+    </script>
+</body></html>

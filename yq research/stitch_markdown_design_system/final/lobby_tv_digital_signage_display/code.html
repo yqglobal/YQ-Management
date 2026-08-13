@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Qmova Lobby TV Display</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;family=Geist+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "dark-canvas": "#09090B",
+                        "inverse-surface": "#2f3038",
+                        "surface": "#fbf8ff",
+                        "surface-dim": "#dad9e3",
+                        "surface-tint": "#006398",
+                        "outline": "#707881",
+                        "on-secondary-container": "#00714e",
+                        "surface-bright": "#fbf8ff",
+                        "surface-container-high": "#e8e7f1",
+                        "primary-fixed-dim": "#93ccff",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#b15f00",
+                        "on-surface": "#1a1b22",
+                        "on-primary": "#ffffff",
+                        "surface-container-low": "#f4f2fd",
+                        "on-secondary-fixed-variant": "#005137",
+                        "on-secondary-fixed": "#002114",
+                        "dark-card": "#121214",
+                        "on-primary-container": "#fdfcff",
+                        "on-error": "#ffffff",
+                        "surface-container-highest": "#e3e1ec",
+                        "dark-border": "#27272A",
+                        "outline-variant": "#bfc7d2",
+                        "on-tertiary-container": "#fffbff",
+                        "surface-variant": "#e3e1ec",
+                        "tertiary-fixed-dim": "#ffb77d",
+                        "on-background": "#1a1b22",
+                        "on-surface-variant": "#3f4850",
+                        "inverse-primary": "#93ccff",
+                        "primary": "#006194",
+                        "surface-container": "#eeedf7",
+                        "secondary-fixed": "#85f8c4",
+                        "error": "#ba1a1a",
+                        "alert": "#E11D48",
+                        "secondary-fixed-dim": "#68dba9",
+                        "on-primary-fixed-variant": "#004b73",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#6e3900",
+                        "tertiary-fixed": "#ffdcc3",
+                        "canvas": "#FAFAFA",
+                        "card": "#FFFFFF",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "primary-fixed": "#cce5ff",
+                        "inverse-on-surface": "#f1effa",
+                        "on-tertiary-fixed": "#2f1500",
+                        "border": "#E4E4E7",
+                        "background": "#fbf8ff",
+                        "primary-container": "#007bb9",
+                        "tertiary": "#8d4b00",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#82f5c1",
+                        "on-primary-fixed": "#001d31",
+                        "secondary": "#006c4a"
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        full: "9999px"
+                    },
+                    spacing: {
+                        gutter: "24px",
+                        unit: "4px",
+                        "sidebar-w": "256px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "header-h": "64px"
+                    },
+                    fontFamily: {
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-caps": ["Geist Mono"],
+                        "body-sm": ["Plus Jakarta Sans"],
+                        "data-mono": ["Geist Mono"],
+                        "data-mono-lg": ["Geist Mono"]
+                    },
+                    fontSize: {
+                        "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "headline-sm": ["18px", { lineHeight: "28px", fontWeight: "600" }],
+                        "headline-lg": ["30px", { lineHeight: "36px", letterSpacing: "-0.02em", fontWeight: "600" }],
+                        "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
+                        "label-caps": ["11px", { lineHeight: "16px", fontWeight: "700" }],
+                        "body-sm": ["12px", { lineHeight: "18px", fontWeight: "400" }],
+                        "data-mono": ["16px", { lineHeight: "24px", letterSpacing: "0.02em", fontWeight: "600" }],
+                        "data-mono-lg": ["24px", { lineHeight: "32px", fontWeight: "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .ticker-scroll {
+            animation: ticker 20s linear infinite;
+        }
+        @keyframes ticker {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+    </style>
+</head>
+<body class="w-screen h-screen overflow-hidden bg-dark-canvas p-8 text-on-surface">
+<div class="grid grid-cols-12 gap-8 h-full">
+<!-- Left Zone: Infotainment Matrix -->
+<div class="col-span-8 flex flex-col gap-8 h-full">
+<!-- Video Player -->
+<div class="flex-grow bg-zinc-900 rounded-[24px] border border-dark-border relative overflow-hidden flex flex-col justify-end" style="height: 85%;">
+<div class="absolute inset-0 flex items-center justify-center">
+<button class="w-24 h-24 bg-dark-canvas/80 rounded-full flex items-center justify-center border border-dark-border hover:bg-dark-canvas transition-colors">
+<span class="material-symbols-outlined text-on-primary text-[48px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<div class="relative z-10 bg-gradient-to-t from-dark-canvas/90 to-transparent p-8">
+<div class="flex items-center gap-4">
+<span class="bg-primary/20 text-inverse-primary px-3 py-1 rounded-full font-label-caps text-label-caps border border-primary/30 uppercase tracking-widest">
+                            Now Playing
+                        </span>
+<h2 class="font-headline-md text-headline-md text-on-primary">Hospital Preventative Care &amp; Wellness Insights Panel</h2>
+</div>
+</div>
+<img class="absolute inset-0 w-full h-full object-cover opacity-40 z-0" data-alt="A cinematic, high-quality still from a corporate healthcare wellness video. Two medical professionals are sitting in a modern, brightly lit clinical setting, engaged in a conversation. The lighting is soft and natural, emphasizing a clean, professional, and trustworthy atmosphere. The overall color palette features muted cool tones with subtle warm highlights, consistent with a clinical yet warm aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4GszNVF5cFOhaVdLlJro7Ny9y7BvAJCUP2ZReGnTylTYATij5ak5cp1o_F20iGclG9nqIHziy7HNE1WkA_2PJv_XrTSszLduYL1V3fa74ysCsAMldAsfu9I2q6LzQznM0Bm1bAI82_Z8h1anDWa3BXzmdDJv1mtUhxLQ2I9id05JfoAQsqVL37rD_IaUzFcYFSmYxgy3UYESpdD2yBpTZsTRNyZTTzcfUN-juypTw1WMVEs0MtGUftw"/>
+</div>
+<!-- Ticker -->
+<div class="h-[15%] bg-zinc-900/50 border border-dark-border rounded-[16px] p-6 flex items-center overflow-hidden relative shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
+<div class="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-zinc-900/90 to-transparent z-10"></div>
+<div class="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-zinc-900/90 to-transparent z-10"></div>
+<div class="flex items-center gap-4 text-primary-fixed-dim whitespace-nowrap ticker-scroll font-headline-md text-headline-md">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">info</span>
+                    Welcome to Hopkins Clinic. Please have your WhatsApp QR ticket ready when called. Estimated laboratory wait times are currently normal.
+                    <span class="mx-12 text-dark-border">•</span>
+                    Please proceed to the registration desk if you require assistance.
+                </div>
+</div>
+</div>
+<!-- Right Zone: Live Roster -->
+<div class="col-span-4 flex flex-col gap-8 h-full">
+<!-- Active Flash Alert Card -->
+<div class="bg-zinc-900 border-2 border-amber-500 rounded-[24px] p-8 animate-[pulse_3s_ease-in-out_infinite] shadow-[0_0_30px_rgba(245,158,11,0.15)] flex flex-col justify-between h-[45%]">
+<div class="flex items-center gap-3 text-amber-500">
+<span class="w-4 h-4 rounded-full bg-amber-500 animate-ping"></span>
+<span class="font-label-caps text-label-caps text-amber-500 tracking-widest uppercase">Now Calling</span>
+</div>
+<div class="text-center py-6">
+<div class="font-data-mono-lg text-[80px] leading-none text-on-primary tracking-tight">LAB-104</div>
+</div>
+<div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6 flex items-center justify-center gap-4">
+<span class="material-symbols-outlined text-amber-500 text-[32px]">arrow_forward</span>
+<div class="font-headline-lg text-headline-lg text-amber-500">PROCEED TO DESK 3</div>
+</div>
+</div>
+<!-- Upcoming Expeditions -->
+<div class="bg-zinc-900 border border-dark-border rounded-[24px] p-8 flex flex-col h-[55%]">
+<div class="flex items-center justify-between mb-8 pb-4 border-b border-dark-border">
+<h3 class="font-label-caps text-label-caps text-outline uppercase tracking-widest">Upcoming Appointments</h3>
+<span class="material-symbols-outlined text-outline">list_alt</span>
+</div>
+<div class="flex flex-col gap-4 flex-grow overflow-y-auto pr-2">
+<!-- Row 1 -->
+<div class="bg-dark-card border border-dark-border rounded-xl p-6 flex items-center justify-between">
+<div class="flex items-center gap-6">
+<div class="w-2 h-12 bg-outline-variant rounded-full"></div>
+<div>
+<div class="font-data-mono-lg text-data-mono-lg text-on-primary">LAB-105</div>
+<div class="font-body-md text-body-md text-outline mt-1">Laboratory</div>
+</div>
+</div>
+<div class="font-label-caps text-label-caps text-outline-variant bg-surface-variant/10 px-4 py-2 rounded-lg uppercase tracking-wider">
+                            Waiting
+                        </div>
+</div>
+<!-- Row 2 -->
+<div class="bg-dark-card border border-dark-border rounded-xl p-6 flex items-center justify-between">
+<div class="flex items-center gap-6">
+<div class="w-2 h-12 bg-outline-variant rounded-full"></div>
+<div>
+<div class="font-data-mono-lg text-data-mono-lg text-on-primary">MRI-022</div>
+<div class="font-body-md text-body-md text-outline mt-1">Imaging</div>
+</div>
+</div>
+<div class="font-label-caps text-label-caps text-outline-variant bg-surface-variant/10 px-4 py-2 rounded-lg uppercase tracking-wider">
+                            Waiting
+                        </div>
+</div>
+<!-- Row 3 -->
+<div class="bg-dark-card border border-dark-border rounded-xl p-6 flex items-center justify-between">
+<div class="flex items-center gap-6">
+<div class="w-2 h-12 bg-outline-variant rounded-full"></div>
+<div>
+<div class="font-data-mono-lg text-data-mono-lg text-on-primary">GEN-411</div>
+<div class="font-body-md text-body-md text-outline mt-1">General Practice</div>
+</div>
+</div>
+<div class="font-label-caps text-label-caps text-outline-variant bg-surface-variant/10 px-4 py-2 rounded-lg uppercase tracking-wider">
+                            Waiting
+                        </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>
