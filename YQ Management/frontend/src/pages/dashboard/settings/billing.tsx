@@ -324,7 +324,6 @@ export default function BillingSettings() {
                   </div>
                 );
               })}
-              })}
             </div>
 
             {/* Enterprise Tier Section */}
