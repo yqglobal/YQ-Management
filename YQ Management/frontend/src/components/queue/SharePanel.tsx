@@ -1,3 +1,5 @@
+import { getTenantUrl } from "../../lib/utils";
+import { useAuth } from "../AuthContext";
 import React, { useState, useEffect } from 'react';
 import { Copy, MapPin, Globe, Code, CheckCircle2, Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,11 +12,14 @@ export function SharePanel({ queueId }: SharePanelProps) {
   const [publicUrl, setPublicUrl] = useState('');
   const [tvDisplayUrl, setTvDisplayUrl] = useState('');
 
+  const { user } = useAuth();
+  
   useEffect(() => {
     // Only access window on the client side
-    setPublicUrl(`${window.location.origin}/customer/join/${queueId}`);
-    setTvDisplayUrl(`${window.location.origin}/public/display/${queueId}`);
-  }, [queueId]);
+    const subdomain = user?.tenant?.subdomain || '';
+    setPublicUrl(getTenantUrl(subdomain, `/customer/join/${queueId}`));
+    setTvDisplayUrl(getTenantUrl(subdomain, `/public/display/${queueId}`));
+  }, [queueId, user?.tenant?.subdomain]);
 
   const iframeCode = `<iframe src="${publicUrl}" width="100%" height="600px" style="border:none;border-radius:12px;background:#fff;"></iframe>`;
 

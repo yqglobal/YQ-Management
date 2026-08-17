@@ -1,3 +1,5 @@
+import { getTenantUrl } from "../lib/utils";
+import { useAuth } from "./AuthContext";
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
@@ -21,11 +23,14 @@ export default function PrintQRModal({ open, onClose, queues }: PrintQRModalProp
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [baseUrl, setBaseUrl] = useState('');
 
+  const { user } = useAuth();
+  
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setBaseUrl(window.location.origin);
+      const subdomain = user?.tenant?.subdomain || '';
+      setBaseUrl(getTenantUrl(subdomain));
     }
-  }, []);
+  }, [user?.tenant?.subdomain]);
 
   useEffect(() => {
     if (open && queues.length > 0) {

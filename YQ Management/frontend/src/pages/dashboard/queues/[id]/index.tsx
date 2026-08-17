@@ -1,3 +1,4 @@
+import { getTenantUrl } from "../../../../lib/utils";
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -532,13 +533,7 @@ export default function QueueDetails() {
           )}
 
           {activeTab === 'links' && (() => {
-            const isLocal = typeof window !== 'undefined' && (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1'));
-            const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-            const tenantUrl = tenant?.subdomain
-              ? isLocal
-                ? `${typeof window !== 'undefined' ? window.location.protocol : 'http:'}//${tenant.subdomain}.localhost:${typeof window !== 'undefined' ? window.location.port : '3001'}`
-                : `https://${tenant.subdomain}.yq-qmova.vercel.app`
-              : baseUrl;
+            const tenantUrl = tenant?.subdomain ? getTenantUrl(tenant.subdomain) : (typeof window !== 'undefined' ? window.location.origin : '');
               
             const tenantId = user?.tenantId || '';
             const links = [
@@ -546,7 +541,7 @@ export default function QueueDetails() {
                 icon: 'monitor',
                 title: 'TV Lobby Display',
                 description: 'Open this URL on a TV or screen share to show a live calling board for your lobby.',
-                url: `${baseUrl}/tv/${tenantId}`,
+                url: `${tenantUrl}/tv/${tenantId}`,
               },
               {
                 icon: 'queue',

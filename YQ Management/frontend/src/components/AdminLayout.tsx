@@ -1,3 +1,4 @@
+import { getTenantUrl } from "../lib/utils";
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -386,12 +387,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
             const bookingShared = typeof window !== 'undefined' && !!localStorage.getItem('bookingPageShared');
 
-            const isLocal = typeof window !== 'undefined' && (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1'));
-            const bookingUrl = tenant.subdomain
-              ? isLocal
-                ? `${typeof window !== 'undefined' ? window.location.protocol : 'http:'}//${tenant.subdomain}.localhost:${typeof window !== 'undefined' ? window.location.port : '3001'}`
-                : `https://${tenant.subdomain}.yq-qmova.vercel.app`
-              : '';
+            const bookingUrl = tenant.subdomain ? getTenantUrl(tenant.subdomain, '/booking') : '';
 
             const steps: { label: string; done: boolean; href?: string; onClick?: () => void; isButton?: boolean }[] = [
               { label: 'Add a Location', done: !!(tenant.locations && tenant.locations.length > 0), href: '/dashboard/settings/operations' },

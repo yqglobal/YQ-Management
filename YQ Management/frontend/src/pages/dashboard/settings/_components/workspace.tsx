@@ -1,3 +1,4 @@
+import { getTenantUrl } from "../../../../lib/utils";
 import React, { useState, useEffect } from 'react';
 import { Save, Loader2, Building2, Copy, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../../../components/AuthContext';
@@ -83,13 +84,8 @@ export default function WorkspaceSettingsPage() {
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const currentTenantId = tenantId || user?.tenantId || '';
-  // Build customer portal URL based on hostname
   const isLocal = typeof window !== 'undefined' && (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1'));
-  const portalUrl = tenantSubdomain
-    ? isLocal
-      ? `${window.location.protocol}//${tenantSubdomain}.localhost:${window.location.port}`
-      : `https://${tenantSubdomain}.qmova.app`
-    : '';
+  const portalUrl = tenantSubdomain ? getTenantUrl(tenantSubdomain) : '';
 
   return (
     <div className="space-y-8">
@@ -133,7 +129,7 @@ export default function WorkspaceSettingsPage() {
                   className="flex-1 h-full bg-transparent font-data-mono text-body-md outline-none text-on-surface dark:text-white"
                   placeholder="your-company"
                 />
-                <span className="text-on-surface-variant dark:text-zinc-500 text-sm font-data-mono whitespace-nowrap shrink-0">{isLocal ? '.localhost' : '.qmova.app'}</span>
+                <span className="text-on-surface-variant dark:text-zinc-500 text-sm font-data-mono whitespace-nowrap shrink-0"></span>
               </div>
               {subdomainError ? (
                 <p className="text-[12px] text-red-500 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">error</span>{subdomainError}</p>

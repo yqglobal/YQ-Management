@@ -94,7 +94,15 @@ export default function PrivacySettings() {
                       Version {acceptance.policy.version} • Accepted on {new Date(acceptance.acceptedAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <button className="h-[36px] px-4 rounded-lg bg-surface-container-low dark:bg-white/5 hover:bg-surface-container-highest dark:hover:bg-white/10 text-on-surface dark:text-white font-body-sm font-semibold transition-colors border border-border dark:border-dark-border shrink-0">
+                  <button 
+                    onClick={() => {
+                      const url = acceptance.policy.type === 'TERMS_OF_SERVICE' 
+                        ? '/docs/legal/terms-of-service' 
+                        : '/docs/legal/privacy-policy';
+                      window.open(url, '_blank');
+                    }}
+                    className="h-[36px] px-4 rounded-lg bg-surface-container-low dark:bg-white/5 hover:bg-surface-container-highest dark:hover:bg-white/10 text-on-surface dark:text-white font-body-sm font-semibold transition-colors border border-border dark:border-dark-border shrink-0"
+                  >
                     View
                   </button>
                 </div>
