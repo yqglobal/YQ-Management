@@ -421,9 +421,9 @@ export default function LandingPage() {
                 <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-6 text-emerald-400">
                   <MessageSquare className="w-6 h-6" />
                 </div>
-                <h3 className="text-2xl font-headline-sm font-bold text-white mb-4">WhatsApp Chatbot & Notifications</h3>
+                <h3 className="text-2xl font-headline-sm font-bold text-white mb-4">AI Chatbot & Smart Alerts</h3>
                 <p className="text-zinc-400 leading-relaxed">
-                  Native WhatsApp integration. No apps to download. Customers join queues, receive live updates, and interact via the app they already use.
+                  Let customers join queues instantly by messaging your business on WhatsApp. Our intelligent chatbot handles two-way delay reporting and sends automated 5-minute warnings before their turn.
                 </p>
               </div>
 
@@ -563,22 +563,22 @@ export default function LandingPage() {
             <div className="w-12 h-12 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-6 glass-ui">
               <span className="material-symbols-outlined text-emerald-400 text-2xl">sms</span>
             </div>
-            <h2 className="text-3xl md:text-4xl font-headline-md font-extrabold tracking-[-0.04em] text-white">Rich-media ticketing natively in WhatsApp.</h2>
+            <h2 className="text-3xl md:text-4xl font-headline-md font-extrabold tracking-[-0.04em] text-white">Interactive Chatbot & Native Notifications.</h2>
             <p className="font-body-md text-zinc-400 leading-relaxed">
-              Stop forcing users to download apps or keep browser tabs open. Qmova delivers real-time position updates, estimated wait times, and two-way communication directly through the channels they already use.
+              Stop forcing customers to download proprietary apps. Our intelligent WhatsApp chatbot allows users to join the queue seamlessly, receive automated alerts when their turn approaches, and notify you if they're running late—all natively.
             </p>
             <ul className="space-y-4 pt-4">
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                <span className="font-body-sm text-zinc-300">Automated "5-minute warning" pings</span>
+                <span className="font-body-sm text-zinc-300">Conversational chatbot for instant queue joining</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                <span className="font-body-sm text-zinc-300">Bi-directional delay reporting</span>
+                <span className="font-body-sm text-zinc-300">Automated "5-minute warning" proximity alerts</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                <span className="font-body-sm text-zinc-300">Rich-media digital tickets (QR included)</span>
+                <span className="font-body-sm text-zinc-300">Bi-directional delay reporting (Reply "Late" to shift back)</span>
               </li>
             </ul>
           </div>
