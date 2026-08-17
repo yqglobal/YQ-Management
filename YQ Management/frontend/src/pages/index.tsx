@@ -28,7 +28,7 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 glass-ui h-header-h flex items-center justify-between px-gutter border-b border-white/5 backdrop-blur-xl bg-black/20">
         <div className="flex items-center gap-2">
-          <Logo width={180} height={28} href="/" forceTheme="dark" />
+          <Logo width={140} height={22} href="/" forceTheme="dark" />
         </div>
         <div className="hidden md:flex gap-8 font-body-sm text-zinc-400 font-medium tracking-wide">
           <Link className="hover:text-white transition-colors" href="/features">Features</Link>
