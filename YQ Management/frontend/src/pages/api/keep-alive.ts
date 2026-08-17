@@ -44,7 +44,10 @@ export default async function handler(
       headers: { apikey: evoApiKey },
       signal: AbortSignal.timeout(20000),
     });
-    results.evolutionApi = { status: evoRes.status, ok: evoRes.ok };
+    // A 401 or 403 means the server is awake but we didn't provide a valid API key.
+    // For a keep-alive ping, this is still a success (the server is not sleeping).
+    const isAwake = evoRes.ok || evoRes.status === 401 || evoRes.status === 403;
+    results.evolutionApi = { status: evoRes.status, ok: isAwake };
   } catch (err: any) {
     results.evolutionApi = { status: err.message || 'error', ok: false };
   }
