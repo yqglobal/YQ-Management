@@ -92,9 +92,9 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   if (!isOpen || typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20 shrink-0">
+    <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/60 backdrop-blur-sm z-[100] flex justify-end animate-in fade-in duration-200">
+      <div className="bg-surface dark:bg-dark-surface border-l border-border dark:border-dark-border w-full max-w-md shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300">
+        <div className="flex justify-between items-center p-6 border-b border-border dark:border-dark-border bg-surface-container-low dark:bg-dark-card shrink-0">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             {service ? 'Edit Service' : 'Add New Service'}
           </h2>

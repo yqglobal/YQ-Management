@@ -328,21 +328,26 @@ export default function ServiceDeskToday() {
             
             {displayPool.length === 0 && !isLoading && (
               <div className="flex flex-col items-center justify-center h-full text-outline animate-in fade-in duration-500 py-16">
-                <span className="material-symbols-outlined text-5xl mb-3 opacity-30">inbox</span>
-                <p className="font-semibold text-on-surface dark:text-white mb-1">Queue is empty</p>
-                <p className="text-sm text-outline text-center max-w-xs mb-6">
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 bg-primary/20 blur-[30px] rounded-full"></div>
+                  <div className="w-24 h-24 bg-surface-container/50 dark:bg-inverse-surface border border-border dark:border-dark-border rounded-full flex items-center justify-center relative z-10 shadow-xl">
+                    <span className="material-symbols-outlined text-5xl text-primary opacity-80">sentiment_satisfied</span>
+                  </div>
+                </div>
+                <h3 className="font-headline-sm text-on-surface dark:text-white mb-2">Queue is crystal clear.</h3>
+                <p className="text-body-md text-outline text-center max-w-sm mb-8 leading-relaxed">
                   {visits.length === 0 
-                    ? 'No customers today yet. Share your booking page to start receiving visitors.' 
-                    : 'All customers have been served. Great work!'}
+                    ? "Your waiting room is empty. Share your booking page or have visitors scan your QR code to get started." 
+                    : "Inbox zero! All customers have been successfully routed and served."}
                 </p>
                 {visits.length === 0 && tenant?.subdomain && (
                   <a
                     href={`http://${tenant.subdomain}.localhost:3001`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary-container transition-colors"
+                    className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-semibold text-body-sm hover:bg-primary-container transition-all hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]"
                   >
-                    <MonitorPlay className="w-4 h-4" />
+                    <MonitorPlay className="w-5 h-5" />
                     Open Booking Page
                   </a>
                 )}
@@ -364,9 +369,9 @@ export default function ServiceDeskToday() {
                     transition={{ duration: 0.2 }}
                     key={v.id} 
                     onClick={() => setSelectedVisit(v)}
-                    className={`bg-card dark:bg-dark-card border ${selectedVisit?.id === v.id ? 'border-primary' : 'border-border dark:border-dark-border'} rounded-xl p-4 flex items-center justify-between relative overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer shadow-sm`}
+                    className={`bg-card dark:bg-dark-card border ${selectedVisit?.id === v.id ? 'border-primary' : 'border-border dark:border-dark-border'} rounded-xl p-4 flex items-center justify-between relative overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer ${v.source === 'APPOINTMENT' ? 'shadow-[0_0_15px_rgba(14,165,233,0.1)] border-sky-500/20' : 'shadow-[0_0_15px_rgba(16,185,129,0.1)] border-emerald-500/20'}`}
                   >
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${isUrgent ? 'bg-alert' : 'bg-amber-500'}`}></div>
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${isUrgent ? 'bg-alert shadow-[0_0_10px_rgba(239,68,68,0.8)]' : 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'}`}></div>
                     
                     <div className="flex flex-col gap-1 pl-2">
                       <div className="flex items-center gap-2 mb-1">

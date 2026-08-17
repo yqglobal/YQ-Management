@@ -15,6 +15,21 @@ export default function PricingPage() {
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
   const opacityFade = useTransform(scrollY, [0, 300], [1, 0]);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { opacity: 1, x: 0 }
+  };
+
   return (
     <div className="dark bg-[#09090b] min-h-screen font-body-md text-white antialiased overflow-x-hidden selection:bg-sky-500/30">
       <Head>
@@ -54,7 +69,11 @@ export default function PricingPage() {
 
       {/* Hero Section */}
       <section className="relative min-h-[500px] flex flex-col items-center justify-center pt-32 px-gutter overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-sky-500/10 blur-[120px] rounded-full z-0 pointer-events-none mix-blend-screen"></div>
+        <motion.div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-sky-500/10 blur-[120px] rounded-full z-0 pointer-events-none mix-blend-screen"
+          animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
+          transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
+        />
 
         <motion.div 
           style={{ y: heroY, opacity: opacityFade }}
@@ -105,7 +124,7 @@ export default function PricingPage() {
                 </p>
               </div>
 
-              <ul className="space-y-4 flex-1 mb-8">
+              <motion.ul variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="space-y-4 flex-1 mb-8">
                 {[
                   "Smart Walk-in Injection",
                   "Personalized Status Pages",
@@ -113,12 +132,12 @@ export default function PricingPage() {
                   "Up to 500 visitors/month",
                   "Standard Email Support",
                 ].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-3">
+                  <motion.li key={i} variants={itemVariants} className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-zinc-500 shrink-0" />
                     <span className="text-zinc-300 font-body-sm">{feature}</span>
-                  </li>
+                  </motion.li>
                 ))}
-              </ul>
+              </motion.ul>
 
               <Link href="/register?plan=standard" className="w-full h-12 rounded-xl border border-white/10 text-white font-body-sm font-semibold flex items-center justify-center hover:bg-white/5 transition-colors">
                 Start Standard Trial
@@ -151,7 +170,7 @@ export default function PricingPage() {
                 </p>
               </div>
 
-              <ul className="space-y-4 flex-1 mb-8">
+              <motion.ul variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="space-y-4 flex-1 mb-8">
                 {[
                   "Everything in Standard",
                   "WhatsApp Native Chatbot",
@@ -161,12 +180,12 @@ export default function PricingPage() {
                   "Multi-Queue Routing",
                   "24/7 Priority Support",
                 ].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-3">
+                  <motion.li key={i} variants={itemVariants} className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-sky-500 shrink-0" />
                     <span className="text-white font-body-sm font-medium">{feature}</span>
-                  </li>
+                  </motion.li>
                 ))}
-              </ul>
+              </motion.ul>
 
               <Link href="/register?plan=premium" className="w-full h-12 rounded-xl bg-sky-600 text-white font-body-sm font-semibold flex items-center justify-center hover:bg-sky-500 transition-colors shadow-[0_0_20px_rgba(2,132,199,0.3)]">
                 Start Premium Trial

@@ -15,6 +15,21 @@ export default function IndustriesPage() {
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
   const opacityFade = useTransform(scrollY, [0, 300], [1, 0]);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { opacity: 1, x: 0 }
+  };
+
   return (
     <div className="dark bg-[#09090b] min-h-screen font-body-md text-white antialiased overflow-x-hidden selection:bg-sky-500/30">
       <Head>
@@ -54,7 +69,11 @@ export default function IndustriesPage() {
 
       {/* Hero Section */}
       <section className="relative min-h-[500px] flex flex-col items-center justify-center pt-32 px-gutter overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-indigo-500/10 blur-[120px] rounded-full z-0 pointer-events-none mix-blend-screen"></div>
+        <motion.div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-indigo-500/10 blur-[120px] rounded-full z-0 pointer-events-none mix-blend-screen"
+          animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
+          transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
+        />
 
         <motion.div 
           style={{ y: heroY, opacity: opacityFade }}
@@ -95,20 +114,20 @@ export default function IndustriesPage() {
               <p className="font-body-md text-zinc-400 leading-relaxed text-lg">
                 Prioritize urgent care walk-ins without destroying your scheduled appointments. Keep sick patients out of crowded waiting rooms with personalized status pages and "wait in car" workflows.
               </p>
-              <ul className="space-y-4 pt-4">
-                <li className="flex items-start gap-3">
+              <motion.ul variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="space-y-4 pt-4">
+                <motion.li variants={itemVariants} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-rose-500 shrink-0" />
                   <span className="font-body-sm text-zinc-300">Wait-in-car notifications</span>
-                </li>
-                <li className="flex items-start gap-3">
+                </motion.li>
+                <motion.li variants={itemVariants} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-rose-500 shrink-0" />
                   <span className="font-body-sm text-zinc-300">HIPAA-compliant data handling</span>
-                </li>
-                <li className="flex items-start gap-3">
+                </motion.li>
+                <motion.li variants={itemVariants} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-rose-500 shrink-0" />
                   <span className="font-body-sm text-zinc-300">Multi-doctor dynamic routing</span>
-                </li>
-              </ul>
+                </motion.li>
+              </motion.ul>
             </div>
             <div className="flex-1 w-full relative">
                <div className="absolute inset-0 bg-rose-500/20 blur-[100px] rounded-full"></div>
@@ -135,20 +154,20 @@ export default function IndustriesPage() {
               <p className="font-body-md text-zinc-400 leading-relaxed text-lg">
                 Turn waiting time into shopping time. Let customers join the queue via QR code and browse the store while waiting for a fitting room, customer service, or checkout.
               </p>
-              <ul className="space-y-4 pt-4">
-                <li className="flex items-start gap-3">
+              <motion.ul variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="space-y-4 pt-4">
+                <motion.li variants={itemVariants} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-amber-500 shrink-0" />
                   <span className="font-body-sm text-zinc-300">QR code quick-join</span>
-                </li>
-                <li className="flex items-start gap-3">
+                </motion.li>
+                <motion.li variants={itemVariants} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-amber-500 shrink-0" />
                   <span className="font-body-sm text-zinc-300">Lobby TV displays for the sales floor</span>
-                </li>
-                <li className="flex items-start gap-3">
+                </motion.li>
+                <motion.li variants={itemVariants} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-amber-500 shrink-0" />
                   <span className="font-body-sm text-zinc-300">Brand-forward booking pages</span>
-                </li>
-              </ul>
+                </motion.li>
+              </motion.ul>
             </div>
             <div className="flex-1 w-full relative">
                <div className="absolute inset-0 bg-amber-500/20 blur-[100px] rounded-full"></div>
@@ -171,20 +190,20 @@ export default function IndustriesPage() {
               <p className="font-body-md text-zinc-400 leading-relaxed text-lg">
                 Manage massive crowds with dignity. Implement AI-driven voice announcements and smart TV displays to keep citizens informed in large, chaotic waiting areas.
               </p>
-              <ul className="space-y-4 pt-4">
-                <li className="flex items-start gap-3">
+              <motion.ul variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="space-y-4 pt-4">
+                <motion.li variants={itemVariants} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0" />
                   <span className="font-body-sm text-zinc-300">Automated multi-lingual announcements</span>
-                </li>
-                <li className="flex items-start gap-3">
+                </motion.li>
+                <motion.li variants={itemVariants} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0" />
                   <span className="font-body-sm text-zinc-300">Multi-desk routing (e.g. DMV)</span>
-                </li>
-                <li className="flex items-start gap-3">
+                </motion.li>
+                <motion.li variants={itemVariants} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0" />
                   <span className="font-body-sm text-zinc-300">Accessibility-first status pages</span>
-                </li>
-              </ul>
+                </motion.li>
+              </motion.ul>
             </div>
             <div className="flex-1 w-full relative">
                <div className="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full"></div>
@@ -215,20 +234,20 @@ export default function IndustriesPage() {
               <p className="font-body-md text-zinc-400 leading-relaxed text-lg">
                 Coordinate dock doors and delivery schedules. Drivers join the queue upon arrival and receive a WhatsApp message when their specific bay is ready.
               </p>
-              <ul className="space-y-4 pt-4">
-                <li className="flex items-start gap-3">
+              <motion.ul variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="space-y-4 pt-4">
+                <motion.li variants={itemVariants} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
                   <span className="font-body-sm text-zinc-300">WhatsApp native ticketing for drivers</span>
-                </li>
-                <li className="flex items-start gap-3">
+                </motion.li>
+                <motion.li variants={itemVariants} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
                   <span className="font-body-sm text-zinc-300">Bay-specific routing</span>
-                </li>
-                <li className="flex items-start gap-3">
+                </motion.li>
+                <motion.li variants={itemVariants} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
                   <span className="font-body-sm text-zinc-300">Real-time delay tracking</span>
-                </li>
-              </ul>
+                </motion.li>
+              </motion.ul>
             </div>
             <div className="flex-1 w-full relative">
                <div className="absolute inset-0 bg-emerald-500/20 blur-[100px] rounded-full"></div>

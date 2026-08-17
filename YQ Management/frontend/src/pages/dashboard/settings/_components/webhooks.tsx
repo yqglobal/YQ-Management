@@ -63,7 +63,7 @@ export default function WebhooksSettingsPage() {
       featureName="Webhook Integrations"
       description="Connect external systems and automate workflows using secure webhook events."
     >
-    <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
+    <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8 hover:border-primary/50 hover:shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)] transition-all duration-300 group">
       {/* Decorative left edge accent */}
       <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#d946ef]"></div>
 

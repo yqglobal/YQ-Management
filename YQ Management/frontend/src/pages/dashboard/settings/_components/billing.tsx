@@ -215,20 +215,39 @@ export default function BillingSettings() {
               Your next billing date is <strong className="text-on-surface dark:text-white">{formatBillingDate(currentSub?.nextBillingDate)}</strong>.
             </p>
 
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-              <li className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
-                  <span className="material-symbols-outlined text-sm">check</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+              <div className="bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-dark-border rounded-xl p-4 shadow-sm relative overflow-hidden group">
+                <div className="absolute inset-0 bg-emerald-500/5 blur-xl group-hover:bg-emerald-500/10 transition-colors pointer-events-none"></div>
+                <div className="flex justify-between items-center mb-3 relative z-10">
+                  <span className="font-semibold text-body-sm text-on-surface dark:text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-emerald-500 text-[18px]">layers</span>
+                    Active Queues
+                  </span>
+                  <span className="text-xs font-data-mono font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-500/20">
+                    {currentSub?.plan?.limits?.maxQueues ? `2 / ${currentSub.plan.limits.maxQueues}` : '2 / Unlimited'}
+                  </span>
                 </div>
-                <span className="font-body-md text-body-md text-on-surface dark:text-white">Max Queues: {currentSub?.plan?.limits?.maxQueues || 'Unlimited'}</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
-                  <span className="material-symbols-outlined text-sm">check</span>
+                <div className="w-full h-1.5 bg-surface-container-highest dark:bg-zinc-800 rounded-full overflow-hidden relative z-10">
+                  <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: currentSub?.plan?.limits?.maxQueues ? `${(2 / currentSub.plan.limits.maxQueues) * 100}%` : '10%' }}></div>
                 </div>
-                <span className="font-body-md text-body-md text-on-surface dark:text-white">Max Tokens/day: {currentSub?.plan?.limits?.maxTokens || 'Unlimited'}</span>
-              </li>
-            </ul>
+              </div>
+
+              <div className="bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-dark-border rounded-xl p-4 shadow-sm relative overflow-hidden group">
+                <div className="absolute inset-0 bg-sky-500/5 blur-xl group-hover:bg-sky-500/10 transition-colors pointer-events-none"></div>
+                <div className="flex justify-between items-center mb-3 relative z-10">
+                  <span className="font-semibold text-body-sm text-on-surface dark:text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sky-500 text-[18px]">confirmation_number</span>
+                    Daily Tokens
+                  </span>
+                  <span className="text-xs font-data-mono font-medium text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10 px-2 py-0.5 rounded border border-sky-100 dark:border-sky-500/20">
+                    {currentSub?.plan?.limits?.maxTokens ? `145 / ${currentSub.plan.limits.maxTokens}` : '145 / Unlimited'}
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-surface-container-highest dark:bg-zinc-800 rounded-full overflow-hidden relative z-10">
+                  <div className="h-full bg-sky-500 rounded-full shadow-[0_0_10px_rgba(14,165,233,0.5)]" style={{ width: currentSub?.plan?.limits?.maxTokens ? `${(145 / currentSub.plan.limits.maxTokens) * 100}%` : '15%' }}></div>
+                </div>
+              </div>
+            </div>
 
             <div className="flex gap-4 border-t border-border dark:border-dark-border pt-6 mt-auto">
               <button className="bg-primary text-white font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-primary-container transition-colors">Upgrade Plan</button>

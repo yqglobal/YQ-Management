@@ -9,6 +9,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import useWhatsapp from '../../hooks/useWhatsapp';
 import { motion, AnimatePresence } from 'framer-motion';
+import Confetti from 'react-confetti';
 
 import { countryCodes as allCountryCodes } from '../../lib/country-codes';
 
@@ -218,6 +219,7 @@ export default function Onboarding() {
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [pairingPhoneNumber, setPairingPhoneNumber] = useState('');
   const [pairingCopied, setPairingCopied] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const updateStep = (newStep: 1 | 2 | 3 | 4) => {
     setStep(newStep);
@@ -427,18 +429,21 @@ export default function Onboarding() {
   };
 
   const finishOnboarding = () => {
+    setShowConfetti(true);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('onboarding_step');
       localStorage.removeItem('onboarding_form_data');
     }
-    router.push('/dashboard');
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 2500);
   };
-
-  const totalSteps = inviteCode ? 2 : 4;
+const totalSteps = inviteCode ? 2 : 4;
   const currentStepProgress = inviteCode ? (step === 1 ? 1 : 2) : (step === 5 ? 4 : step === 4 ? 4 : step);
 
   return (
-    <div className="bg-canvas dark:bg-zinc-950 min-h-screen flex items-center justify-center p-4 md:p-8 font-body-md text-on-surface dark:text-white">
+    <div className="min-h-screen bg-surface dark:bg-[#0a0a0a] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-primary/20">
+      {showConfetti && <Confetti width={typeof window !== 'undefined' ? window.innerWidth : 1000} height={typeof window !== 'undefined' ? window.innerHeight : 1000} recycle={false} numberOfPieces={500} gravity={0.15} />}
       <Head>
         <title>Onboarding | Qmova</title>
       </Head>
@@ -501,13 +506,21 @@ export default function Onboarding() {
                 ) : (
                   <div className="space-y-2">
                     <label className="font-body-md font-medium text-on-surface dark:text-white block">Company / Workspace Name</label>
-                    <input
-                      type="text"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant"
-                      placeholder="Acme Corp"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant"
+                        placeholder="Acme Corp"
+                      />
+                      {companyName.length > 0 && (
+                        <div className="absolute -bottom-6 left-1 flex items-center gap-1.5 text-[13px] text-emerald-600 dark:text-emerald-400 animate-in fade-in slide-in-from-top-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Portal URL: <strong>{companyName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'your-company'}.qmova.app</strong></span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -965,8 +978,7 @@ export default function Onboarding() {
                   </ul>
                   <button
                     onClick={() => {
-                      toast.success("Redirecting to checkout...");
-                      setTimeout(() => finishOnboarding(), 1000);
+                      finishOnboarding();
                     }}
                     className="w-full py-3 px-4 rounded-xl font-semibold bg-primary hover:bg-primary-container text-white transition-colors"
                   >

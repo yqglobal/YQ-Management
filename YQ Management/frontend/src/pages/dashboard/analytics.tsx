@@ -204,6 +204,22 @@ export default function Analytics() {
           {/* ── INSIGHTS TAB ── */}
           {activeTab === 'insights' && (
             <>
+              {/* AI Insights Ribbon */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+                className="bg-gradient-to-r from-sky-500/10 to-indigo-500/10 border border-sky-500/20 rounded-xl p-5 mb-4 shadow-sm flex items-start gap-4"
+              >
+                <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="material-symbols-outlined text-sky-400">auto_awesome</span>
+                </div>
+                <div>
+                  <h4 className="font-headline-sm text-on-surface dark:text-white font-bold mb-1">AI Summary & Insights</h4>
+                  <p className="text-body-sm text-outline leading-relaxed">
+                    Wait times have been exceptionally low today! However, based on the last 30 days, we've identified a 30% visitor surge between <span className="text-on-surface dark:text-white font-semibold">10 AM and 11 AM</span>. Consider assigning an additional desk during this peak hour.
+                  </p>
+                </div>
+              </motion.div>
+
               {/* KPI Ribbon */}
               <motion.div
                 initial="hidden" animate="visible"
@@ -275,9 +291,10 @@ export default function Analytics() {
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#707881' }} />
                       <Tooltip 
                         isAnimationActive={false} 
-                        contentStyle={{ background: '#fff', border: '1px solid #e4e4e7', borderRadius: '10px' }} 
-                        itemStyle={{ color: '#09090b', fontWeight: 'bold' }} 
-                        labelStyle={{ color: '#52525b' }} 
+                        contentStyle={{ background: '#09090b', border: '1px solid #27272a', borderRadius: '10px' }} 
+                        itemStyle={{ color: '#fff', fontWeight: 'bold' }} 
+                        labelStyle={{ color: '#a1a1aa' }} 
+                        cursor={{ stroke: '#3f3f46', strokeWidth: 1, strokeDasharray: '4 4' }}
                       />
                       <Area type="monotone" dataKey="visits" stroke="#1571ff" strokeWidth={2.5} fill="url(#colorVisits)" />
                     </AreaChart>

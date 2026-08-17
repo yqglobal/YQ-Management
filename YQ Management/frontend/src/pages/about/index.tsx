@@ -53,7 +53,11 @@ export default function AboutPage() {
 
       {/* Hero Section */}
       <section className="relative min-h-[600px] flex flex-col items-center justify-center pt-32 px-gutter overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-rose-500/10 blur-[120px] rounded-full z-0 pointer-events-none mix-blend-screen"></div>
+        <motion.div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-rose-500/10 blur-[120px] rounded-full z-0 pointer-events-none mix-blend-screen"
+          animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
+          transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
+        />
 
         <motion.div 
           style={{ y: heroY, opacity: opacityFade }}

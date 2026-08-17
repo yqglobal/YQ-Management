@@ -197,6 +197,15 @@ export default function ResourcesSettingsPage() {
               Add each physical branch your business operates from. Queues and services are linked to a location.
             </p>
           </div>
+          <div className="flex flex-col items-end shrink-0">
+            <span className="text-sm font-semibold text-on-surface dark:text-white mb-1">{locations.length} of 5 Locations Used</span>
+            <div className="w-32 h-2 bg-surface-container-low dark:bg-zinc-800 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min((locations.length / 5) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Add Location Form */}
