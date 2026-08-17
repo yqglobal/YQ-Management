@@ -63,6 +63,8 @@ enum AppointmentStatus {
   NO_SHOW
   RESCHEDULED
   MISSED
+  PENDING_APPROVAL
+  REJECTED
 }
 
 enum VisitSource {
@@ -103,16 +105,26 @@ enum PolicyType {
 }
 
 model Tenant {
-  id                 String            @id @default(uuid())
+  id                 String  @id @default(uuid())
   name               String
-  subdomain          String            @unique // e.g., 'hospitalname'
+  subdomain          String  @unique // e.g., 'hospitalname'
   branding           Json? // Stores colors, logo URLs
   whatsappInstanceId String? // Optional Evolution API instance name
-  whatsappConnected  Boolean           @default(false)
+  whatsappConnected  Boolean @default(false)
   whatsappPhone      String?
-  chatbotEnabled     Boolean           @default(false)
+  chatbotEnabled     Boolean @default(false)
   chatbotConfig      Json? // Stores custom button menus and automated replies
   customerExperience Json? // Global settings for forms, feedback, and portal experience
+
+  // Google Business Profile Integration
+  googleBusinessConnected Boolean   @default(false)
+  googleAccessToken       String?
+  googleRefreshToken      String?
+  googleTokenExpiry       DateTime?
+  googleLocationId        String?
+
+  appointmentApprovalMode String            @default("AUTO") // AUTO, MANUAL
+
   subscriptionStatus String            @default("TRIAL") // TRIAL, ACTIVE, EXPIRED
   users              User[]
   workspaces         Workspace[]
@@ -121,14 +133,15 @@ model Tenant {
   webhooks           WebhookEndpoint[]
   webhookEvents      WebhookEvent[]
 
-  customers    Customer[]
-  locations    Location[]
-  services     Service[]
-  staffMembers Staff[]
-  resources    Resource[]
-  appointments Appointment[]
-  visits       Visit[]
+  customers           Customer[]
+  locations           Location[]
+  services            Service[]
+  staffMembers        Staff[]
+  resources           Resource[]
+  appointments        Appointment[]
+  visits              Visit[]
   enterpriseInquiries EnterpriseInquiry[]
+  operatingCountries  String[] @default([])
 
   createdAt DateTime @default(now())
 }
@@ -144,6 +157,11 @@ model User {
   otpCode          String?
   otpExpiresAt     DateTime?
   personalSettings Json?
+  
+  allowedLocationIds String[] @default([])
+  allowedServiceIds  String[] @default([])
+  allowedPages       String[] @default([])
+  
   tenant           Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   workspace        Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -252,6 +270,8 @@ model Token {
 
   operatorId String?
   operator   User?   @relation(fields: [operatorId], references: [id])
+  
+  reminderSent Boolean @default(false)
 
   @@index([queueId, status])
   @@index([queueId, joinedAt])
@@ -316,13 +336,13 @@ model Workspace {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  users         User[]
-  queues        Queue[]
-  subscriptions Subscription[]
-  invoices      Invoice[]
-  usages        WorkspaceUsage[]
-  transactions  Transaction[]
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users             User[]
+  queues            Queue[]
+  subscriptions     Subscription[]
+  invoices          Invoice[]
+  usages            WorkspaceUsage[]
+  transactions      Transaction[]
   locations         Location[]
   communicationLogs CommunicationLog[]
   invitations       Invitation[]
@@ -478,7 +498,10 @@ model Invitation {
   maxUses     Int       @default(1)
   usedAt      DateTime?
   expiresAt   DateTime?
-  createdAt   DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  allowedLocationIds String[]  @default([])
+  allowedServiceIds  String[]  @default([])
+  allowedPages       String[]  @default([])
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -533,8 +556,10 @@ model Location {
   workspaceId String?
   name        String
   address     String?
+  city        String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
 
   services     Service[]
   staff        Staff[]
@@ -566,6 +591,7 @@ model Service {
   visits       Visit[]
   appointments Appointment[]
   queues       Queue[]
+  resources    Resource[]
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
@@ -607,6 +633,7 @@ model Resource {
 
   visits       Visit[]
   appointments Appointment[]
+  services     Service[]
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
@@ -691,13 +718,13 @@ model Visit {
 }
 
 model Policy {
-  id        String       @id @default(uuid())
+  id        String     @id @default(uuid())
   type      PolicyType
-  version   String       // e.g., "1.0.0"
-  content   String       @db.Text
-  active    Boolean      @default(false)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  version   String // e.g., "1.0.0"
+  content   String     @db.Text
+  active    Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   acceptances PolicyAcceptance[]
 
@@ -705,11 +732,11 @@ model Policy {
 }
 
 model PolicyAcceptance {
-  id        String   @id @default(uuid())
-  userId    String
-  policyId  String
-  ipAddress String?
-  userAgent String?
+  id         String   @id @default(uuid())
+  userId     String
+  policyId   String
+  ipAddress  String?
+  userAgent  String?
   acceptedAt DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -720,17 +747,17 @@ model PolicyAcceptance {
 }
 
 model CookiePreference {
-  id            String   @id @default(uuid())
-  userId        String?  // Optional, can be anonymous
-  anonymousId   String?  @unique // For non-logged in users
-  necessary     Boolean  @default(true)
-  analytics     Boolean  @default(false)
-  functional    Boolean  @default(false)
-  marketing     Boolean  @default(false)
-  ipAddress     String?
-  userAgent     String?
-  updatedAt     DateTime @updatedAt
-  createdAt     DateTime @default(now())
+  id          String   @id @default(uuid())
+  userId      String? // Optional, can be anonymous
+  anonymousId String?  @unique // For non-logged in users
+  necessary   Boolean  @default(true)
+  analytics   Boolean  @default(false)
+  functional  Boolean  @default(false)
+  marketing   Boolean  @default(false)
+  ipAddress   String?
+  userAgent   String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -758,7 +785,7 @@ model UserSession {
 
 model SystemLog {
   id         String   @id @default(uuid())
-  level      String   // INFO, WARN, ERROR
+  level      String // INFO, WARN, ERROR
   message    String
   stackTrace String?
   context    Json?
@@ -780,8 +807,8 @@ model EnterpriseInquiry {
   status      String   @default("PENDING") // PENDING, CONTACTED, RESOLVED
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
 }

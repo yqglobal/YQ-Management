@@ -81,7 +81,7 @@ export default function SuperAdminAnalytics() {
 
   const iconsMap: Record<string, any> = {
     '/dashboard/queues': Activity,
-    '/dashboard/scanner': QrCode,
+    '/dashboard/check-in': QrCode,
     '/dashboard/display-picker': Tv,
     '/dashboard/settings/whatsapp': Smartphone,
     '/dashboard/history': BarChart3,

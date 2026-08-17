@@ -4,7 +4,9 @@ import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../components/AuthContext';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
+import { getBackendUrl } from '../lib/api';
+
+const SOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || getBackendUrl();
 
 export function useWhatsapp() {
   const qc = useQueryClient();
@@ -58,9 +60,9 @@ export function useWhatsapp() {
     queryKey: ['whatsapp-status'],
     queryFn: () => fetchApi('/whatsapp/status'),
     refetchInterval: (data: any) => {
-      // With WebSockets, we don't need aggressive 1s polling. We can relax it significantly.
-      // But we still poll slowly as a fallback in case socket disconnects.
-      if (data?.qr || data?.state === 'connecting') return 10000;
+      // Fast polling (1.5s) when waiting for QR scan so the UI updates instantly
+      // even if WebSockets are blocked by proxies/firewalls.
+      if (data?.qr || data?.state === 'connecting') return 1500;
       return 30000;
     },
   });

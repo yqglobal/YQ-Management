@@ -204,6 +204,8 @@ export class TemplateService {
       'Thank you for visiting {{queue_name}}, {{name}}! We hope to see you again soon.',
     appointment_created:
       'Hello {{name}}! Your appointment is scheduled for {{date}}. Your token is {{token}}. Track your status here: {{link}}',
+    appointment_reminder:
+      'Reminder: Hi {{name}}, your appointment is scheduled for tomorrow at {{date}}. Track your status here: {{link}}',
     checked_in:
       'Hello {{name}}! You have been checked in and are now waiting in the live line. Track your status here: {{link}}',
     transferred:

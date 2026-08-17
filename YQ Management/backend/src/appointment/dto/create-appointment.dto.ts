@@ -47,6 +47,10 @@ export class CreateAppointmentDto {
   customerNotes?: string;
 
   @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
   @IsObject()
   formData?: any;
 }

@@ -34,4 +34,15 @@ export class SystemLogService {
 
     return { data, total, skip, take };
   }
+
+  async log(level: string, message: string, context?: any, tenantId?: string) {
+    return this.prisma.systemLog.create({
+      data: {
+        level: level.toUpperCase(),
+        message,
+        context: context ? (context as Prisma.InputJsonValue) : Prisma.JsonNull,
+        tenantId,
+      },
+    });
+  }
 }

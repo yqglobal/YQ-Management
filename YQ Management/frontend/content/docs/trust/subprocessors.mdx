@@ -1,0 +1,209 @@
+# Subprocessors
+
+**Version:** 1.0.0
+
+**Last Updated:** 12 August 2026
+
+**Status:** Public
+
+---
+
+# At a Glance
+
+Qmova uses a limited number of carefully selected third-party service providers ("Subprocessors") to deliver, secure, and operate the Qmova platform.
+
+We select subprocessors based on their ability to support reliable platform operations while helping us protect Customer Data and maintain appropriate security standards.
+
+We aim to minimize the number of subprocessors used and regularly review our providers as our platform evolves.
+
+This page identifies the primary subprocessors that may process Customer Data on behalf of Qmova.
+
+---
+
+# What is a Subprocessor?
+
+A Subprocessor is a third-party service provider engaged by Qmova to process Customer Data on behalf of our Customers.
+
+Examples include providers used for:
+
+- cloud hosting
+- email delivery
+- authentication
+- infrastructure
+- communications
+- monitoring
+
+A subprocessor is different from a Customer's own service providers or integrations.
+
+---
+
+# Current Subprocessors
+
+| Provider | Purpose | Customer Data Processed | Data Location |
+|-----------|---------|------------------------|---------------|
+| Google OAuth | User authentication | Account identity information required for authentication | Global infrastructure |
+| Brevo | Transactional email and OTP delivery | Email address, email content, OTP messages | Provider infrastructure |
+| Evolution API | Customer-owned WhatsApp connectivity | WhatsApp message metadata and content transmitted on behalf of the Customer | Customer-configured infrastructure |
+| PostgreSQL | Primary application database | Customer Data, Visit records, Workspace configuration | Qmova infrastructure |
+| Redis | Caching, queues, session support | Temporary operational data and queue state | Qmova infrastructure |
+| Hostinger | Cloud hosting and infrastructure | Application hosting and storage infrastructure | Provider infrastructure |
+| Cloudflare (if used) | DNS, CDN, security and performance | Limited network and request metadata | Global network |
+
+---
+
+# Customer-Owned WhatsApp
+
+Qmova uses Evolution API to facilitate Customer messaging.
+
+Important distinctions:
+
+- Customers own their WhatsApp Business accounts.
+- Customers control their WhatsApp numbers.
+- Customers control message recipients.
+- Customers control message content.
+- Qmova does not operate a shared WhatsApp sender identity.
+
+Evolution API acts as connectivity infrastructure between the Customer's WhatsApp environment and Qmova.
+
+---
+
+# Authentication Providers
+
+Customers may authenticate using:
+
+- Google OAuth
+- Email and password
+- One-Time Password (OTP)
+
+Authentication providers process only the information necessary to authenticate Users and secure access to the platform.
+
+---
+
+# Infrastructure Providers
+
+Infrastructure providers may process Customer Data solely as required to operate the Qmova platform.
+
+Examples include:
+
+- hosting
+- databases
+- networking
+- storage
+- application availability
+- disaster recovery
+
+Infrastructure providers are not authorized to use Customer Data for their own independent purposes except where required by law or their contractual obligations.
+
+---
+
+# Email Providers
+
+Qmova uses Brevo for operational email delivery.
+
+Examples include:
+
+- account verification
+- password reset
+- one-time passwords (OTP)
+- transactional notifications
+- security notifications
+
+Marketing communications, where applicable, are managed separately from essential transactional emails.
+
+---
+
+# Data Processing Expectations
+
+Qmova expects subprocessors to maintain appropriate administrative, technical, and organizational safeguards appropriate to the services they provide.
+
+Selection considerations may include:
+
+- security practices
+- privacy commitments
+- reliability
+- contractual protections
+- operational maturity
+
+Use of a provider does not imply certification by Qmova.
+
+---
+
+# International Data Transfers
+
+Some subprocessors operate global infrastructure.
+
+As a result, Customer Data may be processed in multiple jurisdictions depending on:
+
+- Customer location
+- infrastructure design
+- provider architecture
+- disaster recovery
+- redundancy
+
+Where required, Qmova implements appropriate contractual or legal safeguards for international transfers.
+
+Additional information is available in the Privacy Policy and Data Processing Addendum (DPA).
+
+---
+
+# Changes to Subprocessors
+
+Qmova may add, replace, or remove subprocessors as our platform evolves.
+
+Reasons may include:
+
+- improved security
+- improved reliability
+- feature expansion
+- operational efficiency
+- business continuity
+
+Material changes will be reflected on this page.
+
+Enterprise Customers with contractual notification rights will be notified in accordance with their agreement where applicable.
+
+---
+
+# Customer Questions
+
+Questions regarding subprocessors may be directed to:
+
+**privacy@qmova.com**
+
+or
+
+**legal@qmova.com**
+
+Enterprise Customers may request additional information during procurement or security reviews where appropriate.
+
+---
+
+# Related Documentation
+
+- Privacy Policy
+- Data Processing Addendum (DPA)
+- Security Policy
+- Trust Center
+- Data Retention Policy
+
+---
+
+# Document Governance
+
+**Document Owner:** Privacy & Security
+
+**Classification:** Public
+
+**Review Frequency:** At least annually or whenever a subprocessor is added, removed, or materially changed.
+
+---
+
+# Version History
+
+| Version | Date | Summary |
+|---------|------|---------|
+| 1.0.0 | 12 August 2026 | Initial Subprocessor List |
+
+---
+
+> **Qmova intentionally maintains a lean subprocessor ecosystem. We prefer to minimize third-party data processing wherever practical while using trusted providers to securely operate the platform.**

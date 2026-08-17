@@ -21,7 +21,8 @@ export default function Kiosk() {
     if (!phone) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch(`${'https://qmova-backend.onrender.com'}/queue/join`, {
+      const { getBackendUrl } = require('../../lib/api');
+      const res = await fetch(`${getBackendUrl()}/queue/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tenantId, customerName: 'Walk-in', phone })

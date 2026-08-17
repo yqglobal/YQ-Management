@@ -32,7 +32,7 @@ export class PlansService {
       );
       try {
         await this.createPlan({
-          name: 'Starter (Free Trial)',
+          name: 'Starter (14 Days Trial)',
           description:
             'Perfect for small retail or single service point environments.',
           type: 'STANDARD',
@@ -42,11 +42,11 @@ export class PlansService {
           trialDays: 14,
           status: 'ACTIVE',
           sortOrder: 1,
-          features: { whatsappNotifications: false },
+          features: { whatsappNotifications: false, whatsappChat: false, whatsappChatbot: false },
           limits: { maxQueues: 1, maxTokens: 100 },
         });
         await this.createPlan({
-          name: 'Standard Pro',
+          name: 'Standard Plan',
           description:
             'Ideal for busy clinics, restaurants, and customer service centers.',
           type: 'STANDARD',
@@ -56,22 +56,36 @@ export class PlansService {
           trialDays: 0,
           status: 'ACTIVE',
           sortOrder: 2,
-          features: { whatsappNotifications: true },
+          features: { whatsappNotifications: true, whatsappChat: false, whatsappChatbot: false },
           limits: { maxQueues: 5, maxTokens: 1000 },
         });
         await this.createPlan({
-          name: 'Enterprise Network',
+          name: 'Premium Plan',
           description:
             'Comprehensive solution for healthcare networks and large retail chains.',
-          type: 'ENTERPRISE',
+          type: 'PREMIUM',
           price: 1499,
           currency: 'ZAR',
           billingInterval: 'monthly' as any,
           trialDays: 0,
           status: 'ACTIVE',
           sortOrder: 3,
-          features: { whatsappNotifications: true },
+          features: { whatsappNotifications: true, whatsappChat: true, whatsappChatbot: true },
           limits: { maxQueues: 20, maxTokens: 10000 },
+        });
+        await this.createPlan({
+          name: 'Enterprise Plan',
+          description:
+            'Special request for enterprise environments with custom features.',
+          type: 'ENTERPRISE',
+          price: 4999,
+          currency: 'ZAR',
+          billingInterval: 'monthly' as any,
+          trialDays: 0,
+          status: 'ACTIVE',
+          sortOrder: 4,
+          features: { whatsappNotifications: true, whatsappChat: true, whatsappChatbot: true, customBranding: true, apiAccess: true, advancedAnalytics: true, multiLocation: true },
+          limits: { maxQueues: 100, maxTokens: 50000 },
         });
         plans = await this.prisma.plan.findMany({
           where,

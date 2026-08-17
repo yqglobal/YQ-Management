@@ -87,19 +87,22 @@ async function fetchWithRetry(
   }
 }
 
-export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
-  // Default backend URL. In local dev (Playwright/tests) prefer localhost:3000 so
-  // the frontend talks to the locally running backend instead of the remote host.
+export function getBackendUrl() {
   let baseUrl = 'https://qmova-backend.onrender.com';
   try {
-    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-      baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+    if (typeof window !== 'undefined' && (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1'))) {
+      baseUrl = `${window.location.protocol}//localhost:3000`;
     } else if (process.env.NEXT_PUBLIC_API_URL) {
       baseUrl = process.env.NEXT_PUBLIC_API_URL;
     }
   } catch (e) {
     // fallback to default
   }
+  return baseUrl;
+}
+
+export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
+  const baseUrl = getBackendUrl();
 
   const headers = new Headers(options.headers || {});
   if (!headers.has('Accept')) {
@@ -156,21 +159,22 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       return null;
     }
 
-    return response.json();
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      console.error(`[API Timeout] ${options.method || 'GET'} ${endpoint} → Request timed out after 30s`);
+      console.warn(`[API Timeout] ${options.method || 'GET'} ${endpoint} → Request timed out after 30s`);
       throw new ApiError(408, 'Request timed out. Please try again.', endpoint);
     }
     if (error instanceof ApiError) {
       throw error;
     }
     if (!navigator.onLine) {
-      console.error(`[API Offline] ${options.method || 'GET'} ${endpoint} → Device is offline`);
+      console.warn(`[API Offline] ${options.method || 'GET'} ${endpoint} → Device is offline`);
       throw new ApiError(0, 'You are offline. Please check your internet connection.', endpoint);
     }
-    console.error(`[API Network Error] ${options.method || 'GET'} ${endpoint} → ${error.message}`, error);
+    console.warn(`[API Network Error] ${options.method || 'GET'} ${endpoint} → ${error.message}`);
     throw new ApiError(0, error.message || 'Network error', endpoint);
   }
 };

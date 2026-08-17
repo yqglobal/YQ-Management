@@ -9,7 +9,7 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: 'dark',
+  theme: 'light',
   setTheme: () => {},
   toggleTheme: () => {},
 });
@@ -17,7 +17,7 @@ const ThemeContext = createContext<ThemeContextType>({
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setThemeState] = useState<Theme>('dark');
+  const [theme, setThemeState] = useState<Theme>('light');
 
   const applyTheme = useCallback((t: Theme) => {
     const resolved = t === 'system'
@@ -47,8 +47,8 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       setThemeState(stored);
       applyTheme(stored);
     } else {
-      setThemeState('dark');
-      applyTheme('dark');
+      setThemeState('light');
+      applyTheme('light');
     }
   }, [applyTheme]);
 

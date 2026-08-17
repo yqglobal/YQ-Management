@@ -9,16 +9,18 @@ export function createBrandEmailLayout(options: {
   const {
     title,
     preheader,
-    headerTitle = 'QMOVA',
+    headerTitle = 'Qmova',
     content,
-    brandColor = '#4f46e5',
+    brandColor = '#0ea5e9', // Primary brand color (sky-500)
     logoUrl,
   } = options;
   const year = new Date().getFullYear();
 
   const logoHtml = logoUrl
-    ? `<img src="${logoUrl}" alt="${headerTitle}" style="max-height: 40px; margin: 0 auto; display: block;" />`
-    : `<span style="font-size: 26px; font-weight: 800; color: #ffffff; letter-spacing: 1.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">${headerTitle}</span>`;
+    ? `<img src="${logoUrl}" alt="${headerTitle}" style="max-height: 48px; margin: 0 auto; display: block;" />`
+    : `<div style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+         <span style="font-size: 28px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">${headerTitle}</span>
+       </div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -28,27 +30,27 @@ export function createBrandEmailLayout(options: {
 <title>${title}</title>
 <style>
   @media (prefers-color-scheme: dark) {
-    body, .email-bg { background-color: #111827 !important; color: #f3f4f6 !important; }
-    .email-container { background-color: #1f2937 !important; border-color: #374151 !important; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important; }
-    .email-body { color: #d1d5db !important; }
-    .footer-text { color: #9ca3af !important; }
-    .divider { border-top-color: #374151 !important; }
+    body, .email-bg { background-color: #09090b !important; color: #f4f4f5 !important; }
+    .email-container { background-color: #18181b !important; border-color: #27272a !important; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8) !important; }
+    .email-body { color: #d4d4d8 !important; }
+    .footer-text { color: #a1a1aa !important; }
+    .divider { border-top-color: #27272a !important; }
   }
 </style>
 </head>
-<body class="email-bg" style="margin: 0; padding: 0; background-color: #f4f4f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2937; -webkit-font-smoothing: antialiased;">
+<body class="email-bg" style="margin: 0; padding: 0; background-color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #18181b; -webkit-font-smoothing: antialiased;">
   <!-- Preheader Text -->
   <div style="display: none; max-height: 0px; max-width: 0px; overflow: hidden; opacity: 0; font-size: 1px; line-height: 1px; color: #fff;">
     ${preheader || title}
   </div>
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" class="email-bg" style="background-color: #f4f4f7; padding: 40px 20px;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" class="email-bg" style="background-color: #fafafa; padding: 48px 20px;">
     <tr>
       <td align="center">
         <!-- Main Email Container -->
-        <table class="email-container" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01); border: 1px solid #e5e7eb;">
+        <table class="email-container" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); border: 1px solid #e4e4e7;">
           <!-- Brand Header -->
           <tr>
-            <td style="background-color: ${brandColor}; padding: 40px; text-align: center;">
+            <td style="background-color: ${brandColor}; padding: 48px 40px; text-align: center; border-bottom: 4px solid rgba(0,0,0,0.1);">
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="center">

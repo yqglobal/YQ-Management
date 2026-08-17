@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Loader2, UserPlus } from 'lucide-react';
+import { X, Loader2, UserPlus, QrCode } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
+import { useRouter } from 'next/router';
 import { CreateCustomerModal } from './CreateCustomerModal';
+import { useAuth } from '../AuthContext';
 
 interface CreateVisitModalProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultLocationId?: string;
 }
 
-export function CreateVisitModal({ isOpen, onClose }: CreateVisitModalProps) {
+export function CreateVisitModal({ isOpen, onClose, defaultLocationId }: CreateVisitModalProps) {
+  const router = useRouter();
   const [customerId, setCustomerId] = useState('');
-  const [locationId, setLocationId] = useState('');
+  const [locationId, setLocationId] = useState(defaultLocationId && defaultLocationId !== 'all' ? defaultLocationId : '');
   const [serviceId, setServiceId] = useState('');
   const [notes, setNotes] = useState('');
   
@@ -27,17 +31,27 @@ export function CreateVisitModal({ isOpen, onClose }: CreateVisitModalProps) {
     enabled: isOpen,
   });
 
-  const { data: locations = [] } = useQuery({
+  const { data: allLocations = [] } = useQuery({
     queryKey: ['locations'],
     queryFn: () => fetchApi('/location'),
     enabled: isOpen,
   });
 
-  const { data: services = [] } = useQuery({
+  const { data: allServices = [] } = useQuery({
     queryKey: ['services'],
     queryFn: () => fetchApi('/service'),
     enabled: isOpen,
   });
+
+  const { user } = useAuth();
+  
+  const locations = (user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN')
+    ? allLocations
+    : allLocations.filter((l: any) => user?.allowedLocationIds?.includes(l.id));
+
+  const services = (user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN')
+    ? allServices
+    : allServices.filter((s: any) => user?.allowedServiceIds?.includes(s.id));
 
   const createMutation = useMutation({
     mutationFn: (data: any) =>
@@ -52,7 +66,7 @@ export function CreateVisitModal({ isOpen, onClose }: CreateVisitModalProps) {
 
   const handleClose = () => {
     setCustomerId('');
-    setLocationId('');
+    setLocationId(defaultLocationId && defaultLocationId !== 'all' ? defaultLocationId : '');
     setServiceId('');
     setNotes('');
     onClose();
@@ -79,7 +93,18 @@ export function CreateVisitModal({ isOpen, onClose }: CreateVisitModalProps) {
         <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-[90] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
             <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">New Walk-in Visit</h2>
+              <div className="flex items-center gap-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">New Walk-in Visit</h2>
+                <button
+                  onClick={() => {
+                    handleClose();
+                    router.push('/dashboard/check-in');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all active:scale-[0.98]"
+                >
+                  <QrCode className="w-4 h-4" /> Scan QR
+                </button>
+              </div>
               <button 
                 onClick={handleClose}
                 className="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-colors"

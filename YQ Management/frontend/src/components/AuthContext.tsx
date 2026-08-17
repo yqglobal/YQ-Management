@@ -74,8 +74,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       await fetchApi('/auth/logout', { method: 'POST' });
-    } catch (e) {
-      console.error('Logout error', e);
+    } catch (e: any) {
+      console.warn(`Logout error: ${e?.message || 'Unknown error'}`);
     }
     setUser(null);
     AuthStorage.clear();

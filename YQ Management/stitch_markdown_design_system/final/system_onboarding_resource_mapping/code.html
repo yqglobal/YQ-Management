@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Qmova Onboarding - Step 2</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;family=Geist+Mono:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#fbf8ff",
+                        "on-secondary-fixed-variant": "#005137",
+                        "tertiary-container": "#b15f00",
+                        "on-secondary-container": "#00714e",
+                        "inverse-primary": "#93ccff",
+                        "surface-container-lowest": "#ffffff",
+                        "dark-canvas": "#09090B",
+                        "outline": "#707881",
+                        "on-primary-container": "#fdfcff",
+                        "surface-variant": "#e3e1ec",
+                        "tertiary-fixed-dim": "#ffb77d",
+                        "secondary-container": "#82f5c1",
+                        "surface-container-low": "#f4f2fd",
+                        "border": "#E4E4E7",
+                        "card": "#FFFFFF",
+                        "on-surface-variant": "#3f4850",
+                        "dark-border": "#27272A",
+                        "background": "#fbf8ff",
+                        "on-primary-fixed": "#001d31",
+                        "surface-tint": "#006398",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "surface-dim": "#dad9e3",
+                        "surface-container-highest": "#e3e1ec",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed": "#002114",
+                        "on-tertiary-fixed-variant": "#6e3900",
+                        "secondary": "#006c4a",
+                        "primary-container": "#007bb9",
+                        "primary": "#006194",
+                        "on-background": "#1a1b22",
+                        "inverse-on-surface": "#f1effa",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#93ccff",
+                        "outline-variant": "#bfc7d2",
+                        "surface-bright": "#fbf8ff",
+                        "on-tertiary-container": "#fffbff",
+                        "primary-fixed": "#cce5ff",
+                        "surface-container-high": "#e8e7f1",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#85f8c4",
+                        "on-tertiary-fixed": "#2f1500",
+                        "on-surface": "#1a1b22",
+                        "inverse-surface": "#2f3038",
+                        "on-primary": "#ffffff",
+                        "canvas": "#FAFAFA",
+                        "tertiary-fixed": "#ffdcc3",
+                        "tertiary": "#8d4b00",
+                        "dark-card": "#121214",
+                        "on-error": "#ffffff",
+                        "surface-container": "#eeedf7",
+                        "secondary-fixed-dim": "#68dba9",
+                        "on-primary-fixed-variant": "#004b73",
+                        "alert": "#E11D48"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "40px",
+                        "sidebar-w": "256px",
+                        "gutter": "24px",
+                        "header-h": "64px",
+                        "unit": "4px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-caps": ["Geist Mono"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "data-mono-lg": ["Geist Mono"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "body-sm": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "data-mono": ["Geist Mono"],
+                        "headline-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "fontWeight": "700" }],
+                        "headline-sm": ["18px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "data-mono-lg": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "data-mono": ["16px", { "lineHeight": "24px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "headline-lg": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-canvas min-h-screen flex items-center justify-center p-4">
+<main class="w-full max-w-2xl bg-card rounded-[2.5rem] border border-border p-8 md:p-12 shadow-sm flex flex-col gap-8">
+<!-- Progress Tracker -->
+<div class="flex gap-2 mb-2 w-full max-w-[200px] mx-auto">
+<div class="h-1 flex-1 bg-primary rounded-full"></div>
+<div class="h-1 flex-1 bg-primary rounded-full"></div>
+<div class="h-1 flex-1 bg-surface-variant rounded-full"></div>
+</div>
+<!-- Header -->
+<header class="text-center flex flex-col gap-2">
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Map your clinical resources</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Define the physical rooms and human staff that will manage your queue.</p>
+</header>
+<!-- Content -->
+<div class="flex flex-col gap-8">
+<!-- Facility Name Input -->
+<div class="flex flex-col gap-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider" for="facility_name">Facility Name</label>
+<input class="w-full h-[44px] px-4 rounded-lg border border-border bg-surface font-body-md text-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow" id="facility_name" type="text" value="Downtown Health Campus"/>
+</div>
+<!-- Dynamic Resource List -->
+<div class="flex flex-col gap-4">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Added Resources</h2>
+<div class="flex flex-col gap-3">
+<!-- Resource 1: Human -->
+<div class="flex items-center justify-between p-4 rounded-xl border border-border bg-surface">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">person</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Dr. Angela Jenkins</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Human</span>
+</div>
+</div>
+<button aria-label="Remove Resource" class="text-outline hover:text-error transition-colors p-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">delete</span>
+</button>
+</div>
+<!-- Resource 2: Space -->
+<div class="flex items-center justify-between p-4 rounded-xl border border-border bg-surface">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">meeting_room</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Exam Room B1</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Space</span>
+</div>
+</div>
+<button aria-label="Remove Resource" class="text-outline hover:text-error transition-colors p-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">delete</span>
+</button>
+</div>
+<!-- Resource 3: Asset -->
+<div class="flex items-center justify-between p-4 rounded-xl border border-border bg-surface">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">precision_manufacturing</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">MRI Machine A</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Asset</span>
+</div>
+</div>
+<button aria-label="Remove Resource" class="text-outline hover:text-error transition-colors p-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">delete</span>
+</button>
+</div>
+</div>
+<!-- Add New Resource Button -->
+<button class="w-full h-[64px] rounded-xl border-2 border-dashed border-border text-on-surface-variant font-headline-sm text-headline-sm flex items-center justify-center gap-2 hover:bg-surface-variant hover:border-outline transition-all mt-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">add</span>
+                    Add New Resource
+                </button>
+</div>
+</div>
+<!-- Footer -->
+<footer class="flex items-center justify-between pt-6 border-t border-border mt-4">
+<button class="h-[44px] px-6 rounded-lg font-headline-sm text-headline-sm text-on-surface-variant hover:bg-surface-variant transition-colors flex items-center gap-2">
+                Back
+            </button>
+<button class="h-[44px] px-6 rounded-lg bg-zinc-950 text-white font-headline-sm text-headline-sm hover:bg-zinc-800 transition-colors flex items-center gap-2 shadow-sm">
+                Continue to Invites
+                <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 0;">arrow_forward</span>
+</button>
+</footer>
+</main>
+</body></html>

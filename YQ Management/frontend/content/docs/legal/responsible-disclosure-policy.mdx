@@ -240,3 +240,436 @@ privacy@qmova.com
 
 Do not submit vulnerability reports through public social media channels.
 
+---
+
+# 9. Authorized Security Testing
+
+Qmova supports responsible security research that helps improve the security of our platform.
+
+Examples of acceptable testing include:
+
+- Authentication testing
+- Authorization testing
+- Session management
+- Input validation
+- Cross-Site Scripting (XSS)
+- Cross-Site Request Forgery (CSRF)
+- SQL Injection
+- Server-Side Request Forgery (SSRF)
+- Business logic vulnerabilities
+- Insecure Direct Object References (IDOR)
+- API security
+- Rate limiting
+- Access control
+- File upload security
+- Configuration issues
+- Information disclosure
+- Security header validation
+- Cookie security
+- OAuth implementation issues
+- QR Check-in security
+- Visit workflow authorization
+- Queue management authorization
+
+Testing should always be limited to what is reasonably necessary to demonstrate the existence of the vulnerability.
+
+---
+
+# 10. Prohibited Activities
+
+To protect Customers and Users, the following activities are prohibited.
+
+You must not intentionally:
+
+- access another Customer's data beyond what is necessary to demonstrate a vulnerability;
+- modify Customer information;
+- delete Customer information;
+- destroy records;
+- interrupt service availability;
+- perform denial-of-service attacks;
+- perform distributed denial-of-service attacks;
+- install malware;
+- deploy ransomware;
+- attempt phishing attacks;
+- perform social engineering against Qmova personnel or Customers;
+- attempt credential stuffing;
+- brute-force accounts;
+- exfiltrate unnecessary information;
+- publicly disclose a vulnerability before coordinated disclosure;
+- retain Customer information after demonstrating the issue;
+- pivot into third-party infrastructure unrelated to Qmova;
+- compromise Customer-owned infrastructure;
+- access physical facilities without authorization.
+
+If you accidentally access information that is not your own, you should:
+
+- stop testing immediately;
+- avoid copying or distributing the information;
+- notify Qmova promptly;
+- securely delete any temporary copies created during testing where legally permitted.
+
+---
+
+# 11. Customer-Owned Systems
+
+Qmova is a multi-tenant SaaS platform.
+
+Customers remain responsible for securing their own environments.
+
+This policy does not authorize testing of:
+
+- Customer internal networks;
+- Customer Wi-Fi;
+- Customer infrastructure;
+- Customer endpoints;
+- Customer-owned APIs;
+- Customer-owned WhatsApp environments;
+- Customer-managed integrations;
+- third-party systems not owned or operated by Qmova.
+
+If you discover a vulnerability affecting a Customer's own infrastructure, you should contact that Customer directly.
+
+---
+
+# 12. Customer-Owned WhatsApp Architecture
+
+Qmova supports Customer-owned WhatsApp messaging.
+
+Each Customer:
+
+- owns its own WhatsApp number;
+- controls its messaging account;
+- controls message content;
+- controls recipient relationships.
+
+Qmova provides messaging infrastructure but is not the owner of Customer WhatsApp identities.
+
+Security testing should therefore focus only on:
+
+- Qmova's integration;
+- authorization;
+- message routing;
+- API security;
+- Workspace isolation.
+
+Researchers must not attempt to compromise Customer-owned WhatsApp accounts.
+
+---
+
+# 13. Vulnerability Severity
+
+Qmova evaluates reported vulnerabilities according to factors including:
+
+- confidentiality impact;
+- integrity impact;
+- availability impact;
+- exploitability;
+- required privileges;
+- attack complexity;
+- affected Users;
+- affected Customers;
+- business impact.
+
+Severity levels may include:
+
+## Critical
+
+Examples:
+
+- remote code execution;
+- authentication bypass affecting multiple Customers;
+- complete tenant isolation failure;
+- unrestricted database compromise.
+
+## High
+
+Examples:
+
+- privilege escalation;
+- significant authorization bypass;
+- sensitive information disclosure;
+- persistent cross-site scripting affecting privileged users.
+
+## Medium
+
+Examples:
+
+- reflected XSS;
+- limited information disclosure;
+- workflow bypass requiring significant prerequisites.
+
+## Low
+
+Examples:
+
+- missing security headers;
+- minor configuration issues;
+- low-impact information disclosure.
+
+Severity is determined by Qmova and may differ from the reporter's assessment.
+
+---
+
+# 14. Response Process
+
+Qmova follows a coordinated response process.
+
+```text
+Report Received
+        │
+        ▼
+Acknowledgement
+        │
+        ▼
+Initial Review
+        │
+        ▼
+Validation
+        │
+        ▼
+Severity Assessment
+        │
+        ▼
+Remediation
+        │
+        ▼
+Verification
+        │
+        ▼
+Coordinated Disclosure
+```
+
+Depending on complexity, additional investigation or customer coordination may be required.
+
+---
+
+# 15. Response Timelines
+
+Although every report is different, Qmova aims to:
+
+| Activity | Target |
+|----------|---------|
+| Acknowledge report | Within 5 business days |
+| Initial assessment | As soon as reasonably practicable |
+| Severity classification | After validation |
+| Status updates | Periodically during investigation |
+| Resolution | Based on severity and complexity |
+
+These are targets rather than contractual service-level commitments.
+
+Complex vulnerabilities may require additional time.
+
+---
+
+# 16. Coordinated Disclosure
+
+Qmova supports responsible coordinated disclosure.
+
+Researchers should not publicly disclose a vulnerability until:
+
+- Qmova confirms remediation; or
+- both parties agree upon an appropriate disclosure timeline.
+
+Coordinated disclosure helps protect Customers while allowing transparency after remediation.
+
+Where appropriate, Qmova may acknowledge researchers who responsibly report vulnerabilities.
+
+---
+
+# 17. Duplicate Reports
+
+If multiple researchers report the same issue, Qmova will generally recognize the earliest sufficiently detailed report that enabled investigation.
+
+Later duplicate reports remain appreciated but may not receive separate recognition.
+
+---
+
+# 18. Out-of-Scope Findings
+
+Examples of issues that may be considered out of scope include:
+
+- missing security headers with no practical impact;
+- clickjacking on pages containing no sensitive functionality;
+- browser-specific issues without practical exploitation;
+- outdated software versions without a demonstrable security impact;
+- self-XSS requiring a user to paste malicious code into their own browser;
+- issues requiring physical access to a user's unlocked device;
+- best-practice recommendations without an identifiable vulnerability.
+
+Being out of scope does not necessarily mean the issue lacks value.
+
+Qmova may still choose to address such findings.
+
+---
+
+# 19. Researcher Responsibilities
+
+Researchers participating under this policy should:
+
+- act honestly;
+- act professionally;
+- minimize impact;
+- protect Customer privacy;
+- report vulnerabilities promptly;
+- cooperate during investigation;
+- avoid unnecessary data access;
+- cease testing once sufficient evidence has been obtained.
+
+Researchers remain responsible for complying with all applicable laws.
+
+---
+
+# 20. No Bug Bounty
+
+At the time of publication, Qmova does not operate a public bug bounty program.
+
+Submitting a vulnerability report does not create an entitlement to:
+
+- monetary rewards;
+- consulting work;
+- employment;
+- public recognition.
+
+Qmova may, at its sole discretion, thank or acknowledge researchers whose reports materially improve platform security.
+
+Future bug bounty programs, if introduced, will be announced separately.
+
+---
+
+# 21. Confidentiality
+
+Information relating to an unpatched vulnerability should remain confidential until coordinated disclosure has been completed.
+
+Researchers should not intentionally publish:
+
+- exploit code;
+- proof-of-concept attacks;
+- affected Customer information;
+- attack instructions;
+- sensitive infrastructure details.
+
+Qmova will also treat vulnerability reports as confidential except where disclosure is:
+
+- required by law;
+- necessary to protect Customers;
+- agreed with the reporter.
+
+---
+
+# 22. Legal Considerations
+
+Nothing in this policy authorizes activities that violate applicable law.
+
+Researchers remain responsible for ensuring that their testing complies with:
+
+- local laws;
+- international laws;
+- contractual obligations;
+- export control restrictions;
+- sanctions where applicable.
+
+This policy does not grant permission to access systems owned by third parties.
+
+---
+
+# 23. Intellectual Property
+
+Submitting a vulnerability report does not transfer ownership of the researcher's intellectual property.
+
+Likewise, submission does not transfer ownership of Qmova software, documentation, trademarks, or other intellectual property.
+
+---
+
+# 24. Changes to this Policy
+
+Qmova may update this Responsible Disclosure Policy to reflect:
+
+- changes to our platform;
+- changes in applicable law;
+- evolving security practices;
+- operational improvements;
+- changes in contact information.
+
+Material changes will be reflected by an updated version number and publication date.
+
+---
+
+# 25. Contact Information
+
+Security Reports
+
+security@qmova.com
+
+Privacy Matters
+
+privacy@qmova.com
+
+Legal Matters
+
+legal@qmova.com
+
+General Support
+
+support@qmova.com
+
+Abuse Reports
+
+abuse@qmova.com
+
+Please do not submit vulnerability reports through public issue trackers or social media.
+
+---
+
+# 26. Related Documentation
+
+This policy should be read together with:
+
+### Trust Center
+
+- Security Overview
+- Security Policy
+- Architecture Overview
+- Subprocessor List
+
+### Privacy
+
+- Privacy Policy
+- Data Processing Addendum
+- Data Retention Policy
+
+### Legal
+
+- Terms of Service
+- Acceptable Use Policy
+- Service Level Agreement
+
+### Compliance
+
+- Compliance Roadmap
+- AI Usage Policy
+
+---
+
+# 27. Document Governance
+
+**Document Owner:** Qmova Security Function
+
+**Classification:** Public
+
+**Review Frequency:** At least annually, and whenever significant changes occur to Qmova's security program, vulnerability reporting process, legal obligations, or contact information.
+
+This Responsible Disclosure Policy describes how Qmova receives and manages vulnerability reports. It does not authorize activities prohibited by law, grant unrestricted testing rights, or create contractual obligations beyond those expressly stated in this policy.
+
+---
+
+# 28. Version History
+
+| Version | Date | Summary |
+|---------|------|---------|
+| 1.0.0 | 12 August 2026 | Initial Responsible Disclosure Policy |
+
+---
+
+## Responsible Disclosure Principle
+
+> **Security is a shared responsibility. Qmova welcomes responsible vulnerability reports submitted in good faith, investigates credible reports promptly, works to remediate confirmed issues, and encourages coordinated disclosure that protects Customers, Users, and the wider community.**

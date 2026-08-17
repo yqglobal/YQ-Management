@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { QueueService } from '../queue/queue.service';
 
 @Injectable()
 export class ServiceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => QueueService))
+    private queueService: QueueService
+  ) {}
 
   async create(
     tenantId: string,
@@ -14,7 +19,7 @@ export class ServiceService {
       locationId?: string;
     },
   ) {
-    return this.prisma.extendedClient.service.create({
+    const service = await this.prisma.extendedClient.service.create({
       data: {
         tenantId,
         name: data.name,
@@ -23,12 +28,53 @@ export class ServiceService {
         locationId: data.locationId,
       },
     });
+
+    // Auto-create a default queue for the new service
+    try {
+      await this.queueService.createQueue(
+        tenantId,
+        undefined,
+        `${data.name} Queue`,
+        undefined,
+        undefined,
+        data.locationId,
+        [service.id]
+      );
+    } catch (error) {
+      console.error('Failed to auto-create queue for service:', error);
+    }
+
+    return service;
   }
 
   async findAll(tenantId: string) {
     return this.prisma.extendedClient.service.findMany({
       where: { tenantId },
       include: { location: true },
+    });
+  }
+
+  async findAllPublic(tenantId: string) {
+    return this.prisma.extendedClient.service.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        expectedDuration: true,
+        formConfig: true,
+        queues: {
+          where: { status: 'ACTIVE' },
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            allowAppointments: true,
+            appointmentGranularityMins: true,
+            formConfig: true,
+          },
+        },
+      },
     });
   }
 

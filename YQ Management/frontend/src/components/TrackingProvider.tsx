@@ -25,9 +25,9 @@ export const TrackingProvider = ({ children }: { children: React.ReactNode }) =>
           details: { ...details, url: window.location.href }
         })
       });
-    } catch (e) {
+    } catch (e: any) {
       // Silently fail so tracing doesn't block the UI
-      console.warn('Tracking failed:', e);
+      console.warn(`Tracking failed: ${e?.message || 'Unknown error'}`);
     }
   }, [router.pathname]);
 

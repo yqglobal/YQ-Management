@@ -27,9 +27,27 @@ export class TokenService {
     private readonly templateService: TemplateService,
   ) {}
 
-  async requestOtp(phone: string, queueId: string) {
+  async requestOtp(phone: string, queueId?: string, serviceId?: string) {
+    let resolvedQueueId = queueId;
+
+    if (!resolvedQueueId && serviceId) {
+      const service = await this.prisma.extendedClient.service.findUnique({
+        where: { id: serviceId },
+        include: { queues: { where: { status: 'ACTIVE' } } }
+      });
+      if (service && service.queues.length > 0) {
+        resolvedQueueId = service.queues[0].id;
+      } else if (service) {
+        throw new BadRequestException('The selected service is currently unavailable (no active queues).');
+      }
+    }
+
+    if (!resolvedQueueId) {
+      throw new BadRequestException('Queue or Service must be provided to request OTP');
+    }
+
     const queue = await this.prisma.queue.findUnique({
-      where: { id: queueId },
+      where: { id: resolvedQueueId },
       include: { tenant: true },
     });
 
@@ -40,6 +58,17 @@ export class TokenService {
     if (!queue.tenant?.whatsappConnected || !queue.tenant?.whatsappInstanceId) {
       throw new ServiceUnavailableException(
         'WhatsApp is not connected for this tenant. Proceeding without OTP verification.',
+      );
+    }
+
+    const isRegistered = await this.whatsappService.checkNumberExists(
+      queue.tenantId,
+      phone,
+    );
+
+    if (!isRegistered) {
+      throw new ServiceUnavailableException(
+        'This phone number is not registered on WhatsApp. Proceeding without OTP verification.',
       );
     }
 
@@ -90,14 +119,31 @@ export class TokenService {
   }
 
   async joinQueue(
-    queueId: string,
+    queueId: string | undefined,
     customerName: string,
     phone?: string,
     otp?: string,
     formResponses?: any,
     language: string = 'en',
     scheduledFor?: string,
+    serviceId?: string,
   ) {
+    let resolvedQueueId = queueId;
+    if (!resolvedQueueId && serviceId) {
+      const service = await this.prisma.extendedClient.service.findUnique({
+        where: { id: serviceId },
+        include: { queues: { where: { status: 'ACTIVE' } } }
+      });
+      if (service && service.queues.length > 0) {
+        resolvedQueueId = service.queues[0].id;
+      } else if (service) {
+        throw new BadRequestException('The selected service is currently unavailable (no active queues).');
+      }
+    }
+
+    if (!resolvedQueueId) {
+      throw new BadRequestException('A valid queue or service is required to join');
+    }
     // If an OTP is provided, verify it
     if (otp && phone) {
       const storedOtp = await this.redisService.client.get(`otp:${phone}`);
@@ -109,7 +155,7 @@ export class TokenService {
 
     let purpose: string | null = null;
     const queue = await this.prisma.queue.findUnique({
-      where: { id: queueId },
+      where: { id: resolvedQueueId },
       include: { tenant: true },
     });
     if (queue && queue.formConfig && Array.isArray(queue.formConfig)) {
@@ -132,7 +178,7 @@ export class TokenService {
     const scheduledDate = scheduledFor ? new Date(scheduledFor) : null;
 
     const { displayId, updatedConfig } = await this.generateDisplayId(
-      queueId,
+      resolvedQueueId,
       queue?.tokenDisplayConfig,
     );
     if (
@@ -141,7 +187,7 @@ export class TokenService {
       updatedConfig.counter !== (queue.tokenDisplayConfig as any)?.counter
     ) {
       await this.prisma.queue.update({
-        where: { id: queueId },
+        where: { id: resolvedQueueId },
         data: { tokenDisplayConfig: updatedConfig },
       });
     }
@@ -158,7 +204,7 @@ export class TokenService {
 
     const token = await this.prisma.token.create({
       data: {
-        queueId,
+        queueId: resolvedQueueId,
         customerName,
         phone,
         displayId,
@@ -201,7 +247,7 @@ export class TokenService {
             name: customerName,
             date: scheduledDate?.toLocaleString(),
             token: displayCode,
-            link: `${process.env.APP_URL || 'http://localhost:3001'}/customer/status/${token.id}`,
+            link: `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/customer/status/${token.id}`,
           },
         );
       } else {
@@ -223,7 +269,7 @@ export class TokenService {
             name: customerName,
             position: position.toString(),
             eta: eta,
-            link: `${process.env.APP_URL || 'http://localhost:3001'}/customer/status/${token.id}`,
+            link: `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/customer/status/${token.id}`,
           },
         );
       }
@@ -237,6 +283,213 @@ export class TokenService {
     }
 
     return token;
+  }
+
+  async joinMultipleQueues(
+    customerName: string,
+    phone?: string,
+    otp?: string,
+    bookings: {
+      queueId?: string;
+      serviceId?: string;
+      scheduledFor?: string;
+      formResponses?: any;
+    }[] = [],
+    language: string = 'en',
+  ) {
+    // 1. Verify OTP once
+    if (otp && phone) {
+      const storedOtp = await this.redisService.client.get(`otp:${phone}`);
+      if (!storedOtp || storedOtp !== otp) {
+        throw new BadRequestException('Invalid or expired OTP');
+      }
+      await this.redisService.client.del(`otp:${phone}`);
+    }
+
+    if (bookings.length === 0) {
+      throw new BadRequestException('No services selected');
+    }
+
+    const createdTokens: any[] = [];
+    const eventsToPublish: any[] = [];
+
+    // 2. Process all bookings within a Prisma transaction for isolation
+    await this.prisma.$transaction(async (tx) => {
+      for (const booking of bookings) {
+        let { queueId, serviceId, scheduledFor, formResponses } = booking;
+        
+        let resolvedQueueId = queueId;
+        if (!resolvedQueueId && serviceId) {
+          const service = await tx.service.findUnique({
+            where: { id: serviceId },
+            include: { queues: { where: { status: 'ACTIVE' } } }
+          });
+          if (service && service.queues.length > 0) {
+            resolvedQueueId = service.queues[0].id;
+          } else if (service) {
+            throw new BadRequestException('The selected service is currently unavailable (no active queues).');
+          }
+        }
+
+        if (!resolvedQueueId) {
+          throw new BadRequestException('Queue or Service is required');
+        }
+
+        const isAppointment = !!scheduledFor;
+        const scheduledDate = scheduledFor ? new Date(scheduledFor) : null;
+
+        const queue = await tx.queue.findUnique({
+          where: { id: resolvedQueueId },
+          include: { tenant: true },
+        });
+
+        if (!queue) throw new BadRequestException(`Queue not found`);
+
+        if (isAppointment) {
+          if (!queue.allowAppointments) {
+            throw new BadRequestException(`Queue ${queue.name} does not allow appointments`);
+          }
+          if (scheduledDate && scheduledDate <= new Date()) {
+            throw new BadRequestException(`Appointment time for ${queue.name} must be in the future`);
+          }
+
+          // CONCURRENCY LOCK CHECK
+          // Because we are inside a serializable-like transaction, we check if ANY token already exists
+          // for this exact queue and time slot that is NOT completed or missed.
+          const existingToken = await tx.token.findFirst({
+            where: {
+              queueId: queue.id,
+              isAppointment: true,
+              scheduledFor: scheduledDate,
+              status: { notIn: ['COMPLETED', 'MISSED'] },
+            },
+          });
+
+          if (existingToken) {
+            throw new BadRequestException(
+              `The selected time slot (${scheduledFor}) for ${queue.name} is no longer available. Please select another slot.`
+            );
+          }
+        }
+
+        let purpose: string | null = null;
+        if (queue.formConfig && Array.isArray(queue.formConfig)) {
+          const purposeField = (queue.formConfig as any[]).find(
+            (f: any) =>
+              (f.type === 'dropdown' || f.id === 'purpose') &&
+              f.label?.toLowerCase().includes('purpose'),
+          );
+          if (purposeField && purposeField.id && formResponses && formResponses[purposeField.id]) {
+            purpose = formResponses[purposeField.id];
+          }
+        }
+
+        const { displayId, updatedConfig } = await this.generateDisplayId(resolvedQueueId, queue.tokenDisplayConfig);
+        
+        if (updatedConfig && updatedConfig.counter !== (queue.tokenDisplayConfig as any)?.counter) {
+          await tx.queue.update({
+            where: { id: resolvedQueueId },
+            data: { tokenDisplayConfig: updatedConfig },
+          });
+        }
+
+        const token = await tx.token.create({
+          data: {
+            queueId: resolvedQueueId,
+            customerName,
+            phone,
+            displayId,
+            status: TokenStatus.WAITING,
+            formResponses,
+            purpose,
+            language,
+            isAppointment,
+            scheduledFor: scheduledDate,
+            checkedIn: !isAppointment,
+          },
+        });
+
+        createdTokens.push({ token, queue });
+        
+        if (!isAppointment) {
+          eventsToPublish.push({
+            action: 'zadd',
+            key: `queue:${resolvedQueueId}:waiting`,
+            score: Date.now(),
+            value: token.id,
+            publishType: 'TOKEN_JOINED',
+            queueId: resolvedQueueId,
+            token
+          });
+        } else {
+          eventsToPublish.push({
+            action: 'publish_only',
+            publishType: 'APPOINTMENT_CREATED',
+            queueId: resolvedQueueId,
+            token
+          });
+        }
+      }
+    }, {
+      // Use higher isolation level if possible, or just standard read committed.
+      // Postgres will throw a serialization error if concurrent conflicting writes happen,
+      // but in this case, finding an existing token will safely abort the transaction.
+    });
+
+    // 3. Post-transaction: Add to Redis and notify via WebSocket and WhatsApp
+    const pipeline = this.redisService.client.multi();
+    for (const event of eventsToPublish) {
+      if (event.action === 'zadd') {
+        pipeline.zadd(event.key, event.score, event.value);
+      }
+      pipeline.publish('queue_events', JSON.stringify({ type: event.publishType, queueId: event.queueId, token: event.token }));
+    }
+    await pipeline.exec();
+
+    // 4. Send WhatsApp notifications
+    if (phone) {
+      // Group tokens by appointment vs walk-in to potentially send fewer messages or distinct ones
+      for (const { token, queue } of createdTokens) {
+        const displayCode = token.displayId || token.id.substring(0, 5).toUpperCase();
+        let message = '';
+        if (token.isAppointment) {
+          message = await this.templateService.renderWhatsAppForWorkspace(
+            queue.workspaceId,
+            'appointment_created',
+            {
+              name: customerName,
+              date: token.scheduledFor?.toLocaleString(),
+              token: displayCode,
+              link: `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/customer/status/${token.id}`,
+            },
+          );
+        } else {
+          const position = await this.prisma.token.count({
+            where: {
+              queueId: token.queueId,
+              status: TokenStatus.WAITING,
+              joinedAt: { lte: token.joinedAt },
+            },
+          });
+          const eta = await this.calculateETA(token.queueId, position);
+          message = await this.templateService.renderWhatsAppForWorkspace(
+            queue.workspaceId,
+            'queue_joined',
+            {
+              name: customerName,
+              position: position.toString(),
+              eta: eta,
+              link: `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/customer/status/${token.id}`,
+            },
+          );
+        }
+        if (message) {
+          await this.notificationsService.sendWhatsAppMessage(phone, message, queue.tenantId);
+        }
+      }
+    }
+
+    return createdTokens.map(ct => ct.token);
   }
 
   async advanceQueue(queueId: string, tenantId: string) {
@@ -358,7 +611,30 @@ export class TokenService {
       where: { id: tokenId },
       include: { queue: true },
     });
-    if (!token) throw new NotFoundException('Token not found');
+    
+    if (!token) {
+      // Try to find if it's an appointment ID
+      const appointment = await this.prisma.appointment.findUnique({
+        where: { id: tokenId },
+        include: { customer: true, service: true, location: true }
+      });
+      if (appointment) {
+        return {
+          token: {
+            id: appointment.id,
+            customerName: appointment.customer.name,
+            status: appointment.status,
+            isAppointment: true,
+            service: appointment.service?.name,
+            location: appointment.location?.name,
+          },
+          position: 0,
+          estimatedWaitTime: 0,
+          isScheduled: true
+        };
+      }
+      throw new NotFoundException('Token or Appointment not found');
+    }
 
     if (token.status !== TokenStatus.WAITING) {
       return { token, position: 0, estimatedWaitTime: 0 };
@@ -647,7 +923,7 @@ export class TokenService {
         'checked_in',
         {
           name: updatedToken.customerName,
-          link: `${process.env.APP_URL || 'http://localhost:3001'}/customer/status/${updatedToken.id}`,
+          link: `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/customer/status/${updatedToken.id}`,
         },
       );
       if (message) {

@@ -5,6 +5,7 @@ import { useAuth } from '../components/AuthContext';
 import { fetchApi } from '../lib/api';
 import { Building2, Users, Loader2, ArrowRight, Check, AlertCircle, Mail, MessageSquare } from 'lucide-react';
 import { useShareInvite } from '../hooks/useShareInvite';
+import { Logo } from '../components/Logo';
 
 type JoinStatus = 'loading' | 'ready' | 'joining' | 'success' | 'error';
 
@@ -70,21 +71,23 @@ export default function JoinPage() {
 
   if (status === 'loading' || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <Loader2 className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950 relative">
+        <div className="noise-overlay"></div>
+        <Loader2 className="w-8 h-8 border-4 border-sky-500/30 border-t-sky-500 rounded-full animate-spin z-10" />
       </div>
     );
   }
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4 relative">
+        <div className="noise-overlay"></div>
+        <div className="text-center z-10 glass-ui p-12 rounded-2xl relative">
+          <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
             <Check className="w-8 h-8 text-emerald-400" />
           </div>
-          <h1 className="text-2xl font-bold mb-2">Welcome to {workspaceName}!</h1>
-          <p className="text-zinc-400">Redirecting to your dashboard...</p>
+          <h1 className="text-3xl font-bold mb-3">Welcome to {workspaceName}!</h1>
+          <p className="text-zinc-400 font-medium">Redirecting to your dashboard...</p>
         </div>
       </div>
     );
@@ -92,33 +95,34 @@ export default function JoinPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4 relative overflow-hidden">
         <Head><title>Join Workspace | Qmova</title></Head>
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2.5 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-black text-white text-lg shadow-[0_0_25px_rgba(99,102,241,0.5)] tracking-tighter">
-                Q
-              </div>
-              <span className="font-extrabold text-2xl tracking-tight text-white">Qmova</span>
+        <div className="noise-overlay"></div>
+        
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-sky-600 rounded-full mix-blend-screen filter blur-[150px] opacity-20 animate-blob"></div>
+
+        <div className="w-full max-w-md z-10">
+          <div className="text-center mb-10">
+            <div className="flex justify-center mb-8">
+              <Logo width={150} height={24} href="/" forceTheme="dark" />
             </div>
-            <h1 className="text-2xl font-bold mb-2">Join Workspace</h1>
-            <p className="text-zinc-400">Sign in or create an account to join</p>
+            <h1 className="text-3xl font-bold mb-3 glow-text">Join Workspace</h1>
+            <p className="text-zinc-400 font-medium">Sign in or create an account to join</p>
           </div>
-          <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6">
-            <p className="text-sm text-zinc-400 mb-4">You need an account to join this workspace.</p>
-            <div className="space-y-3">
-              <button onClick={() => router.push(`/login?inviteCode=${inviteCode}`)} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors">
+          <div className="glass-ui rounded-2xl p-8 relative">
+            <p className="text-sm text-zinc-400 mb-6 text-center font-medium">You need an account to join this workspace.</p>
+            <div className="space-y-4">
+              <button onClick={() => router.push(`/login?inviteCode=${inviteCode}`)} className="w-full h-11 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-medium transition-colors shadow-[0_0_20px_rgba(2,132,199,0.3)]">
                 Sign In
               </button>
-              <button onClick={() => router.push(`/register?inviteCode=${inviteCode}`)} className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-medium transition-colors">
+              <button onClick={() => router.push(`/register?inviteCode=${inviteCode}`)} className="w-full h-11 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg font-medium transition-colors">
                 Create Account
               </button>
             </div>
             {inviteCode && (
-              <div className="mt-4 p-3 bg-black/30 rounded-xl">
-                <p className="text-xs text-zinc-500">Invitation Code</p>
-                <p className="font-mono font-bold text-indigo-400">{inviteCode}</p>
+              <div className="mt-6 p-4 bg-black/40 rounded-xl border border-white/5 text-center">
+                <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold mb-1">Invitation Code</p>
+                <p className="font-mono font-bold text-sky-400 text-lg tracking-widest">{inviteCode}</p>
               </div>
             )}
           </div>
@@ -128,18 +132,19 @@ export default function JoinPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4 relative overflow-hidden">
       <Head><title>Join Workspace | Qmova</title></Head>
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2.5 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-black text-white text-lg shadow-[0_0_25px_rgba(99,102,241,0.5)] tracking-tighter">
-              Q
-            </div>
-            <span className="font-extrabold text-2xl tracking-tight text-white">Qmova</span>
+      <div className="noise-overlay"></div>
+      
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-sky-600 rounded-full mix-blend-screen filter blur-[150px] opacity-20 animate-blob"></div>
+
+      <div className="w-full max-w-md z-10">
+        <div className="text-center mb-10">
+          <div className="flex justify-center mb-8">
+            <Logo width={150} height={24} href="/" forceTheme="dark" />
           </div>
-          <h1 className="text-2xl font-bold mb-2">Join Workspace</h1>
-          <p className="text-zinc-400">Enter the invitation code to join</p>
+          <h1 className="text-3xl font-bold mb-3 glow-text">Join Workspace</h1>
+          <p className="text-zinc-400 font-medium">Enter the invitation code to join</p>
         </div>
 
         {error && (
@@ -158,8 +163,8 @@ export default function JoinPage() {
           </div>
         )}
 
-        <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6">
-          <form onSubmit={(e) => { e.preventDefault(); handleJoin(); }} className="space-y-4">
+        <div className="glass-ui rounded-2xl p-8 relative">
+          <form onSubmit={(e) => { e.preventDefault(); handleJoin(); }} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-2">Invitation Code</label>
               <input
@@ -167,7 +172,7 @@ export default function JoinPage() {
                 required
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                className="w-full bg-black border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-indigo-500 transition-colors font-mono tracking-wider"
+                className="w-full h-12 bg-white/5 border border-white/10 rounded-lg px-4 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all font-mono tracking-wider text-center text-lg"
                 placeholder="ABC123XY"
                 maxLength={12}
               />
@@ -175,7 +180,7 @@ export default function JoinPage() {
             <button
               type="submit"
               disabled={status === 'joining' || !inviteCode}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-colors shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full h-12 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(2,132,199,0.3)] disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {status === 'joining' && <Loader2 className="w-5 h-5 animate-spin" />}
               {status === 'joining' ? 'Joining...' : 'Join Workspace'}

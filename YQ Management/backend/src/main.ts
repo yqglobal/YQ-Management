@@ -34,7 +34,15 @@ async function bootstrap() {
   ].filter(Boolean) as string[];
 
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (origin.match(/^https?:\/\/[a-z0-9-]+\.localhost:(3000|3001)$/i)) return callback(null, true);
+      if (origin.match(/^https?:\/\/[a-z0-9-]+\.qmova\.vercel\.app$/i)) return callback(null, true);
+      if (origin.match(/^https?:\/\/[a-z0-9-]+\.qmova-app\.vercel\.app$/i)) return callback(null, true);
+      if (origin.match(/^https?:\/\/[a-z0-9-]+\.yq-qmova\.vercel\.app$/i)) return callback(null, true);
+      callback(null, false);
+    },
     credentials: true,
     maxAge: 86400,
   });

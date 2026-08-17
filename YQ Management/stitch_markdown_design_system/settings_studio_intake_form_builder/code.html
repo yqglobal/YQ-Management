@@ -1,0 +1,303 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Qmova - Settings Studio - Intake Forms</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600&amp;family=Geist+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#fbf8ff",
+                        "on-primary-fixed-variant": "#004b73",
+                        "alert": "#E11D48",
+                        "outline-variant": "#bfc7d2",
+                        "tertiary-fixed": "#ffdcc3",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#cce5ff",
+                        "dark-card": "#121214",
+                        "on-secondary-container": "#00714e",
+                        "on-tertiary-container": "#fffbff",
+                        "secondary-container": "#82f5c1",
+                        "on-error-container": "#93000a",
+                        "background": "#fbf8ff",
+                        "tertiary": "#8d4b00",
+                        "on-tertiary-fixed": "#2f1500",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#93ccff",
+                        "surface-container-highest": "#e3e1ec",
+                        "primary-fixed-dim": "#93ccff",
+                        "primary": "#006194",
+                        "surface-tint": "#006398",
+                        "on-primary-container": "#fdfcff",
+                        "inverse-surface": "#2f3038",
+                        "on-surface": "#1a1b22",
+                        "canvas": "#FAFAFA",
+                        "on-background": "#1a1b22",
+                        "surface-container": "#eeedf7",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#f1effa",
+                        "on-surface-variant": "#3f4850",
+                        "on-secondary-fixed": "#002114",
+                        "surface": "#fbf8ff",
+                        "on-secondary-fixed-variant": "#005137",
+                        "outline": "#707881",
+                        "on-primary-fixed": "#001d31",
+                        "surface-container-lowest": "#ffffff",
+                        "card": "#FFFFFF",
+                        "surface-container-low": "#f4f2fd",
+                        "surface-variant": "#e3e1ec",
+                        "surface-container-high": "#e8e7f1",
+                        "border": "#E4E4E7",
+                        "secondary": "#006c4a",
+                        "secondary-fixed-dim": "#68dba9",
+                        "on-tertiary": "#ffffff",
+                        "surface-dim": "#dad9e3",
+                        "dark-canvas": "#09090B",
+                        "on-tertiary-fixed-variant": "#6e3900",
+                        "tertiary-fixed-dim": "#ffb77d",
+                        "secondary-fixed": "#85f8c4",
+                        "tertiary-container": "#b15f00",
+                        "dark-border": "#27272A",
+                        "primary-container": "#007bb9",
+                        "error-container": "#ffdad6",
+                        "sky-600": "#0284c7" /* Added for specific prompt requirement */
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "40px",
+                        "gutter": "24px",
+                        "margin-mobile": "16px",
+                        "sidebar-w": "256px",
+                        "unit": "4px",
+                        "header-h": "64px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "body-sm": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "data-mono": ["Geist Mono"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "data-mono-lg": ["Geist Mono"],
+                        "label-caps": ["Geist Mono"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["18px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "headline-lg": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "data-mono": ["16px", { "lineHeight": "24px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "data-mono-lg": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1;
+        }
+        body { background-color: #FAFAFA; /* Canvas */ }
+    </style>
+</head>
+<body class="text-on-surface flex bg-canvas min-h-screen">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col h-full py-margin-desktop bg-surface dark:bg-dark-canvas text-primary dark:text-primary-fixed font-body-md text-body-md w-sidebar-w fixed left-0 top-0 border-r border-border dark:border-dark-border z-50">
+<div class="px-gutter mb-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed flex flex-col">
+                Qmova
+                <span class="text-body-sm font-body-sm text-on-surface-variant font-normal mt-1">Global Admin</span>
+</h1>
+</div>
+<ul class="flex flex-col gap-2 mt-4 px-4 w-full">
+<li class="">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="desktop_windows">desktop_windows</span>
+                    Service Desk
+                </a>
+</li>
+<li class="">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="qr_code_scanner">qr_code_scanner</span>
+                    Scanner
+                </a>
+</li>
+<li class="">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+                    Calendar
+                </a>
+</li>
+<li class="">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+                    Analytics
+                </a>
+</li>
+<li class="">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-primary dark:text-primary-fixed font-bold bg-surface-container-low border-r-2 border-primary active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="settings" data-weight="fill">settings</span>
+                    Settings
+                </a>
+</li>
+</ul>
+<div class="mt-auto px-gutter flex items-center gap-3">
+<img alt="User Profile" class="w-10 h-10 rounded-full object-cover border border-border" data-alt="A small circular avatar placeholder image for a user profile in a clinical yet warm digital interface. The image should be a professional, high-quality headshot on a neutral light grey background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0A2CZNVNeOYkCLrQ5kCIdJIE-8NFOl_hPMgEOWTcp9qKxluCjF6t_f_2juBB1fAhQ6U0MAQH5sE0VjeQc8gruCVCaftrHXO9Ox2J9ylLjW16tIXI0auJSNWj5VeqE1Ht0MgYeggzbBVcAb35vlUG8trBSTKU2heMVP0GxGRGnFptPCOuRFoPqyng4jSpoqOQNHWVyPbU0V9U_YdbJFRIM87NDR9HuDcec-qFlQv9XZlmHyHMpS2S8EQ">
+<span class="font-body-md text-body-md font-medium text-on-surface">Admin User</span>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col md:ml-sidebar-w min-h-screen">
+<!-- TopNavBar -->
+<header class="h-header-h w-full sticky top-0 z-40 bg-white dark:bg-dark-card text-primary dark:text-primary-fixed font-body-md text-body-md border-b border-border dark:border-dark-border flex items-center justify-between px-gutter"><div class="flex items-center gap-8 h-full">
+    <span class="font-headline-sm text-headline-sm font-semibold text-on-surface dark:text-on-background">Settings Studio</span>
+    <nav class="hidden lg:flex items-end h-full gap-6">
+        <a class="text-on-surface-variant dark:text-surface-variant pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors pt-6" href="#">Locations &amp; Assets</a>
+        <a class="text-on-surface-variant dark:text-surface-variant pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors pt-6" href="#">Service Studio</a>
+        <a class="text-primary dark:text-primary-fixed font-bold border-b-2 border-primary pb-4 pt-6 cursor-pointer transition-opacity active:opacity-70" href="#">Intake Forms</a>
+        <a class="text-on-surface-variant dark:text-surface-variant pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors pt-6" href="#">Integrations</a>
+        <a class="text-on-surface-variant dark:text-surface-variant pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors pt-6" href="#">Billing</a>
+    </nav>
+</div>
+<div class="flex-1 max-w-md mx-8">
+    <div class="relative">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" data-icon="search">search</span>
+        <input class="w-full bg-surface-container-low border border-border rounded-full py-2 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Search settings..." type="text">
+    </div>
+</div>
+<div class="flex items-center gap-4">
+    <button class="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-70">
+        <span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+    </button>
+    <button class="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-70">
+        <span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+    </button>
+</div></header>
+<!-- Canvas Area -->
+<main class="flex-1 p-gutter max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8 items-start">
+<!-- Left Column: Toolbox -->
+<aside class="bg-card rounded-xl border border-border shadow-sm p-6 sticky top-24">
+<div class="mb-6">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-2">Form Elements</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Drag and drop elements to build your intake flow.</p>
+</div>
+<div class="space-y-3">
+<!-- Toolbox Items -->
+<div class="flex items-center gap-3 p-3 bg-canvas border border-border rounded-lg cursor-grab hover:border-sky-600 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="short_text">short_text</span>
+<span class="font-body-md text-body-md font-medium">Short Text</span>
+<span class="material-symbols-outlined ml-auto text-on-surface-variant opacity-50" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="flex items-center gap-3 p-3 bg-canvas border border-border rounded-lg cursor-grab hover:border-sky-600 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="notes">notes</span>
+<span class="font-body-md text-body-md font-medium">Long Text</span>
+<span class="material-symbols-outlined ml-auto text-on-surface-variant opacity-50" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="flex items-center gap-3 p-3 bg-canvas border border-border rounded-lg cursor-grab hover:border-sky-600 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="arrow_drop_down_circle">arrow_drop_down_circle</span>
+<span class="font-body-md text-body-md font-medium">Dropdown</span>
+<span class="material-symbols-outlined ml-auto text-on-surface-variant opacity-50" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="flex items-center gap-3 p-3 bg-canvas border border-border rounded-lg cursor-grab hover:border-sky-600 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="calendar_month">calendar_month</span>
+<span class="font-body-md text-body-md font-medium">Date Picker</span>
+<span class="material-symbols-outlined ml-auto text-on-surface-variant opacity-50" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="flex items-center gap-3 p-3 bg-canvas border border-border rounded-lg cursor-grab hover:border-sky-600 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="upload_file">upload_file</span>
+<span class="font-body-md text-body-md font-medium">File Upload</span>
+<span class="material-symbols-outlined ml-auto text-on-surface-variant opacity-50" data-icon="drag_indicator">drag_indicator</span>
+</div>
+</div>
+</aside>
+<!-- Right Column: Canvas Preview -->
+<section class="flex flex-col gap-6">
+<div class="flex items-center justify-between bg-card p-4 rounded-xl border border-border shadow-sm">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Patient Check-in V2</h2>
+<span class="font-label-caps text-label-caps bg-surface-container-high text-on-surface-variant px-2 py-1 rounded mt-1 inline-block uppercase">Draft</span>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 border border-border rounded-lg font-body-md text-body-md font-medium hover:bg-canvas transition-colors h-[44px]">Preview</button>
+<button class="px-4 py-2 bg-sky-600 text-white rounded-lg font-body-md text-body-md font-medium hover:bg-opacity-90 transition-colors h-[44px]">Save Changes</button>
+</div>
+</div>
+<!-- Phone/Mobile Preview Frame -->
+<div class="bg-surface-container-highest p-8 rounded-2xl flex justify-center items-center min-h-[600px] border border-border relative overflow-hidden">
+<!-- Abstract Background pattern for clinical warmth -->
+<div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#006194 1px, transparent 1px); background-size: 20px 20px;"></div>
+<div class="w-[375px] h-[700px] bg-white rounded-[40px] shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1)] border-8 border-white overflow-hidden relative z-10 flex flex-col">
+<!-- Form Header -->
+<div class="bg-sky-50 p-6 border-b border-sky-100">
+<h3 class="font-headline-sm text-headline-sm text-on-surface text-center">Welcome to Qmova Health</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-center mt-1">Please complete your check-in.</p>
+</div>
+<!-- Draggable Area -->
+<div class="flex-1 p-6 space-y-6 overflow-y-auto bg-canvas">
+<!-- Field 1 -->
+<div class="group relative bg-white p-4 rounded-xl border border-border hover:border-sky-600 transition-colors cursor-pointer">
+<div class="absolute -left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab p-1 bg-white border border-border rounded shadow-sm">
+<span class="material-symbols-outlined text-sm text-on-surface-variant" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<label class="block font-body-md text-body-md font-medium text-on-surface mb-2">Full Name *</label>
+<input class="w-full bg-canvas border border-border rounded-lg px-3 py-2 font-body-md text-body-md focus:outline-none focus:border-sky-600 focus:ring-1 focus:ring-sky-600" disabled="" placeholder="John Doe" type="text">
+</div>
+<!-- Field 2 with Logic Branch -->
+<div class="group relative bg-white p-4 rounded-xl border border-sky-200 shadow-sm transition-colors cursor-pointer ring-1 ring-sky-600">
+<div class="absolute -left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab p-1 bg-white border border-border rounded shadow-sm z-20">
+<span class="material-symbols-outlined text-sm text-on-surface-variant" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="absolute top-2 right-2 flex gap-1">
+<button class="p-1 hover:bg-surface rounded"><span class="material-symbols-outlined text-sm text-sky-600" data-icon="edit">edit</span></button>
+<button class="p-1 hover:bg-surface rounded"><span class="material-symbols-outlined text-sm text-alert" data-icon="delete">delete</span></button>
+</div>
+<label class="block font-body-md text-body-md font-medium text-on-surface mb-2">Age</label>
+<input class="w-full bg-canvas border border-border rounded-lg px-3 py-2 font-data-mono text-data-mono focus:outline-none focus:border-sky-600 focus:ring-1 focus:ring-sky-600" disabled="" placeholder="e.g. 35" type="number">
+<!-- Logic Indicator -->
+<div class="mt-4 p-3 bg-sky-50 rounded-lg border border-sky-100 flex items-start gap-2 relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-sky-600"></div>
+<span class="material-symbols-outlined text-sky-600 mt-0.5" data-icon="alt_route">alt_route</span>
+<div>
+<span class="font-label-caps text-label-caps text-sky-800 uppercase block mb-1">Logic Branch Active</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">If <strong>Age &lt; 18</strong>, show <em>Guardian Consent Form</em>.</p>
+</div>
+</div>
+</div>
+<!-- Field 3 -->
+<div class="group relative bg-white p-4 rounded-xl border border-border hover:border-sky-600 transition-colors cursor-pointer border-dashed border-2 bg-canvas">
+<div class="flex flex-col items-center justify-center py-6 text-on-surface-variant">
+<span class="material-symbols-outlined mb-2 opacity-50" data-icon="add_circle">add_circle</span>
+<span class="font-body-md text-body-md">Drag new element here</span>
+</div>
+</div>
+</div>
+<!-- Form Footer -->
+<div class="p-6 bg-white border-t border-border">
+<button class="w-full bg-sky-600 text-white rounded-lg font-body-md text-body-md font-medium py-3 h-[44px]" disabled="">Submit</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+
+
+</body></html>

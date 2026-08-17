@@ -3,8 +3,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ArrowRight, Lock, Mail, User, CheckCircle2, Eye, EyeOff } from 'lucide-react';
-import { fetchApi, AuthStorage } from '../lib/api';
+import { fetchApi, AuthStorage, getBackendUrl } from '../lib/api';
 import TermsModal from '../components/TermsModal';
+import { Logo } from '../components/Logo';
 
 export default function Register() {
   const router = useRouter();
@@ -108,70 +109,66 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex">
+    <div className="min-h-screen bg-zinc-950 text-white flex relative overflow-hidden">
       <Head>
         <title>Sign Up | Qmova</title>
       </Head>
+      
+      <div className="noise-overlay"></div>
 
       {/* Left Panel - Visual */}
-      <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-zinc-950 items-center justify-center border-r border-white/10">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-pink-900/30 via-transparent to-transparent opacity-60"></div>
-        <div className="absolute top-0 -right-4 w-96 h-96 bg-indigo-600 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob"></div>
-        <div className="absolute bottom-0 -left-4 w-96 h-96 bg-pink-600 rounded-full mix-blend-screen filter blur-[100px] opacity-40 animate-blob animation-delay-4000"></div>
+      <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-zinc-950 items-center justify-center border-r border-white/5 z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-sky-900/20 via-transparent to-transparent opacity-60"></div>
+        <div className="absolute top-1/4 -right-20 w-96 h-96 bg-emerald-600 rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob"></div>
+        <div className="absolute bottom-1/4 -left-20 w-96 h-96 bg-sky-600 rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob animation-delay-4000"></div>
 
         <div className="relative z-10 max-w-md p-12">
-          <div className="flex items-center gap-2.5 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-600 flex items-center justify-center font-black text-white text-lg shadow-[0_0_25px_rgba(236,72,153,0.5)] tracking-tighter">
-              Q
-            </div>
-            <span className="font-extrabold text-2xl tracking-tight text-white">Qmova</span>
+          <div className="mb-12">
+            <Logo width={150} height={24} href="/" forceTheme="dark" />
           </div>
-          <h2 className="text-4xl font-bold tracking-tight mb-6 leading-tight">
-            Start orchestrating your spaces today.
+          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-6 leading-tight text-white glow-text">
+            Start orchestrating your spaces <span className="gradient-text">today.</span>
           </h2>
-          <p className="text-lg text-zinc-400">
+          <p className="text-lg text-zinc-400 font-medium mb-12">
             Join hundreds of businesses delivering seamless waiting experiences to their customers.
           </p>
           
-          <div className="mt-12 space-y-4">
+          <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span className="text-zinc-300">14-day free trial</span>
+              <span className="text-zinc-300 font-medium">14-day free trial</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span className="text-zinc-300">No credit card required</span>
+              <span className="text-zinc-300 font-medium">No credit card required</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Right Panel - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12">
-        <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-2.5 mb-8">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-pink-600 flex items-center justify-center font-black text-white text-base shadow-[0_0_15px_rgba(236,72,153,0.5)] tracking-tighter">
-              Q
-            </div>
-            <span className="font-extrabold text-xl tracking-tight text-white">Qmova</span>
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 relative z-10">
+        <div className="w-full max-w-md glass-ui p-8 rounded-2xl relative">
+          <div className="lg:hidden mb-8 flex justify-center">
+             <Logo width={150} height={24} href="/" forceTheme="dark" />
           </div>
           
           {invitePreview && (
-            <div className="mb-6 p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-3 animate-in fade-in duration-300">
-              <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-black shrink-0">
+            <div className="mb-6 p-4 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center gap-3 animate-in fade-in duration-300">
+              <div className="w-9 h-9 rounded-xl bg-sky-600/20 text-sky-400 flex items-center justify-center font-black shrink-0">
                 ★
               </div>
               <div className="text-left">
-                <p className="text-xs text-indigo-300 uppercase tracking-wider font-bold">Team Invitation Active</p>
-                <p className="text-sm text-zinc-300">You are registering to join <strong className="text-white">{invitePreview.workspaceName}</strong> as <strong className="text-indigo-400 uppercase">{invitePreview.role}</strong>.</p>
+                <p className="text-xs text-sky-300 uppercase tracking-wider font-bold">Team Invitation Active</p>
+                <p className="text-sm text-zinc-300">You are registering to join <strong className="text-white">{invitePreview.workspaceName}</strong> as <strong className="text-sky-400 uppercase">{invitePreview.role}</strong>.</p>
               </div>
             </div>
           )}
@@ -179,7 +176,7 @@ export default function Register() {
           <h1 className="text-3xl font-bold mb-2">
             {step === 'details' ? 'Create your account' : 'Verify your email'}
           </h1>
-          <p className="text-zinc-400 mb-8">
+          <p className="text-zinc-400 mb-8 font-medium">
             {step === 'details' ? "Let's get you set up. It only takes a minute." : "We've sent a 6-digit code to your email. Enter it below to continue."}
           </p>
 
@@ -200,7 +197,7 @@ export default function Register() {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full h-11 bg-white/5 border border-white/10 rounded-lg px-4 pl-10 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all font-medium"
                     placeholder="John Doe"
                   />
                 </div>
@@ -215,7 +212,7 @@ export default function Register() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full h-11 bg-white/5 border border-white/10 rounded-lg px-4 pl-10 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all font-medium"
                     placeholder="example@email.com"
                   />
                 </div>
@@ -230,14 +227,13 @@ export default function Register() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-10 pr-12 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full h-11 bg-white/5 border border-white/10 rounded-lg px-4 pl-10 pr-12 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all font-medium"
                     placeholder="Create a strong password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors focus:outline-none"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -250,11 +246,11 @@ export default function Register() {
                     type="checkbox"
                     checked={termsAccepted}
                     disabled
-                    className="mt-1 w-4 h-4 rounded border-zinc-600 bg-zinc-900 focus:ring-indigo-500 accent-indigo-600 disabled:opacity-50"
+                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 focus:ring-sky-500 accent-sky-500 disabled:opacity-50"
                   />
                   <div className="text-sm text-zinc-400">
                     I accept the{' '}
-                    <button type="button" onClick={() => setModalType('terms')} className="text-indigo-400 hover:underline">
+                    <button type="button" onClick={() => setModalType('terms')} className="text-sky-400 hover:underline">
                       Terms of Service
                     </button>
                   </div>
@@ -264,11 +260,11 @@ export default function Register() {
                     type="checkbox"
                     checked={privacyAccepted}
                     disabled
-                    className="mt-1 w-4 h-4 rounded border-zinc-600 bg-zinc-900 focus:ring-indigo-500 accent-indigo-600 disabled:opacity-50"
+                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 focus:ring-sky-500 accent-sky-500 disabled:opacity-50"
                   />
                   <div className="text-sm text-zinc-400">
                     I accept the{' '}
-                    <button type="button" onClick={() => setModalType('privacy')} className="text-indigo-400 hover:underline">
+                    <button type="button" onClick={() => setModalType('privacy')} className="text-sky-400 hover:underline">
                       Privacy Policy
                     </button>
                   </div>
@@ -278,7 +274,7 @@ export default function Register() {
               <button 
                 type="submit" 
                 disabled={loading || !termsAccepted || !privacyAccepted}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white text-black rounded-xl font-semibold hover:bg-zinc-200 transition-colors mt-8 disabled:opacity-70"
+                className="w-full h-11 flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 text-white font-medium rounded-lg transition-colors shadow-[0_0_20px_rgba(2,132,199,0.3)] disabled:opacity-70 mt-8"
               >
                 {loading ? 'Creating Account...' : 'Continue'}
                 {!loading && <ArrowRight className="w-4 h-4" />}
@@ -296,7 +292,7 @@ export default function Register() {
                     maxLength={6}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
-                    className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-center tracking-[0.5em] font-mono text-xl"
+                    className="w-full h-12 bg-white/5 border border-white/10 rounded-lg px-4 pl-10 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all text-center tracking-[0.5em] font-mono text-xl"
                     placeholder="000000"
                   />
                 </div>
@@ -304,14 +300,14 @@ export default function Register() {
               <button 
                 type="submit" 
                 disabled={loading || otp.length !== 6}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-70"
+                className="w-full h-11 flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 text-white font-medium rounded-lg transition-colors shadow-[0_0_20px_rgba(2,132,199,0.3)] disabled:opacity-70"
               >
                 {loading ? 'Verifying...' : 'Verify Email'}
                 {!loading && <ArrowRight className="w-4 h-4" />}
               </button>
 
               {resendSuccess && (
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-sm text-center">
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-sm text-center">
                   {resendSuccess}
                 </div>
               )}
@@ -320,7 +316,7 @@ export default function Register() {
                   type="button" 
                   disabled={resending}
                   onClick={handleResendOtp}
-                  className="text-sm text-indigo-400 hover:text-indigo-300 disabled:opacity-50 font-medium"
+                  className="text-sm text-sky-400 hover:text-sky-300 disabled:opacity-50 font-medium"
                 >
                   {resending ? 'Sending...' : 'Resend OTP Code'}
                 </button>
@@ -342,14 +338,14 @@ export default function Register() {
                   <div className="w-full border-t border-white/10"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-black text-zinc-500">Or sign up with</span>
+                  <span className="px-4 bg-[#121214] text-zinc-500">Or sign up with</span>
                 </div>
               </div>
 
               <div className="mt-8">
                 <a 
-                  href={`${'https://qmova-backend.onrender.com'}/auth/google`}
-                  className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-zinc-900 border border-white/10 rounded-xl hover:bg-zinc-800 transition-colors font-medium text-zinc-300"
+                  href={`${getBackendUrl()}/auth/google`}
+                  className="w-full h-11 flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors font-medium text-zinc-300"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -363,9 +359,9 @@ export default function Register() {
             </>
           )}
 
-          <p className="mt-10 text-center text-sm text-zinc-400">
+          <p className="mt-8 text-center text-sm text-zinc-400">
             Already have an account?{' '}
-            <Link href="/login" className="text-white hover:underline font-medium">
+            <Link href="/login" className="text-white hover:text-sky-400 hover:underline font-medium transition-colors">
               Log in
             </Link>
           </p>

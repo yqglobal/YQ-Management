@@ -8,11 +8,14 @@ export class ResourceService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(tenantId: string, createResourceDto: CreateResourceDto) {
+    const { serviceIds, ...rest } = createResourceDto;
     return this.prisma.resource.create({
       data: {
-        ...createResourceDto,
+        ...rest,
         tenantId,
+        services: serviceIds && serviceIds.length > 0 ? { connect: serviceIds.map(id => ({ id })) } : undefined,
       },
+      include: { services: true },
     });
   }
 
@@ -22,6 +25,7 @@ export class ResourceService {
         tenantId,
         ...(locationId && { locationId }),
       },
+      include: { services: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -29,6 +33,7 @@ export class ResourceService {
   async findOne(id: string, tenantId: string) {
     const resource = await this.prisma.resource.findFirst({
       where: { id, tenantId },
+      include: { services: true },
     });
     if (!resource) {
       throw new NotFoundException(`Resource with ID ${id} not found`);
@@ -38,9 +43,14 @@ export class ResourceService {
 
   async update(id: string, tenantId: string, updateResourceDto: UpdateResourceDto) {
     await this.findOne(id, tenantId); // verify exists
+    const { serviceIds, ...rest } = updateResourceDto;
     return this.prisma.resource.update({
       where: { id },
-      data: updateResourceDto,
+      data: {
+        ...rest,
+        services: serviceIds !== undefined ? { set: serviceIds.map(id => ({ id })) } : undefined,
+      },
+      include: { services: true },
     });
   }
 

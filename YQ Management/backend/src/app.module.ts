@@ -46,6 +46,7 @@ import { CustomerModule } from './customer/customer.module';
 import { TasksModule } from './tasks/tasks.module';
 import { SystemLogModule } from './system-log/system-log.module';
 import { PoliciesModule } from './policies/policies.module';
+import { GoogleModule } from './integrations/google/google.module';
 
 @Module({
   imports: [
@@ -125,6 +126,7 @@ import { PoliciesModule } from './policies/policies.module';
     TasksModule,
     SystemLogModule,
     PoliciesModule,
+    GoogleModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

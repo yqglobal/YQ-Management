@@ -220,7 +220,7 @@ export default function SuperAdminTenants() {
                                 </button>
                                 <button
                                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-white/5 w-full text-left"
-                                  onClick={() => { toast.info('Workspace management coming soon'); setShowActions(null); }}
+                                  onClick={() => { router.push(`/super-admin/tenants/${tenant.id}`); setShowActions(null); }}
                                 >
                                   <QrCode className="w-4 h-4 text-blue-500" /> Manage Workspace
                                 </button>

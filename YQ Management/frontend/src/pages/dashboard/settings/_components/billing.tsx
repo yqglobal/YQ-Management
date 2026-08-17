@@ -1,0 +1,561 @@
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import Head from 'next/head';
+import { CheckCircle2, AlertCircle, Loader2, Zap, Building2, ArrowRight } from 'lucide-react';
+import { fetchApi } from '../../../../lib/api';
+import { useRouter } from 'next/router';
+import { toast } from 'sonner';
+import { useMutation, useQuery } from '@tanstack/react-query';
+
+interface OzowPaymentData {
+  paymentUrl?: string;
+  checkoutUrl?: string;
+  siteCode?: string;
+  countryCode?: string;
+  currencyCode?: string;
+  amount?: string;
+  transactionReference?: string;
+  bankReference?: string;
+  cancelUrl?: string;
+  errorUrl?: string;
+  successUrl?: string;
+  notifyUrl?: string;
+  isTest?: string;
+  hashCheck?: string;
+}
+
+const billingDateFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'UTC',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+function formatBillingDate(value?: string | Date | null) {
+  if (!value) return 'Unknown';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown';
+  return billingDateFormatter.format(date);
+}
+
+export default function BillingSettings() {
+  const router = useRouter();
+  const paymentFormRef = useRef<HTMLFormElement | null>(null);
+  const [paymentData, setPaymentData] = useState<OzowPaymentData | null>(null);
+  const [billingInterval, setBillingInterval] = useState('monthly');
+  const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
+  const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
+  const [enterpriseForm, setEnterpriseForm] = useState({ name: '', companyName: '', email: '', phone: '', message: '' });
+  const ozowFields = useMemo<Array<keyof OzowPaymentData>>(
+    () => ['siteCode', 'countryCode', 'currencyCode', 'amount', 'transactionReference', 'bankReference', 'cancelUrl', 'errorUrl', 'successUrl', 'notifyUrl', 'isTest', 'hashCheck'],
+    [],
+  );
+  const paymentStatus = useMemo(() => {
+    if (Array.isArray(router.query.status)) return router.query.status[0];
+    return router.query.status;
+  }, [router.query.status]);
+
+  // Fetch Current Subscription
+  const { data: currentSub, isLoading: isSubLoading } = useQuery({
+    queryKey: ['current-subscription'],
+    queryFn: () => fetchApi('/billing/subscriptions/current'),
+  });
+
+  // Fetch Active Plans
+  const { data: plans = [], isLoading: isPlansLoading } = useQuery({
+    queryKey: ['active-plans'],
+    queryFn: () => fetchApi('/billing/plans?status=ACTIVE'),
+  });
+
+  const subscribeMutation = useMutation({
+    mutationFn: (data: { planId: string; billingInterval: string }) =>
+      fetchApi('/payments/generate-link', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }),
+    onSuccess: (data) => {
+      setPaymentData(data);
+    },
+    onError: () => {
+      toast.error('Error generating payment link');
+    },
+  });
+
+  const enterpriseMutation = useMutation({
+    mutationFn: (data: typeof enterpriseForm) =>
+      fetchApi('/billing/enterprise-inquiries', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      toast.success('Inquiry sent! Our sales team will contact you shortly.');
+      setShowEnterpriseModal(false);
+      setEnterpriseForm({ name: '', companyName: '', email: '', phone: '', message: '' });
+    },
+    onError: () => {
+      toast.error('Failed to send inquiry. Please try again later.');
+    }
+  });
+
+  const statusMessage = useMemo(() => {
+    if (paymentStatus === 'success') {
+      return { type: 'success' as const, text: 'Payment completed successfully! Your subscription is now active.' };
+    }
+    if (paymentStatus === 'cancelled') {
+      return { type: 'error' as const, text: 'Payment was cancelled.' };
+    }
+    if (paymentStatus === 'error') {
+      return { type: 'error' as const, text: 'An error occurred during payment processing.' };
+    }
+    return null;
+  }, [paymentStatus]);
+
+  const handleUpgradeClick = (plan: any) => {
+    setCheckoutPlan(plan);
+  };
+
+  const confirmCheckout = () => {
+    if (checkoutPlan) subscribeMutation.mutate({ planId: checkoutPlan.id, billingInterval });
+  };
+
+  useEffect(() => {
+    if (paymentData) {
+      const submitTimer = window.setTimeout(() => {
+        try {
+          paymentFormRef.current?.requestSubmit();
+        } catch {
+          try {
+            paymentFormRef.current?.submit();
+          } catch (submitError) {
+            console.error('Auto-submit failed', submitError);
+          }
+        }
+      }, 100);
+
+      return () => window.clearTimeout(submitTimer);
+    }
+  }, [paymentData]);
+
+  const isPaid = currentSub?.status === 'ACTIVE' && currentSub?.plan?.price > 0;
+  const isTrial = currentSub?.status === 'ACTIVE' && currentSub?.plan?.price === 0;
+
+  return (
+    <>
+      {/* Payment Confirmation Modal */}
+      {statusMessage && (
+        <div className="fixed inset-0 bg-zinc-950/80 backdrop-blur-xl z-[150] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-card dark:bg-zinc-900 border border-border dark:border-white/10 rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden flex flex-col items-center text-center relative animate-in zoom-in-95 duration-500 ease-out">
+            {/* Top decorative glow */}
+            <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-32 blur-[64px] rounded-full opacity-20 pointer-events-none ${
+              statusMessage.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'
+            }`}></div>
+            
+            <div className="p-10 w-full relative z-10 flex flex-col items-center">
+              <div className={`w-24 h-24 rounded-[32px] flex items-center justify-center mb-8 rotate-3 shadow-xl backdrop-blur-md border ${
+                statusMessage.type === 'success' 
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 shadow-emerald-500/20' 
+                  : 'bg-red-500/10 border-red-500/30 text-red-500 shadow-red-500/20'
+              }`}>
+                {statusMessage.type === 'success' 
+                  ? <CheckCircle2 strokeWidth={2.5} className="w-12 h-12 -rotate-3" /> 
+                  : <AlertCircle strokeWidth={2.5} className="w-12 h-12 -rotate-3" />
+                }
+              </div>
+              
+              <h2 className="text-2xl font-bold text-on-surface dark:text-white tracking-tight mb-3">
+                {statusMessage.type === 'success' ? 'Payment Successful' : 'Payment Failed'}
+              </h2>
+              <p className="text-on-surface-variant dark:text-zinc-400 mb-10 leading-relaxed max-w-[280px]">
+                {statusMessage.text}
+              </p>
+              
+              <button 
+                onClick={() => router.replace('/dashboard/settings/billing')}
+                className={`w-full h-14 rounded-2xl font-semibold text-[15px] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 group ${
+                  statusMessage.type === 'success' 
+                    ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/25' 
+                    : 'bg-red-500 hover:bg-red-400 text-white shadow-red-500/25'
+                }`}
+              >
+                {statusMessage.type === 'success' ? 'Go to Dashboard' : 'Try Again'}
+                <ArrowRight className="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+
+      {isSubLoading || isPlansLoading ? (
+        <div className="flex items-center gap-3 text-outline font-body-md text-body-md p-8 justify-center">
+          <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" />
+          Loading billing info...
+        </div>
+      ) : isPaid ? (
+        /* POST-PURCHASE VIEW: Active Plan Details */
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+          <div className="md:col-span-8 bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-[24px] p-8 relative overflow-hidden shadow-sm flex flex-col">
+            <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#10b981]"></div>
+            <h4 className="font-label-caps text-label-caps text-on-surface-variant dark:text-outline tracking-widest uppercase mb-6 border-b border-border dark:border-dark-border pb-4">Current Subscription</h4>
+
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+              <div>
+                <h3 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight font-semibold">{currentSub?.plan?.name || 'Unknown Plan'}</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-label-caps text-label-caps border border-emerald-200 dark:border-emerald-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    ACTIVE
+                  </span>
+                  <span className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline">Billed {currentSub?.billingInterval}</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline max-w-lg mb-8">
+              Your next billing date is <strong className="text-on-surface dark:text-white">{formatBillingDate(currentSub?.nextBillingDate)}</strong>.
+            </p>
+
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              <li className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
+                  <span className="material-symbols-outlined text-sm">check</span>
+                </div>
+                <span className="font-body-md text-body-md text-on-surface dark:text-white">Max Queues: {currentSub?.plan?.limits?.maxQueues || 'Unlimited'}</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
+                  <span className="material-symbols-outlined text-sm">check</span>
+                </div>
+                <span className="font-body-md text-body-md text-on-surface dark:text-white">Max Tokens/day: {currentSub?.plan?.limits?.maxTokens || 'Unlimited'}</span>
+              </li>
+            </ul>
+
+            <div className="flex gap-4 border-t border-border dark:border-dark-border pt-6 mt-auto">
+              <button className="bg-primary text-white font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-primary-container transition-colors">Upgrade Plan</button>
+              <button className="bg-transparent text-on-surface dark:text-white border border-border dark:border-dark-border font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors">Cancel Subscription</button>
+            </div>
+          </div>
+
+          <div className="md:col-span-4 flex flex-col gap-6 md:gap-8">
+
+            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-6 flex flex-col relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-colors"></div>
+              <h4 className="font-headline-sm text-headline-sm text-on-surface dark:text-white mb-2">{currentSub?.plan?.name.toLowerCase().includes('standard') ? 'Upgrade to Premium' : 'Enterprise Setup'}</h4>
+              <p className="text-on-surface-variant dark:text-outline font-body-sm text-body-sm mb-6 leading-relaxed relative z-10">
+                {currentSub?.plan?.name.toLowerCase().includes('standard')
+                  ? 'Unlock advanced features like WhatsApp Chat, full white-labeling, and dedicated support to scale your business.'
+                  : 'Get a custom infrastructure, unlimited locations, and dedicated account management for large-scale operations.'}
+              </p>
+              <div className="mt-auto pt-4 relative z-10">
+                <button onClick={() => currentSub?.plan?.name.toLowerCase().includes('standard') ? handleUpgradeClick(plans.find((p: any) => p.name.includes('Premium'))) : setShowEnterpriseModal(true)} className="w-full bg-primary hover:bg-primary-container text-white font-body-md text-body-md font-semibold h-[44px] rounded-lg transition-colors shadow-sm">
+                  {currentSub?.plan?.name.toLowerCase().includes('standard') ? 'View Premium Plan' : 'Contact Sales'}
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-surface-container-lowest dark:bg-black/20 border border-border dark:border-dark-border rounded-xl p-6 flex flex-col mt-6">
+              <h4 className="font-headline-sm text-headline-sm text-on-surface dark:text-white mb-2">Payment Method</h4>
+              <p className="text-on-surface-variant dark:text-outline font-body-sm text-body-sm mb-4 leading-relaxed">
+                Processed via Ozow Instant EFT.
+              </p>
+              <button className="text-primary font-body-md font-semibold hover:underline flex items-center gap-2">
+                Billing History <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      ) : (
+        /* PRE-PURCHASE VIEW: Pricing Grid */
+        <div>
+          <div className="bg-white dark:bg-dark-card border border-[#D97706]/30 dark:border-[#D97706]/20 rounded-2xl p-6 mb-8 flex items-start gap-4 shadow-sm relative overflow-hidden">
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#D97706]"></div>
+            <div className="w-10 h-10 rounded-full bg-[#D97706]/10 flex items-center justify-center shrink-0 text-[#D97706]">
+              <span className="material-symbols-outlined">info</span>
+            </div>
+            <div>
+              <h3 className="font-headline-sm text-headline-sm text-on-surface dark:text-white mb-1 tracking-tight font-semibold">{isTrial ? 'Your trial is active' : currentSub?.status === 'EXPIRED' ? 'Your trial has expired' : 'Choose a Plan'}</h3>
+              <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline">Please select a plan below to continue using all premium features uninterrupted. Secure payments are processed via Ozow.</p>
+            </div>
+          </div>
+
+          <div className="flex justify-center mb-10">
+            <div className="inline-flex items-center p-1 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-lg">
+              <button
+                onClick={() => setBillingInterval('monthly')}
+                className={`px-6 h-[40px] rounded-md font-body-sm font-semibold transition-colors ${billingInterval === 'monthly' ? 'bg-white dark:bg-zinc-800 text-on-surface dark:text-white shadow-sm' : 'text-on-surface-variant dark:text-outline hover:text-on-surface'}`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingInterval('yearly')}
+                className={`px-6 h-[40px] rounded-md font-body-sm font-semibold transition-colors flex items-center gap-2 ${billingInterval === 'yearly' ? 'bg-white dark:bg-zinc-800 text-on-surface dark:text-white shadow-sm' : 'text-on-surface-variant dark:text-outline hover:text-on-surface'}`}
+              >
+                Annually <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider">Save 10%</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            {plans.filter((p: any) => !p.name.toLowerCase().includes('enterprise')).map((plan: {
+              id: string;
+              name: string;
+              description?: string;
+              billingInterval?: string;
+              price: number;
+              currency?: string;
+              limits?: { maxQueues?: number; maxTokens?: number };
+              features?: { whatsappNotifications?: boolean; textToSpeech?: boolean; customBranding?: boolean };
+            }) => {
+              const price = billingInterval === 'yearly' && plan.billingInterval === 'monthly'
+                ? Math.floor(plan.price * 12 * 0.9)
+                : plan.price;
+              const isPopular = plan.name.toLowerCase().includes('standard') || plan.name.toLowerCase().includes('pro');
+
+              return (
+                <div key={plan.id} className={`bg-card dark:bg-dark-card rounded-[24px] border ${isPopular ? 'border-primary shadow-lg shadow-primary/5 dark:shadow-none' : 'border-border dark:border-dark-border'} p-8 flex flex-col relative overflow-hidden`}>
+                  {isPopular && (
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-primary"></div>
+                  )}
+                  {isPopular && (
+                    <span className="absolute top-4 right-4 bg-primary text-white font-bold text-[10px] px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                      Most Popular
+                    </span>
+                  )}
+
+                  <h3 className="font-headline-md text-headline-md text-on-surface dark:text-white mb-2 tracking-tight font-semibold">{plan.name}</h3>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline h-10">{plan.description}</p>
+
+                  <div className="my-6">
+                    <span className="font-data-mono-lg text-data-mono-lg text-on-surface dark:text-white text-3xl">{plan.currency === 'ZAR' ? 'R' : '$'}{price}</span>
+                    <span className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline ml-1">/{billingInterval === 'yearly' ? 'year' : 'month'}</span>
+                  </div>
+
+                  <button
+                    onClick={() => handleUpgradeClick(plan)}
+                    disabled={subscribeMutation.isPending || plan.price === 0}
+                    className={`w-full h-[44px] rounded-lg font-body-md font-semibold flex items-center justify-center gap-2 transition-colors mb-8 ${isPopular ? 'bg-primary hover:bg-primary-container text-white' : 'bg-surface-container-high dark:bg-white/10 hover:bg-surface-container-highest dark:hover:bg-white/20 text-on-surface dark:text-white'} disabled:opacity-50`}
+                  >
+                    {subscribeMutation.isPending && subscribeMutation.variables?.planId === plan.id ? (
+                      <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" />
+                    ) : null}
+                    {plan.price === 0 ? 'Current Plan' : 'Select Plan'}
+                  </button>
+
+                  <div className="space-y-4 flex-1">
+                    <p className="font-label-caps text-label-caps text-on-surface-variant dark:text-outline uppercase tracking-wider">Features included:</p>
+                    <ul className="space-y-4">
+                      <li className="flex items-start gap-3">
+                        <div className="w-5 h-5 rounded-full bg-surface-container-highest dark:bg-white/10 flex items-center justify-center text-on-surface dark:text-white mt-0.5">
+                          <span className="material-symbols-outlined text-[12px]">check</span>
+                        </div>
+                        <span className="font-body-sm text-body-sm text-on-surface dark:text-white font-medium">Up to {plan.limits?.maxQueues || 1} Queues</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <div className="w-5 h-5 rounded-full bg-surface-container-highest dark:bg-white/10 flex items-center justify-center text-on-surface dark:text-white mt-0.5">
+                          <span className="material-symbols-outlined text-[12px]">check</span>
+                        </div>
+                        <span className="font-body-sm text-body-sm text-on-surface dark:text-white font-medium">Up to {plan.limits?.maxTokens || 500} Tokens/day</span>
+                      </li>
+                      {plan.features?.whatsappNotifications && (
+                        <li className="flex items-start gap-3">
+                          <div className="w-5 h-5 rounded-full bg-surface-container-highest dark:bg-white/10 flex items-center justify-center text-on-surface dark:text-white mt-0.5">
+                            <span className="material-symbols-outlined text-[12px]">check</span>
+                          </div>
+                          <span className="font-body-sm text-body-sm text-on-surface dark:text-white font-medium">WhatsApp Notifications</span>
+                        </li>
+                      )}
+                      {plan.features?.textToSpeech && (
+                        <li className="flex items-start gap-3">
+                          <div className="w-5 h-5 rounded-full bg-surface-container-highest dark:bg-white/10 flex items-center justify-center text-on-surface dark:text-white mt-0.5">
+                            <span className="material-symbols-outlined text-[12px]">check</span>
+                          </div>
+                          <span className="font-body-sm text-body-sm text-on-surface dark:text-white font-medium">Audio Announcements</span>
+                        </li>
+                      )}
+                      {plan.features?.customBranding && (
+                        <li className="flex items-start gap-3">
+                          <div className="w-5 h-5 rounded-full bg-surface-container-highest dark:bg-white/10 flex items-center justify-center text-on-surface dark:text-white mt-0.5">
+                            <span className="material-symbols-outlined text-[12px]">check</span>
+                          </div>
+                          <span className="font-body-sm text-body-sm text-on-surface dark:text-white font-medium">Custom Branding</span>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Enterprise Tier Section */}
+          <div className="mt-8 bg-[#1f1d2b] rounded-3xl border border-[#3b384f] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between relative text-white gap-8 overflow-hidden shadow-sm">
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-[#10b981]/10 rounded-full blur-3xl"></div>
+
+            <div className="flex-1 relative z-10">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="material-symbols-outlined text-primary text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>domain</span>
+                <h3 className="font-headline-lg text-headline-lg text-white tracking-tight font-semibold">Enterprise</h3>
+                <span className="bg-white/10 text-white font-label-caps text-label-caps px-2 py-1 rounded-full uppercase tracking-wider ml-2 border border-white/20">Custom Setup</span>
+              </div>
+              <p className="text-gray-300 font-body-md text-body-md max-w-xl mb-6">
+                Tailored infrastructure, SLA guarantees, dedicated support, and custom integrations for large organizations with high-volume requirements.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 max-w-2xl">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#10b981] text-[20px]">check_circle</span>
+                  <span className="font-body-sm text-body-sm text-white font-medium">Unlimited Queues & Locations</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#10b981] text-[20px]">check_circle</span>
+                  <span className="font-body-sm text-body-sm text-white font-medium">White-labeling & Branding</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#10b981] text-[20px]">check_circle</span>
+                  <span className="font-body-sm text-body-sm text-white font-medium">Dedicated Account Manager</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#10b981] text-[20px]">check_circle</span>
+                  <span className="font-body-sm text-body-sm text-white font-medium">Custom API & HIS Integrations</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full md:w-auto shrink-0 relative z-10 flex flex-col md:items-end items-center mt-6 md:mt-0 pt-6 md:pt-0 border-t md:border-t-0 md:border-l border-white/10 md:pl-10">
+              <div className="mb-6 text-center md:text-right">
+                <span className="font-headline-lg text-headline-lg text-white block">Custom</span>
+                <span className="font-body-sm text-body-sm text-gray-400 mt-1 block">pricing for your needs</span>
+              </div>
+              <button
+                onClick={() => setShowEnterpriseModal(true)}
+                className="w-full md:w-auto px-8 h-[44px] rounded-lg font-body-md font-semibold flex items-center justify-center gap-2 transition-all bg-white hover:bg-gray-100 text-black shadow-sm"
+              >
+                Contact Sales <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+
+          {!isPaid && <div className="mt-12 text-center p-8 bg-surface-container-lowest border border-border dark:border-dark-border rounded-2xl">
+            <h3 className="font-headline-sm text-headline-sm text-primary mb-2 tracking-tight font-bold">Secure Payments with Ozow</h3>
+            <p className="font-body-sm text-body-sm text-zinc-700 dark:text-zinc-300 max-w-lg mx-auto font-medium">
+              We use Ozow to securely process Instant EFT payments directly from your bank account. Supported banks include Capitec, FNB, Standard Bank, Absa, Nedbank, Investec, TymeBank, African Bank, and Discovery Bank.
+            </p>
+          </div>}
+        </div>
+      )}
+
+
+      {/* Checkout Modal */}
+      {checkoutPlan && (
+        <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-[24px] shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-8 pb-6 border-b border-border dark:border-dark-border relative">
+              <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+              <button onClick={() => setCheckoutPlan(null)} className="absolute top-6 right-6 text-on-surface-variant hover:text-on-surface transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+              <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white tracking-tight font-semibold mb-2">Complete Purchase</h2>
+              <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline">You are upgrading to the <span className="font-bold text-on-surface dark:text-white">{checkoutPlan.name}</span>.</p>
+            </div>
+
+            <div className="p-8 bg-surface-container-lowest dark:bg-black/20">
+              <div className="flex justify-between items-center mb-6">
+                <span className="font-body-md text-on-surface-variant dark:text-outline">Billed {billingInterval}</span>
+                <div className="text-right">
+                  <span className="font-data-mono-lg text-3xl text-on-surface dark:text-white font-bold">{checkoutPlan.currency === 'ZAR' ? 'R' : '$'}{billingInterval === 'yearly' && checkoutPlan.billingInterval === 'monthly' ? Math.floor(checkoutPlan.price * 12 * 0.9) : checkoutPlan.price}</span>
+                  <span className="font-body-sm text-on-surface-variant ml-1">/{billingInterval === 'yearly' ? 'yr' : 'mo'}</span>
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-8">
+                <div className="flex items-center gap-3 text-on-surface dark:text-white font-body-sm font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-primary" /> {checkoutPlan.limits?.maxQueues || 1} Queues & {checkoutPlan.limits?.maxTokens || 500} Tokens/day
+                </div>
+                {checkoutPlan.features?.whatsappNotifications && (
+                  <div className="flex items-center gap-3 text-on-surface dark:text-white font-body-sm font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-primary" /> WhatsApp Integration
+                  </div>
+                )}
+                {checkoutPlan.features?.customBranding && (
+                  <div className="flex items-center gap-3 text-on-surface dark:text-white font-body-sm font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-primary" /> Custom White-labeling
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={confirmCheckout}
+                disabled={subscribeMutation.isPending || !!paymentData}
+                className="w-full h-[48px] bg-primary hover:bg-primary-container text-white rounded-xl font-body-lg font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 relative overflow-hidden group"
+              >
+                {(subscribeMutation.isPending || !!paymentData) && <div className="absolute inset-0 bg-black/10"></div>}
+                {subscribeMutation.isPending || !!paymentData ? (
+                  <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin relative z-10" />
+                ) : (
+                  <span className="material-symbols-outlined text-[20px] relative z-10">lock</span>
+                )}
+                <span className="relative z-10">{paymentData ? 'Redirecting to Secure Payment...' : 'Confirm & Pay with Ozow'}</span>
+              </button>
+              <p className="text-center font-body-sm text-[11px] text-on-surface-variant dark:text-outline mt-4 font-medium flex items-center justify-center gap-1">
+                <span className="material-symbols-outlined text-[14px]">shield</span> Secure Instant EFT by Ozow
+              </p>
+
+              {/* Hidden auto-submit form for Ozow */}
+              {paymentData && (
+                <form ref={paymentFormRef} action={paymentData.checkoutUrl || paymentData.paymentUrl} method="POST" target="_self" className="hidden">
+                  {ozowFields.map(field => (
+                    <input key={field} type="hidden" name={field} value={String(paymentData[field] ?? '')} />
+                  ))}
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Enterprise Contact Modal */}
+      {showEnterpriseModal && (
+        <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-[24px] shadow-lg w-full max-w-lg p-8 relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white mb-2 tracking-tight font-semibold">Contact Sales</h2>
+            <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline mb-6">Tell us about your organization's needs, and our enterprise team will reach out to tailor a solution.</p>
+
+            <form onSubmit={(e) => { e.preventDefault(); enterpriseMutation.mutate(enterpriseForm); }} className="space-y-5">
+              <div>
+                <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Your Name *</label>
+                <input required type="text" value={enterpriseForm.name} onChange={(e) => setEnterpriseForm({ ...enterpriseForm, name: e.target.value })} className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface dark:text-white" />
+              </div>
+              <div>
+                <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Company Name *</label>
+                <input required type="text" value={enterpriseForm.companyName} onChange={(e) => setEnterpriseForm({ ...enterpriseForm, companyName: e.target.value })} className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface dark:text-white" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Email Address *</label>
+                  <input required type="email" value={enterpriseForm.email} onChange={(e) => setEnterpriseForm({ ...enterpriseForm, email: e.target.value })} className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface dark:text-white" />
+                </div>
+                <div>
+                  <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Phone Number</label>
+                  <input type="tel" value={enterpriseForm.phone} onChange={(e) => setEnterpriseForm({ ...enterpriseForm, phone: e.target.value })} className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface dark:text-white" />
+                </div>
+              </div>
+              <div>
+                <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">How can we help? *</label>
+                <textarea required rows={4} value={enterpriseForm.message} onChange={(e) => setEnterpriseForm({ ...enterpriseForm, message: e.target.value })} className="w-full bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg p-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface dark:text-white resize-none min-h-[100px]" placeholder="Tell us about your setup..."></textarea>
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-border dark:border-dark-border">
+                <button type="button" onClick={() => setShowEnterpriseModal(false)} className="px-5 h-[44px] border border-border dark:border-dark-border bg-white dark:bg-transparent hover:bg-surface-container-low dark:hover:bg-white/5 text-on-surface dark:text-white rounded-lg font-body-md font-semibold transition-colors">Cancel</button>
+                <button type="submit" disabled={enterpriseMutation.isPending} className="px-6 h-[44px] bg-primary hover:bg-primary-container text-white rounded-lg font-body-md font-semibold transition-colors flex items-center gap-2 disabled:opacity-50 shadow-sm">
+                  {enterpriseMutation.isPending ? <Loader2 strokeWidth={1.5} className="w-4 h-4 animate-spin" /> : <span className="material-symbols-outlined text-[18px]">send</span>}
+                  Submit Inquiry
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

@@ -17,9 +17,29 @@ export class VisitService {
     });
   }
 
-  async findAll(tenantId: string) {
+  async findAll(userTokenPayload: any, scope?: 'today' | 'history') {
+    const where: any = { tenantId: userTokenPayload.tenantId };
+
+    if (userTokenPayload.role === 'OPERATOR') {
+      const user = await this.prisma.user.findUnique({ where: { id: userTokenPayload.userId } });
+      if (user && user.allowedLocationIds && user.allowedLocationIds.length > 0) {
+        where.locationId = { in: user.allowedLocationIds };
+      }
+    }
+
+    if (scope === 'today') {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      where.createdAt = { gte: start, lte: end };
+    } else if (scope === 'history') {
+      where.currentState = { in: ['COMPLETED', 'NO_SHOW', 'CANCELLED'] };
+    }
+
     return this.prisma.visit.findMany({
-      where: { tenantId },
+      where,
+      orderBy: { createdAt: 'desc' },
       include: {
         customer: true,
         service: true,
@@ -35,6 +55,28 @@ export class VisitService {
         customer: true,
         service: true,
         location: true,
+      },
+    });
+
+    if (!visit) {
+      throw new NotFoundException(`Visit with ID ${id} not found`);
+    }
+
+    return visit;
+  }
+
+  async findOnePublic(id: string) {
+    const visit = await this.prisma.visit.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        currentState: true,
+        waitingStart: true,
+        createdAt: true,
+        customer: { select: { name: true } },
+        service: { select: { name: true, expectedDuration: true } },
+        location: { select: { name: true, address: true } },
+        tenant: { select: { name: true } },
       },
     });
 

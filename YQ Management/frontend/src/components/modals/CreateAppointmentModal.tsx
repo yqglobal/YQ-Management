@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Loader2, UserPlus } from 'lucide-react';
+import { X, Loader2, UserPlus, QrCode } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/router';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 import { CreateCustomerModal } from './CreateCustomerModal';
+import { usePlan } from '../../hooks/usePlan';
+import { QuotaExhaustedModal } from '../QuotaExhaustedModal';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -12,8 +15,10 @@ interface CreateAppointmentModalProps {
 }
 
 export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentModalProps) {
+  const router = useRouter();
   const [customerId, setCustomerId] = useState('');
   const [locationId, setLocationId] = useState('');
+  const [queueId, setQueueId] = useState('');
   const [serviceId, setServiceId] = useState('');
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
@@ -22,6 +27,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   
   const queryClient = useQueryClient();
+  const plan = usePlan();
 
   const { data: customers = [] } = useQuery({
     queryKey: ['customers'],
@@ -41,6 +47,18 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
     enabled: isOpen,
   });
 
+  const { data: queues = [] } = useQuery({
+    queryKey: ['queues'],
+    queryFn: () => fetchApi('/queue'),
+    enabled: isOpen,
+  });
+
+  const { data: availableSlots = [], isLoading: isLoadingSlots } = useQuery({
+    queryKey: ['slots', queueId, scheduledDate],
+    queryFn: () => fetchApi(`/queue/${queueId}/slots?date=${scheduledDate}`),
+    enabled: !!queueId && !!scheduledDate,
+  });
+
   const createMutation = useMutation({
     mutationFn: (data: any) =>
       fetchApi('/appointments', { method: 'POST', body: JSON.stringify(data) }),
@@ -56,6 +74,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
   const handleClose = () => {
     setCustomerId('');
     setLocationId('');
+    setQueueId('');
     setServiceId('');
     setScheduledDate('');
     setScheduledTime('');
@@ -70,12 +89,22 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
     const service = services.find((s: any) => s.id === serviceId);
     const duration = service?.expectedDuration || 15;
     
-    const scheduledStart = new Date(`${scheduledDate}T${scheduledTime}:00`);
-    const scheduledEnd = new Date(scheduledStart.getTime() + duration * 60000);
+    let scheduledStart: Date;
+    let scheduledEnd: Date;
+
+    if (queueId) {
+      // scheduledTime is a full ISO string from the slots endpoint
+      scheduledStart = new Date(scheduledTime);
+      scheduledEnd = new Date(scheduledStart.getTime() + duration * 60000);
+    } else {
+      scheduledStart = new Date(`${scheduledDate}T${scheduledTime}:00`);
+      scheduledEnd = new Date(scheduledStart.getTime() + duration * 60000);
+    }
     
     createMutation.mutate({
       customerId,
       locationId,
+      queueId: queueId || undefined,
       serviceId,
       customerNotes: notes,
       scheduledStart: scheduledStart.toISOString(),
@@ -87,13 +116,37 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
 
   if (!isOpen || typeof document === 'undefined') return null;
 
+  if (plan.isAtTokenLimit) {
+    return (
+      <QuotaExhaustedModal
+        type="tokens"
+        isOpen={isOpen}
+        onClose={onClose}
+        usage={plan.usage.tokensThisMonth}
+        limit={plan.limits.maxTokens}
+        planName={plan.planName}
+      />
+    );
+  }
+
   return (
     <>
       {createPortal(
         <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-[90] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
             <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">New Appointment</h2>
+              <div className="flex items-center gap-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">New Appointment</h2>
+                <button
+                  onClick={() => {
+                    handleClose();
+                    router.push('/dashboard/check-in');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all active:scale-[0.98]"
+                >
+                  <QrCode className="w-4 h-4" /> Scan QR
+                </button>
+              </div>
               <button 
                 onClick={handleClose}
                 className="p-2 hover:bg-gray-200 dark:hover:bg-white/10 rounded-full transition-colors"
@@ -131,13 +184,34 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                 <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Location <span className="text-red-500">*</span></label>
                 <select 
                   value={locationId}
-                  onChange={(e) => setLocationId(e.target.value)}
+                  onChange={(e) => {
+                    setLocationId(e.target.value);
+                    setQueueId('');
+                    setServiceId('');
+                  }}
                   className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
                   required
                 >
                   <option value="">Select a location</option>
                   {locations.map((l: any) => (
                     <option key={l.id} value={l.id}>{l.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Queue (Optional)</label>
+                <select 
+                  value={queueId}
+                  onChange={(e) => setQueueId(e.target.value)}
+                  className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+                  disabled={!locationId}
+                >
+                  <option value="">No specific queue</option>
+                  {queues
+                    .filter((q: any) => q.allowAppointments && (!q.locationId || q.locationId === locationId))
+                    .map((q: any) => (
+                    <option key={q.id} value={q.id}>{q.name}</option>
                   ))}
                 </select>
               </div>
@@ -173,13 +247,30 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Time <span className="text-red-500">*</span></label>
-                  <input 
-                    type="time"
-                    value={scheduledTime}
-                    onChange={(e) => setScheduledTime(e.target.value)}
-                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                    required
-                  />
+                  {queueId && scheduledDate ? (
+                    <select
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                      className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+                      required
+                      disabled={isLoadingSlots}
+                    >
+                      <option value="">{isLoadingSlots ? 'Loading slots...' : 'Select time'}</option>
+                      {availableSlots.map((slot: string) => (
+                        <option key={slot} value={slot}>
+                          {new Date(slot).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input 
+                      type="time"
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                      className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      required
+                    />
+                  )}
                 </div>
               </div>
 

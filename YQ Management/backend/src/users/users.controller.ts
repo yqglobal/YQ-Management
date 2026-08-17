@@ -47,16 +47,21 @@ export class UsersController {
     return this.usersService.resendInvite(req.user.tenantId, id);
   }
 
-  @Post(':id/role')
-  async updateRole(
+  @Post(':id/permissions')
+  async updatePermissions(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { role: Role },
+    @Body() body: { 
+      role: Role;
+      allowedLocationIds?: string[];
+      allowedServiceIds?: string[];
+      allowedPages?: string[];
+    },
   ) {
-    return this.usersService.updateRole(
+    return this.usersService.updatePermissions(
       req.user.tenantId,
       id,
-      body.role,
+      body,
       req.user.userId,
       req.user.email,
     );

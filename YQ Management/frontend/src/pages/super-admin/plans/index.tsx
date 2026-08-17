@@ -25,11 +25,19 @@ export default function SuperAdminPlans() {
       textToSpeech: false,
       whatsappNotifications: false,
       customBranding: false,
+      apiAccess: false,
+      multiLocation: false,
+      advancedAnalytics: false,
+      appointmentsModule: false,
     },
     limits: {
       maxQueues: 5,
       maxTokens: 2000,
+      maxLocations: 1,
+      maxStaff: 5,
     },
+    originalPrice: 0,
+    discountPercent: 0,
   });
 
   const { data: plans = [], isLoading } = useQuery({
@@ -83,8 +91,10 @@ export default function SuperAdminPlans() {
     setFormData({ 
       name: '', description: '', type: 'standard', price: 0, currency: 'ZAR', 
       billingInterval: 'monthly', trialDays: 0, active: true, sortOrder: 0,
-      features: { textToSpeech: false, whatsappNotifications: false, customBranding: false },
-      limits: { maxQueues: 5, maxTokens: 2000 }
+      features: { textToSpeech: false, whatsappNotifications: false, customBranding: false, apiAccess: false, multiLocation: false, advancedAnalytics: false, appointmentsModule: false },
+      limits: { maxQueues: 5, maxTokens: 2000, maxLocations: 1, maxStaff: 5 },
+      originalPrice: 0,
+      discountPercent: 0,
     });
   };
 
@@ -108,8 +118,10 @@ export default function SuperAdminPlans() {
       trialDays: plan.trialDays || 0,
       active: plan.active,
       sortOrder: plan.sortOrder || 0,
-      features: plan.features || { textToSpeech: false, whatsappNotifications: false, customBranding: false },
-      limits: plan.limits || { maxQueues: 5, maxTokens: 2000 },
+      features: plan.features || { textToSpeech: false, whatsappNotifications: false, customBranding: false, apiAccess: false, multiLocation: false, advancedAnalytics: false, appointmentsModule: false },
+      limits: plan.limits || { maxQueues: 5, maxTokens: 2000, maxLocations: 1, maxStaff: 5 },
+      originalPrice: plan.originalPrice || 0,
+      discountPercent: plan.discountPercent || 0,
     });
     setShowCreateModal(true);
   };
@@ -200,8 +212,8 @@ export default function SuperAdminPlans() {
         )}
 
         {showCreateModal && (
-          <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={() => { setShowCreateModal(false); setEditingPlan(null); resetForm(); }}>
-            <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-gray-200 dark:border-white/10 shadow-xl p-6 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+          <div key={editingPlan?.id ?? 'new'} className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={() => { setShowCreateModal(false); setEditingPlan(null); resetForm(); }}>
+            <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-gray-200 dark:border-white/10 shadow-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{editingPlan ? 'Edit Plan' : 'Create Plan'}</h2>
               <div className="space-y-4">
                 <div>
@@ -249,6 +261,26 @@ export default function SuperAdminPlans() {
                     <input type="number" value={formData.limits.maxTokens} onChange={(e) => setFormData({ ...formData, limits: { ...formData.limits, maxTokens: Number(e.target.value) } })} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 dark:text-zinc-400 mb-1">Max Locations</label>
+                    <input type="number" value={(formData.limits as any).maxLocations ?? 1} onChange={(e) => setFormData({ ...formData, limits: { ...formData.limits, maxLocations: Number(e.target.value) } })} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 dark:text-zinc-400 mb-1">Max Staff</label>
+                    <input type="number" value={(formData.limits as any).maxStaff ?? 5} onChange={(e) => setFormData({ ...formData, limits: { ...formData.limits, maxStaff: Number(e.target.value) } })} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 dark:text-zinc-400 mb-1">Original Price (before discount)</label>
+                    <input type="number" value={(formData as any).originalPrice ?? 0} onChange={(e) => setFormData({ ...formData, originalPrice: Number(e.target.value) } as any)} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 dark:text-zinc-400 mb-1">Discount %</label>
+                    <input type="number" min="0" max="100" value={(formData as any).discountPercent ?? 0} onChange={(e) => setFormData({ ...formData, discountPercent: Number(e.target.value) } as any)} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                  </div>
+                </div>
                 
                 <div className="pt-4 border-t border-gray-100 dark:border-white/5 space-y-4">
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white">Features</h3>
@@ -291,6 +323,26 @@ export default function SuperAdminPlans() {
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.features?.customBranding ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
+
+                  {([
+                    { key: 'apiAccess', label: 'API Access' },
+                    { key: 'multiLocation', label: 'Multi-Location Support' },
+                    { key: 'advancedAnalytics', label: 'Advanced Analytics' },
+                    { key: 'appointmentsModule', label: 'Appointments Module' },
+                  ] as Array<{ key: string; label: string }>).map(({ key, label }) => (
+                    <div key={key} className="flex items-center justify-between py-1">
+                      <span className="text-sm text-gray-700 dark:text-zinc-300 font-medium">{label}</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={!!(formData.features as any)?.[key]}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData({ ...formData, features: { ...formData.features, [key]: !(formData.features as any)?.[key] } }); }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-950 ${(formData.features as any)?.[key] ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-zinc-700'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(formData.features as any)?.[key] ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 mt-6">

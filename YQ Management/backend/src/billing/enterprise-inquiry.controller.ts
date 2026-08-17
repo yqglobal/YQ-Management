@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { EnterpriseInquiryService, CreateEnterpriseInquiryDto } from './enterprise-inquiry.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { Request } from 'express';
+import type { Request } from 'express';
 
 @Controller('billing/enterprise-inquiries')
 export class EnterpriseInquiryController {

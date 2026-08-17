@@ -624,7 +624,7 @@ export default function SuperAdminCommunication() {
 
               <div className="pt-2">
                 <a
-                  href="/dashboard/scanner"
+                  href="/dashboard/check-in"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black uppercase text-sm tracking-wider shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all"

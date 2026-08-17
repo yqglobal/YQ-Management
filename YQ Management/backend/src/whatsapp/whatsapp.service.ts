@@ -767,6 +767,38 @@ export class WhatsappService implements OnModuleInit {
     };
   }
 
+  async checkNumberExists(tenantId: string, phoneNumber: string): Promise<boolean> {
+    if (!phoneNumber) return false;
+    const tenant = await this.resolveTenant(tenantId);
+    if (!tenant || !tenant.whatsappInstanceId) return false;
+
+    // Normalize phone number (strip +, -, spaces)
+    const normalizedPhone = phoneNumber.replace(/[\s+-]/g, '');
+
+    try {
+      const res = await this.fetchEvo(
+        `/chat/whatsappNumbers/${tenant.whatsappInstanceId}`,
+        'POST',
+        { numbers: [normalizedPhone] },
+        5000 // 5 seconds timeout
+      );
+
+      if (res.error) {
+        this.logger.warn(`Failed to check if number ${normalizedPhone} exists: ${res.error.message}`);
+        // If the Evolution API errors out, assume the number is NOT valid or WhatsApp is unreachable
+        return false; 
+      }
+
+      const data = Array.isArray(res.data) ? res.data : [res.data];
+      const match = data.find((item: any) => item?.exists === true);
+      
+      return !!match;
+    } catch (e) {
+      this.logger.warn(`Exception checking number ${normalizedPhone}: ${e instanceof Error ? e.message : String(e)}`);
+      return false;
+    }
+  }
+
   async generatePairingCode(tenantId: string, phoneNumber: string) {
     if (!phoneNumber)
       throw new HttpException(
@@ -1573,6 +1605,38 @@ export class WhatsappService implements OnModuleInit {
       return { success: false, error: 'WhatsApp not configured for tenant' };
     }
     return this.sendMessage(tenant.whatsappInstanceId, number, text);
+  }
+
+  async sendMediaMessage(instanceName: string, number: string, base64: string, mediaType: string = 'image', caption: string = '') {
+    if (!instanceName || !number || !base64) {
+      return { success: false, error: 'Invalid parameters' };
+    }
+    const normalizedNumber = number.replace(/\D/g, '');
+    const result = await this.fetchEvo(
+      `/message/sendMedia/${instanceName}`,
+      'POST',
+      {
+        number: normalizedNumber,
+        mediatype: mediaType,
+        media: base64,
+        caption: caption
+      }
+    );
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+    return { success: true, providerId: result.data?.key?.id };
+  }
+
+  async sendMediaToTenant(tenantId: string, number: string, base64: string, mediaType: string = 'image', caption: string = '') {
+    if (!tenantId) return { success: false, error: 'Missing tenantId' };
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
+    if (!tenant || !tenant.whatsappInstanceId || !tenant.whatsappConnected) {
+      return { success: false, error: 'Tenant WhatsApp not configured or connected' };
+    }
+    return this.sendMediaMessage(tenant.whatsappInstanceId, number, base64, mediaType, caption);
   }
 
   async sendButtons(

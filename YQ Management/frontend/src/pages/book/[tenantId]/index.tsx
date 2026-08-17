@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { Calendar, Clock, User, ChevronRight, CheckCircle2, ArrowLeft } from 'lucide-react';
-// import { fetchApi } from '../../../lib/api'; // Commenting out actual API calls for mockup logic
+import { Calendar, Clock, User, ChevronRight, CheckCircle2, ArrowLeft, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function PublicBookingPage() {
   const router = useRouter();
@@ -12,6 +12,8 @@ export default function PublicBookingPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', phone: '' });
+  const [formErrors, setFormErrors] = useState({ name: false, phone: false });
+  const [shake, setShake] = useState(false);
 
   // Mock Data
   const services = [
@@ -27,19 +29,17 @@ export default function PublicBookingPage() {
   const handleBack = () => setStep(step - 1);
 
   const handleConfirm = async () => {
-    // try {
-    //   await fetchApi(`/appointments`, {
-    //     method: 'POST',
-    //     body: JSON.stringify({
-    //       tenantId,
-    //       serviceId: selectedService.id,
-    //       customerName: formData.name,
-    //       phone: formData.phone,
-    //       scheduledStart: new Date(), // Logic needed to parse Date/Time
-    //     }),
-    //   });
-    //   setStep(4);
-    // } catch (e) {}
+    const isNameValid = formData.name.trim().length > 0;
+    const isPhoneValid = formData.phone.trim().length >= 10;
+    
+    if (!isNameValid || !isPhoneValid) {
+      setFormErrors({ name: !isNameValid, phone: !isPhoneValid });
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      return;
+    }
+    setFormErrors({ name: false, phone: false });
+    
     setStep(4);
   };
 
@@ -55,7 +55,7 @@ export default function PublicBookingPage() {
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 rounded-full bg-white opacity-10 blur-2xl"></div>
           {step > 1 && step < 4 && (
             <button onClick={handleBack} className="absolute top-6 left-6 text-indigo-100 hover:text-white transition-colors">
-              <ArrowLeft className="w-6 h-6" />
+              <ArrowLeft strokeWidth={1.5} className="w-6 h-6" />
             </button>
           )}
           <div className="text-center mt-2">
@@ -90,7 +90,7 @@ export default function PublicBookingPage() {
                     <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{service.name}</h3>
                     <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">{service.duration} mins • {service.price}</p>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-indigo-500 transition-colors" />
+                  <ChevronRight strokeWidth={1.5} className="w-5 h-5 text-gray-300 group-hover:text-indigo-500 transition-colors" />
                 </button>
               ))}
             </div>
@@ -104,47 +104,69 @@ export default function PublicBookingPage() {
                 <p className="text-sm text-gray-500 dark:text-zinc-400">Select a date and time.</p>
               </div>
               
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {dates.map((date) => (
-                  <button
-                    key={date}
-                    onClick={() => setSelectedDate(date)}
-                    className={`whitespace-nowrap px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                      selectedDate === date 
-                      ? 'bg-indigo-600 text-white shadow-md' 
-                      : 'bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700'
-                    }`}
-                  >
-                    {date}
-                  </button>
-                ))}
-              </div>
-
-              {selectedDate && (
-                <div className="grid grid-cols-3 gap-3 animate-in fade-in slide-in-from-bottom-2">
-                  {times.map((time) => (
-                    <button
-                      key={time}
-                      onClick={() => setSelectedTime(time)}
-                      className={`py-3 rounded-xl text-sm font-medium transition-all border ${
-                        selectedTime === time 
-                        ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-500/20 dark:border-indigo-500/30 dark:text-indigo-300' 
-                        : 'border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:border-indigo-300'
-                      }`}
-                    >
-                      {time}
-                    </button>
-                  ))}
+              {dates.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center bg-gray-50 dark:bg-zinc-800/50 rounded-2xl">
+                  <AlertCircle className="w-8 h-8 text-amber-500 mb-2" />
+                  <p className="text-gray-900 dark:text-white font-semibold">No availability right now</p>
+                  <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">Please check back later.</p>
                 </div>
-              )}
+              ) : (
+                <>
+                  <div className="flex gap-2 overflow-x-auto pb-4 pt-1 snap-x scrollbar-hide -mx-8 px-8 sm:mx-0 sm:px-0">
+                    {dates.map((date) => (
+                      <button
+                        key={date}
+                        onClick={() => { setSelectedDate(date); setSelectedTime(null); }}
+                        className={`snap-center shrink-0 whitespace-nowrap px-5 py-3 rounded-xl text-sm font-medium transition-all ${
+                          selectedDate === date 
+                          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
+                          : 'bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                        }`}
+                      >
+                        {date}
+                      </button>
+                    ))}
+                  </div>
 
-              <button
-                disabled={!selectedDate || !selectedTime}
-                onClick={handleNext}
-                className="w-full mt-6 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)]"
-              >
-                Continue
-              </button>
+                  <AnimatePresence mode="wait">
+                    {selectedDate && (
+                      <motion.div 
+                        key={selectedDate}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+                      >
+                        {times.length === 0 ? (
+                          <div className="col-span-2 sm:col-span-3 text-center py-6 text-sm text-gray-500">No times available for this date.</div>
+                        ) : (
+                          times.map((time) => (
+                            <button
+                              key={time}
+                              onClick={() => setSelectedTime(time)}
+                              className={`py-3 rounded-xl text-sm font-medium transition-all border ${
+                                selectedTime === time 
+                                ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-500/20 dark:border-indigo-500/30 dark:text-indigo-300 shadow-sm' 
+                                : 'border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:border-indigo-300'
+                              }`}
+                            >
+                              {time}
+                            </button>
+                          ))
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <button
+                    disabled={!selectedDate || !selectedTime}
+                    onClick={handleNext}
+                    className="w-full mt-6 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-300 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] disabled:shadow-none"
+                  >
+                    Continue
+                  </button>
+                </>
+              )}
             </div>
           )}
 
@@ -167,28 +189,34 @@ export default function PublicBookingPage() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <motion.div 
+                animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}}
+                transition={{ duration: 0.4 }}
+                className="space-y-4"
+              >
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Full Name</label>
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-white/10 rounded-xl outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all dark:text-white"
+                    onChange={(e) => { setFormData({ ...formData, name: e.target.value }); setFormErrors(prev => ({...prev, name: false})) }}
+                    className={`w-full px-4 py-3 bg-white dark:bg-zinc-900 border ${formErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-white/10 focus:border-indigo-500 focus:ring-indigo-500'} rounded-xl outline-none focus:ring-1 transition-all dark:text-white`}
                     placeholder="John Doe"
                   />
+                  {formErrors.name && <p className="text-red-500 text-xs mt-1">Please enter your name.</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Phone Number</label>
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-3 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-white/10 rounded-xl outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all dark:text-white"
+                    onChange={(e) => { setFormData({ ...formData, phone: e.target.value }); setFormErrors(prev => ({...prev, phone: false})) }}
+                    className={`w-full px-4 py-3 bg-white dark:bg-zinc-900 border ${formErrors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-white/10 focus:border-indigo-500 focus:ring-indigo-500'} rounded-xl outline-none focus:ring-1 transition-all dark:text-white`}
                     placeholder="+1 (555) 000-0000"
                   />
+                  {formErrors.phone && <p className="text-red-500 text-xs mt-1">Please enter a valid phone number.</p>}
                 </div>
-              </div>
+              </motion.div>
 
               <button
                 disabled={!formData.name || !formData.phone}
@@ -204,7 +232,7 @@ export default function PublicBookingPage() {
           {step === 4 && (
             <div className="text-center py-8 animate-in zoom-in-95 duration-500">
               <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 className="w-10 h-10" />
+                <CheckCircle2 strokeWidth={1.5} className="w-10 h-10" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Booking Confirmed!</h2>
               <p className="text-gray-500 dark:text-zinc-400 mb-8">
@@ -213,12 +241,20 @@ export default function PublicBookingPage() {
                 We've sent a confirmation to your phone.
               </p>
               
-              <button
-                onClick={() => setStep(1)}
-                className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
-              >
-                Book another appointment
-              </button>
+              <div className="flex flex-col gap-4 max-w-[200px] mx-auto">
+                <button
+                  onClick={() => router.push('/public/ticket/demo-ticket-id')}
+                  className="py-3 px-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)]"
+                >
+                  View Digital Ticket
+                </button>
+                <button
+                  onClick={() => setStep(1)}
+                  className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline text-sm"
+                >
+                  Book another appointment
+                </button>
+              </div>
             </div>
           )}
         </div>

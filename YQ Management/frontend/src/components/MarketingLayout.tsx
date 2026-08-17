@@ -3,8 +3,10 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useAuth } from './AuthContext';
 import { User, Menu, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Footer from './Footer';
 import SEO from './SEO';
+import { Logo } from './Logo';
 import { Geist, Geist_Mono } from "next/font/google";
 
 const geistSans = Geist({
@@ -32,15 +34,10 @@ export default function MarketingLayout({ children, title, description }: Market
       <SEO title={title} description={description} />
       
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-md">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-800 bg-black">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-black text-white text-base shadow-[0_0_15px_rgba(99,102,241,0.5)] tracking-tighter">
-                Q
-              </div>
-              <span className="font-extrabold text-xl tracking-tight text-white">Qmova</span>
-            </Link>
+            <Logo width={180} height={28} href="/" forceTheme="dark" />
           </div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
@@ -115,7 +112,17 @@ export default function MarketingLayout({ children, title, description }: Market
       </nav>
 
       <main className="flex-1 mt-20">
-        {children}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={title || 'marketing-page'}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <Footer />

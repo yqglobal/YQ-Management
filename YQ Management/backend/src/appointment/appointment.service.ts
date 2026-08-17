@@ -6,10 +6,16 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class AppointmentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly whatsappService: WhatsappService,
+    private readonly redisService: RedisService,
+  ) {}
 
   async create(createAppointmentDto: CreateAppointmentDto) {
     // Basic Availability Engine Check (Prevent double booking for same staff at same time)
@@ -33,14 +39,43 @@ export class AppointmentService {
       }
     }
 
-    return this.prisma.appointment.create({
-      data: createAppointmentDto,
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: createAppointmentDto.tenantId },
+      select: { appointmentApprovalMode: true },
     });
+
+    const status = tenant?.appointmentApprovalMode === 'MANUAL' ? 'PENDING_APPROVAL' : 'SCHEDULED';
+
+    const appointment = await this.prisma.appointment.create({
+      data: {
+        ...createAppointmentDto,
+        status: createAppointmentDto.status || status,
+      },
+    });
+
+    this.redisService.client.publish(
+      'queue_events',
+      JSON.stringify({ type: 'APPOINTMENT_CREATED', tenantId: appointment.tenantId, appointment }),
+    );
+
+    return appointment;
   }
 
-  async findAll(tenantId: string) {
+  async findAll(userTokenPayload: any, status?: string) {
+    const where: any = { tenantId: userTokenPayload.tenantId };
+    
+    if (userTokenPayload.role === 'OPERATOR') {
+      const user = await this.prisma.user.findUnique({ where: { id: userTokenPayload.userId } });
+      if (user && user.allowedLocationIds && user.allowedLocationIds.length > 0) {
+        where.locationId = { in: user.allowedLocationIds };
+      }
+    }
+
+    if (status) {
+      where.status = status;
+    }
     return this.prisma.appointment.findMany({
-      where: { tenantId },
+      where,
       include: {
         customer: true,
         service: true,
@@ -110,10 +145,29 @@ export class AppointmentService {
       }
     }
 
-    return this.prisma.appointment.update({
+    const updated = await this.prisma.appointment.update({
       where: { id },
       data: updateAppointmentDto,
+      include: { customer: true, tenant: true },
     });
+
+    // Notify customer on status change
+    if (existing.status === 'PENDING_APPROVAL' && updated.status === 'REJECTED') {
+      const reason = updateAppointmentDto.notes || 'No reason provided';
+      const formattedDate = new Intl.DateTimeFormat('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(updated.scheduledStart));
+      const message = `Hello ${updated.customer.name}, unfortunately your appointment requested for ${formattedDate} has been declined. Reason: ${reason}. Please contact us if you have any questions.`;
+      if (updated.customer.phone) {
+        await this.whatsappService.sendToTenant(updated.tenantId, updated.customer.phone, message).catch(e => console.error('Failed to send rejection whatsapp', e));
+      }
+    } else if (existing.status === 'PENDING_APPROVAL' && updated.status === 'SCHEDULED') {
+      const formattedDate = new Intl.DateTimeFormat('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(updated.scheduledStart));
+      const message = `Hello ${updated.customer.name}, your appointment requested for ${formattedDate} has been accepted and is now scheduled. See you soon!`;
+      if (updated.customer.phone) {
+        await this.whatsappService.sendToTenant(updated.tenantId, updated.customer.phone, message).catch(e => console.error('Failed to send approval whatsapp', e));
+      }
+    }
+
+    return updated;
   }
 
   async remove(id: string, tenantId: string) {

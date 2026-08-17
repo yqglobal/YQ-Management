@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { Logo } from './Logo';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -9,12 +10,9 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-8 mb-16">
           <div className="col-span-2">
-            <Link href="/" className="flex items-center gap-2.5 mb-6">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-black text-white text-base shadow-[0_0_15px_rgba(99,102,241,0.5)] tracking-tighter">
-                Q
-              </div>
-              <span className="font-extrabold text-xl tracking-tight text-white">Qmova</span>
-            </Link>
+            <div className="mb-6">
+              <Logo width={150} height={24} href="/" forceTheme="dark" />
+            </div>
             <p className="text-sm text-zinc-400 mb-6 max-w-xs leading-relaxed">
               Enterprise-grade visit management and infrastructure for modern businesses. Empowering operations worldwide.
             </p>

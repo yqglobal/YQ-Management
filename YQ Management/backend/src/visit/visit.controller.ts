@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Req,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { VisitService } from './visit.service';
@@ -31,8 +32,11 @@ export class VisitController {
   }
 
   @Get()
-  findAll(@Req() req: AuthenticatedRequest) {
-    return this.visitService.findAll(req.user.tenantId);
+  findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query('scope') scope?: 'today' | 'history',
+  ) {
+    return this.visitService.findAll(req.user, scope);
   }
 
   @Get(':id')

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
@@ -36,6 +36,19 @@ export class TenantService {
   async getTenantBySubdomain(subdomain: string) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { subdomain },
+      include: {
+        locations: { select: { id: true, name: true, address: true, city: true } },
+        workspaces: {
+          take: 1,
+          include: {
+            subscriptions: {
+              take: 1,
+              orderBy: { createdAt: 'desc' },
+              include: { plan: true },
+            },
+          },
+        },
+      },
     });
 
     if (!tenant) {
@@ -44,16 +57,51 @@ export class TenantService {
       );
     }
 
+    // Enforce customBranding feature toggle
+    const plan = tenant.workspaces[0]?.subscriptions?.[0]?.plan;
+    const hasCustomBranding = plan?.features
+      ? (plan.features as any).customBranding === true
+      : false;
+
+    if (!hasCustomBranding) {
+      tenant.branding = null;
+    }
+
     return tenant;
   }
 
   async getTenantById(id: string) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id },
+      include: {
+        locations: { select: { id: true, name: true } },
+        services: { select: { id: true, name: true } },
+        queues: { select: { id: true, name: true } },
+        workspaces: {
+          take: 1,
+          include: {
+            subscriptions: {
+              take: 1,
+              orderBy: { createdAt: 'desc' },
+              include: { plan: true },
+            },
+          },
+        },
+      },
     });
 
     if (!tenant) {
       throw new NotFoundException(`Tenant with ID ${id} not found`);
+    }
+
+    // Enforce customBranding feature toggle
+    const plan = tenant.workspaces[0]?.subscriptions?.[0]?.plan;
+    const hasCustomBranding = plan?.features
+      ? (plan.features as any).customBranding === true
+      : false;
+
+    if (!hasCustomBranding) {
+      tenant.branding = null;
     }
 
     return tenant;
@@ -73,14 +121,27 @@ export class TenantService {
     return this.prisma.tenant.findMany();
   }
 
-  async updateTenant(id: string, data: { name?: string; branding?: any; customerExperience?: any }) {
+  async updateTenant(id: string, data: { name?: string; branding?: any; customerExperience?: any; subdomain?: string }) {
     const tenant = await this.prisma.tenant.findUnique({ where: { id } });
     if (!tenant) throw new NotFoundException('Tenant not found');
+
+    // Validate subdomain uniqueness if being changed
+    if (data.subdomain && data.subdomain !== tenant.subdomain) {
+      const normalized = data.subdomain.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-');
+      const existing = await this.prisma.tenant.findFirst({
+        where: { subdomain: normalized, NOT: { id } },
+      });
+      if (existing) {
+        throw new ConflictException(`The subdomain "${normalized}" is already taken. Please choose another.`);
+      }
+      data.subdomain = normalized;
+    }
 
     return this.prisma.tenant.update({
       where: { id },
       data: {
         name: data.name !== undefined ? data.name : undefined,
+        subdomain: data.subdomain !== undefined ? data.subdomain : undefined,
         branding: data.branding !== undefined ? data.branding : undefined,
         customerExperience: data.customerExperience !== undefined ? data.customerExperience : undefined,
       },

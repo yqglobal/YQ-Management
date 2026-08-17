@@ -28,6 +28,9 @@ import {
 } from 'lucide-react';
 import { fetchApi } from '../../../lib/api';
 import { useQuery } from '@tanstack/react-query';
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
+import { detectCountryByTimezone } from '../../../lib/country-codes';
 
 type ScannerStatus = 'idle' | 'scanning' | 'processing' | 'approved' | 'rejected' | 'error';
 
@@ -72,113 +75,6 @@ const SCANNER_CONFIG = {
   rememberLastUsedCamera: true,
 };
 
-const SCANNER_STATUS_CONFIG: Record<string, {
-  icon: React.ReactNode;
-  color: string;
-  bgColor: string;
-  borderColor: string;
-  shadowColor: string;
-}> = {
-  'Entry Approved': {
-    icon: <CheckCircle2 className="w-10 h-10 text-emerald-400" />,
-    color: 'text-emerald-400',
-    bgColor: 'bg-emerald-500/10',
-    borderColor: 'border-emerald-500/20',
-    shadowColor: 'rgba(16, 185, 129, 0.2)',
-  },
-  'Green': {
-    icon: <CheckCircle2 className="w-10 h-10 text-emerald-400" />,
-    color: 'text-emerald-400',
-    bgColor: 'bg-emerald-500/10',
-    borderColor: 'border-emerald-500/20',
-    shadowColor: 'rgba(16, 185, 129, 0.2)',
-  },
-  'Invalid QR Code': {
-    icon: <XCircle className="w-10 h-10 text-red-400" />,
-    color: 'text-red-400',
-    bgColor: 'bg-red-500/10',
-    borderColor: 'border-red-500/20',
-    shadowColor: 'rgba(239, 68, 68, 0.2)',
-  },
-  'QR Expired': {
-    icon: <Clock className="w-10 h-10 text-orange-400" />,
-    color: 'text-orange-400',
-    bgColor: 'bg-orange-500/10',
-    borderColor: 'border-orange-500/20',
-    shadowColor: 'rgba(251, 146, 60, 0.2)',
-  },
-  'Already Used': {
-    icon: <UserX className="w-10 h-10 text-purple-400" />,
-    color: 'text-purple-400',
-    bgColor: 'bg-purple-500/10',
-    borderColor: 'border-purple-500/20',
-    shadowColor: 'rgba(168, 85, 247, 0.2)',
-  },
-  'Wrong Queue': {
-    icon: <AlertTriangle className="w-10 h-10 text-amber-400" />,
-    color: 'text-amber-400',
-    bgColor: 'bg-amber-500/10',
-    borderColor: 'border-amber-500/20',
-    shadowColor: 'rgba(245, 158, 11, 0.2)',
-  },
-  'Wrong Branch/Location': {
-    icon: <MapPinOff className="w-10 h-10 text-rose-400" />,
-    color: 'text-rose-400',
-    bgColor: 'bg-rose-500/10',
-    borderColor: 'border-rose-500/20',
-    shadowColor: 'rgba(244, 63, 94, 0.2)',
-  },
-  'Wrong Tenant/Organization': {
-    icon: <Building2 className="w-10 h-10 text-cyan-400" />,
-    color: 'text-cyan-400',
-    bgColor: 'bg-cyan-500/10',
-    borderColor: 'border-cyan-500/20',
-    shadowColor: 'rgba(6, 182, 212, 0.2)',
-  },
-  'Queue Closed': {
-    icon: <DoorClosed className="w-10 h-10 text-gray-400" />,
-    color: 'text-gray-400',
-    bgColor: 'bg-gray-500/10',
-    borderColor: 'border-gray-500/20',
-    shadowColor: 'rgba(107, 114, 128, 0.2)',
-  },
-  'Queue Not Started Yet': {
-    icon: <Clock className="w-10 h-10 text-blue-400" />,
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-500/10',
-    borderColor: 'border-blue-500/20',
-    shadowColor: 'rgba(59, 130, 246, 0.2)',
-  },
-  'Person Already Checked In': {
-    icon: <Check className="w-10 h-10 text-green-400" />,
-    color: 'text-green-400',
-    bgColor: 'bg-green-500/10',
-    borderColor: 'border-green-500/20',
-    shadowColor: 'rgba(34, 197, 94, 0.2)',
-  },
-  'Token Revoked/Cancelled': {
-    icon: <Lock className="w-10 h-10 text-yellow-400" />,
-    color: 'text-yellow-400',
-    bgColor: 'bg-yellow-500/10',
-    borderColor: 'border-yellow-500/20',
-    shadowColor: 'rgba(250, 204, 21, 0.2)',
-  },
-  'Server/Network Error': {
-    icon: <WifiOff className="w-10 h-10 text-pink-400" />,
-    color: 'text-pink-400',
-    bgColor: 'bg-pink-500/10',
-    borderColor: 'border-pink-500/20',
-    shadowColor: 'rgba(236, 72, 153, 0.2)',
-  },
-  'Red': {
-    icon: <XCircle className="w-10 h-10 text-red-400" />,
-    color: 'text-red-400',
-    bgColor: 'bg-red-500/10',
-    borderColor: 'border-red-500/20',
-    shadowColor: 'rgba(239, 68, 68, 0.2)',
-  },
-};
-
 export default function AdminScanner() {
   const [scannerStatus, setScannerStatus] = useState<ScannerStatus>('idle');
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
@@ -188,9 +84,25 @@ export default function AdminScanner() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [useFrontCamera, setUseFrontCamera] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
-  const [manualMode, setManualMode] = useState(false);
   const [manualTokenId, setManualTokenId] = useState('');
   const [manualProcessing, setManualProcessing] = useState(false);
+  const [lookupTab, setLookupTab] = useState<'token' | 'phone'>('token');
+
+  const [defaultCountry, setDefaultCountry] = useState<any>('US');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('qmova_scanner_country');
+      if (saved) {
+        setDefaultCountry(saved);
+      } else {
+        const detected = detectCountryByTimezone();
+        setDefaultCountry(detected || 'US');
+      }
+    }
+  }, []);
+  const [manualPhone, setManualPhone] = useState('');
+  const [phoneProcessing, setPhoneProcessing] = useState(false);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const lastScanTimeRef = useRef<number>(0);
@@ -248,7 +160,6 @@ export default function AdminScanner() {
       let devices = await navigator.mediaDevices.enumerateDevices();
       let videoDevices = devices.filter((device) => device.kind === 'videoinput');
 
-      // If labels are empty (permission not yet granted in session) or no devices listed, prompt automatically
       if (videoDevices.length === 0 || (videoDevices.length > 0 && !videoDevices[0].label)) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -348,36 +259,14 @@ export default function AdminScanner() {
             setScannerStatus('scanning');
             try { html5QrCode.resume(); } catch (e) { console.error(e); }
             resetIdleTimer();
-          }, 2000);
+          }, 3000);
 
         } catch (e: unknown) {
           let status = 'Invalid QR Code';
           let reason = 'Unknown error';
-
           if (e instanceof Error) {
             reason = e.message;
-
-            if (e.message.includes('expired')) {
-              status = 'QR Expired';
-            } else if (e.message.includes('already used')) {
-              status = 'Already Used';
-            } else if (e.message.includes('wrong queue')) {
-              status = 'Wrong Queue';
-            } else if (e.message.includes('wrong branch')) {
-              status = 'Wrong Branch/Location';
-            } else if (e.message.includes('wrong tenant')) {
-              status = 'Wrong Tenant/Organization';
-            } else if (e.message.includes('queue closed')) {
-              status = 'Queue Closed';
-            } else if (e.message.includes('not started')) {
-              status = 'Queue Not Started Yet';
-            } else if (e.message.includes('already checked')) {
-              status = 'Person Already Checked In';
-            } else if (e.message.includes('revoked') || e.message.includes('cancelled')) {
-              status = 'Token Revoked/Cancelled';
-            } else if (e.message.includes('network') || e.message.includes('server')) {
-              status = 'Server/Network Error';
-            }
+            status = 'Rejected';
           }
 
           setValidationResult({
@@ -392,7 +281,7 @@ export default function AdminScanner() {
             setScannerStatus('scanning');
             try { html5QrCode.resume(); } catch (e) { console.error(e); }
             resetIdleTimer();
-          }, 2000);
+          }, 3000);
 
         } finally {
           setIsProcessing(false);
@@ -452,10 +341,6 @@ export default function AdminScanner() {
     }
   }, []);
 
-  const toggleCamera = useCallback(() => {
-    setUseFrontCamera(prev => !prev);
-  }, []);
-
   const startScanning = useCallback(async () => {
     manualStopRef.current = false;
     if (idleTimerRef.current) {
@@ -485,99 +370,103 @@ export default function AdminScanner() {
     setScannerStatus('idle');
   }, [cleanupScanner]);
 
-   const resetScanner = useCallback(async () => {
-     if (idleTimerRef.current) {
-       clearTimeout(idleTimerRef.current);
-       idleTimerRef.current = null;
-     }
-     await cleanupScanner();
-     setValidationResult(null);
-     setError(null);
-     setScannerStatus('idle');
-     await startScanning();
-   }, [cleanupScanner, startScanning]);
+  const validateManualToken = useCallback(async () => {
+    if (!manualTokenId.trim()) {
+      setError('Please enter a token ID');
+      return;
+    }
 
-   const validateManualToken = useCallback(async () => {
-     if (!manualTokenId.trim()) {
-       setError('Please enter a token ID');
-       return;
-     }
+    setManualProcessing(true);
+    setError(null);
+    setValidationResult(null);
+    setScannerStatus('processing');
 
-     setManualProcessing(true);
-     setError(null);
-     setValidationResult(null);
-     setScannerStatus('processing');
+    try {
+      const result = await fetchApi('/token/validate', {
+        method: 'POST',
+        body: JSON.stringify({ tokenId: manualTokenId.trim() }),
+      });
 
-     try {
-       const result = await fetchApi('/token/validate', {
-         method: 'POST',
-         body: JSON.stringify({ tokenId: manualTokenId.trim() }),
-       });
+      const validationResult: ValidationResult = {
+        valid: result.valid,
+        status: result.status,
+        reason: result.reason,
+        tokenId: manualTokenId.trim(),
+        customerName: result.customerName,
+        queueName: result.queueName,
+        purpose: result.purpose,
+        phone: result.phone,
+        joinedAt: result.joinedAt,
+        queueId: result.queueId,
+      };
 
-       const validationResult: ValidationResult = {
-         valid: result.valid,
-         status: result.status,
-         reason: result.reason,
-         tokenId: manualTokenId.trim(),
-         customerName: result.customerName,
-         queueName: result.queueName,
-         purpose: result.purpose,
-         phone: result.phone,
-         joinedAt: result.joinedAt,
-         queueId: result.queueId,
-       };
+      setValidationResult(validationResult);
+      setScannerStatus(validationResult.valid ? 'approved' : 'rejected');
+    } catch (e: unknown) {
+      let status = 'Invalid Token';
+      let reason = 'Unknown error';
 
-       setValidationResult(validationResult);
-       setScannerStatus(validationResult.valid ? 'approved' : 'rejected');
-     } catch (e: unknown) {
-       let status = 'Invalid Token';
-       let reason = 'Unknown error';
+      if (e instanceof Error) {
+        reason = e.message;
+        status = 'Rejected';
+      }
 
-       if (e instanceof Error) {
-         reason = e.message;
+      setValidationResult({
+        valid: false,
+        status,
+        reason,
+        tokenId: manualTokenId.trim(),
+      });
+      setScannerStatus('rejected');
+    } finally {
+      setManualProcessing(false);
+    }
+  }, [manualTokenId]);
 
-         if (e.message.includes('expired')) {
-           status = 'QR Expired';
-         } else if (e.message.includes('already used')) {
-           status = 'Already Used';
-         } else if (e.message.includes('wrong queue')) {
-           status = 'Wrong Queue';
-         } else if (e.message.includes('wrong branch')) {
-           status = 'Wrong Branch/Location';
-         } else if (e.message.includes('wrong tenant')) {
-           status = 'Wrong Tenant/Organization';
-         } else if (e.message.includes('queue closed')) {
-           status = 'Queue Closed';
-         } else if (e.message.includes('not started')) {
-           status = 'Queue Not Started Yet';
-         } else if (e.message.includes('already checked')) {
-           status = 'Person Already Checked In';
-         } else if (e.message.includes('revoked') || e.message.includes('cancelled')) {
-           status = 'Token Revoked/Cancelled';
-         } else if (e.message.includes('network') || e.message.includes('server')) {
-           status = 'Server/Network Error';
-         }
-       }
+  const lookupByPhone = useCallback(async () => {
+    if (!manualPhone.trim()) {
+      setError('Please enter a phone number');
+      return;
+    }
+    setPhoneProcessing(true);
+    setError(null);
+    setValidationResult(null);
+    setScannerStatus('processing');
+    try {
+      const result = await fetchApi(`/customers/by-phone?phone=${encodeURIComponent(manualPhone.trim())}`);
+      if (!result) throw new Error('No customer found with this phone number');
+      // Build a pseudo validation result from customer record
+      const latest = result.visits?.[0];
+      setValidationResult({
+        valid: true,
+        status: 'FOUND',
+        tokenId: latest?.id || result.id,
+        customerName: result.name || 'Unknown',
+        queueName: latest?.queue?.name || '—',
+        phone: result.phone,
+        joinedAt: latest?.createdAt,
+        queueId: latest?.queueId,
+      });
+      setScannerStatus('approved');
+    } catch (e: any) {
+      setValidationResult({
+        valid: false,
+        status: 'Not Found',
+        reason: e?.message || 'No customer found with this phone number.',
+        tokenId: manualPhone.trim(),
+      });
+      setScannerStatus('rejected');
+    } finally {
+      setPhoneProcessing(false);
+    }
+  }, [manualPhone]);
 
-       setValidationResult({
-         valid: false,
-         status,
-         reason,
-         tokenId: manualTokenId.trim(),
-       });
-       setScannerStatus('rejected');
-     } finally {
-       setManualProcessing(false);
-     }
-   }, [manualTokenId]);
-
-   useEffect(() => {
-     getCameras();
-
-     return () => {
-       cleanupScanner();
-     };
-   }, [getCameras, cleanupScanner]);
+  useEffect(() => {
+    getCameras();
+    return () => {
+      cleanupScanner();
+    };
+  }, [getCameras, cleanupScanner]);
 
   useEffect(() => {
     if (scannerStatus === 'idle' && !manualStopRef.current) {
@@ -600,320 +489,235 @@ export default function AdminScanner() {
     }
   }, [useFrontCamera, availableCameras, selectedCamera]);
 
-  const getStatusConfig = (status: string) => SCANNER_STATUS_CONFIG[status] || SCANNER_STATUS_CONFIG['Invalid QR Code'];
-
   return (
-    <AdminLayout pageTitle="Check-in" pageSubtitle="Scan QR codes and lookup appointments">
+    <AdminLayout pageTitle="Scanner">
       <Head>
-        <title>Check-in | Qmova</title>
+        <title>Scanner | Qmova</title>
+        <style>{`
+          .laser {
+              animation: scan 2.5s infinite linear;
+              position: absolute;
+              left: 12.5%;
+              top: 50%;
+              transform: translateY(-50%);
+          }
+
+          @keyframes scan {
+              0% { top: 10%; opacity: 0; }
+              10% { opacity: 1; }
+              90% { opacity: 1; }
+              100% { top: 90%; opacity: 0; }
+          }
+        `}</style>
       </Head>
 
-      <div className="min-h-screen bg-gray-50/50 dark:bg-black/20 p-4 sm:p-6">
-        <div className="mb-6">
-          <p className="text-gray-500 dark:text-zinc-400 text-sm font-medium tracking-wider uppercase mb-1">
-            Verify Tickets
-          </p>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <ScanLine className="w-8 h-8 text-indigo-500" />
-            QR Scanner
-          </h1>
-        </div>
+      <div className="max-w-7xl mx-auto space-y-6">
+        <header className="mb-8">
+          <h2 className="text-3xl font-bold text-on-surface dark:text-white font-headline-lg tracking-tight font-semibold">Concierge Intake & Verification</h2>
+          <p className="text-on-surface-variant dark:text-surface-variant mt-2 font-body-lg">Scan digital passes or manually check-in walk-in visitors</p>
+        </header>
 
-        <div className="flex flex-col xl:flex-row gap-6">
-          {/* Scanner Card */}
-          <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-white/10 shadow-xl overflow-hidden">
-            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-white/10">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Live Scanner</h2>
-                <p className="text-sm text-gray-500 dark:text-zinc-400">
-                  {scannerStatus === 'scanning' && 'Scanning...'}
-                  {scannerStatus === 'processing' && 'Validating...'}
-                  {scannerStatus === 'idle' && 'Ready to scan'}
-                  {isInitializing && 'Loading scanner...'}
-                </p>
-                </div>
-
-                 <div className="flex items-center gap-3 flex-wrap">
-                   {availableCameras.length > 1 && (
-                     <div className="relative">
-                       <Smartphone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-zinc-400 pointer-events-none" />
-                       <select
-                         value={selectedCamera}
-                         onChange={(e) => {
-                           const cameraId = e.target.value;
-                           setSelectedCamera(cameraId);
-                           const camera = availableCameras.find(c => c.deviceId === cameraId);
-                           if (camera) {
-                             setUseFrontCamera(camera.label.toLowerCase().includes('front'));
-                           }
-                         }}
-                         disabled={scannerStatus === 'processing' || manualMode}
-                         className="appearance-none pl-9 pr-8 py-2 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full max-w-[200px] truncate"
-                       >
-                         {availableCameras.map((camera, index) => (
-                           <option key={camera.deviceId} value={camera.deviceId}>
-                             {camera.label || `Camera ${index + 1}`}
-                           </option>
-                         ))}
-                       </select>
-                       <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-zinc-400 pointer-events-none" />
-                     </div>
-                   )}
-
-                   <button
-                     onClick={() => setManualMode(prev => !prev)}
-                     disabled={scannerStatus === 'processing'}
-                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-                       manualMode
-                         ? 'bg-indigo-100 text-indigo-700 border border-indigo-300 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700'
-                         : 'bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700'
-                     } disabled:opacity-50`}
-                   >
-                     <Keyboard className="w-4 h-4" />
-                     {manualMode ? 'Manual Entry' : 'Manual Entry'}
-                   </button>
-
-                   {!manualMode && (
-                     <button
-                       onClick={scannerStatus === 'scanning' ? stopScanning : startScanning}
-                       disabled={scannerStatus === 'processing'}
-                       className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all text-white ${
-                         scannerStatus === 'scanning'
-                           ? 'bg-red-500 hover:bg-red-600'
-                           : 'bg-indigo-600 hover:bg-indigo-700'
-                       } disabled:opacity-50`}
-                     >
-                       {scannerStatus === 'scanning' ? (
-                         <>
-                           <StopCircle className="w-5 h-5" />
-                           Stop
-                         </>
-                       ) : (
-                         <>
-                           <PlayCircle className="w-5 h-5" />
-                           Start
-                         </>
-                       )}
-                     </button>
-                   )}
-
-                   {manualMode && (
-                     <button
-                       onClick={validateManualToken}
-                       disabled={manualProcessing || manualTokenId.trim().length < 5}
-                       className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
-                     >
-                       {manualProcessing ? (
-                         <>
-                           <Loader2 className="w-5 h-5 animate-spin" />
-                           Validating...
-                         </>
-                       ) : (
-                         <>
-                           <CheckCircle2 className="w-5 h-5" />
-                           Validate
-                         </>
-                       )}
-                     </button>
-                   )}
-                 </div>
-               </div>
-             </div>
-
-             <div className="min-h-[450px] sm:min-h-[500px] bg-black relative">
-               {!manualMode ? (
-                 <>
-                   <div id="reader" className="w-full h-full"></div>
-                   {isInitializing && (
-                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-6 z-10">
-                       <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
-                       <p className="text-lg font-medium">Loading Scanner...</p>
-                       <p className="text-sm text-gray-400 mt-2">Initializing camera and QR detection</p>
-                     </div>
-                   )}
-                 </>
-               ) : (
-                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-                   <div className="w-full max-w-md">
-                     <h3 className="text-xl font-bold text-white mb-2 text-center">Manual Token Entry</h3>
-                     <p className="text-gray-400 text-sm text-center mb-6">
-                       Enter a token ID to validate it without scanning
-                     </p>
-                     <div className="flex gap-3">
-                       <input
-                         type="text"
-                         value={manualTokenId}
-                         onChange={(e) => setManualTokenId(e.target.value)}
-                         placeholder="Enter token ID..."
-                         className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-zinc-500"
-                         onKeyDown={(e) => {
-                           if (e.key === 'Enter') validateManualToken();
-                         }}
-                       />
-                       <button
-                         onClick={validateManualToken}
-                         disabled={manualProcessing || manualTokenId.trim().length < 5}
-                         className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
-                       >
-                         {manualProcessing ? 'Validating...' : 'Validate'}
-                       </button>
-                     </div>
-                     <p className="text-xs text-zinc-500 mt-3 text-center">
-                       Press Enter or click Validate to check the token
-                     </p>
-                   </div>
-                 </div>
-               )}
-              {scannerStatus === 'error' && error && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-red-400 p-6">
-                  <AlertTriangle className="w-12 h-12 mb-4" />
-                  <p className="text-center mb-2">{error}</p>
-                  {error.includes('camera') || error.includes('Camera') || error.includes('permission') ? (
-                    <button
-                      onClick={requestCameraPermission}
-                      className="mt-4 flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors"
-                    >
-                      <Camera className="w-4 h-4" />
-                      Grant Camera Permission
-                    </button>
-                  ) : (
-                    <button
-                      onClick={resetScanner}
-                      className="mt-4 flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors"
-                    >
-                      <RefreshCcw className="w-4 h-4" />
-                      Retry
-                    </button>
-                  )}
-                </div>
-              )}
-              {validationResult && !error && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white">
-                  <div className="w-24 h-24 rounded-full border-4 flex items-center justify-center mb-6 shadow-[0_0_50px_rgba(0,0,0,0.3)]"
-                    style={{
-                      backgroundColor: getStatusConfig(validationResult.status).bgColor,
-                      borderColor: getStatusConfig(validationResult.status).borderColor
-                    }}
-                  >
-                    {getStatusConfig(validationResult.status).icon}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+          {/* Left Column (Scanner) */}
+          <div className="flex flex-col gap-6">
+            <div className="bg-card dark:bg-dark-card rounded-2xl border border-border dark:border-dark-border p-8 shadow-sm flex-1 flex flex-col">
+              
+              <div className="aspect-square max-h-[380px] w-full mx-auto rounded-xl bg-zinc-950 relative overflow-hidden mb-6 shadow-inner flex items-center justify-center">
+                {/* Scanner Viewport — fills container, centered */}
+                <div id="reader" className="absolute inset-0 w-full h-full" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}></div>
+                
+                {isInitializing && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-white bg-black/50">
+                    <Loader2 strokeWidth={1.5} className="w-8 h-8 animate-spin mb-2" />
+                    <span className="text-sm">Initializing Camera...</span>
                   </div>
-
-                  <h3 className="text-2xl font-bold mb-2" style={{color: getStatusConfig(validationResult.status).color.split('-')[1]}}>
-                    {validationResult.status}
-                  </h3>
-
-                  {validationResult.reason && (
-                    <p className="text-gray-300 mb-4 max-w-md text-center">
-                      {validationResult.reason}
-                    </p>
+                )}
+                
+                {/* Decorative Reticle */}
+                <div className="absolute top-8 left-8 w-8 h-8 border-t-2 border-l-2 border-white/80 rounded-tl-lg pointer-events-none z-10"></div>
+                <div className="absolute top-8 right-8 w-8 h-8 border-t-2 border-r-2 border-white/80 rounded-tr-lg pointer-events-none z-10"></div>
+                <div className="absolute bottom-8 left-8 w-8 h-8 border-b-2 border-l-2 border-white/80 rounded-bl-lg pointer-events-none z-10"></div>
+                <div className="absolute bottom-8 right-8 w-8 h-8 border-b-2 border-r-2 border-white/80 rounded-br-lg pointer-events-none z-10"></div>
+                
+                {scannerStatus === 'scanning' && (
+                  <div className="laser h-0.5 w-3/4 bg-primary/80 shadow-[0_0_15px_rgba(0,97,148,0.5)] z-10 pointer-events-none"></div>
+                )}
+                
+                <div className="absolute bottom-4 z-10 w-full flex justify-between px-4 items-center">
+                  <span className="text-white text-xs font-data-mono tracking-widest uppercase bg-black/50 px-2 py-1 rounded">
+                    {scannerStatus === 'scanning' ? 'Camera Active: Awaiting QR...' : scannerStatus === 'processing' ? 'Validating...' : 'Camera Stopped'}
+                  </span>
+                  
+                  {scannerStatus === 'scanning' ? (
+                     <button onClick={stopScanning} className="bg-red-500 hover:bg-red-600 text-white p-1 rounded-full"><StopCircle strokeWidth={1.5} className="w-5 h-5"/></button>
+                  ) : (
+                     <button onClick={startScanning} className="bg-primary hover:bg-primary-container text-white p-1 rounded-full"><PlayCircle strokeWidth={1.5} className="w-5 h-5"/></button>
                   )}
-
-                  {validationResult.customerName && (
-                    <div className="bg-white/10 dark:bg-zinc-800/50 rounded-lg px-4 py-2 mb-2">
-                      <p className="text-sm font-medium">
-                        <span className="text-gray-300">Customer:</span> {validationResult.customerName}
-                      </p>
-                    </div>
-                  )}
-
-                  {validationResult.queueName && (
-                    <div className="bg-white/10 dark:bg-zinc-800/50 rounded-lg px-4 py-2 mb-4">
-                      <p className="text-sm font-medium">
-                        <span className="text-gray-300">Queue:</span> {validationResult.queueName}
-                      </p>
-                    </div>
-                  )}
-
-                  {validationResult.position && (
-                    <div className="bg-white/10 dark:bg-zinc-800/50 rounded-lg px-4 py-2 mb-6">
-                      <p className="text-sm font-medium">
-                        <span className="text-gray-300">Position:</span> #{validationResult.position}
-                      </p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={resetScanner}
-                    className="flex items-center gap-2 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold transition-colors shadow-lg"
-                  >
-                    <RefreshCcw className="w-5 h-5" />
-                    Scan Next Ticket
-                  </button>
                 </div>
-              )}
-              {scannerStatus === 'idle' && !error && !validationResult && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 p-6">
-                  <Camera className="w-16 h-16 mb-4 opacity-50" />
-                  <p className="text-lg mb-2">Camera is off</p>
-                  <p className="text-sm opacity-80">Click Start to begin scanning</p>
+              </div>
+
+              <div className="mt-auto">
+                {/* Lookup Tab switcher */}
+                <div className="flex items-center gap-1 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl p-1 mb-4">
+                  {(['token', 'phone'] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => { setLookupTab(t); setError(null); }}
+                      className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all capitalize ${
+                        lookupTab === t ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:text-on-surface dark:hover:text-white'
+                      }`}
+                    >
+                      {t === 'token' ? 'Token ID' : 'Phone Number'}
+                    </button>
+                  ))}
                 </div>
-              )}
+
+                {lookupTab === 'token' ? (
+                  <div className="flex flex-col gap-3">
+                    <input
+                      type="text"
+                      value={manualTokenId}
+                      onChange={(e) => setManualTokenId(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') validateManualToken(); }}
+                      className="h-12 w-full rounded-xl bg-surface-container dark:bg-dark-canvas border border-border dark:border-dark-border px-4 font-data-mono text-base focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-outline text-on-surface dark:text-white"
+                      placeholder="Enter Token ID"
+                    />
+                    <button
+                      onClick={validateManualToken}
+                      disabled={manualProcessing || manualTokenId.trim().length < 5}
+                      className="h-12 min-h-[44px] bg-primary hover:bg-primary-container text-white rounded-xl w-full font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {manualProcessing ? <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" /> : 'Lookup by Token'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <PhoneInput
+                      international
+                      defaultCountry={defaultCountry}
+                      onCountryChange={(country) => {
+                        if (country) {
+                          setDefaultCountry(country);
+                          localStorage.setItem('qmova_scanner_country', country);
+                        }
+                      }}
+                      value={manualPhone}
+                      onChange={(value) => setManualPhone(value || '')}
+                      onKeyDown={(e: any) => { if (e.key === 'Enter') lookupByPhone(); }}
+                      className="h-12 w-full rounded-xl bg-surface-container dark:bg-dark-canvas border border-border dark:border-dark-border px-4 text-base focus-within:ring-1 focus-within:ring-primary focus-within:border-primary outline-none transition-all placeholder:text-outline text-on-surface dark:text-white"
+                      placeholder="e.g. +91 98765 43210"
+                    />
+                    <button
+                      onClick={lookupByPhone}
+                      disabled={phoneProcessing || manualPhone.trim().length < 7}
+                      className="h-12 min-h-[44px] bg-primary hover:bg-primary-container text-white rounded-xl w-full font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {phoneProcessing ? <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" /> : 'Lookup by Phone'}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Recent Scans Panel */}
-          <div className="w-full xl:w-[420px] bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-white/10 shadow-xl overflow-hidden flex flex-col shrink-0">
-            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-white/10">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                Approved Tickets
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
-                Recently checked-in customers
-              </p>
-            </div>
-
-            <div className="flex-1 overflow-y-auto">
-              {historyLoading ? (
-                <div className="p-8 text-center text-gray-400 text-sm">Loading recent scans...</div>
-              ) : recentScans.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">
-                  <Ticket className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">No approved tickets yet.</p>
+          {/* Right Column (Verification) */}
+          <div className="flex flex-col">
+            <div className="bg-card dark:bg-dark-card rounded-2xl border border-border dark:border-dark-border p-8 shadow-sm flex-1 flex flex-col">
+              
+              {!validationResult && scannerStatus !== 'processing' && (
+                <div className="flex-1 flex flex-col items-center justify-center text-outline text-center space-y-4">
+                  <div className="w-20 h-20 bg-surface-container-low dark:bg-inverse-surface rounded-full flex items-center justify-center">
+                     <ScanLine strokeWidth={1.5} className="w-10 h-10 opacity-50" />
+                  </div>
+                  <div>
+                    <h3 className="font-headline-sm text-lg text-on-surface dark:text-white tracking-tight font-semibold">Awaiting Scan</h3>
+                    <p className="text-body-sm mt-1">Please scan a visitor's QR code or use manual lookup</p>
+                  </div>
                 </div>
-              ) : (
-                <div className="divide-y divide-gray-100 dark:divide-white/5">
-                  {recentScans.map((scan) => (
-                    <div key={scan.id} className="p-4 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center shrink-0">
-                            <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                              {scan.customer?.name || 'Customer'}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                              {scan.service?.name || scan.location?.name || 'Unknown Location'}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="shrink-0 px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold tracking-wider uppercase">
-                          {scan.currentState}
-                        </span>
-                      </div>
+              )}
 
-                      <div className="mt-3 flex items-center gap-4 text-xs text-gray-500 dark:text-zinc-400">
-                        <span className="flex items-center gap-1.5">
-                          <Ticket className="w-3.5 h-3.5" />
-                          <span className="font-mono">{scan.id.slice(0, 8)}...</span>
-                        </span>
-                        {scan.purpose && (
-                          <span className="flex items-center gap-1.5">
-                            <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-zinc-600"></span>
-                            {scan.purpose}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1.5 ml-auto">
-                          <Clock className="w-3.5 h-3.5" />
-                          {new Date(scan.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+              {scannerStatus === 'processing' && (
+                <div className="flex-1 flex flex-col items-center justify-center text-primary text-center space-y-4">
+                  <Loader2 strokeWidth={1.5} className="w-16 h-16 animate-spin" />
+                  <h3 className="font-headline-sm text-lg tracking-tight font-semibold">Verifying Identity...</h3>
+                </div>
+              )}
+
+              {validationResult && (
+                <>
+                  {/* Section A: Profile */}
+                  <div className="flex items-start justify-between mb-8 pb-8 border-b border-border dark:border-dark-border">
+                    <div className="flex items-center gap-6">
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold border-2 ${validationResult.valid ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30' : 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'}`}>
+                        {validationResult.customerName ? validationResult.customerName.substring(0, 2).toUpperCase() : (validationResult.valid ? <Check strokeWidth={1.5} className="w-8 h-8"/> : <XCircle strokeWidth={1.5} className="w-8 h-8" />)}
+                      </div>
+                      <div>
+                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mb-2 ${validationResult.valid ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'}`}>
+                          {validationResult.valid ? (
+                            <><CheckCircle2 strokeWidth={1.5} className="w-3.5 h-3.5" /> Access Granted</>
+                          ) : (
+                            <><XCircle strokeWidth={1.5} className="w-3.5 h-3.5" /> Access Denied</>
+                          )}
+                        </div>
+                        <h3 className="text-2xl font-bold text-on-surface dark:text-white font-headline-md tracking-tight font-semibold">{validationResult.customerName || 'Unknown Visitor'}</h3>
+                        {validationResult.phone && <p className="text-outline font-data-mono text-sm mt-1">{validationResult.phone}</p>}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+
+                  {/* Section B: Details */}
+                  <div className="space-y-4 mb-8 flex-1">
+                    {!validationResult.valid && validationResult.reason && (
+                      <div className="bg-red-50 dark:bg-red-500/10 rounded-xl p-5 border border-red-100 dark:border-red-500/20 text-red-800 dark:text-red-400">
+                        <p className="font-semibold mb-1">Rejection Reason:</p>
+                        <p>{validationResult.reason}</p>
+                      </div>
+                    )}
+                    
+                    {validationResult.valid && (
+                      <>
+                        <div className="bg-primary/5 dark:bg-primary/10 rounded-xl p-5 border border-primary/20 flex flex-col gap-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-outline text-sm font-medium">Service Line</span>
+                            <span className="font-semibold text-on-surface dark:text-white">{validationResult.queueName || 'General Consultation'}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-surface-container-low dark:bg-inverse-surface rounded-xl p-4 border border-border dark:border-dark-border flex justify-between items-center">
+                          <span className="text-outline text-sm font-medium">Token ID</span>
+                          <span className="font-semibold text-on-surface dark:text-white font-data-mono">{validationResult.tokenId}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Section C: Action */}
+                  <div className="mt-auto pt-8 border-t border-border dark:border-dark-border">
+                    {validationResult.valid ? (
+                       <button 
+                         onClick={() => { setValidationResult(null); startScanning(); }}
+                         className="h-16 min-h-[44px] w-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+                       >
+                         <CheckCircle2 strokeWidth={1.5} className="w-5 h-5" />
+                         Confirm Arrival & Route to Queue
+                       </button>
+                    ) : (
+                       <button 
+                         onClick={() => { setValidationResult(null); startScanning(); }}
+                         className="h-16 min-h-[44px] w-full bg-on-surface dark:bg-white text-white dark:text-zinc-900 text-lg font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+                       >
+                         <RefreshCcw strokeWidth={1.5} className="w-5 h-5" />
+                         Scan Next Ticket
+                       </button>
+                    )}
+                    
+                    {validationResult.valid && (
+                      <p className="text-center text-outline text-sm mt-4 font-body-sm">
+                        Visitor has been verified and added to the queue automatically.
+                      </p>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>

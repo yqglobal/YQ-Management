@@ -21,7 +21,7 @@ export class LocationController {
   @Post()
   create(
     @Req() req: AuthenticatedRequest,
-    @Body() body: { name: string; address?: string },
+    @Body() body: { name: string; address?: string; city?: string },
   ) {
     return this.locationService.create(req.user.tenantId, body);
   }
@@ -40,7 +40,7 @@ export class LocationController {
   update(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { name?: string; address?: string },
+    @Body() body: { name?: string; address?: string; city?: string },
   ) {
     return this.locationService.update(id, req.user.tenantId, body);
   }

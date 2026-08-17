@@ -3,11 +3,12 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { QRCodeSVG } from 'qrcode.react';
 import { io } from 'socket.io-client';
+import { Logo } from '../../components/Logo';
 
 export default function CustomerWaitScreen() {
   const router = useRouter();
   const { id } = router.query;
-  const tokenId = (router.query.tokenId as string) || "";
+  const tokenId = (router.query.tokenId as string) || "DEMO-123";
 
   const [position, setPosition] = useState(5);
   const [ewt, setEwt] = useState(25);
@@ -43,60 +44,123 @@ export default function CustomerWaitScreen() {
 
   if (status === 'COMPLETED') {
     return (
-      <div className="min-h-screen bg-green-50 flex flex-col items-center justify-center p-6 text-center">
-        <h1 className="text-4xl font-bold text-green-700 mb-4">Service Complete!</h1>
-        <p className="text-xl text-green-600 mb-8">Thank you for visiting. Please leave us a review.</p>
-        <button className="bg-green-600 text-white px-8 py-4 rounded-xl font-bold text-lg">Leave Feedback</button>
+      <div className="bg-surface text-on-surface flex items-center justify-center min-h-screen p-4 sm:p-8 font-body-md text-body-md antialiased">
+        <div className="w-full max-w-md mx-auto bg-zinc-950 min-h-screen sm:min-h-[850px] sm:h-[850px] sm:rounded-[2.5rem] sm:border-[8px] border-zinc-800 relative overflow-hidden shadow-2xl flex flex-col items-center justify-center p-8">
+          <div className="w-24 h-24 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mb-6">
+            <span className="material-symbols-outlined text-5xl">done_all</span>
+          </div>
+          <h1 className="font-headline-lg text-headline-lg text-zinc-50 mb-2 text-center tracking-tight font-semibold">Service Complete</h1>
+          <p className="font-body-md text-body-md text-zinc-400 text-center mb-8">Thank you for visiting. Please leave us a review.</p>
+          <button className="w-full h-[56px] bg-primary hover:bg-primary-container text-white rounded-2xl font-headline-sm transition-colors">
+            Leave Feedback
+          </button>
+        </div>
       </div>
     );
   }
 
   if (status === 'SERVING') {
     return (
-      <div className="min-h-screen bg-blue-600 flex flex-col items-center justify-center p-6 text-center text-white">
-        <h1 className="text-5xl font-black mb-4 animate-bounce">It's your turn!</h1>
-        <p className="text-2xl mb-8">Please proceed to Counter 3</p>
-        <div className="bg-white p-8 rounded-3xl">
-           <QRCodeSVG value={tokenId} size={200} />
+      <div className="bg-surface text-on-surface flex items-center justify-center min-h-screen p-4 sm:p-8 font-body-md text-body-md antialiased">
+        <div className="w-full max-w-md mx-auto bg-zinc-950 min-h-screen sm:min-h-[850px] sm:h-[850px] sm:rounded-[2.5rem] sm:border-[8px] border-zinc-800 relative overflow-hidden shadow-2xl flex flex-col">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+            <div className="w-24 h-24 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center mb-6 animate-pulse">
+               <span className="material-symbols-outlined text-5xl">notifications_active</span>
+            </div>
+            <h1 className="font-headline-lg text-headline-lg text-zinc-50 mb-2 tracking-tight font-semibold">It's your turn!</h1>
+            <p className="font-body-lg text-body-lg text-sky-400 mb-8">Please proceed to Counter 3</p>
+            <div className="bg-white p-6 rounded-2xl shadow-xl">
+               <QRCodeSVG value={tokenId} size={200} />
+            </div>
+            <p className="font-body-sm text-body-sm text-zinc-400 mt-6 max-w-[200px]">Show this QR to the operator at the desk.</p>
+          </div>
         </div>
-        <p className="mt-8 text-blue-200">Show this QR to the operator</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col p-6">
-      <Head><title>Your Token - Qmova</title></Head>
-      
-      <header className="text-center py-6">
-        <h1 className="text-2xl font-bold text-gray-900">General Consultation</h1>
-        <p className="text-gray-500">Live Status</p>
-      </header>
+    <div className="bg-surface text-on-surface flex items-center justify-center min-h-screen p-4 sm:p-8 font-body-md text-body-md antialiased">
+      <Head>
+        <title>Your Digital Pass - Qmova</title>
+        <style>{`
+          .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+          }
+          @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            70%, 100% { transform: scale(2); opacity: 0; }
+          }
+        `}</style>
+      </Head>
 
-      <main className="flex-1 flex flex-col items-center justify-center space-y-8">
+      {/* Simulated Smartphone Container */}
+      <div className="w-full max-w-md mx-auto min-h-screen sm:min-h-[850px] sm:h-[850px] sm:rounded-[2.5rem] sm:border-[8px] border-zinc-800 relative overflow-hidden shadow-2xl bg-zinc-950 text-zinc-50 flex flex-col">
         
-        <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 flex flex-col items-center">
-          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Your QR Ticket</p>
-          <QRCodeSVG value={tokenId} size={200} />
-          <p className="mt-4 font-mono font-bold text-gray-800 tracking-widest">{tokenId.substring(0,6).toUpperCase()}</p>
-        </div>
-
-        <div className="w-full max-w-sm grid grid-cols-2 gap-4">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
-             <p className="text-gray-500 text-sm font-medium mb-1">People Ahead</p>
-             <p className="text-4xl font-black text-blue-600">{position}</p>
+        {/* TopAppBar (Simulated Mobile Nav) */}
+        <header className="fixed sm:absolute top-0 w-full z-50 flex items-center justify-between px-margin-mobile h-header-h bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/50">
+          <div className="flex items-center gap-3">
+            <button className="hover:opacity-80 transition-opacity flex items-center justify-center w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-300">
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>arrow_back</span>
+            </button>
+            <Logo width={120} height={19} forceTheme="dark" />
           </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
-             <p className="text-gray-500 text-sm font-medium mb-1">Est. Wait</p>
-             <p className="text-4xl font-black text-gray-900">{ewt}<span className="text-lg font-medium text-gray-500">min</span></p>
+          <button className="text-zinc-400 hover:text-zinc-100 transition-colors w-10 h-10 flex items-center justify-center">
+            <span className="material-symbols-outlined">more_vert</span>
+          </button>
+        </header>
+
+        {/* Main Scrollable Canvas */}
+        <main className="flex-1 overflow-y-auto pt-header-h pb-24 px-4 scroll-smooth">
+          {/* Active Digital Pass */}
+          <div className="flex flex-col items-center justify-center h-full min-h-[600px] transition-opacity duration-500">
+            <div className="w-full max-w-sm bg-white text-zinc-900 rounded-[2rem] p-8 flex flex-col items-center relative overflow-hidden shadow-xl border border-zinc-200 mt-8">
+              
+              {/* Top accent line */}
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-sky-500 to-sky-400"></div>
+              
+              {/* Status Indicator */}
+              <div className="relative w-16 h-16 mb-6 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-2 border-emerald-500 pulse-ring"></div>
+                <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center z-10">
+                  <span className="material-symbols-outlined text-emerald-600" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                </div>
+              </div>
+              
+              <h2 className="font-headline-md text-headline-md text-center mb-1 text-zinc-900 tracking-tight font-semibold">
+                You are {position}{position === 1 ? 'st' : position === 2 ? 'nd' : position === 3 ? 'rd' : 'th'} in line
+              </h2>
+              <p className="font-body-sm text-body-sm text-zinc-500 text-center mb-8">Estimated wait: {ewt} min</p>
+              
+              {/* ID Block */}
+              <div className="text-center mb-8 w-full border-y border-zinc-100 py-6">
+                <span className="block font-label-caps text-label-caps text-zinc-400 tracking-widest uppercase mb-2">Ticket ID</span>
+                <div className="font-data-mono-lg text-data-mono-lg text-zinc-950 tracking-tight">#{tokenId.substring(0,6).toUpperCase()}</div>
+              </div>
+              
+              {/* QR Code Placeholder */}
+              <div className="w-[160px] h-[160px] rounded-2xl flex items-center justify-center bg-white mb-8 relative">
+                 <QRCodeSVG value={tokenId} size={160} />
+              </div>
+              
+              <p className="font-body-sm text-body-sm text-zinc-400 text-center max-w-[200px]">Present this QR code or ID at the front desk when called.</p>
+            </div>
+            
+            {/* Secondary Actions */}
+            <div className="flex gap-4 mt-8 w-full max-w-sm px-4">
+              <button className="flex-1 h-[44px] bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 rounded-xl font-body-md text-body-md transition-colors flex items-center justify-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">directions_run</span> Running Late
+              </button>
+              <button className="flex-1 h-[44px] bg-transparent border border-rose-900/50 hover:bg-rose-900/20 text-rose-400 rounded-xl font-body-md text-body-md transition-colors flex items-center justify-center">
+                Cancel Visit
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div className="w-full max-w-sm bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm text-blue-800 text-center">
-          <p>We'll notify you on WhatsApp when you are next.</p>
-        </div>
-      </main>
-
+        </main>
+        
+        {/* Subtle bottom gradient */}
+        <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-zinc-950 to-transparent pointer-events-none"></div>
+      </div>
     </div>
   );
 }

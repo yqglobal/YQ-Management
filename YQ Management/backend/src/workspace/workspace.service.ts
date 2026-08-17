@@ -93,6 +93,9 @@ export class WorkspaceService {
         workspaceId: invitation.workspaceId,
         tenantId: workspace ? workspace.tenantId : undefined,
         role: invitation.role as Role,
+        allowedLocationIds: invitation.allowedLocationIds,
+        allowedServiceIds: invitation.allowedServiceIds,
+        allowedPages: invitation.allowedPages,
       },
       include: { workspace: true },
     });

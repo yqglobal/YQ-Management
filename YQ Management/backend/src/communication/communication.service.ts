@@ -5,6 +5,7 @@ import { CommunicationEvent } from './events/communication-events.enum';
 import type { EmailProvider } from './interfaces/email.provider';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { TemplateService } from './templates/template.service';
+import * as QRCode from 'qrcode';
 import {
   CommunicationLogService,
   CommunicationChannel,
@@ -137,7 +138,7 @@ export class CommunicationService {
 
     const template = this.templateService.renderEmail('welcome', {
       name: name || 'there',
-      dashboard_url: `${process.env.APP_URL || 'http://localhost:3001'}/dashboard`,
+      dashboard_url: `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/dashboard`,
     });
 
     const result = await this.emailProvider.send({
@@ -317,7 +318,7 @@ export class CommunicationService {
       payload;
     if (!phone) return;
 
-    const link = `${process.env.APP_URL || 'http://localhost:3001'}/customer/status/${tokenId}`;
+    const link = `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/customer/status/${tokenId}`;
     const body = this.templateService.renderWhatsApp('queue_joined', {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
@@ -325,9 +326,28 @@ export class CommunicationService {
       link,
     });
     const tenantId = await this.resolveTenantId(workspaceId);
-    const result = tenantId
-      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
-      : { success: false, error: 'No tenant context for WhatsApp' };
+    
+    let result: any = { success: false, error: 'No tenant context for WhatsApp' };
+    if (tenantId) {
+      result = await this.whatsappService.sendToTenant(tenantId, phone, body);
+      
+      // Send QR Code as a follow-up media message
+      try {
+        const qrBase64DataUrl = await QRCode.toDataURL(link, { width: 400, margin: 2 });
+        // The Data URL looks like: "data:image/png;base64,iVBORw0KGgo..." 
+        // Evolution API might accept the whole data URI or just the base64 part. Usually just base64 or data uri is fine.
+        const base64Data = qrBase64DataUrl.split(',')[1] || qrBase64DataUrl;
+        await this.whatsappService.sendMediaToTenant(
+          tenantId,
+          phone,
+          qrBase64DataUrl, // Many APIs accept the data URI. If it fails, we can strip it. Evolution API accepts base64 with or without mime, let's send data URI.
+          'image',
+          'Your Boarding Pass'
+        );
+      } catch (err) {
+        this.logger.error(`Failed to generate/send QR code to ${phone}:`, err);
+      }
+    }
 
     await this.communicationLogService.log({
       channel: CommunicationChannel.WHATSAPP,
@@ -523,7 +543,7 @@ export class CommunicationService {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
       position: '1',
-      link: `${process.env.APP_URL || 'http://localhost:3001'}/customer/status/${payload.tokenId || ''}`,
+      link: `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/customer/status/${payload.tokenId || ''}`,
     });
     const tenantId = await this.resolveTenantId(payload.workspaceId);
     const result = tenantId
@@ -807,7 +827,7 @@ export class CommunicationService {
 
     const template = this.templateService.renderEmail('welcome', {
       name: name || 'there',
-      dashboard_url: `${process.env.APP_URL || 'http://localhost:3001'}/dashboard`,
+      dashboard_url: `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/dashboard`,
     });
     const result = await this.emailProvider.send({
       to: email,

@@ -9,7 +9,7 @@ import { format, parseISO } from 'date-fns';
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { subdomain, queueId } = context.params as { subdomain: string, queueId: string };
-  const baseUrl = 'https://qmova-backend.onrender.com';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
   
   try {
     const tenantRes = await fetch(`${baseUrl}/tenant/public/${subdomain}`);
@@ -38,7 +38,7 @@ export default function JoinQueue({ tenant, queueId }: { tenant: any, queueId: s
 
   const { data: queue, isLoading: isLoadingQueue } = useQuery({
     queryKey: ['queue', queueId],
-    queryFn: () => fetchApi(`/queue/${queueId}`),
+    queryFn: () => fetchApi(`/queue/public/${queueId}`),
     enabled: !!queueId,
   });
 
@@ -99,8 +99,8 @@ export default function JoinQueue({ tenant, queueId }: { tenant: any, queueId: s
         body: JSON.stringify(data)
       }),
     onSuccess: (data) => {
-      // Redirect to the tenant's branded status page
-      router.push(`/_tenant/${tenant.subdomain}/status/${data.id}`);
+      // Navigate to the status page - the middleware handles subdomain rewriting
+      router.push(`/status/${data.id}`);
     },
     onError: (err: any) => {
       setError(err.message || 'Invalid OTP. Please try again.');
@@ -224,7 +224,17 @@ export default function JoinQueue({ tenant, queueId }: { tenant: any, queueId: s
             </div>
           )}
 
-          {step === 1 ? (
+          {queue.status === 'PAUSED' ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="material-symbols-outlined text-amber-500 text-3xl">pause_circle</span>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Service on Hold</h2>
+              <p className="text-gray-500">
+                This queue is temporarily paused. Please wait or check back later to join.
+              </p>
+            </div>
+          ) : step === 1 ? (
             <form onSubmit={handleRequestOtp} className="space-y-5">
               
               {formConfig.map((field: any) => (

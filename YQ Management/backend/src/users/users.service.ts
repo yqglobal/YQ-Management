@@ -142,7 +142,14 @@ export class UsersService {
 
   async createUser(
     tenantId: string,
-    data: { email: string; role: any; password?: string },
+    data: { 
+      email: string; 
+      role: any; 
+      password?: string;
+      allowedLocationIds?: string[];
+      allowedServiceIds?: string[];
+      allowedPages?: string[];
+    },
   ) {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: data.email },
@@ -176,6 +183,9 @@ export class UsersService {
               expiresAt,
               used: false,
               usedCount: 0,
+              allowedLocationIds: data.allowedLocationIds || [],
+              allowedServiceIds: data.allowedServiceIds || [],
+              allowedPages: data.allowedPages || [],
             },
           })
         : await this.prisma.invitation.create({
@@ -186,6 +196,9 @@ export class UsersService {
               role: data.role as Role,
               maxUses: 1,
               expiresAt,
+              allowedLocationIds: data.allowedLocationIds || [],
+              allowedServiceIds: data.allowedServiceIds || [],
+              allowedPages: data.allowedPages || [],
             },
           });
 
@@ -217,6 +230,9 @@ export class UsersService {
         tenantId,
         workspaceId: workspace.id,
         role: data.role as Role,
+        allowedLocationIds: data.allowedLocationIds || [],
+        allowedServiceIds: data.allowedServiceIds || [],
+        allowedPages: data.allowedPages || [],
       },
       select: { id: true, email: true, role: true },
     });
@@ -355,13 +371,14 @@ export class UsersService {
     return { success: true };
   }
 
-  async updateRole(
+  async updatePermissions(
     tenantId: string,
     id: string,
-    newRole: Role,
+    data: { role: Role; allowedLocationIds?: string[]; allowedServiceIds?: string[]; allowedPages?: string[] },
     currentUserId: string,
     currentUserEmail: string,
   ) {
+    const newRole = data.role;
     const targetUser = await this.prisma.user.findUnique({
       where: { id },
       select: { id: true, role: true, email: true, tenantId: true },
@@ -400,7 +417,12 @@ export class UsersService {
 
     const updatedUser = await this.prisma.user.update({
       where: { id },
-      data: { role: newRole },
+      data: { 
+        role: newRole,
+        allowedLocationIds: data.allowedLocationIds || [],
+        allowedServiceIds: data.allowedServiceIds || [],
+        allowedPages: data.allowedPages || []
+      },
       select: { id: true, email: true, role: true, workspaceId: true },
     });
 

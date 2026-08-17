@@ -16,7 +16,7 @@ export class PublicPlansController {
       );
       try {
         await this.plansService.createPlan({
-          name: 'Starter (Free Trial)',
+          name: 'Starter (14 Days Trial)',
           description:
             'Perfect for small retail or single service point environments.',
           type: 'STANDARD',
@@ -26,11 +26,11 @@ export class PublicPlansController {
           trialDays: 14,
           status: 'ACTIVE',
           sortOrder: 1,
-          features: { whatsappNotifications: false },
+          features: { whatsappNotifications: false, whatsappChat: false, whatsappChatbot: false },
           limits: { maxQueues: 1, maxTokens: 100 },
         });
         await this.plansService.createPlan({
-          name: 'Standard Pro',
+          name: 'Standard Plan',
           description:
             'Ideal for busy clinics, restaurants, and customer service centers.',
           type: 'STANDARD',
@@ -40,11 +40,11 @@ export class PublicPlansController {
           trialDays: 0,
           status: 'ACTIVE',
           sortOrder: 2,
-          features: { whatsappNotifications: true },
+          features: { whatsappNotifications: true, whatsappChat: true, whatsappChatbot: true },
           limits: { maxQueues: 5, maxTokens: 1000 },
         });
         await this.plansService.createPlan({
-          name: 'Enterprise Network',
+          name: 'Premium Plan',
           description:
             'Comprehensive solution for healthcare networks and large retail chains.',
           type: 'ENTERPRISE',
@@ -54,7 +54,7 @@ export class PublicPlansController {
           trialDays: 0,
           status: 'ACTIVE',
           sortOrder: 3,
-          features: { whatsappNotifications: true },
+          features: { whatsappNotifications: true, whatsappChat: true, whatsappChatbot: true },
           limits: { maxQueues: 20, maxTokens: 10000 },
         });
         plans = await this.plansService.listPlans('ACTIVE', 0, 50);

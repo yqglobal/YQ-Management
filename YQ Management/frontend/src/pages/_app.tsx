@@ -9,6 +9,8 @@ import { setApiRouter } from '../lib/api';
 import { useRouter } from 'next/router';
 
 import CookieConsent from '../components/CookieConsent';
+import { GlobalCommandPalette } from '../components/GlobalCommandPalette';
+import { Toaster } from 'sonner';
 
 function AppRouterSetter() {
   const router = useRouter();
@@ -27,8 +29,10 @@ export default function App({ Component, pageProps }: AppProps) {
             <AppRouterSetter />
             <Component {...pageProps} />
             <CookieConsent />
+            <GlobalCommandPalette />
           </TrackingProvider>
         </AuthProvider>
+        <Toaster position="bottom-right" richColors closeButton />
 
       </ThemeProvider>
 

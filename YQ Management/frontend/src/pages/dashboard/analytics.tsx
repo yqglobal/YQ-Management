@@ -1,201 +1,476 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import AdminLayout from '../../components/AdminLayout';
-import { BarChart3, TrendingUp, Users, Clock, CalendarDays, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import { fetchApi } from '../../lib/api';
+import { PremiumFeatureGate } from '../../components/PremiumFeatureGate';
+import { Search, Users, Phone, Mail, Clock, BarChart2 } from 'lucide-react';
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function avgWaitMinutes(visits: any[]): string {
+  const completed = visits.filter((v: any) => v.completedAt && v.createdAt);
+  if (!completed.length) return '—';
+  const avg = completed.reduce((s: number, v: any) =>
+    s + (new Date(v.completedAt).getTime() - new Date(v.createdAt).getTime()), 0) / completed.length;
+  const mins = Math.round(avg / 60000);
+  return mins < 1 ? '<1 min' : `${mins} min`;
+}
+
+function lastVisitLabel(visits: any[]): string {
+  if (!visits.length) return '—';
+  const sorted = [...visits].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const d = new Date(sorted[0].createdAt);
+  const diffDays = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 30) return `${diffDays}d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+const SLA_THRESHOLD_MINS = 15;
 
 export default function Analytics() {
-  const [timeframe, setTimeframe] = useState('7d');
+  const [timeRange, setTimeRange] = useState<'Day' | 'Week' | 'Month'>('Week');
+  const [activeTab, setActiveTab] = useState<'insights' | 'customers'>('insights');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerSort, setCustomerSort] = useState<'visits' | 'recent' | 'name'>('visits');
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['analytics', timeframe],
-    queryFn: () => fetchApi(`/analytics/dashboard?timeframe=${timeframe}`)
+  // All historical visits (for analytics & customers)
+  const { data: visits = [], isLoading: isVisitsLoading } = useQuery({
+    queryKey: ['visits', 'history-all'],
+    queryFn: () => fetchApi('/visits').catch(() => []),
   });
-  const metrics = {
-    totalVisits: data?.kpis?.totalServed || 0,
-    avgWaitTime: `${data?.kpis?.averageWaitTimeMins || 0}m`,
-    avgServiceTime: `${data?.kpis?.averageServiceTimeMins || 0}m`,
-    dropOffRate: `${data?.kpis?.dropOffRate || 0}%`,
+
+  // Queues for per-queue breakdown
+  const { data: queues = [] } = useQuery({
+    queryKey: ['queues'],
+    queryFn: () => fetchApi('/queue').catch(() => []),
+  });
+
+  // ── KPI calculations ────────────────────────────────────────────────────
+  const servedVisits = (visits as any[]).filter((v) => v.serviceStart && v.waitingStart);
+  const completedOrExited = (visits as any[]).filter((v) =>
+    ['COMPLETED', 'NO_SHOW', 'CANCELLED'].includes(v.currentState)
+  );
+  const walkawayCount = (visits as any[]).filter((v) =>
+    ['NO_SHOW', 'CANCELLED'].includes(v.currentState)
+  ).length;
+
+  let totalWaitMs = 0;
+  let slaViolations = 0;
+
+  servedVisits.forEach((v) => {
+    const wait = new Date(v.serviceStart).getTime() - new Date(v.waitingStart).getTime();
+    totalWaitMs += wait;
+    if (wait > SLA_THRESHOLD_MINS * 60 * 1000) slaViolations++;
+  });
+
+  const avgWaitMs = servedVisits.length > 0 ? totalWaitMs / servedVisits.length : 0;
+  const avgWaitMins = Math.floor(avgWaitMs / 60000);
+  const avgWaitSecs = Math.floor((avgWaitMs % 60000) / 1000);
+  const walkawayRate = completedOrExited.length > 0
+    ? ((walkawayCount / completedOrExited.length) * 100).toFixed(1)
+    : '0.0';
+
+  // ── Chart data ──────────────────────────────────────────────────────────
+  const chartData = useMemo(() => {
+    const v = visits as any[];
+    if (timeRange === 'Day') {
+      const hours = Array.from({ length: 24 }, (_, i) => ({ time: `${i.toString().padStart(2, '0')}:00`, visits: 0 }));
+      v.forEach((visit) => {
+        if (!visit.createdAt) return;
+        const d = new Date(visit.createdAt);
+        if (d.toDateString() === new Date().toDateString()) hours[d.getHours()].visits++;
+      });
+      return hours;
+    }
+    if (timeRange === 'Week') {
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => ({ time: d, visits: 0 }));
+      v.forEach((visit) => {
+        if (!visit.createdAt) return;
+        const day = new Date(visit.createdAt).getDay();
+        if (day >= 0 && day < 7) days[day].visits++;
+      });
+      return days;
+    }
+    const days = Array.from({ length: 30 }, (_, i) => ({ time: `${i + 1}`, visits: 0 }));
+    v.forEach((visit) => {
+      if (!visit.createdAt) return;
+      const d = new Date(visit.createdAt).getDate() - 1;
+      if (d >= 0 && d < 30) days[d].visits++;
+    });
+    return days;
+  }, [visits, timeRange]);
+
+  // ── Per-queue SLA heatmap (REAL data) ──────────────────────────────────
+  const queueStats = useMemo(() => {
+    const v = visits as any[];
+    const map = new Map<string, { name: string; totalWaitMs: number; count: number; violations: number }>();
+
+    (queues as any[]).forEach((q) => {
+      map.set(q.id, { name: q.name, totalWaitMs: 0, count: 0, violations: 0 });
+    });
+
+    v.forEach((visit) => {
+      if (!visit.queue?.id && !visit.queueId) return;
+      const qId = visit.queue?.id || visit.queueId;
+      if (!map.has(qId)) return;
+      if (visit.serviceStart && visit.waitingStart) {
+        const wait = new Date(visit.serviceStart).getTime() - new Date(visit.waitingStart).getTime();
+        const entry = map.get(qId)!;
+        entry.totalWaitMs += wait;
+        entry.count++;
+        if (wait > SLA_THRESHOLD_MINS * 60 * 1000) entry.violations++;
+      }
+    });
+
+    return Array.from(map.values()).map((q) => ({
+      ...q,
+      avgMins: q.count > 0 ? Math.round(q.totalWaitMs / q.count / 60000) : null,
+    }));
+  }, [visits, queues]);
+
+  // ── Customer map (absorbing Records page) ──────────────────────────────
+  const { people } = useMemo(() => {
+    const peopleMap = new Map<string, any>();
+    (visits as any[]).forEach((v) => {
+      if (v.customer?.id) {
+        if (!peopleMap.has(v.customer.id)) {
+          peopleMap.set(v.customer.id, { ...v.customer, visits: [v] });
+        } else {
+          peopleMap.get(v.customer.id).visits.push(v);
+        }
+      }
+    });
+
+    let list = Array.from(peopleMap.values());
+    if (customerSearch) {
+      const q = customerSearch.toLowerCase();
+      list = list.filter(p =>
+        p.name?.toLowerCase().includes(q) ||
+        p.phone?.includes(customerSearch) ||
+        p.email?.toLowerCase().includes(q)
+      );
+    }
+    if (customerSort === 'visits') list.sort((a, b) => b.visits.length - a.visits.length);
+    else if (customerSort === 'recent') list.sort((a, b) => {
+      const la = a.visits.reduce((m: number, v: any) => Math.max(m, new Date(v.createdAt).getTime()), 0);
+      const lb = b.visits.reduce((m: number, v: any) => Math.max(m, new Date(v.createdAt).getTime()), 0);
+      return lb - la;
+    });
+    else list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    return { people: list, total: peopleMap.size };
+  }, [visits, customerSearch, customerSort]);
+
+  const kpiVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0 },
   };
 
-  const chartData = data?.chartData || [];
-  const staffPerformance = data?.staffPerformance || [];
-
-
-
   return (
-    <AdminLayout pageTitle="Analytics" pageSubtitle="Insights into your visits and performance.">
+    <AdminLayout pageTitle="Analytics">
       <Head>
-        <title>Analytics | YQ Platform</title>
+        <title>Analytics | Qmova</title>
       </Head>
 
-      <div className="max-w-7xl mx-auto space-y-8 p-4 sm:p-6 lg:p-8">
-        
-        {/* Header */}
-        <div className="flex items-end justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Analytics</h1>
-            <p className="text-gray-500 dark:text-zinc-400">Track visit volumes, wait times, and staff performance.</p>
-          </div>
-          <select 
-            value={timeframe}
-            onChange={(e) => setTimeframe(e.target.value)}
-            className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 outline-none"
-          >
-            <option value="today">Today</option>
-            <option value="7d">Last 7 Days</option>
-            <option value="30d">Last 30 Days</option>
-          </select>
-        </div>
+      <PremiumFeatureGate
+        featureKey="advancedAnalytics"
+        featureName="Advanced Analytics"
+        description="Get deep insights into wait times, SLA violations, walkaway rates, and per-queue performance."
+      >
+        <div className="max-w-7xl mx-auto space-y-6">
 
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64 text-gray-500">Loading analytics...</div>
-        ) : (
-          <>
-
-        {/* Top KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <MetricCard 
-            title="Total Visits" 
-            value={metrics.totalVisits.toLocaleString()} 
-
-            icon={<Users className="w-5 h-5 text-indigo-500" />} 
-            positive={true}
-          />
-          <MetricCard 
-            title="Avg. Wait Time" 
-            value={metrics.avgWaitTime} 
-            icon={<Clock className="w-5 h-5 text-amber-500" />} 
-          />
-          <MetricCard 
-            title="Avg. Service Time" 
-            value={metrics.avgServiceTime} 
-            icon={<TrendingUp className="w-5 h-5 text-emerald-500" />} 
-          />
-          <MetricCard 
-            title="Drop-off Rate" 
-            value={metrics.dropOffRate} 
-            icon={<CalendarDays className="w-5 h-5 text-red-500" />} 
-          />
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Main Chart */}
-          <div className="lg:col-span-2 bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Visit Volume</h3>
-              <div className="flex gap-4 items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
-                  <span className="text-xs text-gray-500">Appointments</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="h-64 flex items-end justify-between gap-2 mt-4 px-2">
-              {chartData.map((d: any, i: number) => {
-                const maxVol = Math.max(...chartData.map((cd: any) => cd.volume), 1);
-                const height = (d.volume / maxVol) * 100;
-                return (
-                <div key={i} className="flex flex-col items-center justify-end w-full group relative">
-                  {/* Tooltip */}
-                  <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-xs py-1 px-2 rounded pointer-events-none whitespace-nowrap z-10 shadow-lg">
-                    {d.volume} visits<br/>
-                    <span className="text-gray-300">{d.avgWaitTime}m avg wait</span>
-                  </div>
-                  
-                  <div className="w-full flex flex-col justify-end mb-2 h-full">
-                    <div 
-                      className="w-full bg-indigo-500 rounded-t-sm transition-all duration-500 group-hover:bg-indigo-400" 
-                      style={{ height: `${height}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-xs text-gray-400 font-medium">{d.timeLabel}</span>
-                </div>
-              )})}
-            </div>
+          {/* Tab Bar */}
+          <div className="flex gap-1 bg-surface-container-low dark:bg-zinc-900 p-1 rounded-xl w-fit border border-border dark:border-dark-border">
+            {(['insights', 'customers'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
+                  activeTab === tab
+                    ? 'bg-white dark:bg-zinc-800 text-on-surface dark:text-white shadow-sm'
+                    : 'text-on-surface-variant hover:text-on-surface dark:hover:text-white'
+                }`}
+              >
+                {tab === 'insights' ? '📊 Insights' : '👥 Customers'}
+              </button>
+            ))}
           </div>
 
-          {/* Secondary Stats */}
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Staff Performance</h3>
-              <div className="space-y-4">
-                {staffPerformance.map((staff: any, idx: number) => (
-                  <div key={idx} className="flex justify-between items-center mb-4 border-b border-gray-100 dark:border-zinc-800 pb-4 last:border-0 last:pb-0">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center font-bold text-gray-600 dark:text-zinc-400">
-                        {staff.name.charAt(0)}
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">{staff.name}</h4>
-                        <p className="text-xs text-gray-500">{staff.email}</p>
-                      </div>
+          {/* ── INSIGHTS TAB ── */}
+          {activeTab === 'insights' && (
+            <>
+              {/* KPI Ribbon */}
+              <motion.div
+                initial="hidden" animate="visible"
+                variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+                className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+              >
+                <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
+                  <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Total Visits</p>
+                  <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">{(visits as any[]).length}</p>
+                  <p className="text-xs text-outline mt-1">All time</p>
+                </motion.div>
+
+                <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
+                  <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Avg Wait Time</p>
+                  <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">
+                    {servedVisits.length > 0 ? `${avgWaitMins}m ${avgWaitSecs.toString().padStart(2, '0')}s` : '—'}
+                  </p>
+                  <p className="text-xs text-outline mt-1">Served customers</p>
+                </motion.div>
+
+                <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-alert/30 dark:border-alert/20 rounded-xl p-5 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-alert rounded-l-xl" />
+                  <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">SLA Violations</p>
+                  <p className="font-mono text-3xl font-bold text-alert">{slaViolations}</p>
+                  <p className="text-xs text-outline mt-1">&gt;{SLA_THRESHOLD_MINS} min waits</p>
+                </motion.div>
+
+                <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
+                  <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Walkaway Rate</p>
+                  <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">{walkawayRate}%</p>
+                  <p className="text-xs text-outline mt-1">No-shows & cancels</p>
+                </motion.div>
+              </motion.div>
+
+              {/* Throughput Chart */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+                className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-6 shadow-sm"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="font-semibold text-on-surface dark:text-white">Visit Volume</h3>
+                  <div className="flex gap-1.5">
+                    {(['Day', 'Week', 'Month'] as const).map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => setTimeRange(r)}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                          timeRange === r
+                            ? 'bg-primary text-white'
+                            : 'bg-surface-container-low dark:bg-zinc-800 text-on-surface-variant hover:text-on-surface dark:hover:text-white border border-border dark:border-dark-border'
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="w-full h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#1571ff" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#1571ff" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" opacity={0.4} />
+                      <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#707881' }} dy={8} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#707881' }} />
+                      <Tooltip 
+                        isAnimationActive={false} 
+                        contentStyle={{ background: '#fff', border: '1px solid #e4e4e7', borderRadius: '10px' }} 
+                        itemStyle={{ color: '#09090b', fontWeight: 'bold' }} 
+                        labelStyle={{ color: '#52525b' }} 
+                      />
+                      <Area type="monotone" dataKey="visits" stroke="#1571ff" strokeWidth={2.5} fill="url(#colorVisits)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </motion.div>
+
+              {/* Per-Queue SLA Heatmap — REAL DATA */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+              >
+                <h3 className="font-semibold text-on-surface dark:text-white mb-4">Queue Performance (Avg Wait)</h3>
+                {queueStats.length === 0 ? (
+                  <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-10 text-center">
+                    <p className="text-on-surface-variant text-sm">No queues configured yet. Create queues to see per-queue SLA data.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {queueStats.map((q, i) => {
+                      const isViolating = q.avgMins !== null && q.avgMins > SLA_THRESHOLD_MINS;
+                      const hasData = q.avgMins !== null;
+                      return (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.3 + i * 0.05 }}
+                          className={`rounded-xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm border ${
+                            !hasData
+                              ? 'bg-surface-container-low dark:bg-zinc-900 border-border dark:border-dark-border'
+                              : isViolating
+                              ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800'
+                              : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
+                          }`}
+                        >
+                          <p className={`font-semibold text-sm truncate ${
+                            !hasData ? 'text-on-surface-variant' : isViolating ? 'text-rose-900 dark:text-rose-300' : 'text-emerald-900 dark:text-emerald-300'
+                          }`}>{q.name}</p>
+                          <div className="flex items-end justify-between mt-3">
+                            <span className={`font-mono text-2xl font-bold ${
+                              !hasData ? 'text-on-surface-variant' : isViolating ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                            }`}>
+                              {hasData ? `${q.avgMins}m` : '—'}
+                            </span>
+                            {hasData ? (
+                              <span className={`material-symbols-outlined text-[20px] ${isViolating ? 'text-rose-500' : 'text-emerald-500'}`}
+                                style={{ fontVariationSettings: "'FILL' 1" }}>
+                                {isViolating ? 'warning' : 'check_circle'}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-on-surface-variant">No data</span>
+                            )}
+                          </div>
+                          {q.count > 0 && (
+                            <p className="text-[10px] text-outline mt-1">{q.count} served · {q.violations} violations</p>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.div>
+            </>
+          )}
+
+          {/* ── CUSTOMERS TAB (absorbs Records page) ── */}
+          {activeTab === 'customers' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              {/* Summary stats */}
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: 'Total Customers', value: people.length, icon: Users },
+                  { label: 'Total Visits', value: (visits as any[]).length, icon: BarChart2 },
+                  { label: 'Avg Visits / Customer', value: people.length ? ((visits as any[]).length / people.length).toFixed(1) : '0', icon: Clock },
+                ].map(({ label, value, icon: Icon }) => (
+                  <div key={label} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Icon strokeWidth={1.5} className="w-4 h-4 text-primary" />
+                      <p className="text-xs font-medium text-on-surface-variant uppercase tracking-wider">{label}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-gray-900 dark:text-white">{staff.avgServiceTimeMins}m avg</p>
-                      <p className="text-xs text-gray-500">{staff.served} served</p>
-                    </div>
+                    <p className="text-2xl font-bold text-on-surface dark:text-white">{value}</p>
                   </div>
                 ))}
-                {staffPerformance.length === 0 && (
-                  <p className="text-sm text-gray-500">No staff performance data available for this period.</p>
+              </div>
+
+              {/* Toolbar */}
+              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                <div className="relative w-full max-w-sm">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" strokeWidth={1.5} />
+                  <input
+                    type="text"
+                    placeholder="Search name, phone or email..."
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    className="pl-9 pr-4 py-2 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface dark:text-white placeholder:text-on-surface-variant w-full"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-on-surface-variant">Sort:</span>
+                  {(['visits', 'recent', 'name'] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setCustomerSort(s)}
+                      className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-all capitalize ${
+                        customerSort === s
+                          ? 'bg-primary text-white'
+                          : 'bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border text-on-surface-variant hover:text-on-surface dark:hover:text-white'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Customer Table */}
+              <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl shadow-sm overflow-hidden">
+                {isVisitsLoading ? (
+                  <div className="p-6 space-y-3">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="h-14 bg-surface-container-low dark:bg-white/5 animate-pulse rounded-xl" />
+                    ))}
+                  </div>
+                ) : people.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-border dark:border-dark-border bg-surface-container-low dark:bg-white/[0.02] text-xs uppercase tracking-wider text-on-surface-variant font-semibold">
+                          <th className="p-4">Customer</th>
+                          <th className="p-4">Contact</th>
+                          <th className="p-4 text-center">Visits</th>
+                          <th className="p-4 text-center">Avg Time</th>
+                          <th className="p-4">Last Visit</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border dark:divide-dark-border">
+                        {people.map((person: any) => (
+                          <tr key={person.id} className="hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors">
+                            <td className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center font-bold text-primary text-sm shrink-0">
+                                  {(person.name || '?').charAt(0).toUpperCase()}
+                                </div>
+                                <p className="font-semibold text-on-surface dark:text-white text-sm">{person.name || 'Unknown'}</p>
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <div className="space-y-0.5">
+                                {person.phone && (
+                                  <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+                                    <Phone className="w-3.5 h-3.5" strokeWidth={1.5} />{person.phone}
+                                  </div>
+                                )}
+                                {person.email && (
+                                  <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+                                    <Mail className="w-3.5 h-3.5" strokeWidth={1.5} />{person.email}
+                                  </div>
+                                )}
+                                {!person.phone && !person.email && <span className="text-xs text-on-surface-variant">—</span>}
+                              </div>
+                            </td>
+                            <td className="p-4 text-center">
+                              <span className="inline-flex items-center justify-center px-2.5 py-1 text-xs font-semibold bg-primary/10 dark:bg-primary/20 text-primary rounded-full">
+                                {person.visits.length}
+                              </span>
+                            </td>
+                            <td className="p-4 text-center">
+                              <span className="text-sm text-on-surface-variant font-medium">{avgWaitMinutes(person.visits)}</span>
+                            </td>
+                            <td className="p-4">
+                              <span className="text-sm text-on-surface-variant">{lastVisitLabel(person.visits)}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-16 flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 bg-surface-container-low dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
+                      <Users className="w-8 h-8 text-on-surface-variant opacity-40" strokeWidth={1.5} />
+                    </div>
+                    <p className="text-lg font-semibold text-on-surface dark:text-white mb-1">No customer data yet</p>
+                    <p className="text-sm text-on-surface-variant max-w-sm">
+                      {customerSearch ? 'No customers match your search.' : 'Customers appear here after their first visit.'}
+                    </p>
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
-
+            </motion.div>
+          )}
         </div>
-          </>
-        )}
-      </div>
+      </PremiumFeatureGate>
     </AdminLayout>
-  );
-}
-
-function MetricCard({ title, value, trend, icon, subtitle, positive }: any) {
-  return (
-    <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 relative overflow-hidden shadow-sm group hover:border-indigo-500/30 transition-all duration-300">
-      <div className="flex justify-between items-start mb-4">
-        <div className="p-3 bg-gray-50 dark:bg-black/20 rounded-xl">
-          {icon}
-        </div>
-        {trend && (
-          <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md ${
-            positive 
-            ? 'text-emerald-700 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-500/10' 
-            : 'text-red-700 bg-red-100 dark:text-red-400 dark:bg-red-500/10'
-          }`}>
-            {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            {trend}
-          </div>
-        )}
-      </div>
-      <div>
-        <p className="text-sm font-medium text-gray-500 dark:text-zinc-400 mb-1">{title}</p>
-        <h3 className="text-3xl font-bold text-gray-900 dark:text-white">{value}</h3>
-        {subtitle && <p className="text-xs text-gray-400 dark:text-zinc-500 mt-2">{subtitle}</p>}
-      </div>
-    </div>
-  );
-}
-
-function ServiceRank({ rank, name, count, percentage }: any) {
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-2">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-bold text-gray-400 w-4">{rank}.</span>
-          <span className="text-sm font-medium text-gray-900 dark:text-white">{name}</span>
-        </div>
-        <span className="text-sm font-bold text-gray-900 dark:text-white">{count}</span>
-      </div>
-      <div className="w-full h-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-        <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${percentage}%` }}></div>
-      </div>
-    </div>
   );
 }

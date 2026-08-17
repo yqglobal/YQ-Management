@@ -8,6 +8,7 @@ import {
   Delete,
   Req,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
@@ -30,8 +31,8 @@ export class AppointmentController {
   }
 
   @Get()
-  findAll(@Req() req: AuthenticatedRequest) {
-    return this.appointmentService.findAll(req.user.tenantId);
+  findAll(@Req() req: AuthenticatedRequest, @Query('status') status?: string) {
+    return this.appointmentService.findAll(req.user, status);
   }
 
   @Get(':id')

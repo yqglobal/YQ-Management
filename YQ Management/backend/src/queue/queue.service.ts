@@ -44,6 +44,10 @@ export class QueueService {
       }
     }
 
+    if (!serviceIds || serviceIds.length === 0) {
+      throw new BadRequestException('A queue must be linked to at least one service.');
+    }
+
     const queue = await this.prisma.queue.create({
       data: {
         tenantId,
@@ -130,12 +134,29 @@ export class QueueService {
     return { success: true };
   }
 
-  async getQueuesForTenant(tenantId: string) {
+  async getQueuesForTenant(userTokenPayload: any) {
+    const where: any = { tenantId: userTokenPayload.tenantId };
+    
+    if (userTokenPayload.role === 'OPERATOR') {
+      const user = await this.prisma.user.findUnique({ where: { id: userTokenPayload.userId } });
+      if (user && user.allowedLocationIds && user.allowedLocationIds.length > 0) {
+        where.locationId = { in: user.allowedLocationIds };
+      }
+    }
+
     return this.prisma.queue.findMany({
-      where: { tenantId },
+      where,
       include: {
         location: true,
         services: true,
+        tokens: {
+          where: {
+            status: TokenStatus.WAITING,
+          },
+          orderBy: {
+            joinedAt: 'asc',
+          },
+        },
         _count: {
           select: {
             tokens: {
@@ -152,12 +173,22 @@ export class QueueService {
   async getPublicQueuesForTenant(tenantId: string) {
     return this.prisma.queue.findMany({
       where: { tenantId, status: QueueStatus.ACTIVE },
+      include: {
+        services: {
+          select: { id: true, name: true, description: true, expectedDuration: true },
+        },
+      },
     });
   }
 
   async getQueueById(id: string) {
     return this.prisma.queue.findUnique({
       where: { id },
+      include: {
+        services: {
+          select: { id: true, name: true, description: true, expectedDuration: true },
+        },
+      },
     });
   }
 

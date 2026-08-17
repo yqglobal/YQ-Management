@@ -201,22 +201,22 @@ log_success "Frontend running (PID: $FRONTEND_PID)"
 log_step "Waiting for services to become healthy..."
 
 # Wait for backend
-for i in {1..30}; do
+for i in {1..90}; do
     if curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 http://localhost:3000/health 2>/dev/null | grep -q "200"; then
         log_success "Backend API is healthy."
         break
     fi
-    if [ $i -eq 30 ]; then log_warning "Backend health check timed out, but process is alive."; fi
+    if [ $i -eq 90 ]; then log_warning "Backend health check timed out, but process is alive."; fi
     sleep 1
 done
 
 # Wait for frontend
-for i in {1..30}; do
+for i in {1..90}; do
     if curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 http://localhost:3001/ 2>/dev/null | grep -q "200"; then
         log_success "Frontend UI is healthy."
         break
     fi
-    if [ $i -eq 30 ]; then log_warning "Frontend health check timed out, but process is alive."; fi
+    if [ $i -eq 90 ]; then log_warning "Frontend health check timed out, but process is alive."; fi
     sleep 1
 done
 

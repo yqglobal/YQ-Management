@@ -3,25 +3,19 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
-import { QrCode, Loader2, ArrowRight, Store, Activity, Pizza, Briefcase, Check, Keyboard, Copy, CheckCircle2, Users, Shield } from 'lucide-react';
+import { QrCode, Loader2, ArrowRight, Store, Activity, Pizza, Briefcase, Check, Keyboard, Copy, CheckCircle2, Users, Shield, Scissors, Landmark, Truck } from 'lucide-react';
+import { Logo } from '../../components/Logo';
 import { QRCodeSVG } from 'qrcode.react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import useWhatsapp from '../../hooks/useWhatsapp';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const COUNTRY_CODES = [
-  { code: '+27', label: '🇿🇦 +27 (ZA)' },
-  { code: '+1', label: '🇺🇸 +1 (US/CA)' },
-  { code: '+44', label: '🇬🇧 +44 (UK)' },
-  { code: '+91', label: '🇮🇳 +91 (IN)' },
-  { code: '+61', label: '🇦🇺 +61 (AU)' },
-  { code: '+49', label: '🇩🇪 +49 (DE)' },
-  { code: '+33', label: '🇫🇷 +33 (FR)' },
-  { code: '+55', label: '🇧🇷 +55 (BR)' },
-  { code: '+971', label: '🇦🇪 +971 (AE)' },
-  { code: '+234', label: '🇳🇬 +234 (NG)' },
-  { code: '+254', label: '🇰🇪 +254 (KE)' },
-];
+import { countryCodes as allCountryCodes } from '../../lib/country-codes';
+
+const COUNTRY_CODES = allCountryCodes.map(c => ({
+  code: c.code,
+  label: `${c.country} ${c.code} (${c.name})`
+}));
 
 const BUSINESS_TEMPLATES = [
   {
@@ -117,6 +111,74 @@ const BUSINESS_TEMPLATES = [
         ]
       }
     ]
+  },
+  {
+    id: 'salon',
+    title: 'Salon & Beauty',
+    description: 'Manage stylists and beauty appointments.',
+    icon: Scissors,
+    services: [
+      {
+        name: 'Haircut & Styling',
+        formConfig: [
+          { id: 'name', type: 'text', label: 'Client Name', required: true, system: false },
+          { id: 'phone', type: 'phone', label: 'WhatsApp Number', required: true, system: false },
+          { id: 'stylist', type: 'dropdown', label: 'Preferred Stylist', required: false, system: false, options: ['Anyone', 'Alex', 'Sam', 'Jordan'] }
+        ]
+      },
+      {
+        name: 'Color & Treatment',
+        formConfig: [
+          { id: 'name', type: 'text', label: 'Client Name', required: true, system: false },
+          { id: 'phone', type: 'phone', label: 'WhatsApp Number', required: true, system: false }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'bank',
+    title: 'Bank & Finance',
+    description: 'Teller queues and loan consultations.',
+    icon: Landmark,
+    services: [
+      {
+        name: 'Teller Services',
+        formConfig: [
+          { id: 'name', type: 'text', label: 'Customer Name', required: true, system: false },
+          { id: 'accountNum', type: 'text', label: 'Account Number (optional)', required: false, system: false }
+        ]
+      },
+      {
+        name: 'Loan Consultation',
+        formConfig: [
+          { id: 'name', type: 'text', label: 'Customer Name', required: true, system: false },
+          { id: 'phone', type: 'phone', label: 'Phone Number', required: true, system: false },
+          { id: 'loanType', type: 'dropdown', label: 'Loan Type', required: true, system: false, options: ['Personal', 'Mortgage', 'Auto', 'Business'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'logistics',
+    title: 'Logistics & Courier',
+    description: 'Parcel pickup and dispatch queues.',
+    icon: Truck,
+    services: [
+      {
+        name: 'Parcel Pickup',
+        formConfig: [
+          { id: 'name', type: 'text', label: 'Customer Name', required: true, system: false },
+          { id: 'trackingNum', type: 'text', label: 'Tracking Number', required: true, system: false }
+        ]
+      },
+      {
+        name: 'Dispatch / Drop-off',
+        formConfig: [
+          { id: 'name', type: 'text', label: 'Sender Name', required: true, system: false },
+          { id: 'phone', type: 'phone', label: 'WhatsApp Number', required: true, system: false }
+        ]
+      }
+    ]
   }
 ];
 
@@ -129,6 +191,16 @@ export default function Onboarding() {
   const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
   const [countryCode, setCountryCode] = useState('+27');
+  
+  useEffect(() => {
+    import('../../lib/country-codes').then(({ detectCountryByTimezone, getCountryByAbbr }) => {
+      const abbr = detectCountryByTimezone();
+      const country = getCountryByAbbr(abbr);
+      if (country) {
+        setCountryCode(country.code);
+      }
+    }).catch(() => {});
+  }, []);
   
   // New Step 2 State
   const [locationName, setLocationName] = useState('Main Branch');
@@ -264,18 +336,30 @@ export default function Onboarding() {
         method: 'POST',
         body: JSON.stringify({ name: locationName }),
       });
-      // 2. Create Services under that location
+      // 2. Create Services and Queues under that location
       const servicesToCreate = template.services.filter(s => selectedServices.includes(s.name));
-      await Promise.all(servicesToCreate.map(s =>
-        fetchApi('/service', {
+      await Promise.all(servicesToCreate.map(async s => {
+        const service = await fetchApi('/service', {
           method: 'POST',
           body: JSON.stringify({ 
             name: s.name, 
             locationId: location.id,
             description: 'Created during setup'
           }),
-        })
-      ));
+        });
+
+        await fetchApi('/queue', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: s.name,
+            locationId: location.id,
+            serviceIds: [service.id],
+            formConfig: s.formConfig,
+            status: 'active',
+            estimatedWaitTimeMinutes: 15
+          })
+        });
+      }));
       
       // 3. Save Waitlist preference to Tenant
       const tenant = await fetchApi('/tenant/me').catch(() => null);
@@ -298,8 +382,6 @@ export default function Onboarding() {
     },
     onError: () => {
       toast.error('Failed to setup your workspace. Please try again.');
-    },
-    onSettled: () => {
     },
   });
 
@@ -352,226 +434,213 @@ export default function Onboarding() {
     router.push('/dashboard');
   };
 
+  const totalSteps = inviteCode ? 2 : 3;
+  const currentStepProgress = inviteCode ? (step === 1 ? 1 : 2) : (step === 4 ? 3 : step);
+
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row font-sans">
+    <div className="bg-canvas dark:bg-zinc-950 min-h-screen flex items-center justify-center p-4 md:p-8 font-body-md text-on-surface dark:text-white">
       <Head>
         <title>Onboarding | Qmova</title>
       </Head>
 
-      {/* LEFT PANEL */}
-      <div className="w-full lg:w-1/3 min-h-[40vh] lg:min-h-screen bg-gradient-to-br from-[#1E3A8A] to-[#0F172A] p-8 lg:p-12 flex flex-col text-white shrink-0">
-        <div className="flex items-center gap-2.5 mb-24">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center font-black text-white text-base shadow-[0_0_15px_rgba(255,255,255,0.2)] tracking-tighter">
-            Q
-          </div>
-          <span className="font-extrabold text-xl tracking-tight text-white">Qmova</span>
+      <main className="w-full max-w-2xl bg-card dark:bg-dark-card rounded-[2.5rem] border border-border dark:border-dark-border shadow-sm p-8 md:p-12 relative overflow-hidden">
+        {/* Progress Tracker */}
+        <div className="flex gap-2 mb-10 w-full max-w-[200px] mx-auto">
+          {Array.from({ length: totalSteps }).map((_, i) => (
+            <div 
+              key={i} 
+              className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i + 1 <= currentStepProgress ? 'bg-primary dark:bg-sky-500' : 'bg-surface-variant dark:bg-zinc-800'}`} 
+            />
+          ))}
         </div>
 
-        <div className="max-w-md">
-          {step === 1 ? (
-            <>
-              <h1 className="text-5xl font-bold mb-6 leading-tight">{inviteCode ? 'Join Your Team' : 'Welcome to Qmova'}</h1>
-              <p className="text-blue-200/70 text-lg leading-relaxed">
-                {inviteCode
-                  ? "Let's save your personal profile details before entering your workspace."
-                  : "Let's start by getting to know you and your business."}
-              </p>
-            </>
-          ) : step === 2 ? (
-            <>
-              <h1 className="text-5xl font-bold mb-6 leading-tight">What kind of business are you running?</h1>
-              <p className="text-blue-200/70 text-lg leading-relaxed">
-                We'll automatically set up the perfect locations and services tailored to your industry.
-              </p>
-            </>
-          ) : step === 3 ? (
-            <>
-              <h1 className="text-5xl font-bold mb-6 leading-tight">Connect WhatsApp.</h1>
-              <p className="text-blue-200/70 text-lg leading-relaxed">
-                Automatically notify customers about their queue position through WhatsApp.
-              </p>
-            </>
-          ) : (
-            <>
-              <h1 className="text-5xl font-bold mb-6 leading-tight">You're ready to jump in.</h1>
-              <p className="text-blue-200/70 text-lg leading-relaxed">
-                Your personal profile has been configured. Confirm below to complete joining your team's Qmova workspace.
-              </p>
-            </>
-          )}
-        </div>
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <motion.div 
+              key="step1"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-8"
+            >
+              <header className="text-center flex flex-col gap-2">
+                <h1 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight">
+                  {inviteCode ? 'Join Your Team' : 'Welcome to Qmova'}
+                </h1>
+                <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline max-w-lg mx-auto">
+                  {inviteCode
+                    ? "Let's save your personal profile details before entering your workspace."
+                    : "Let's start by getting to know you and your business."}
+                </p>
+              </header>
 
-        <div className="mt-auto flex items-center gap-2">
-          {inviteCode ? (
-            <>
-              <div className={`w-6 h-1.5 rounded-full ${step === 1 ? 'bg-white' : 'bg-white/30'}`}></div>
-              <div className={`w-6 h-1.5 rounded-full ${step === 4 ? 'bg-white' : 'bg-white/30'}`}></div>
-            </>
-          ) : (
-            <>
-              <div className={`w-4 h-1 rounded-full ${step === 1 ? 'bg-white' : 'bg-white/30'}`}></div>
-              <div className={`w-4 h-1 rounded-full ${step === 2 ? 'bg-white' : 'bg-white/30'}`}></div>
-              <div className={`w-4 h-1 rounded-full ${step === 3 ? 'bg-white' : 'bg-white/30'}`}></div>
-              <div className="w-4 h-1 rounded-full bg-white/30"></div>
-            </>
-          )}
-        </div>
-      </div>
+              <div className="space-y-6 mt-4">
+                <div className="space-y-2">
+                  <label className="font-body-md font-medium text-on-surface dark:text-white block">Full Name</label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant"
+                    placeholder="Jane Doe"
+                  />
+                </div>
 
-      {/* RIGHT PANEL */}
-      <div className="flex-1 bg-[#F3F4F6] flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
-        <div className="w-full max-w-2xl py-12 relative overflow-hidden">
-          <AnimatePresence mode="wait">
-            {step === 1 && (
-              <motion.div 
-                key="step1"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="max-w-md mx-auto"
-              >
-              <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Personal Information</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                {inviteCode ? (
+                  <div className="p-6 bg-primary-fixed dark:bg-sky-900/20 border border-primary-fixed-dim dark:border-sky-500/20 rounded-2xl flex flex-col items-center justify-center text-center gap-2">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
+                      <p className="font-label-caps text-label-caps uppercase tracking-wider text-on-primary-fixed dark:text-sky-300">Joining Workspace</p>
+                    </div>
+                    <p className="font-headline-sm text-headline-sm text-on-surface dark:text-white font-bold">{inviteInfo?.workspaceName || 'Team Workspace'}</p>
+                    <p className="font-body-sm text-on-surface-variant dark:text-sky-200/70 bg-white/50 dark:bg-black/20 px-3 py-1 rounded-full border border-primary-fixed-dim/50">
+                      Assigned Role: <span className="font-bold uppercase text-primary dark:text-sky-400">{inviteInfo?.role || 'STAFF'}</span>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="font-body-md font-medium text-on-surface dark:text-white block">Company / Workspace Name</label>
                     <input
                       type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                      placeholder="Jane Doe"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant"
+                      placeholder="Acme Corp"
                     />
                   </div>
-                  {inviteCode ? (
-                    <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse"></span>
-                        <p className="text-xs font-bold uppercase tracking-wider text-indigo-900">Joining Workspace</p>
-                      </div>
-                      <p className="text-lg font-extrabold text-gray-900">{inviteInfo?.workspaceName || 'Team Workspace'}</p>
-                      <p className="text-sm text-gray-600">Assigned Role: <span className="font-semibold text-indigo-700 uppercase">{inviteInfo?.role || 'STAFF'}</span></p>
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Company / Workspace Name</label>
-                      <input
-                        type="text"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                        placeholder="Acme Corp"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                    <div className="flex rounded-xl shadow-sm bg-gray-50 border border-gray-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:bg-white transition-all overflow-hidden">
-                      <select
-                        value={countryCode}
-                        onChange={(e) => setCountryCode(e.target.value)}
-                        className="bg-transparent text-gray-800 font-medium px-3 py-3 border-r border-gray-200 focus:outline-none cursor-pointer text-sm"
-                      >
-                        {COUNTRY_CODES.map((c) => (
-                          <option key={c.code} value={c.code}>
-                            {c.label}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="w-full px-4 py-3 bg-transparent text-gray-900 placeholder:text-gray-400 font-medium outline-none"
-                        placeholder="71 234 5678"
-                      />
-                    </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="font-body-md font-medium text-on-surface dark:text-white block">Phone Number</label>
+                  <div className="flex h-[56px] rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 overflow-hidden focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-shadow">
+                    <select
+                      value={countryCode}
+                      onChange={(e) => setCountryCode(e.target.value)}
+                      className="bg-surface-container-lowest dark:bg-black/20 text-on-surface dark:text-white font-medium px-4 border-r border-border dark:border-dark-border focus:outline-none cursor-pointer text-sm"
+                    >
+                      {COUNTRY_CODES.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full px-4 bg-transparent text-on-surface dark:text-white placeholder:text-outline-variant font-medium outline-none"
+                      placeholder="71 234 5678"
+                    />
                   </div>
                 </div>
+              </div>
+
+              <div className="pt-8 mt-2 border-t border-border dark:border-dark-border flex justify-end">
                 <button
                   onClick={() => savePersonalInfoMutation.mutate()}
                   disabled={savePersonalInfoMutation.isPending || !fullName || (!inviteCode && !companyName)}
-                  className="w-full mt-8 flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                  className="w-full sm:w-auto min-h-[44px] px-8 rounded-lg font-body-md font-medium bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {savePersonalInfoMutation.isPending && <Loader2 className="w-5 h-5 animate-spin" />}
-                  {savePersonalInfoMutation.isPending ? 'Saving...' : 'Continue'}
-                  {!savePersonalInfoMutation.isPending && <ArrowRight className="w-5 h-5" />}
+                  {savePersonalInfoMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue'}
+                  {!savePersonalInfoMutation.isPending && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
                 </button>
               </div>
-              </motion.div>
-            )}
+            </motion.div>
+          )}
 
-            {step === 2 && (
-              <motion.div 
-                key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-              >
+          {step === 2 && (
+            <motion.div 
+              key="step2"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-8"
+            >
+              <header className="text-center flex flex-col gap-2">
+                <h1 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight">
+                  Operating Model Selection
+                </h1>
+                <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline max-w-lg mx-auto">
+                  What kind of business are you running? We'll tailor your queues.
+                </p>
+              </header>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {BUSINESS_TEMPLATES.map((template) => {
                   const Icon = template.icon;
                   const isSelected = selectedType === template.id;
                   return (
-                    <div
+                    <label 
                       key={template.id}
                       onClick={() => setSelectedType(template.id)}
-                      className={`relative p-6 rounded-2xl cursor-pointer transition-all duration-200 border-2 ${isSelected
-                          ? 'bg-white border-[#2563EB] shadow-[0_0_0_4px_rgba(37,99,235,0.1)]'
-                          : 'bg-white/60 border-transparent hover:bg-white hover:shadow-md'
-                        }`}
+                      className={`relative flex cursor-pointer rounded-2xl border p-5 transition-all ${
+                        isSelected
+                          ? 'bg-primary-fixed dark:bg-sky-900/20 border-primary shadow-[0_0_0_2px_rgba(0,97,148,0.2)] dark:shadow-[0_0_0_2px_rgba(14,165,233,0.2)]'
+                          : 'bg-canvas dark:bg-black/50 border-border dark:border-dark-border hover:border-outline-variant dark:hover:border-outline'
+                      }`}
                     >
-                      {isSelected && (
-                        <div className="absolute top-4 right-4 w-6 h-6 bg-[#2563EB] rounded-full flex items-center justify-center text-white">
-                          <Check className="w-4 h-4" />
+                      <input 
+                        type="radio" 
+                        name="operatingModel" 
+                        value={template.id} 
+                        checked={isSelected}
+                        onChange={() => setSelectedType(template.id)}
+                        className="sr-only" 
+                      />
+                      <div className="flex w-full items-start justify-between">
+                        <div className="flex items-start gap-4">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? 'bg-primary text-white dark:bg-sky-500' : 'bg-surface-variant dark:bg-zinc-800 text-outline'}`}>
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-headline-sm text-headline-sm text-on-surface dark:text-white">
+                              {template.title}
+                            </p>
+                            <div className="text-on-surface-variant dark:text-outline mt-1 font-body-sm text-body-sm leading-relaxed">
+                              {template.description}
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${isSelected ? 'bg-blue-50 text-[#2563EB]' : 'bg-gray-100 text-gray-500'}`}>
-                        <Icon className="w-6 h-6" />
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">{template.title}</h3>
-                      <p className="text-sm text-gray-500">{template.description}</p>
-                    </div>
+                    </label>
                   );
                 })}
               </div>
               
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-8 space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Primary Location Name</label>
+              <div className="space-y-6 pt-6 border-t border-border dark:border-dark-border">
+                <div className="space-y-2">
+                  <label className="font-body-md font-medium text-on-surface dark:text-white block">Primary Location Name</label>
                   <input
                     type="text"
                     value={locationName}
                     onChange={(e) => setLocationName(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant"
                     placeholder="e.g. Downtown Clinic or Main Branch"
                   />
-                  <p className="text-xs text-gray-500 mt-1">You can add more locations later from the dashboard.</p>
                 </div>
                 
-                <div>
-                  <label className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer">
+                <label className="flex items-center gap-4 p-4 rounded-xl border border-border dark:border-dark-border bg-surface-bright dark:bg-zinc-900 cursor-pointer">
+                  <div className="flex items-center justify-center w-6 h-6">
                     <input 
                       type="checkbox" 
                       checked={enableWaitlist} 
                       onChange={(e) => setEnableWaitlist(e.target.checked)}
-                      className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" 
+                      className="w-5 h-5 text-primary dark:text-sky-500 rounded border-border dark:border-dark-border focus:ring-primary dark:focus:ring-sky-500" 
                     />
-                    <div>
-                      <p className="font-bold text-gray-900">Enable Walk-in Waitlist</p>
-                      <p className="text-sm text-gray-500">Uncheck this if your business only operates by appointment.</p>
-                    </div>
-                  </label>
-                </div>
+                  </div>
+                  <div>
+                    <p className="font-body-md font-bold text-on-surface dark:text-white">Enable Walk-in Waitlist</p>
+                    <p className="font-body-sm text-on-surface-variant dark:text-outline mt-0.5">Uncheck if you operate strictly by appointment.</p>
+                  </div>
+                </label>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Which services do you offer?</label>
-                  <div className="space-y-2">
+                <div className="space-y-3">
+                  <label className="font-label-caps text-label-caps text-outline uppercase tracking-wider block">Which services do you offer?</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {BUSINESS_TEMPLATES.find(t => t.id === selectedType)?.services.map(s => (
-                      <label key={s.name} className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg cursor-pointer transition-colors">
+                      <label key={s.name} className="flex items-center gap-3 p-3 bg-canvas dark:bg-black/50 hover:bg-surface-variant dark:hover:bg-zinc-800 border border-border dark:border-dark-border rounded-xl cursor-pointer transition-colors">
                         <input 
                           type="checkbox" 
                           checked={selectedServices.includes(s.name)} 
@@ -582,252 +651,244 @@ export default function Onboarding() {
                               setSelectedServices(selectedServices.filter(name => name !== s.name));
                             }
                           }}
-                          className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" 
+                          className="w-4 h-4 text-primary dark:text-sky-500 rounded border-border dark:border-dark-border focus:ring-primary dark:focus:ring-sky-500" 
                         />
-                        <span className="font-medium text-gray-700">{s.name}</span>
+                        <span className="font-body-md font-medium text-on-surface dark:text-white">{s.name}</span>
                       </label>
                     ))}
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-4">
+              <div className="pt-8 border-t border-border dark:border-dark-border flex flex-col-reverse sm:flex-row justify-between items-center gap-4">
                 <button
                   type="button"
                   onClick={() => updateStep(1)}
-                  className="w-1/3 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
+                  className="w-full sm:w-auto min-h-[44px] px-6 py-2 rounded-lg font-body-md font-medium text-on-surface-variant dark:text-outline hover:bg-surface-container-high dark:hover:bg-white/5 transition-colors"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleSetupQueues}
                   disabled={setupQueuesMutation.isPending}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                  className="w-full sm:w-auto min-h-[44px] px-8 rounded-lg font-body-md font-medium bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {setupQueuesMutation.isPending && <Loader2 className="w-5 h-5 animate-spin" />}
-                  {setupQueuesMutation.isPending ? 'Setting up workspace...' : 'Continue'}
-                  {!setupQueuesMutation.isPending && <ArrowRight className="w-5 h-5" />}
+                  {setupQueuesMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Initialize Workspace'}
+                  {!setupQueuesMutation.isPending && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
                 </button>
               </div>
-              </motion.div>
-            )}
+            </motion.div>
+          )}
 
-            {step === 3 && (
-              <motion.div 
-                key="step3"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="max-w-lg mx-auto bg-white rounded-3xl p-10 shadow-xl border border-gray-100 text-center"
-              >
+          {step === 3 && (
+            <motion.div 
+              key="step3"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-8 text-center items-center"
+            >
+              <header className="flex flex-col gap-2 w-full">
+                <h1 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight">
+                  Connect WhatsApp
+                </h1>
+                <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline max-w-lg mx-auto">
+                  Automatically notify customers about their queue position through WhatsApp.
+                </p>
+              </header>
 
-              {whatsappStatus?.state !== 'open' ? (
-                <>
-                  {qrCode ? (
-                    <div className="animate-in zoom-in duration-500">
-                      <h3 className="text-xl font-bold text-gray-900 mb-4">Scan QR Code</h3>
-                      <p className="text-gray-500 max-w-sm mx-auto mb-6">
-                        Open WhatsApp on your phone, go to Linked Devices, and scan this QR code.
-                      </p>
-                      <div className="bg-white p-4 rounded-2xl inline-block shadow-lg mx-auto mb-6 border border-gray-100">
-                        {qrCode.startsWith && qrCode.startsWith('data:image') ? (
-                          <img src={qrCode} alt="WhatsApp QR Code" className="w-64 h-64" />
-                        ) : (
-                          <div className="w-64 h-64 flex items-center justify-center">
-                            <QRCodeSVG value={qrCode} size={256} />
+              <div className="w-full max-w-sm mt-4">
+                {whatsappStatus?.state !== 'open' ? (
+                  <>
+                    {qrCode ? (
+                      <div className="animate-in zoom-in duration-500 flex flex-col items-center">
+                        <div className="bg-white p-4 rounded-3xl shadow-sm border border-border inline-block mb-6">
+                          {qrCode.startsWith && qrCode.startsWith('data:image') ? (
+                            <img src={qrCode} alt="WhatsApp QR Code" className="w-64 h-64 rounded-2xl" />
+                          ) : (
+                            <div className="w-64 h-64 flex items-center justify-center">
+                              <QRCodeSVG value={qrCode} size={256} />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-on-surface-variant dark:text-outline font-body-md mb-6 max-w-xs mx-auto">
+                          Open WhatsApp on your phone, go to Settings → Linked Devices, and scan this QR code.
+                        </p>
+                        <div className="flex items-center justify-center gap-3 text-outline font-medium">
+                          <Loader2 className="w-5 h-5 animate-spin text-[#25D366]" />
+                          Waiting for connection...
+                        </div>
+                      </div>
+                    ) : connectionMode === 'code' ? (
+                      <div className="animate-in zoom-in duration-500 w-full">
+                        {pairingCode ? (
+                          <div className="bg-surface-bright dark:bg-black/50 rounded-2xl p-6 mb-6 border border-border dark:border-dark-border">
+                            <p className="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-4">Pairing Code</p>
+                            <div className="flex items-center justify-center gap-3 mb-4">
+                              <code className="text-3xl font-data-mono font-bold text-on-surface dark:text-white tracking-[0.2em]">{pairingCode}</code>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(pairingCode);
+                                  setPairingCopied(true);
+                                  setTimeout(() => setPairingCopied(false), 2000);
+                                }}
+                                className="p-2 bg-surface-container-low dark:bg-white/10 rounded-lg text-on-surface-variant dark:text-outline hover:text-on-surface transition-colors"
+                              >
+                                {pairingCopied ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
+                              </button>
+                            </div>
+                            <p className="font-body-sm text-on-surface-variant dark:text-outline">Open WhatsApp Settings → Linked Devices and enter this code within 60s.</p>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-center gap-3 text-gray-500 font-medium">
-                        <Loader2 className="w-5 h-5 animate-spin text-[#2563EB]" />
-                        Waiting for connection...
-                      </div>
-                    </div>
-                  ) : connectionMode === 'code' ? (
-                    <div className="animate-in zoom-in duration-500">
-                      <h3 className="text-xl font-bold text-gray-900 mb-4">
-                        {pairingCode ? 'Enter This Code in WhatsApp' : 'Connect with Pairing Code'}
-                      </h3>
-                      {pairingCode ? (
-                        <p className="text-gray-500 max-w-sm mx-auto mb-6">
-                          Open WhatsApp on your phone, go to Settings → Linked Devices, and enter this code.
-                        </p>
-                      ) : (
-                        <p className="text-gray-500 max-w-sm mx-auto mb-6">
-                          Enter your WhatsApp phone number to receive a pairing code. No QR scanning required.
-                        </p>
-                      )}
-
-                      {pairingCode ? (
-                        <div className="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-200">
-                          <p className="text-sm text-gray-500 mb-2">Pairing Code</p>
-                          <div className="flex items-center justify-center gap-2">
-                            <code className="text-lg font-mono font-bold text-gray-900 tracking-wider">{pairingCode}</code>
+                        ) : (
+                          <div className="flex flex-col gap-4 w-full">
+                            <p className="font-body-md text-on-surface-variant dark:text-outline mb-2">Enter your WhatsApp phone number to receive a pairing code.</p>
+                            <input
+                              type="tel"
+                              value={pairingPhoneNumber}
+                              onChange={(e) => setPairingPhoneNumber(e.target.value.toUpperCase())}
+                              placeholder="Enter phone (e.g. 5511999999999)"
+                              maxLength={15}
+                              className="w-full h-[56px] bg-canvas dark:bg-black/50 border border-border dark:border-dark-border rounded-xl px-4 font-data-mono text-center tracking-wider text-on-surface dark:text-white focus:outline-none focus:border-[#25D366] focus:ring-1 focus:ring-[#25D366] transition-shadow"
+                            />
                             <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(pairingCode);
-                                setPairingCopied(true);
-                                setTimeout(() => setPairingCopied(false), 2000);
-                              }}
-                              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                              title="Copy code"
+                              onClick={() => generatePairingCodeMutation.mutate(pairingPhoneNumber)}
+                              disabled={generatePairingCodeMutation.isPending || pairingPhoneNumber.length < 7}
+                              className="w-full flex items-center justify-center gap-2 h-[56px] bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 rounded-xl font-body-md font-semibold transition-colors disabled:opacity-50"
                             >
-                              {pairingCopied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                              {generatePairingCodeMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Keyboard className="w-5 h-5" />}
+                              {generatePairingCodeMutation.isPending ? 'Generating...' : 'Generate Pairing Code'}
                             </button>
                           </div>
-                          <p className="text-xs text-gray-400 mt-2">Enter this code in WhatsApp within 60 seconds</p>
-                        </div>
-                      ) : (
-                        <div className="bg-blue-50 rounded-2xl p-4 mb-4 border border-blue-100">
-                          <p className="text-sm text-gray-500">We&apos;ll generate a pairing code that you enter on your phone.</p>
-                        </div>
-                      )}
+                        )}
 
-                      {!pairingCode && (
-                        <div className="flex flex-col gap-3">
-                          <input
-                            type="tel"
-                            value={pairingPhoneNumber}
-                            onChange={(e) => setPairingPhoneNumber(e.target.value.toUpperCase())}
-                            placeholder="Enter phone number (e.g. 5511999999999)"
-                            maxLength={15}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-mono text-center tracking-wider focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                          />
-                          <button
-                            onClick={() => generatePairingCodeMutation.mutate(pairingPhoneNumber)}
-                            disabled={generatePairingCodeMutation.isPending || pairingPhoneNumber.length < 7}
-                            className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
-                          >
-                            {generatePairingCodeMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Keyboard className="w-5 h-5" />}
-                            {generatePairingCodeMutation.isPending ? 'Generating...' : 'Generate Pairing Code'}
-                          </button>
-                          <p className="text-xs text-gray-400">Include country code, no spaces or + sign</p>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={() => { setConnectionMode('qr'); setPairingCode(null); setPairingPhoneNumber(''); }}
-                        className="mt-4 text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors"
-                      >
-                        Use QR code instead
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <QrCode className="w-12 h-12 text-[#2563EB]" />
+                        <button
+                          onClick={() => { setConnectionMode('qr'); setPairingCode(null); setPairingPhoneNumber(''); }}
+                          className="mt-6 font-body-sm text-outline hover:text-on-surface dark:hover:text-white font-medium transition-colors border-b border-transparent hover:border-outline"
+                        >
+                          Use QR code instead
+                        </button>
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-4">Link Your WhatsApp</h3>
-                      <p className="text-gray-500 max-w-md mx-auto mb-8">
-                        Connecting your WhatsApp allows you to automatically notify customers when they join a queue, track their position, and alert them when it's their turn.
-                      </p>
-                      <button
-                        onClick={handleConnectWhatsApp}
-                        disabled={connectWhatsAppMutation.isPending}
-                        className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
-                      >
-                        {connectWhatsAppMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <QrCode className="w-5 h-5" />}
-                        {connectWhatsAppMutation.isPending ? 'Generating QR Code...' : 'Connect WhatsApp'}
-                      </button>
-                      <button
-                        onClick={() => setConnectionMode('code')}
-                        className="w-full mt-3 py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Keyboard className="w-4 h-4" />
-                        Use pairing code instead
-                      </button>
-                      <button
-                        onClick={finishOnboarding}
-                        className="w-full py-4 text-gray-500 hover:text-gray-700 font-bold transition-colors"
-                      >
-                        Skip for now
-                      </button>
-                    </>
-                  )}
-                </>
-              ) : (
-                <div className="animate-in zoom-in duration-500">
-                  <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-12 h-12 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
+                    ) : (
+                      <>
+                        <div className="w-24 h-24 bg-[#25D366]/10 text-[#25D366] rounded-3xl flex items-center justify-center mx-auto mb-8 border border-[#25D366]/20">
+                          <QrCode className="w-10 h-10" />
+                        </div>
+                        <button
+                          onClick={handleConnectWhatsApp}
+                          disabled={connectWhatsAppMutation.isPending}
+                          className="w-full flex items-center justify-center gap-2 h-[56px] bg-[#25D366] hover:bg-[#1DA851] text-white rounded-xl font-body-md font-semibold transition-colors disabled:opacity-50 shadow-sm"
+                        >
+                          {connectWhatsAppMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <QrCode className="w-5 h-5" />}
+                          {connectWhatsAppMutation.isPending ? 'Generating QR Code...' : 'Connect via QR Code'}
+                        </button>
+                        <button
+                          onClick={() => setConnectionMode('code')}
+                          className="w-full mt-4 flex items-center justify-center gap-2 h-[56px] bg-surface-bright dark:bg-black/20 border border-border dark:border-dark-border text-on-surface dark:text-white rounded-xl font-body-md font-semibold transition-colors hover:bg-surface-container-low dark:hover:bg-white/5"
+                        >
+                          <Keyboard className="w-5 h-5 text-outline" />
+                          Connect via Pairing Code
+                        </button>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <div className="animate-in zoom-in duration-500 w-full flex flex-col items-center">
+                    <div className="w-24 h-24 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-emerald-500/30">
+                      <CheckCircle2 className="w-12 h-12" />
+                    </div>
+                    <h3 className="font-headline-md text-headline-md text-on-surface dark:text-white mb-2">WhatsApp Connected!</h3>
+                    <p className="font-body-md text-on-surface-variant dark:text-outline max-w-sm mx-auto mb-8">
+                      Your account is successfully linked and ready to send notifications.
+                    </p>
+                    <button
+                      onClick={finishOnboarding}
+                      className="w-full h-[56px] bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 rounded-xl font-body-md font-semibold transition-colors flex items-center justify-center gap-2"
+                    >
+                      Go to Dashboard <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                    </button>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">WhatsApp Connected!</h3>
-                  <p className="text-gray-500 max-w-sm mx-auto mb-8">
-                    Your account is successfully linked and ready to send notifications.
-                  </p>
+                )}
+              </div>
+
+              {whatsappStatus?.state !== 'open' && (
+                <div className="w-full pt-8 mt-4 border-t border-border dark:border-dark-border flex flex-col-reverse sm:flex-row justify-between items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => updateStep(2)}
+                    className="w-full sm:w-auto min-h-[44px] px-6 py-2 rounded-lg font-body-md font-medium text-on-surface-variant dark:text-outline hover:bg-surface-container-high dark:hover:bg-white/5 transition-colors"
+                  >
+                    Back
+                  </button>
                   <button
                     onClick={finishOnboarding}
-                    className="w-full py-4 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl font-bold transition-colors shadow-lg flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto min-h-[44px] px-8 rounded-lg font-body-md font-medium border border-border dark:border-dark-border text-on-surface dark:text-white hover:bg-surface-container-lowest dark:hover:bg-white/5 transition-colors"
                   >
-                    Go to Dashboard <ArrowRight className="w-5 h-5" />
+                    Skip for now
                   </button>
                 </div>
               )}
+            </motion.div>
+          )}
 
-              <div className="mt-6 pt-4 border-t border-gray-100 flex justify-start">
+          {step === 4 && (
+            <motion.div 
+              key="step4"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-8 text-center items-center"
+            >
+              <div className="w-24 h-24 rounded-[2rem] bg-primary-fixed dark:bg-sky-900/20 text-primary dark:text-sky-500 flex items-center justify-center mx-auto mb-2 border border-primary-fixed-dim/50">
+                <Users className="w-12 h-12" />
+              </div>
+              
+              <header className="flex flex-col gap-2 w-full max-w-lg">
+                <h2 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight">Confirm Workspace Join</h2>
+                <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline">
+                  You have been invited to join <strong className="text-on-surface dark:text-white font-semibold">{inviteInfo?.workspaceName || 'your team workspace'}</strong> with role <strong className="text-primary dark:text-sky-400 uppercase font-bold tracking-wider text-[13px] ml-1">{inviteInfo?.role || 'STAFF'}</strong>.
+                </p>
+              </header>
+
+              <div className="w-full max-w-md bg-canvas dark:bg-black/50 p-6 rounded-2xl border border-border dark:border-dark-border text-left space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="font-body-sm text-outline">Full Name:</span>
+                  <span className="font-body-md text-on-surface dark:text-white font-semibold">{fullName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-body-sm text-outline">Phone Number:</span>
+                  <span className="font-data-mono text-[14px] text-on-surface dark:text-white font-medium">
+                    {countryCode} {phone}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-body-sm text-outline">Workspace:</span>
+                  <span className="font-body-md text-on-surface dark:text-white font-semibold">{inviteInfo?.workspaceName || 'Team'}</span>
+                </div>
+              </div>
+
+              <div className="w-full pt-8 border-t border-border dark:border-dark-border flex flex-col-reverse sm:flex-row justify-between items-center gap-4">
                 <button
                   type="button"
-                  onClick={() => updateStep(2)}
-                  className="text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1"
+                  onClick={() => updateStep(1)}
+                  className="w-full sm:w-auto min-h-[44px] px-6 py-2 rounded-lg font-body-md font-medium text-on-surface-variant dark:text-outline hover:bg-surface-container-high dark:hover:bg-white/5 transition-colors"
                 >
-                  ← Back to Setup
+                  Edit Profile
+                </button>
+                <button
+                  onClick={handleConfirmJoinWorkspace}
+                  disabled={joiningWorkspace}
+                  className="w-full sm:w-auto min-h-[44px] px-8 rounded-lg font-body-md font-medium bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {joiningWorkspace ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Join Workspace'}
+                  {!joiningWorkspace && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
                 </button>
               </div>
-              </motion.div>
-            )}
-
-            {step === 4 && (
-              <motion.div 
-                key="step4"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="max-w-md mx-auto bg-white rounded-3xl p-10 shadow-xl border border-gray-100 text-center"
-              >
-              <div className="w-20 h-20 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-6 shadow-sm border border-indigo-100">
-                <Users className="w-10 h-10" />
-              </div>
-              <h2 className="text-2xl font-black text-gray-900 mb-2">Confirm Workspace Join</h2>
-              <p className="text-gray-500 mb-8 text-sm">
-                You have been invited to join <strong className="text-gray-900">{inviteInfo?.workspaceName || 'your team workspace'}</strong> with role <strong className="text-indigo-600 uppercase font-bold">{inviteInfo?.role || 'STAFF'}</strong>.
-              </p>
-              <div className="bg-gray-50 p-5 rounded-2xl mb-8 border border-gray-100 text-left space-y-3">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-500 font-medium">Full Name:</span>
-                  <span className="text-gray-900 font-bold">{fullName}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-500 font-medium">Mobile Number:</span>
-                  <span className="text-gray-900 font-bold">{phone.startsWith('+') ? phone : `${countryCode} ${phone}`}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm pt-2 border-t border-gray-200">
-                  <span className="text-gray-500 font-medium">Invite Token:</span>
-                  <span className="text-indigo-600 font-mono font-bold tracking-wider">{inviteCode}</span>
-                </div>
-              </div>
-              <button
-                onClick={handleConfirmJoinWorkspace}
-                disabled={joiningWorkspace}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-lg flex items-center justify-center gap-2 text-base disabled:opacity-70"
-              >
-                {joiningWorkspace ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
-                {joiningWorkspace ? 'Entering Workspace...' : 'Enter Workspace Dashboard'}
-              </button>
-              <button
-                type="button"
-                onClick={() => updateStep(1)}
-                className="mt-4 text-sm text-gray-500 hover:text-gray-800 font-semibold transition-colors block mx-auto"
-              >
-                ← Edit Personal Details
-              </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
     </div>
   );
 }

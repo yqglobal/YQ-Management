@@ -13,6 +13,7 @@ export default function SuperAdminUsers() {
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showActions, setShowActions] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<any>(null);
   const [newUser, setNewUser] = useState({ email: '', role: 'TENANT_ADMIN', tenantId: '' });
 
   const { data: users, isLoading } = useQuery({
@@ -178,10 +179,10 @@ export default function SuperAdminUsers() {
                             </button>
                             {showActions === user.id && (
                               <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-zinc-950 rounded-xl border border-gray-200 dark:border-white/10 shadow-xl py-1 z-50">
-                                <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-white/5 w-full text-left" onClick={() => { toast.info('Edit user feature coming soon'); setShowActions(null); }}>
+                                <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-white/5 w-full text-left" onClick={() => { setEditingUser(user); setShowActions(null); }}>
                                   <Pencil className="w-4 h-4" /> Edit
                                 </button>
-                                <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-white/5 w-full text-left" onClick={() => { toast.info('Change role feature coming soon'); setShowActions(null); }}>
+                                <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-white/5 w-full text-left" onClick={() => { setEditingUser(user); setShowActions(null); }}>
                                   <Shield className="w-4 h-4" /> Change Role
                                 </button>
                                 <hr className="my-1 border-gray-100 dark:border-white/5" />
@@ -203,6 +204,55 @@ export default function SuperAdminUsers() {
           </div>
         </div>
       </div>
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-xl border border-zinc-200 dark:border-zinc-800">
+            <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-50">Edit User</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Role</label>
+                <select
+                  value={editingUser.role}
+                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+                >
+                  <option value="SUPER_ADMIN">Super Admin</option>
+                  <option value="TENANT_ADMIN">Tenant Admin</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="OPERATOR">Operator</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6 justify-end">
+              <button
+                onClick={() => setEditingUser(null)}
+                className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  updateUserMutation.mutate({ id: editingUser.id, data: { email: editingUser.email, role: editingUser.role } });
+                  setEditingUser(null);
+                  toast.success('User updated');
+                }}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-medium transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </SuperAdminLayout>
   );
 }

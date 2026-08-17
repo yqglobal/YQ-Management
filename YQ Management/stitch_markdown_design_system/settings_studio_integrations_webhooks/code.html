@@ -1,0 +1,407 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Qmova - Ecosystem Integrations</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config injected from Design System -->
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-bright": "#fbf8ff",
+                      "on-primary-fixed-variant": "#004b73",
+                      "alert": "#E11D48",
+                      "outline-variant": "#bfc7d2",
+                      "tertiary-fixed": "#ffdcc3",
+                      "on-error": "#ffffff",
+                      "primary-fixed": "#cce5ff",
+                      "dark-card": "#121214",
+                      "on-secondary-container": "#00714e",
+                      "on-tertiary-container": "#fffbff",
+                      "secondary-container": "#82f5c1",
+                      "on-error-container": "#93000a",
+                      "background": "#fbf8ff",
+                      "tertiary": "#8d4b00",
+                      "on-tertiary-fixed": "#2f1500",
+                      "error": "#ba1a1a",
+                      "on-secondary": "#ffffff",
+                      "inverse-primary": "#93ccff",
+                      "surface-container-highest": "#e3e1ec",
+                      "primary-fixed-dim": "#93ccff",
+                      "primary": "#006194",
+                      "surface-tint": "#006398",
+                      "on-primary-container": "#fdfcff",
+                      "inverse-surface": "#2f3038",
+                      "on-surface": "#1a1b22",
+                      "canvas": "#FAFAFA",
+                      "on-background": "#1a1b22",
+                      "surface-container": "#eeedf7",
+                      "on-primary": "#ffffff",
+                      "inverse-on-surface": "#f1effa",
+                      "on-surface-variant": "#3f4850",
+                      "on-secondary-fixed": "#002114",
+                      "surface": "#fbf8ff",
+                      "on-secondary-fixed-variant": "#005137",
+                      "outline": "#707881",
+                      "on-primary-fixed": "#001d31",
+                      "surface-container-lowest": "#ffffff",
+                      "card": "#FFFFFF",
+                      "surface-container-low": "#f4f2fd",
+                      "surface-variant": "#e3e1ec",
+                      "surface-container-high": "#e8e7f1",
+                      "border": "#E4E4E7",
+                      "secondary": "#006c4a",
+                      "secondary-fixed-dim": "#68dba9",
+                      "on-tertiary": "#ffffff",
+                      "surface-dim": "#dad9e3",
+                      "dark-canvas": "#09090B",
+                      "on-tertiary-fixed-variant": "#6e3900",
+                      "tertiary-fixed-dim": "#ffb77d",
+                      "secondary-fixed": "#85f8c4",
+                      "tertiary-container": "#b15f00",
+                      "dark-border": "#27272A",
+                      "primary-container": "#007bb9",
+                      "error-container": "#ffdad6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-desktop": "40px",
+                      "gutter": "24px",
+                      "margin-mobile": "16px",
+                      "sidebar-w": "256px",
+                      "unit": "4px",
+                      "header-h": "64px"
+              },
+              "fontFamily": {
+                      "headline-sm": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-sm": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "headline-lg": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "data-mono": [
+                              "Geist Mono"
+                      ],
+                      "headline-md": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "data-mono-lg": [
+                              "Geist Mono"
+                      ],
+                      "label-caps": [
+                              "Geist Mono"
+                      ],
+                      "body-md": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-lg": [
+                              "Plus Jakarta Sans"
+                      ]
+              },
+              "fontSize": {
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "36px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "data-mono": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "data-mono-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-caps": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        /* Ensuring Material Symbols render correctly */
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+<body class="bg-canvas font-body-md text-body-md text-on-surface antialiased flex h-screen overflow-hidden">
+<!-- SideNavBar Component (Generated from JSON) -->
+<aside class="w-sidebar-w h-full fixed left-0 top-0 bg-surface dark:bg-dark-canvas border-r border-border dark:border-dark-border flex flex-col h-full py-margin-desktop z-50">
+<!-- Brand Header -->
+<div class="px-6 mb-8 flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-headline-sm text-headline-sm">Q</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Qmova</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Global Admin</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="flex flex-col gap-1 px-4 mt-4 w-full">
+<!-- Service Desk (Inactive) -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="desktop_windows">desktop_windows</span>
+<span class="font-body-md text-body-md">Service Desk</span>
+</a>
+<!-- Scanner (Inactive) -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="qr_code_scanner">qr_code_scanner</span>
+<span class="font-body-md text-body-md">Scanner</span>
+</a>
+<!-- Calendar (Inactive) -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-body-md text-body-md">Calendar</span>
+</a>
+<!-- Analytics (Inactive) -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-body-md text-body-md">Analytics</span>
+</a>
+<!-- Settings (Active based on Intent: Settings Studio) -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-low text-primary dark:text-primary-fixed font-bold border-r-2 border-primary hover:bg-surface-container-low dark:hover:bg-dark-card transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="settings" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+<div class="mt-auto px-6">
+<img alt="User Profile" class="w-10 h-10 rounded-full border border-border" data-alt="A clean, professional headshot avatar of an administrator in a clinical setting, soft natural lighting, high quality, neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlpzexj08MaC-70Mx0EyeXE9nHOmSC7PdcNoewW7_VjucQwWQJO_zny0zscAieCS7jXKUXhT_HMcjLFPoWYl7poUtQrSP5xa_xs7qIqvb4wiI143F_0kVlTGtq7qNQ9iX1TZrsrBCpYNn5Um3xUKkGGpb_ni9yJAreM1gKobyNoJym1aXgxwNiuqqduMUMz4rIN62ui-Zc9q_OIzd8oDaHVN2EmRKwDCBEw5OEz_DyVCHQdw4nP5tbAg">
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<div class="flex-1 ml-sidebar-w flex flex-col h-full overflow-hidden bg-canvas">
+<!-- TopNavBar Component (Generated from JSON) -->
+<header class="h-header-h w-full sticky top-0 z-40 bg-white dark:bg-dark-card border-b border-border dark:border-dark-border flex items-center justify-between px-gutter"><!-- Left: Brand / Section Title -->
+<div class="flex items-center gap-8">
+    <span class="font-headline-sm text-headline-sm font-semibold text-on-surface dark:text-on-background">Settings Studio</span>
+    <!-- Horizontal Nav Links -->
+    <nav class="hidden md:flex gap-6 h-full items-end pt-5">
+        <a class="text-on-surface-variant dark:text-surface-variant pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors font-body-md text-body-md" href="#">Locations &amp; Assets</a>
+        <a class="text-on-surface-variant dark:text-surface-variant pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors font-body-md text-body-md" href="#">Service Studio</a>
+        <a class="text-on-surface-variant dark:text-surface-variant pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors font-body-md text-body-md" href="#">Intake Forms</a>
+        <!-- Active Tab -->
+        <a class="text-primary dark:text-primary-fixed font-bold border-b-2 border-primary pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors font-body-md text-body-md" href="#">Integrations</a>
+        <a class="text-on-surface-variant dark:text-surface-variant pb-4 hover:text-primary dark:hover:text-primary-fixed transition-colors font-body-md text-body-md" href="#">Billing</a>
+    </nav>
+</div>
+<!-- Right: Search & Actions -->
+<div class="flex items-center gap-4">
+    <div class="relative hidden lg:block">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" style="font-size: 20px;">search</span>
+        <input class="pl-10 pr-4 py-2 bg-surface rounded-md border-border border text-body-sm font-body-sm focus:ring-1 focus:ring-primary focus:outline-none w-64" placeholder="Search settings..." type="text">
+    </div>
+    <button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors cursor-pointer active:opacity-70">
+        <span class="material-symbols-outlined">notifications</span>
+    </button>
+    <button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors cursor-pointer active:opacity-70">
+        <span class="material-symbols-outlined">help_outline</span>
+    </button>
+</div></header>
+<!-- Main Canvas Area -->
+<main class="flex-1 overflow-y-auto p-margin-desktop bg-canvas">
+<div class="max-w-6xl mx-auto">
+<div class="mb-8 flex justify-between items-end">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Ecosystem Integrations</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2 max-w-2xl">Manage external connections to expand Qmova's operational capabilities across messaging, identity, and clinical systems.</p>
+</div>
+<button class="bg-primary text-white font-body-md text-body-md px-6 py-2 h-[44px] rounded hover:bg-surface-tint transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-size: 20px;">add</span>
+                        Add Integration
+                    </button>
+</div>
+<!-- Integration Grid (Bento/Card Style) -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+<!-- WhatsApp Card (Expanded State) -->
+<div class="bg-card border border-primary rounded-xl overflow-hidden shadow-sm xl:col-span-2 relative group transition-all duration-300">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary rounded-l-xl"></div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-surface-container rounded-lg border border-border flex items-center justify-center overflow-hidden">
+<img alt="WhatsApp Logo" class="w-8 h-8 object-contain" data-alt="A clean, minimalist vector logo for WhatsApp business, rendered in a crisp, modern light-mode style against a white background, using primary brand colors with subtle gradients." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxmRjmFYVldlqG6sQmeS4BBuq8ZGgmiObhWoel0W3eAUHGU-8tcIliXUr9Eyl13-0Zq3NSJnpNfT7YiIN0jJYw6cZqdrzi6c-nD0eHSmCBmkRwCKL8alQsN686ChnUGUkfRGJfL0FA5WPhZxtQOjG0hgLGfrAAp8HWhtbKgS21wJUMhpH_0vvO9IWWaZ2L8DUQUCFLrUX2316Ks8c4f8fu10IZ9_V9b8IBXOUm-oVFJWYJzPnxbosUvA">
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">WhatsApp Business API</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Active messaging channel</p>
+</div>
+</div>
+<div class="bg-secondary-container text-on-secondary-container font-label-caps text-label-caps px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size: 14px; font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    HTTP 200 OK
+                                </div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 pr-12">
+                                Currently routing queue notifications and visitor check-in links via Meta's secure infrastructure. Handles an average of 4.2k messages daily across 3 active locations.
+                            </p>
+<!-- Expanded Details Panel -->
+<div class="bg-surface rounded-lg p-5 border border-border">
+<div class="flex justify-between items-center mb-3">
+<h4 class="font-headline-sm text-headline-sm text-on-surface" style="font-size: 14px;">Connection Details</h4>
+<span class="font-body-sm text-body-sm text-secondary flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Live
+                                    </span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Webhook URL</label>
+<div class="font-data-mono text-data-mono text-on-surface bg-canvas px-3 py-2 border border-border rounded truncate" style="font-size: 13px;">
+                                            https://api.qmova.com/v1/webhooks/wa/...
+                                        </div>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-1">Production API Key</label>
+<div class="flex items-center gap-2">
+<div class="font-data-mono text-data-mono text-on-surface bg-canvas px-3 py-2 border border-border rounded flex-1 tracking-widest text-center" style="font-size: 16px;">
+                                                ••••••••••••••••
+                                            </div>
+<button class="w-10 h-[40px] flex items-center justify-center border border-border rounded hover:bg-surface-container transition-colors text-on-surface-variant" title="Copy API Key">
+<span class="material-symbols-outlined" style="font-size: 18px;">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+<div class="mt-6 flex justify-end gap-3 pt-4 border-t border-border">
+<button class="px-4 py-2 text-alert hover:bg-error-container hover:text-on-error-container rounded font-body-md text-body-md transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">sync_disabled</span>
+                                        Revoke Access
+                                    </button>
+<button class="px-4 py-2 border border-border text-on-surface hover:bg-surface-container rounded font-body-md text-body-md transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">tune</span>
+                                        Configure Rules
+                                    </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Side Stack: SAML & Epic -->
+<div class="flex flex-col gap-6 xl:col-span-1">
+<!-- SAML 2.0 / SSO Card (Standard State) -->
+<div class="bg-card border border-border rounded-xl p-6 hover:shadow-sm transition-all relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-surface-container rounded-lg border border-border flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">shield_person</span>
+</div>
+<div class="bg-surface-container-highest text-on-surface-variant font-label-caps text-label-caps px-3 py-1 rounded-full">
+                                    Configured
+                                </div>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-1">SAML 2.0 / SSO</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-6">
+                                Identity provider configuration for staff authentication via Okta/Entra ID.
+                            </p>
+<button class="w-full py-2 border border-border rounded text-on-surface hover:bg-surface-container transition-colors font-body-md text-body-md">
+                                Manage Identity
+                            </button>
+</div>
+<!-- Epic EHR Card (Standard State) -->
+<div class="bg-card border border-border rounded-xl p-6 hover:shadow-sm transition-all relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-outline-variant rounded-l-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-surface-container rounded-lg border border-border flex items-center justify-center overflow-hidden grayscale group-hover:grayscale-0 transition-all">
+<img alt="Epic Logo Placeholder" class="w-6 h-6 object-contain" data-alt="A subtle, minimalist icon representing clinical records or a medical cross, rendered in high quality vector style against a clean white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAh87sfyOrVYQJYRgi9VFSQJcjXAQqREDOQkuWfFio9yje9WHtPBrxfq-XYR7JpXJuHGl3WKEIP618aQ6pDdFHNt4F4V0nUod7uEi4TXfzaoDVnbgmay9BD8PrP8cFZ5w8VohWHTiVIId-gR0HPBKodcVOZRcA9LHE6P-1puW64LfXq8oaL6pnjr-EFJT6JCC41FvvuTtvj1MSmG9FW92K2uREAiuZfx9XSPMosW0zkDHOLdJeRBwhaoQ">
+</div>
+<div class="bg-surface-container text-outline font-label-caps text-label-caps px-3 py-1 rounded-full border border-border flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span> Disconnected
+                                </div>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-1">Epic EHR Sync</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-6">
+                                Bi-directional FHIR interface for patient demographics and appointment status.
+                            </p>
+<button class="w-full py-2 bg-primary text-white rounded hover:bg-surface-tint transition-colors font-body-md text-body-md flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" style="font-size: 18px;">link</span>
+                                Connect System
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+
+</body></html>

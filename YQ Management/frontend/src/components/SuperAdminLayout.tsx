@@ -17,6 +17,7 @@ import {
   Bell,
   Sliders,
   Inbox,
+  Layers,
 } from 'lucide-react';
 
 import { useTheme } from './ThemeProvider';
@@ -47,6 +48,7 @@ export default function SuperAdminLayout({
     { label: 'System Control', href: '/super-admin/system-control', icon: Sliders },
     { label: 'Businesses', href: '/super-admin/tenants', icon: Building2 },
     { label: 'Plans', href: '/super-admin/plans', icon: Package },
+    { label: 'Features', href: '/super-admin/features', icon: Layers },
     { label: 'Subscriptions', href: '/super-admin/subscriptions', icon: CreditCard },
     { label: 'Inquiries', href: '/super-admin/inquiries', icon: Inbox },
     { label: 'Analytics', href: '/super-admin/analytics', icon: TrendingUp },

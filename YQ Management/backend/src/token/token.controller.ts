@@ -21,7 +21,7 @@ export class TokenController {
   @UseGuards(ThrottlerGuard)
   @Post('request-otp')
   async requestOtp(@Body() body: RequestOtpDto) {
-    return this.tokenService.requestOtp(body.phone, body.queueId);
+    return this.tokenService.requestOtp(body.phone, body.queueId, body.serviceId);
   }
 
   @UseGuards(ThrottlerGuard)
@@ -29,7 +29,8 @@ export class TokenController {
   async joinQueue(
     @Body()
     body: {
-      queueId: string;
+      queueId?: string;
+      serviceId?: string;
       customerName: string;
       phone?: string;
       otp?: string;
@@ -46,6 +47,33 @@ export class TokenController {
       body.formResponses,
       body.language,
       body.scheduledFor,
+      body.serviceId,
+    );
+  }
+
+  @UseGuards(ThrottlerGuard)
+  @Post('join-multiple')
+  async joinMultipleQueues(
+    @Body()
+    body: {
+      customerName: string;
+      phone?: string;
+      otp?: string;
+      language?: string;
+      bookings: {
+        queueId?: string;
+        serviceId?: string;
+        scheduledFor?: string;
+        formResponses?: any;
+      }[];
+    },
+  ) {
+    return this.tokenService.joinMultipleQueues(
+      body.customerName,
+      body.phone,
+      body.otp,
+      body.bookings,
+      body.language,
     );
   }
 

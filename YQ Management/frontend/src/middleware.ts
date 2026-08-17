@@ -13,17 +13,17 @@ export const config = {
      * - favicon.ico (favicon file)
      * - images, svg, icons (public files)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|images|svg|icons).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|images|svg|icons).*)',
   ],
 };
 
 export async function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
-  
+
   // Get hostname (e.g. tenant1.qmova.vercel.app or localhost:3000)
   const hostname = req.headers.get('host') || '';
   const isLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1');
-  
+
   let subdomain = '';
 
   if (isLocal) {
@@ -38,7 +38,7 @@ export async function middleware(req: NextRequest) {
     if (hostname.includes('yq-qmova.vercel.app')) baseDomain = 'yq-qmova.vercel.app';
     else if (hostname.includes('qmova.vercel.app')) baseDomain = 'qmova.vercel.app';
     else if (hostname.includes('qmova-app.vercel.app')) baseDomain = 'qmova-app.vercel.app';
-    
+
     if (baseDomain && hostname.endsWith(`.${baseDomain}`)) {
       subdomain = hostname.replace(`.${baseDomain}`, '');
     }
@@ -71,7 +71,7 @@ export async function middleware(req: NextRequest) {
       redirectRes.cookies.delete('access_token');
       return redirectRes;
     }
-    
+
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://qmova-backend.onrender.com';
       const res = await fetch(`${backendUrl}/auth/me`, {
@@ -84,8 +84,8 @@ export async function middleware(req: NextRequest) {
       if (res.ok) {
         const data = await res.json();
         const isSuper = data.role === 'SUPER_ADMIN' ||
-                        data.email?.toLowerCase() === 'yqbuddysa@gmail.com' ||
-                        (SUPER_ADMIN_EMAIL && data.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase());
+          data.email?.toLowerCase() === 'yqbuddysa@gmail.com' ||
+          (SUPER_ADMIN_EMAIL && data.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase());
         if (!isSuper) {
           return NextResponse.redirect(new URL('/dashboard', req.url));
         }

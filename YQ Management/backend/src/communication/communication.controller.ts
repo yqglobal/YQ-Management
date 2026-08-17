@@ -154,13 +154,13 @@ export class CommunicationController {
       name: 'John Doe',
       email: 'john@example.com',
       timestamp: new Date().toLocaleString(),
-      dashboard_url: `${process.env.APP_URL || 'http://localhost:3001'}/dashboard`,
+      dashboard_url: `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/dashboard`,
       workspace: 'My Business',
       amount: '299.00',
       currency: 'ZAR',
       days: '7',
       next_billing_date: new Date().toLocaleDateString(),
-      reset_link: `${process.env.APP_URL || 'http://localhost:3001'}/reset-password`,
+      reset_link: `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/reset-password`,
       inviter_name: 'Admin User',
       code: 'ABC123',
     });
@@ -196,7 +196,7 @@ export class CommunicationController {
             queue_name: 'Queue',
             position: '1',
             wait_time: '5',
-            link: `${process.env.APP_URL || 'http://localhost:3001'}/customer/status/abc123`,
+            link: `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/customer/status/abc123`,
           }),
         active: dbTemplate?.active ?? true,
       };
@@ -237,7 +237,7 @@ export class CommunicationController {
       queue_name: 'General Queue',
       position: '3',
       wait_time: '10',
-      link: `${process.env.APP_URL || 'http://localhost:3001'}/customer/status/abc123`,
+      link: `${(process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001')}/customer/status/abc123`,
     });
     return { template };
   }

@@ -5,7 +5,7 @@ import { UpgradeSubscriptionDto } from './dto/subscription.dto';
 import { DowngradeSubscriptionDto } from './dto/subscription.dto';
 import { CancelSubscriptionDto } from './dto/subscription.dto';
 import { ResumeSubscriptionDto } from './dto/subscription.dto';
-import { Subscription } from '@prisma/client';
+import { Subscription, Plan } from '@prisma/client';
 import { SubscriptionStatus } from '@prisma/client';
 import { BillingException } from '../billing/errors/billing-exceptions';
 
@@ -15,13 +15,28 @@ export class SubscriptionService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getSubscription(workspaceId: string): Promise<Subscription | null> {
-    return this.prisma.subscription.findUnique({
+  async getSubscription(workspaceId: string): Promise<(Subscription & { plan: Plan }) | null> {
+    let sub = await this.prisma.subscription.findUnique({
       where: { workspaceId },
       include: {
         plan: true,
       },
     });
+
+    if (!sub) {
+      const starterPlan = await this.prisma.plan.findFirst({
+        where: { name: { contains: 'Starter' } },
+      });
+      if (starterPlan) {
+        sub = await this.startFreeTrial(
+          workspaceId,
+          starterPlan.id,
+          starterPlan.trialDays || 14,
+        );
+      }
+    }
+
+    return sub;
   }
 
   async createSubscription(
@@ -301,7 +316,7 @@ export class SubscriptionService {
     workspaceId: string,
     planId: string,
     trialDays: number,
-  ): Promise<Subscription> {
+  ): Promise<Subscription & { plan: Plan }> {
     const plan = await this.prisma.plan.findUnique({
       where: { id: planId },
     });

@@ -5,12 +5,13 @@ import { PrismaService } from '../prisma/prisma.service';
 export class LocationService {
   constructor(private prisma: PrismaService) {}
 
-  async create(tenantId: string, data: { name: string; address?: string }) {
+  async create(tenantId: string, data: { name: string; address?: string; city?: string }) {
     return this.prisma.extendedClient.location.create({
       data: {
         tenantId,
         name: data.name,
         address: data.address,
+        city: data.city,
       },
     });
   }
@@ -34,7 +35,7 @@ export class LocationService {
   async update(
     id: string,
     tenantId: string,
-    data: { name?: string; address?: string },
+    data: { name?: string; address?: string; city?: string },
   ) {
     return this.prisma.extendedClient.location
       .update({
