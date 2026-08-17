@@ -1181,6 +1181,25 @@ export class WhatsappService implements OnModuleInit {
               );
             }
           } catch (e) {}
+        } else if (payload.data.state === 'connecting') {
+          // It's connecting, but there's no QR code. This usually means the QR was scanned
+          // and it's currently syncing. Broadcast qr: null to clear the UI QR code instantly.
+          try {
+            const tenant = await this.prisma.tenant.findFirst({
+              where: { whatsappInstanceId: instanceName },
+            });
+            if (tenant) {
+              this.queueGateway.broadcastTenantUpdate(
+                tenant.id,
+                'whatsapp_connection_update',
+                {
+                  instanceName,
+                  state: 'connecting',
+                  qr: null,
+                },
+              );
+            }
+          } catch (e) {}
         }
 
         const state = payload.data.state;

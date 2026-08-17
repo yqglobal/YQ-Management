@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { GetServerSideProps } from 'next';
+import { useRouter } from 'next/router';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import PhoneInput from 'react-phone-number-input';
@@ -60,6 +61,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 };
 
 export default function TenantBooking({ tenant, services, queues, error }: TenantPortalProps) {
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [step, setStep] = useState(1);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
@@ -81,13 +83,17 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
       }
     }
 
-    if (tenant?.locations && tenant.locations.length === 1) {
+    const { locationId } = router.query;
+    if (locationId && typeof locationId === 'string' && tenant?.locations?.some((l: any) => l.id === locationId)) {
+      setSelectedLocationId(locationId);
+      setStep(2); // Skip location step
+    } else if (tenant?.locations && tenant.locations.length === 1) {
       setSelectedLocationId(tenant.locations[0].id);
       setStep(2); // Skip location step
     } else if (!tenant?.locations || tenant.locations.length === 0) {
       setStep(2); // Skip location step if none exist
     }
-  }, [tenant]);
+  }, [tenant, router.query]);
   
   // State for the per-service dynamic flow
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);

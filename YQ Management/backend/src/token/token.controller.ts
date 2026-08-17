@@ -131,6 +131,7 @@ export class TokenController {
     return this.tokenService.validateToken(body.tokenId, req.user.tenantId);
   }
 
+
   @UseGuards(ThrottlerGuard, AuthGuard('jwt'), WorkspaceGuard)
   @Post(':id/transfer')
   async transferToken(

@@ -32,8 +32,8 @@ export function useWhatsapp() {
             ...old,
             instanceName: payload.instanceName || old?.instanceName,
             state: payload.state || old?.state,
-            qr: payload.qr || old?.qr,
-            qrType: payload.qrType || old?.qrType,
+            qr: payload.qr !== undefined ? payload.qr : old?.qr,
+            qrType: payload.qrType !== undefined ? payload.qrType : old?.qrType,
           };
         });
 

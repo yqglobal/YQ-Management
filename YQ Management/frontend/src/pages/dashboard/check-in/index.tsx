@@ -41,11 +41,16 @@ interface ValidationResult {
   tokenId?: string;
   customerName?: string;
   queueName?: string;
+  locationName?: string;
+  serviceBooked?: string;
   position?: number;
   purpose?: string;
   phone?: string;
   joinedAt?: string;
   queueId?: string;
+  isAppointment?: boolean;
+  scheduledFor?: string;
+  checkedIn?: boolean;
 }
 
 interface HistoryToken {
@@ -247,10 +252,15 @@ export default function AdminScanner() {
             tokenId: decodedText,
             customerName: result.customerName,
             queueName: result.queueName,
+            locationName: result.locationName,
+            serviceBooked: result.serviceBooked,
             purpose: result.purpose,
             phone: result.phone,
             joinedAt: result.joinedAt,
             queueId: result.queueId,
+            isAppointment: result.isAppointment,
+            scheduledFor: result.scheduledFor,
+            checkedIn: result.checkedIn,
           };
 
           setValidationResult(validationResult);
@@ -395,10 +405,15 @@ export default function AdminScanner() {
         tokenId: manualTokenId.trim(),
         customerName: result.customerName,
         queueName: result.queueName,
+        locationName: result.locationName,
+        serviceBooked: result.serviceBooked,
         purpose: result.purpose,
         phone: result.phone,
         joinedAt: result.joinedAt,
         queueId: result.queueId,
+        isAppointment: result.isAppointment,
+        scheduledFor: result.scheduledFor,
+        checkedIn: result.checkedIn,
       };
 
       setValidationResult(validationResult);
@@ -423,6 +438,17 @@ export default function AdminScanner() {
       setManualProcessing(false);
     }
   }, [manualTokenId]);
+
+  const handleCheckIn = useCallback(async () => {
+    if (!validationResult?.tokenId) return;
+    try {
+      await fetchApi(`/token/${validationResult.tokenId}/checkin`, { method: 'POST' });
+      setValidationResult((prev) => prev ? { ...prev, checkedIn: true, status: 'WAITING' } : prev);
+      alert('Checked in successfully!');
+    } catch (e: any) {
+      alert(e.message || 'Failed to check in');
+    }
+  }, [validationResult?.tokenId]);
 
   const lookupByPhone = useCallback(async () => {
     if (!manualPhone.trim()) {
@@ -704,11 +730,39 @@ export default function AdminScanner() {
                             <span className="text-outline text-sm font-medium">Service Line</span>
                             <span className="font-semibold text-on-surface dark:text-white">{validationResult.queueName || 'General Consultation'}</span>
                           </div>
+                          {validationResult.serviceBooked && (
+                            <div className="flex justify-between items-center pt-2 border-t border-primary/10">
+                              <span className="text-outline text-sm font-medium">Service Booked</span>
+                              <span className="font-semibold text-on-surface dark:text-white">{validationResult.serviceBooked}</span>
+                            </div>
+                          )}
+                          {validationResult.locationName && (
+                            <div className="flex justify-between items-center pt-2 border-t border-primary/10">
+                              <span className="text-outline text-sm font-medium">Location</span>
+                              <span className="font-semibold text-on-surface dark:text-white">{validationResult.locationName}</span>
+                            </div>
+                          )}
+                          {validationResult.isAppointment && validationResult.scheduledFor && (
+                            <div className="flex justify-between items-center pt-2 border-t border-primary/10">
+                              <span className="text-outline text-sm font-medium">Appointment Time</span>
+                              <div className="text-right">
+                                <span className="font-semibold text-on-surface dark:text-white block">
+                                  {new Date(validationResult.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                {(() => {
+                                  const diffMins = (new Date().getTime() - new Date(validationResult.scheduledFor).getTime()) / 60000;
+                                  if (diffMins < -15) return <span className="text-xs text-amber-500 font-semibold uppercase">Early</span>;
+                                  if (diffMins > 15) return <span className="text-xs text-red-500 font-semibold uppercase">Late</span>;
+                                  return <span className="text-xs text-emerald-500 font-semibold uppercase">On Time</span>;
+                                })()}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="bg-surface-container-low dark:bg-inverse-surface rounded-xl p-4 border border-border dark:border-dark-border flex justify-between items-center">
-                          <span className="text-outline text-sm font-medium">Token ID</span>
-                          <span className="font-semibold text-on-surface dark:text-white font-data-mono">{validationResult.tokenId}</span>
+                          <span className="text-outline text-sm font-medium">Token Status</span>
+                          <span className={`font-semibold font-data-mono ${validationResult.status === 'WAITING' ? 'text-amber-500' : validationResult.status === 'SERVING' ? 'text-emerald-500' : validationResult.status === 'MISSED' ? 'text-red-500' : 'text-on-surface dark:text-white'}`}>{validationResult.status}</span>
                         </div>
                       </>
                     )}
@@ -717,13 +771,23 @@ export default function AdminScanner() {
                   {/* Section C: Action */}
                   <div className="mt-auto pt-8 border-t border-border dark:border-dark-border">
                     {validationResult.valid ? (
-                       <button 
-                         onClick={() => { setValidationResult(null); startScanning(); }}
-                         className="h-16 min-h-[44px] w-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
-                       >
-                         <CheckCircle2 strokeWidth={1.5} className="w-5 h-5" />
-                         Confirm Arrival & Route to Queue
-                       </button>
+                       validationResult.isAppointment && !validationResult.checkedIn ? (
+                         <button 
+                           onClick={handleCheckIn}
+                           className="h-16 min-h-[44px] w-full bg-emerald-600 hover:bg-emerald-700 text-white text-lg font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+                         >
+                           <CheckCircle2 strokeWidth={1.5} className="w-5 h-5" />
+                           Check In
+                         </button>
+                       ) : (
+                         <button 
+                           onClick={() => { setValidationResult(null); startScanning(); }}
+                           className="h-16 min-h-[44px] w-full bg-on-surface dark:bg-white text-white dark:text-zinc-900 text-lg font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+                         >
+                           <RefreshCcw strokeWidth={1.5} className="w-5 h-5" />
+                           Scan Next Ticket
+                         </button>
+                       )
                     ) : (
                        <button 
                          onClick={() => { setValidationResult(null); startScanning(); }}
@@ -734,9 +798,9 @@ export default function AdminScanner() {
                        </button>
                     )}
                     
-                    {validationResult.valid && (
+                    {validationResult.valid && (!validationResult.isAppointment || validationResult.checkedIn) && (
                       <p className="text-center text-outline text-sm mt-4 font-body-sm">
-                        Visitor has been verified and added to the queue automatically.
+                        Visitor has already been verified and is in the system.
                       </p>
                     )}
                   </div>

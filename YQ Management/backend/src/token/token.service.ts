@@ -709,7 +709,11 @@ export class TokenService {
   async validateToken(tokenId: string, tenantId: string) {
     const token = await this.prisma.token.findUnique({
       where: { id: tokenId },
-      include: { queue: true },
+      include: { 
+        queue: {
+          include: { location: true, services: true }
+        } 
+      },
     });
     if (!token || token.queue.tenantId !== tenantId) {
       return { valid: false, reason: 'Invalid Token or unauthorized' };
@@ -719,10 +723,28 @@ export class TokenService {
       `queue:${token.queueId}:serving`,
     );
 
-    if (token.id === servingTokenId) return { valid: true, status: 'Green' };
+    let tokenStatus = token.status;
+    if (token.id === servingTokenId) {
+      tokenStatus = TokenStatus.SERVING;
+    }
 
-    return { valid: false, status: 'Red', reason: 'Not currently serving' };
+    return { 
+      valid: true,
+      status: tokenStatus,
+      customerName: token.customerName,
+      phone: token.phone,
+      purpose: token.purpose,
+      queueName: token.queue.name,
+      locationName: token.queue.location?.name,
+      serviceBooked: token.queue.services?.[0]?.name,
+      isAppointment: token.isAppointment,
+      scheduledFor: token.scheduledFor,
+      checkedIn: token.checkedIn,
+      tokenId: token.id
+    };
   }
+
+
 
   async cancelToken(tokenId: string) {
     const token = await this.prisma.token.findUnique({

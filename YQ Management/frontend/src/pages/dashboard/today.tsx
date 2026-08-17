@@ -359,7 +359,7 @@ export default function ServiceDeskToday() {
                 </p>
                 {visits.length === 0 && tenant?.subdomain && (
                   <a
-                    href={`http://${tenant.subdomain}.localhost:3001`}
+                    href={`http://${tenant.subdomain}.localhost:3001${selectedLocationId !== 'all' ? `?locationId=${selectedLocationId}` : ''}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-semibold text-body-sm hover:bg-primary-container transition-all hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]"

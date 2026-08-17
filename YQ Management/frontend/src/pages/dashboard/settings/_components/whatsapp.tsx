@@ -75,6 +75,10 @@ export default function WhatsAppSettingsPage() {
         console.log('[WhatsApp] Valid QR found in status. Type:', whatsappStatus.qrType);
         setQrCode(whatsappStatus.qr);
         setQrCodeType(whatsappStatus.qrType || (whatsappStatus.qr.startsWith('data:image') ? 'base64' : 'text'));
+      } else if (whatsappStatus.qr === null) {
+        console.log('[WhatsApp] Backend explicitly cleared QR (likely syncing). Clearing UI QR.');
+        setQrCode(null);
+        setQrCodeType(null);
       } else {
         console.log('[WhatsApp] Status is not open and no QR is present in status payload.');
       }
@@ -321,7 +325,7 @@ export default function WhatsAppSettingsPage() {
                        ) : (
                          <>
                            {connectionMode === 'qr' ? <QrCode strokeWidth={1.5} className="w-12 h-12 text-outline" /> : <Smartphone strokeWidth={1.5} className="w-12 h-12 text-outline" />}
-                           <span className="font-body-sm font-semibold text-outline">Awaiting Generation</span>
+                           <span className="font-body-sm font-semibold text-outline">Click 'Generate' to start</span>
                          </>
                        )}
                     </div>
