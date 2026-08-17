@@ -40,12 +40,13 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   ): Promise<any> {
     const email = profile.emails?.[0]?.value;
     const googleId = profile.sub || profile.id;
+    const fullName = profile.displayName || `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim() || undefined;
 
     if (!email) {
       return done(new Error('No email found in Google profile'));
     }
 
-    const user = await this.authService.validateOAuthLogin(email, googleId);
+    const user = await this.authService.validateOAuthLogin(email, googleId, fullName);
     done(null, user);
   }
 }

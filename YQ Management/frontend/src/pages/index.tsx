@@ -11,8 +11,8 @@ export default function LandingPage() {
   
   // Parallax scroll effects
   const { scrollY } = useScroll();
-  const heroY = useTransform(scrollY, [0, 500], [0, 150]);
-  const opacityFade = useTransform(scrollY, [0, 300], [1, 0]);
+  const heroY = useTransform(scrollY, [0, 600], [0, -50]);
+  const opacityFade = useTransform(scrollY, [300, 700], [1, 0]);
 
   return (
     <div className="dark bg-[#09090b] min-h-screen font-body-md text-white antialiased overflow-x-hidden selection:bg-sky-500/30">
@@ -96,88 +96,196 @@ export default function LandingPage() {
           </motion.div>
         </motion.div>
 
-        {/* 3D Floating Mockup Grid (Isometric) */}
+        {/* Premium Product Dashboard Mockup */}
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           style={{ y: heroY, opacity: opacityFade }}
           transition={{ duration: 1.2, delay: 0.5 }}
-          className="w-full max-w-5xl mx-auto mt-24 iso-container h-[400px] relative z-10 hidden md:block"
+          className="w-full max-w-5xl mx-auto mt-20 relative z-10 hidden md:flex items-center justify-center min-h-[450px]"
         >
-          {/* Card 1: Schedule */}
+          {/* Main Dashboard Mockup */}
           <motion.div 
-            className="absolute top-1/4 left-1/4 w-[400px] h-[250px] glass-ui rounded-xl p-6 shadow-2xl opacity-70 cursor-pointer"
-            initial={{ rotateX: 60, rotateZ: -45, z: 0 }}
-            whileHover={{ rotateX: 55, rotateZ: -40, z: 50, scale: 1.05 }}
-            transition={{ duration: 0.5 }}
+            className="absolute w-[850px] h-[480px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_0_100px_rgba(2,132,199,0.15)] overflow-hidden flex flex-col z-20"
+            initial={{ y: 40, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            transition={{ type: "spring", damping: 25, stiffness: 120, delay: 0.2 }}
           >
-            <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
-              <span className="font-body-sm text-zinc-400">Scheduled Slots</span>
-              <CalendarDays className="w-4 h-4 text-zinc-500" />
+             {/* Dashboard Header */}
+             <div className="h-12 bg-white/5 border-b border-white/10 flex items-center px-4 gap-2">
+               <div className="flex gap-2">
+                 <div className="w-3 h-3 rounded-full bg-rose-500/80"></div>
+                 <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
+                 <div className="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+               </div>
+               <div className="mx-auto w-64 h-7 bg-black/40 rounded-md border border-white/5 flex items-center justify-center shadow-inner">
+                 <span className="text-[11px] text-zinc-500 font-mono tracking-wide">qmova.com/app/live-queue</span>
+               </div>
+             </div>
+             
+             {/* Dashboard Content */}
+             <div className="flex-1 p-6 flex gap-6">
+                <div className="w-64 flex flex-col gap-4">
+                  <div className="h-28 bg-gradient-to-br from-emerald-500/10 to-emerald-900/10 border border-emerald-500/20 rounded-xl p-5 flex flex-col justify-center relative overflow-hidden group cursor-default">
+                    <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(16,185,129,0.05)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%] animate-gradient"></div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse"></div>
+                      <span className="font-label-caps text-emerald-500 text-[10px] tracking-widest font-bold">ROUTING ENGINE</span>
+                    </div>
+                    <span className="font-body-md text-emerald-100 font-medium leading-tight">Optimizing live flow...</span>
+                  </div>
+                  
+                  <div className="flex-1 bg-white/5 rounded-xl border border-white/5 p-5">
+                     <span className="font-label-caps text-zinc-500 text-[10px] tracking-widest block mb-4">UPCOMING SCHEDULE</span>
+                     <div className="space-y-3">
+                       <div className="h-10 bg-white/5 rounded-lg flex items-center px-3 border border-white/5">
+                         <div className="w-1.5 h-1.5 rounded-full bg-sky-400 mr-3"></div>
+                         <div className="flex flex-col">
+                           <span className="text-xs text-zinc-200 font-medium">09:00 - John Doe</span>
+                           <span className="text-[10px] text-zinc-500">Consultation</span>
+                         </div>
+                       </div>
+                       <div className="h-10 bg-white/5 rounded-lg flex items-center px-3 border border-white/5">
+                         <div className="w-1.5 h-1.5 rounded-full bg-sky-400 mr-3"></div>
+                         <div className="flex flex-col">
+                           <span className="text-xs text-zinc-200 font-medium">09:15 - Jane Smith</span>
+                           <span className="text-[10px] text-zinc-500">Follow-up</span>
+                         </div>
+                       </div>
+                     </div>
+                  </div>
+                </div>
+                
+                <div className="flex-1 bg-black/20 border border-white/5 rounded-xl p-5 flex flex-col shadow-inner relative overflow-hidden">
+                   <div className="flex justify-between items-center mb-5 relative z-10">
+                     <span className="font-label-caps text-zinc-400 text-[11px] tracking-widest font-bold">LIVE QUEUE</span>
+                     <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                       <Users className="w-3 h-3 text-zinc-400" />
+                       <span className="text-xs text-zinc-300 font-medium">14 Waiting</span>
+                     </div>
+                   </div>
+                   
+                   <div className="space-y-3 flex-1 overflow-hidden relative z-10">
+                     {/* Row 1 */}
+                     <div className="h-14 bg-white/10 rounded-xl border border-white/10 flex items-center px-4 justify-between backdrop-blur-md">
+                       <div className="flex items-center gap-4">
+                         <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center border border-white/10">
+                           <span className="font-mono text-white text-xs font-bold">A-104</span>
+                         </div>
+                         <div className="flex flex-col">
+                           <span className="text-sm text-zinc-200 font-medium">Walk-in</span>
+                           <span className="text-[10px] text-zinc-500">Arrived 10:20 AM</span>
+                         </div>
+                       </div>
+                       <span className="text-xs text-emerald-400 font-bold tracking-wide bg-emerald-500/10 px-3 py-1.5 rounded-md border border-emerald-500/20">Now Serving</span>
+                     </div>
+                     {/* Row 2 */}
+                     <div className="h-14 bg-white/5 rounded-xl border border-white/5 flex items-center px-4 justify-between opacity-80">
+                       <div className="flex items-center gap-4">
+                         <div className="w-10 h-10 rounded-lg bg-zinc-900 flex items-center justify-center border border-white/5">
+                           <span className="font-mono text-zinc-400 text-xs font-bold">A-105</span>
+                         </div>
+                         <div className="flex flex-col">
+                           <span className="text-sm text-zinc-400 font-medium">Scheduled</span>
+                           <span className="text-[10px] text-zinc-600">Arrived 10:25 AM</span>
+                         </div>
+                       </div>
+                       <span className="text-xs text-zinc-500 font-medium">Wait: 4m</span>
+                     </div>
+                     {/* Row 3 - Highlighted walk-in injection */}
+                     <motion.div 
+                       initial={{ x: -20, opacity: 0 }}
+                       animate={{ x: 0, opacity: 1 }}
+                       transition={{ delay: 2, duration: 0.5 }}
+                       className="h-14 bg-indigo-500/10 border border-indigo-500/30 rounded-xl flex items-center px-4 justify-between relative overflow-hidden shadow-[0_0_15px_rgba(99,102,241,0.1)]"
+                     >
+                       <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(99,102,241,0.05)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%] animate-gradient"></div>
+                       <div className="flex items-center gap-4 relative z-10">
+                         <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+                           <span className="font-mono text-indigo-300 text-xs font-bold">W-021</span>
+                         </div>
+                         <div className="flex flex-col">
+                           <span className="text-sm text-indigo-200 font-medium">Spontaneous Walk-in</span>
+                           <span className="text-[10px] text-indigo-400/70">Injected into schedule gap</span>
+                         </div>
+                       </div>
+                       <div className="flex items-center gap-1.5 relative z-10 bg-indigo-500/20 px-2 py-1 rounded-md border border-indigo-500/30">
+                         <Activity className="w-3 h-3 text-indigo-300" />
+                         <span className="text-xs text-indigo-300 font-bold tracking-wide">Auto-Routed</span>
+                       </div>
+                     </motion.div>
+                   </div>
+                </div>
+             </div>
+          </motion.div>
+
+          {/* Left Floating Metric Card */}
+          <motion.div 
+            className="absolute left-[0px] top-[220px] w-52 glass-ui border border-white/10 bg-black/60 backdrop-blur-3xl rounded-2xl p-5 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.8)] z-30"
+            initial={{ x: -60, opacity: 0, rotateZ: -5 }}
+            animate={{ x: 0, opacity: 1, rotateZ: -2, y: [-5, 5, -5] }}
+            whileHover={{ scale: 1.05, rotateZ: 0, zIndex: 40 }}
+            transition={{ delay: 0.8, duration: 0.8, y: { duration: 4, repeat: Infinity, ease: "easeInOut" } }}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center border border-sky-500/30 shadow-inner">
+                <CalendarDays className="w-5 h-5 text-sky-400" />
+              </div>
+              <span className="text-xs font-bold text-zinc-300 tracking-wide">Wait Times</span>
             </div>
-            <div className="space-y-3">
-              <div className="h-10 bg-white/5 rounded-md border border-white/10 flex items-center px-4">
-                <div className="w-2 h-2 rounded-full bg-sky-500 mr-3"></div>
-                <span className="font-data-mono text-[14px]">09:00 AM - Dr. Smith</span>
-              </div>
-              <div className="h-10 bg-white/5 rounded-md border border-white/10 flex items-center px-4">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 mr-3"></div>
-                <span className="font-data-mono text-[14px]">09:30 AM - Walk-in Sqz</span>
-              </div>
+            <div className="flex items-end gap-2 mb-1">
+              <span className="text-4xl font-headline-md text-white font-extrabold tracking-tight">4.2</span>
+              <span className="text-sm text-zinc-500 font-medium pb-1">mins</span>
+            </div>
+            <div className="text-xs text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 w-fit px-2 py-1 rounded-md mt-2 border border-emerald-500/20">
+              <span className="material-symbols-outlined text-[14px]">trending_down</span>
+              -24% this week
             </div>
           </motion.div>
 
-          {/* Card 2: Center Metric */}
+          {/* Right Floating WhatsApp bubble */}
           <motion.div 
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[280px] glass-ui border border-white/10 rounded-xl p-6 shadow-2xl z-20 cursor-pointer"
-            initial={{ rotateX: 60, rotateZ: -45, z: 40 }}
-            whileHover={{ rotateX: 55, rotateZ: -40, z: 90, scale: 1.05, borderColor: 'rgba(16, 185, 129, 0.5)' }}
-            transition={{ duration: 0.5 }}
+            className="absolute right-[-20px] top-[100px] w-72 glass-ui border border-emerald-500/20 bg-[#0b141a]/95 backdrop-blur-3xl rounded-2xl shadow-[0_30px_60px_-15px_rgba(16,185,129,0.2)] z-30 overflow-hidden"
+            initial={{ x: 60, opacity: 0, rotateZ: 5 }}
+            animate={{ x: 0, opacity: 1, rotateZ: 3, y: [5, -5, 5] }}
+            whileHover={{ scale: 1.05, rotateZ: 0, zIndex: 40 }}
+            transition={{ delay: 1, duration: 0.8, y: { duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 } }}
           >
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                <CheckCircle2 className="w-6 h-6 text-emerald-400" />
-              </div>
-              <div>
-                <h3 className="font-headline-sm font-extrabold tracking-[-0.04em] text-white">Routing Engine Active</h3>
-                <p className="font-body-sm text-zinc-400">Optimizing queue variance</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-black/50 p-4 rounded-lg border border-white/5 backdrop-blur-md">
-                <span className="font-label-caps text-zinc-500 block mb-1 text-[10px]">AVG WAIT</span>
-                <span className="font-data-mono-lg text-white text-2xl">12<span className="text-sm text-zinc-500">m</span></span>
-              </div>
-              <div className="bg-black/50 p-4 rounded-lg border border-white/5 backdrop-blur-md">
-                <span className="font-label-caps text-zinc-500 block mb-1 text-[10px]">EFFICIENCY</span>
-                <span className="font-data-mono-lg text-emerald-400 text-2xl drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">+24%</span>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Card 3: WhatsApp Notification */}
-          <motion.div 
-            className="absolute bottom-1/4 right-1/4 w-[350px] h-[400px] glass-ui border border-emerald-500/30 rounded-2xl p-4 shadow-2xl z-30 cursor-pointer"
-            initial={{ rotateX: 60, rotateZ: -45, z: 80 }}
-            whileHover={{ rotateX: 55, rotateZ: -40, z: 130, scale: 1.05 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="bg-emerald-900/30 w-full h-full rounded-xl flex flex-col p-4 border border-emerald-500/20">
-              <div className="flex items-center gap-2 mb-6 pb-2 border-b border-emerald-500/20">
-                <MessageSquare className="w-4 h-4 text-emerald-400" />
-                <span className="font-body-sm text-emerald-200">Qmova Assistant</span>
-              </div>
-              <div className="bg-white/10 p-3 rounded-lg rounded-tl-none self-start max-w-[80%] mb-4 backdrop-blur-sm shadow-md">
-                <p className="font-body-sm text-white/90">Your ticket is confirmed: A-104. There are 2 people ahead of you.</p>
-              </div>
-              <div className="bg-emerald-600/80 p-3 rounded-lg rounded-tr-none self-end max-w-[80%] mb-4 shadow-md backdrop-blur-md">
-                <p className="font-body-sm text-white">Can I grab a coffee?</p>
-              </div>
-              <div className="bg-white/10 p-3 rounded-lg rounded-tl-none self-start max-w-[80%] backdrop-blur-sm shadow-md">
-                <p className="font-body-sm text-white/90">Yes! We'll ping you 5 mins before you're called.</p>
-              </div>
-            </div>
+             <div className="bg-[#1f2c34] px-4 py-3 flex items-center gap-3 border-b border-white/5 shadow-sm relative z-20">
+                <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white shadow-inner">
+                  <span className="material-symbols-outlined text-[20px]">domain</span>
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm text-white font-semibold tracking-wide">Qmova Clinic</div>
+                  <div className="text-[10px] text-emerald-400 flex items-center gap-1 font-medium mt-0.5">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Verified Business
+                  </div>
+                </div>
+             </div>
+             <div className="p-5 space-y-4 relative bg-[#0b141a]">
+               <div className="absolute inset-0 opacity-5" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fillRule=\'evenodd\'%3E%3Cg fill=\'%2310b981\' fillOpacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')" }}></div>
+               
+               <div className="bg-[#202c33] text-[#e9edef] text-sm p-3.5 rounded-xl rounded-tl-none relative z-10 shadow-md border border-white/5">
+                 <div className="flex items-center gap-2 mb-2 bg-emerald-900/30 w-fit px-2 py-1 rounded border border-emerald-500/20">
+                   <QrCode className="w-3 h-3 text-emerald-400" />
+                   <span className="text-[10px] text-emerald-400 font-bold tracking-wider">TICKET CONFIRMED</span>
+                 </div>
+                 <p className="text-[15px] leading-snug">Your ticket number is <strong className="text-white">A-104</strong>.</p>
+                 <p className="text-zinc-400 text-[13px] mt-1.5">There are 2 people ahead of you.</p>
+                 <div className="text-[10px] text-zinc-500 text-right mt-1">10:42 AM</div>
+               </div>
+               
+               <motion.div 
+                 initial={{ opacity: 0, scale: 0.9, originY: 1 }}
+                 animate={{ opacity: 1, scale: 1 }}
+                 transition={{ delay: 2.5, type: 'spring', damping: 20, stiffness: 200 }}
+                 className="bg-[#202c33] text-[#e9edef] text-sm p-3.5 rounded-xl rounded-tl-none relative z-10 shadow-md border border-emerald-500/30 before:absolute before:inset-0 before:bg-emerald-500/5 before:rounded-xl"
+               >
+                 <p className="relative z-10 text-[15px] leading-snug"><span className="text-amber-400 mr-1">⚠️</span> It's almost your turn. Please head to <strong>Room 2</strong>.</p>
+                 <div className="text-[10px] text-zinc-500 text-right mt-1 relative z-10">10:48 AM</div>
+               </motion.div>
+             </div>
           </motion.div>
         </motion.div>
       </section>

@@ -88,7 +88,7 @@ export class AuthService {
     return user;
   }
 
-  async validateOAuthLogin(email: string, googleId: string) {
+  async validateOAuthLogin(email: string, googleId: string, fullName?: string) {
     try {
       let user = await this.usersService.findOneByEmail(email);
       let isNewUser = false;
@@ -110,9 +110,27 @@ export class AuthService {
             googleId,
             role: 'TENANT_ADMIN',
             tenantId: tenant.id,
-            workspaceId: tenant.id,
+            personalSettings: {
+              theme: 'light',
+              language: 'en',
+              notificationsEnabled: true,
+              ...(fullName ? { fullName } : {}),
+            }
           },
         });
+        
+        const workspace = await this.workspaceService.createWorkspace({
+          name: tenantName,
+          subdomain: `ws-${Date.now()}`,
+          ownerId: user.id,
+          tenantId: tenant.id,
+        });
+
+        user = await this.usersService['prisma'].user.update({
+          where: { id: user.id },
+          data: { workspaceId: workspace.id },
+        });
+
         isNewUser = true;
       } else if (!user.googleId) {
         // Link Google ID if account already exists with email
@@ -162,7 +180,7 @@ export class AuthService {
     };
   }
 
-  async registerUser(email: string, password: string) {
+  async registerUser(email: string, password: string, fullName?: string) {
     const tenant = await this.usersService['prisma'].tenant.create({
       data: {
         name: 'My Company',
@@ -179,6 +197,7 @@ export class AuthService {
         theme: 'light',
         language: 'en',
         notificationsEnabled: true,
+        ...(fullName ? { fullName } : {}),
       },
     });
 

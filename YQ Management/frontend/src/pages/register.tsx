@@ -245,8 +245,8 @@ export default function Register() {
                   <input
                     type="checkbox"
                     checked={termsAccepted}
-                    disabled
-                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 focus:ring-sky-500 accent-sky-500 disabled:opacity-50"
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 focus:ring-sky-500 accent-sky-500 cursor-pointer"
                   />
                   <div className="text-sm text-zinc-400">
                     I accept the{' '}
@@ -259,8 +259,8 @@ export default function Register() {
                   <input
                     type="checkbox"
                     checked={privacyAccepted}
-                    disabled
-                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 focus:ring-sky-500 accent-sky-500 disabled:opacity-50"
+                    onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 focus:ring-sky-500 accent-sky-500 cursor-pointer"
                   />
                   <div className="text-sm text-zinc-400">
                     I accept the{' '}

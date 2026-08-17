@@ -130,6 +130,7 @@ export class AuthController {
     const newUser = await this.authService.registerUser(
       body.email,
       body.password,
+      body.fullName,
     );
 
     await this.authService.generateAndSendOTP(newUser.email, 'signup');
