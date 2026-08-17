@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePlan } from '../../../hooks/usePlan';
 import { QuotaExhaustedModal } from '../../../components/QuotaExhaustedModal';
 import Link from 'next/link';
-import { CreateServiceModal } from '../../../components/modals/CreateServiceModal';
+import { ServiceModal } from '../../../components/modals/ServiceModal';
 import { LinkServicesModal } from '../../../components/modals/LinkServicesModal';
 
 export default function QueuesList() {
@@ -353,7 +353,7 @@ export default function QueuesList() {
         queue={linkModalQueue}
       />
 
-      <CreateServiceModal 
+      <ServiceModal 
         isOpen={isServiceModalOpen}
         onClose={() => setIsServiceModalOpen(false)}
       />

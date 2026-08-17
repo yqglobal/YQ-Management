@@ -186,7 +186,7 @@ const BUSINESS_TEMPLATES = [
 export default function Onboarding() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [selectedType, setSelectedType] = useState<string>('general');
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -221,7 +221,7 @@ export default function Onboarding() {
   const [pairingCopied, setPairingCopied] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  const updateStep = (newStep: 1 | 2 | 3 | 4) => {
+  const updateStep = (newStep: 1 | 2 | 3 | 4 | 5) => {
     setStep(newStep);
     if (typeof window !== 'undefined') {
       localStorage.setItem('onboarding_step', newStep.toString());
@@ -439,7 +439,7 @@ export default function Onboarding() {
     }, 2500);
   };
 const totalSteps = inviteCode ? 2 : 4;
-  const currentStepProgress = inviteCode ? (step === 1 ? 1 : 2) : (step === 5 ? 4 : step === 4 ? 4 : step);
+  const currentStepProgress = inviteCode ? (step === 1 ? 1 : 2) : step;
 
   return (
     <div className="min-h-screen bg-surface dark:bg-[#0a0a0a] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-primary/20">

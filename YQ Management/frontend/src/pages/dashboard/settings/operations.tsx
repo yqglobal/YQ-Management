@@ -123,7 +123,7 @@ export default function ResourcesSettingsPage() {
     mutationFn: ({ id, data }: { id: string; data: { name: string; description?: string } }) =>
       fetchApi(`/service/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: () => {
-      setEditingServiceId(null);
+      setSelectedServiceForEdit(null);
       queryClient.invalidateQueries({ queryKey: ['services'] });
       toast.success('Service updated');
     },
