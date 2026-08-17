@@ -21,6 +21,7 @@ export default function WhatsAppSettingsPage() {
   const [testPhone, setTestPhone] = useState('');
   const [testCountryCode, setTestCountryCode] = useState('+1');
   const [testMessage, setTestMessage] = useState('Test message from Qmova');
+  const [qrCountdown, setQrCountdown] = useState<number>(60);
   
   const logToBackend = (level: string, message: string, data?: any) => {
     fetchApi('/whatsapp/frontend-log', {
@@ -109,6 +110,30 @@ export default function WhatsAppSettingsPage() {
       logToBackend('error', 'Failed to connect to WhatsApp', err);
     }
   }, [connectMutation.status, connectMutation.data, connectMutation.error, connectMutation.isSuccess, connectMutation.isError]);
+
+  useEffect(() => {
+    if (qrCode) {
+      setQrCountdown(60);
+    }
+  }, [qrCode]);
+
+  useEffect(() => {
+    if (!qrCode || isWhatsAppConnected || connectionMode !== 'qr') return;
+    
+    if (qrCountdown <= 0) {
+      if (!connectMutation.isPending) {
+        connectMutation.mutate(true);
+        setQrCountdown(60);
+      }
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setQrCountdown(prev => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [qrCountdown, qrCode, isWhatsAppConnected, connectionMode, connectMutation]);
 
   return (
     <PremiumFeatureGate
@@ -268,11 +293,9 @@ export default function WhatsAppSettingsPage() {
                         <RefreshCw strokeWidth={1.5} className={`w-4 h-4 ${connectMutation.isPending ? 'animate-spin' : ''}`} />
                         {connectMutation.isPending ? 'Refreshing...' : 'Refresh QR'}
                       </button>
-                      {cachedQrQuery?.data?.expiresAt && (
-                        <div className="flex items-center gap-2 text-[12px] font-data-mono text-outline pl-3 border-l border-border dark:border-dark-border">
-                          Expires in {Math.max(0, Math.round((cachedQrQuery.data.expiresAt - Date.now())/1000))}s
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 text-[12px] font-data-mono text-outline pl-3 border-l border-border dark:border-dark-border">
+                        Expires in {qrCountdown}s
+                      </div>
                     </div>
                   </div>
                 ) : connectionMode === 'code' && pairingCode ? (
@@ -290,8 +313,17 @@ export default function WhatsAppSettingsPage() {
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center opacity-60">
                     <div className="w-48 h-48 border-2 border-dashed border-border dark:border-dark-border rounded-2xl flex flex-col items-center justify-center gap-4 bg-surface-container-lowest dark:bg-black/20">
-                       {connectionMode === 'qr' ? <QrCode strokeWidth={1.5} className="w-12 h-12 text-outline" /> : <Smartphone strokeWidth={1.5} className="w-12 h-12 text-outline" />}
-                       <span className="font-body-sm font-semibold text-outline">Awaiting Generation</span>
+                       {whatsappStatus?.state === 'connecting' ? (
+                         <>
+                           <Loader2 strokeWidth={1.5} className="w-12 h-12 text-outline animate-spin" />
+                           <span className="font-body-sm font-semibold text-outline">Connecting...</span>
+                         </>
+                       ) : (
+                         <>
+                           {connectionMode === 'qr' ? <QrCode strokeWidth={1.5} className="w-12 h-12 text-outline" /> : <Smartphone strokeWidth={1.5} className="w-12 h-12 text-outline" />}
+                           <span className="font-body-sm font-semibold text-outline">Awaiting Generation</span>
+                         </>
+                       )}
                     </div>
                   </div>
                 )}

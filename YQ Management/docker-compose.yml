@@ -51,6 +51,10 @@ services:
     environment:
       - SERVER_URL=http://localhost:8080
       - DOCKER_ENV=true
+      - DEL_INSTANCE=false
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_CHATS=true
+      - DATABASE_SAVE_DATA_CONTACTS=true
       - LOG_LEVEL=DEBUG,ERROR,WARN,INFO,WEBHOOKS
       - AUTHENTICATION_TYPE=apikey
       - AUTHENTICATION_API_KEY=<EVOLUTION_API_KEY>

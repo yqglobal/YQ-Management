@@ -118,6 +118,18 @@ export class WhatsappService implements OnModuleInit {
             reason: 'Instance missing from Evolution API',
           });
           await this.connect(tenant.id); // Re-run connect to re-create instance & webhooks
+        } else {
+          // Instance exists - check if it's actually open before doing anything
+          const stateRes = await this.fetchEvo(
+            `/instance/connectionState/${tenant.whatsappInstanceId}`,
+            'GET',
+          );
+          const state = this.extractState(stateRes.data);
+          if (state === 'open') {
+            // Just ensure webhook is configured, do NOT call /connect
+            await this.setWebhook(tenant.whatsappInstanceId).catch(() => {});
+            this.logger.log(`Instance ${tenant.whatsappInstanceId} is open. Webhook refreshed.`);
+          }
         }
       }
     } catch (e) {

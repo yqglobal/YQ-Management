@@ -48,7 +48,15 @@ export function useWhatsapp() {
       });
     }
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        qc.invalidateQueries({ queryKey: ['whatsapp-status'] });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
