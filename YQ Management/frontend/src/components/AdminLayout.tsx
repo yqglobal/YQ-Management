@@ -11,6 +11,7 @@ import { fetchApi } from '../lib/api';
 import { usePlan } from '../hooks/usePlan';
 import { toast } from 'sonner';
 import { QueueMigrationModal } from './modals/QueueMigrationModal';
+import { ServiceModal } from './modals/ServiceModal';
 import { io } from 'socket.io-client';
 import { getBackendUrl } from '../lib/api';
 
@@ -33,6 +34,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [activeLocationId, setActiveLocationId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const locationDropdownRef = useRef<HTMLDivElement>(null);
   const previewDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -666,6 +668,14 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
           services={services}
           tenantId={tenant?.id}
           onComplete={() => setShowQueueMigration(false)}
+          onCreateService={() => setIsServiceModalOpen(true)}
+        />
+      )}
+
+      {isServiceModalOpen && (
+        <ServiceModal
+          isOpen={isServiceModalOpen}
+          onClose={() => setIsServiceModalOpen(false)}
         />
       )}
     </div>

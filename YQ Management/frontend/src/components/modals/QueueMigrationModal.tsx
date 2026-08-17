@@ -10,9 +10,10 @@ interface QueueMigrationModalProps {
   services: any[];
   onComplete: () => void;
   tenantId: string;
+  onCreateService?: () => void;
 }
 
-export function QueueMigrationModal({ unlinkedQueues, services, onComplete, tenantId }: QueueMigrationModalProps) {
+export function QueueMigrationModal({ unlinkedQueues, services, onComplete, tenantId, onCreateService }: QueueMigrationModalProps) {
   const queryClient = useQueryClient();
   const [selectedServiceMap, setSelectedServiceMap] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,10 +72,12 @@ export function QueueMigrationModal({ unlinkedQueues, services, onComplete, tena
           <div className="p-6 space-y-4 max-h-[50vh] overflow-y-auto">
             {unlinkedQueues.map(q => (
               <div key={q.id} className="p-4 bg-surface-container-low dark:bg-black/20 rounded-xl border border-border dark:border-white/5">
-                <p className="font-semibold text-on-surface dark:text-white mb-3 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px] text-primary">queue</span>
-                  {q.name}
-                </p>
+                <div className="mb-3">
+                  <p className="text-[10px] text-on-surface-variant font-bold tracking-wider mb-1 uppercase">Queue</p>
+                  <p className="font-semibold text-base text-on-surface dark:text-white">
+                    {q.name}
+                  </p>
+                </div>
                 <div className="flex gap-2 items-center">
                   <LinkIcon className="w-4 h-4 text-zinc-500 shrink-0" />
                   <select
@@ -98,23 +101,34 @@ export function QueueMigrationModal({ unlinkedQueues, services, onComplete, tena
             )}
           </div>
 
-          <div className="p-6 border-t border-border dark:border-white/10 flex justify-end gap-3 bg-surface-container-lowest dark:bg-black/20">
-            {services.length === 0 ? (
+          <div className="p-6 border-t border-border dark:border-white/10 flex flex-wrap justify-between items-center gap-3 bg-surface-container-lowest dark:bg-black/20">
+            {onCreateService ? (
               <button
-                onClick={onComplete}
-                className="px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary-container"
+                onClick={onCreateService}
+                className="px-4 py-2 text-primary font-medium text-sm hover:bg-primary/10 rounded-xl transition-colors flex items-center gap-2"
               >
-                Close & Create Service
+                <Plus className="w-4 h-4" /> Create New Service
               </button>
-            ) : (
-              <button
-                onClick={handleSave}
-                disabled={isSubmitting || unlinkedQueues.some(q => !selectedServiceMap[q.id])}
-                className="px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary-container disabled:opacity-50 flex items-center gap-2"
-              >
-                {isSubmitting ? 'Saving...' : 'Save & Continue'}
-              </button>
-            )}
+            ) : <div />}
+            
+            <div className="flex gap-3">
+              {services.length === 0 ? (
+                <button
+                  onClick={onComplete}
+                  className="px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary-container"
+                >
+                  Close
+                </button>
+              ) : (
+                <button
+                  onClick={handleSave}
+                  disabled={isSubmitting || unlinkedQueues.some(q => !selectedServiceMap[q.id])}
+                  className="px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary-container disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSubmitting ? 'Saving...' : 'Save & Continue'}
+                </button>
+              )}
+            </div>
           </div>
         </motion.div>
       </div>
