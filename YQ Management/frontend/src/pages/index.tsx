@@ -447,38 +447,6 @@ export default function LandingPage() {
               </div>
             </motion.div>
 
-            {/* Feature 4: Personalized Status Display Page */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ delay: 0.4 }}
-              className="relative group overflow-hidden rounded-[2rem] bg-[#0f1219] border border-white/5 hover:border-amber-500/30 transition-all p-10 min-h-[400px] flex flex-col"
-            >
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-amber-500/10 rounded-full blur-[80px] transition-opacity opacity-50 group-hover:opacity-100 pointer-events-none"></div>
-              
-              <div className="relative z-10 flex-1">
-                <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mb-6 text-amber-400">
-                  <MonitorSmartphone className="w-6 h-6" />
-                </div>
-                <h3 className="text-2xl font-headline-sm font-bold text-white mb-4">Personalized Status Page</h3>
-                <p className="text-zinc-400 leading-relaxed">
-                  Real-time transparency. Give every customer a personalized tracking link so they can wait anywhere, anxiety-free.
-                </p>
-              </div>
-
-              {/* Visualization */}
-              <div className="mt-8 relative h-32 flex justify-center items-center z-10">
-                <div className="w-40 bg-zinc-900 border border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col items-center transform transition-transform group-hover:scale-105">
-                  <div className="w-16 h-16 rounded-full bg-zinc-800 border-4 border-amber-500/50 flex flex-col items-center justify-center mb-2">
-                    <span className="text-xs text-amber-400 font-bold">4</span>
-                    <span className="text-[8px] text-zinc-400">MINS</span>
-                  </div>
-                  <div className="h-2 w-16 bg-white/20 rounded mb-1"></div>
-                  <div className="h-1.5 w-10 bg-white/10 rounded"></div>
-                </div>
-              </div>
-            </motion.div>
 
             {/* Feature 5: AI Announcement Mechanism */}
             <motion.div 
