@@ -15,6 +15,7 @@ export default function ServiceDeskToday() {
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
+  const [mobileTab, setMobileTab] = useState<'pool' | 'pipeline'>('pool');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -162,10 +163,26 @@ export default function ServiceDeskToday() {
         <title>Service Desk | Qmova</title>
       </Head>
 
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden h-[calc(100vh-64px)] w-full -m-4 md:-m-10">
+      <div className="flex-1 flex flex-col md:grid md:grid-cols-12 overflow-hidden h-[calc(100vh-64px)] w-full -m-4 md:-m-10">
         
+        {/* Mobile Tab Switcher */}
+        <div className="md:hidden flex items-center p-3 bg-card dark:bg-dark-card border-b border-border dark:border-dark-border gap-2 shrink-0 z-20 shadow-sm">
+          <button 
+            onClick={() => setMobileTab('pool')}
+            className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-colors ${mobileTab === 'pool' ? 'bg-primary text-white shadow-md' : 'text-on-surface-variant bg-surface-container hover:bg-surface-container-high dark:bg-dark-canvas dark:hover:bg-inverse-surface'}`}
+          >
+            Active Pool ({waitingVisits.length})
+          </button>
+          <button 
+            onClick={() => setMobileTab('pipeline')}
+            className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-colors ${mobileTab === 'pipeline' ? 'bg-primary text-white shadow-md' : 'text-on-surface-variant bg-surface-container hover:bg-surface-container-high dark:bg-dark-canvas dark:hover:bg-inverse-surface'}`}
+          >
+            Pipeline
+          </button>
+        </div>
+
         {/* Column 1: Monitored Pipeline */}
-        <section className="hidden md:flex flex-col col-span-3 bg-card dark:bg-dark-card border-r border-border dark:border-dark-border p-6 h-full overflow-y-auto">
+        <section className={`${mobileTab === 'pipeline' ? 'flex' : 'hidden'} md:flex flex-col md:col-span-3 bg-card dark:bg-dark-card border-r border-border dark:border-dark-border p-4 md:p-6 h-full overflow-y-auto`}>
           <div className="flex items-center justify-between mb-6">
             {tenant?.locations && tenant.locations.length > 1 && (
               <select
@@ -292,7 +309,7 @@ export default function ServiceDeskToday() {
         </section>
 
         {/* Column 2: Priority Queue Pool */}
-        <section className={`col-span-1 ${selectedVisit ? 'md:col-span-6' : 'md:col-span-9'} bg-canvas dark:bg-dark-canvas p-6 flex flex-col h-full overflow-hidden transition-all duration-300`}>
+        <section className={`${mobileTab === 'pool' ? 'flex' : 'hidden'} md:flex md:col-span-1 ${selectedVisit ? 'md:col-span-6' : 'md:col-span-9'} bg-canvas dark:bg-dark-canvas p-4 md:p-6 flex-col h-full overflow-hidden transition-all duration-300`}>
           
 
           <div className="flex items-center justify-between mb-6 shrink-0">

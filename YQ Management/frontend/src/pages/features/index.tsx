@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '../components/AuthContext';
 import { Logo } from '../components/Logo';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { QrCode, MonitorSmartphone, Bell, CheckCircle2, MessageSquare, ArrowRight, Activity, CalendarDays, MonitorPlay, Users } from 'lucide-react';
+import { QrCode, MonitorSmartphone, Bell, CheckCircle2, MessageSquare, ArrowRight, Activity, CalendarDays, MonitorPlay, Users, Scan } from 'lucide-react';
 
 export default function LandingPage() {
   const { user } = useAuth();
@@ -291,6 +291,36 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-rose-500/50 to-transparent animate-marquee"></div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Feature 6: Mobile Management & Staff Scanner */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ delay: 0.6 }}
+              className="relative group overflow-hidden rounded-[2rem] bg-[#0f1219] border border-white/5 hover:border-sky-500/30 transition-all p-10 min-h-[400px] flex flex-col"
+            >
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-sky-500/10 rounded-full blur-[80px] transition-opacity opacity-50 group-hover:opacity-100 pointer-events-none"></div>
+              
+              <div className="relative z-10 flex-1">
+                <div className="w-12 h-12 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center mb-6 text-sky-400">
+                  <Scan className="w-6 h-6" />
+                </div>
+                <h3 className="text-2xl font-headline-sm font-bold text-white mb-4">Mobile Management & Scanner</h3>
+                <p className="text-zinc-400 leading-relaxed">
+                  Run the entire floor from your smartphone. Tenant staff can seamlessly manage queues, scan QR tickets, and check-in walk-ins natively on their mobile devices.
+                </p>
+              </div>
+
+              {/* Visualization */}
+              <div className="mt-8 relative h-32 flex justify-center items-center z-10">
+                <div className="w-24 h-32 bg-black border-[3px] border-zinc-800 rounded-2xl shadow-2xl flex flex-col items-center justify-center relative overflow-hidden group-hover:border-sky-500/50 transition-colors">
+                  <div className="absolute inset-x-4 top-2 h-1 bg-zinc-800 rounded-full"></div>
+                  <Scan className="w-8 h-8 text-sky-400 opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
+                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-sky-400/50 shadow-[0_0_10px_rgba(56,189,248,0.8)] -translate-y-2 group-hover:translate-y-32 transition-transform duration-[1.5s] ease-linear infinite"></div>
                 </div>
               </div>
             </motion.div>

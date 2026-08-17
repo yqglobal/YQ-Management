@@ -108,6 +108,7 @@ export default function AdminScanner() {
   const lastScanTimeRef = useRef<number>(0);
   const manualStopRef = useRef(false);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const resultContainerRef = useRef<HTMLDivElement>(null);
   const DEBOUNCE_TIME = 1000;
   const IDLE_TIMEOUT_MS = 10000;
 
@@ -469,6 +470,12 @@ export default function AdminScanner() {
   }, [getCameras, cleanupScanner]);
 
   useEffect(() => {
+    if (validationResult && resultContainerRef.current) {
+      resultContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [validationResult]);
+
+  useEffect(() => {
     if (scannerStatus === 'idle' && !manualStopRef.current) {
       const timer = setTimeout(() => {
         startScanning();
@@ -538,6 +545,22 @@ export default function AdminScanner() {
                 <div className="absolute top-8 right-8 w-8 h-8 border-t-2 border-r-2 border-white/80 rounded-tr-lg pointer-events-none z-10"></div>
                 <div className="absolute bottom-8 left-8 w-8 h-8 border-b-2 border-l-2 border-white/80 rounded-bl-lg pointer-events-none z-10"></div>
                 <div className="absolute bottom-8 right-8 w-8 h-8 border-b-2 border-r-2 border-white/80 rounded-br-lg pointer-events-none z-10"></div>
+                
+                {/* Switch Camera Button */}
+                {availableCameras.length > 1 && (
+                  <div className="absolute top-4 right-4 z-20">
+                    <button
+                      onClick={() => {
+                        setUseFrontCamera(!useFrontCamera);
+                        stopScanning().then(() => setTimeout(() => startScanning(), 100));
+                      }}
+                      className="bg-black/60 backdrop-blur-sm text-white p-2 rounded-full border border-white/20 hover:bg-black/80 transition-colors shadow-lg"
+                      title="Switch Camera"
+                    >
+                      <RefreshCcw strokeWidth={1.5} className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
                 
                 {scannerStatus === 'scanning' && (
                   <div className="laser h-0.5 w-3/4 bg-primary/80 shadow-[0_0_15px_rgba(0,97,148,0.5)] z-10 pointer-events-none"></div>
@@ -621,8 +644,8 @@ export default function AdminScanner() {
           </div>
 
           {/* Right Column (Verification) */}
-          <div className="flex flex-col">
-            <div className="bg-card dark:bg-dark-card rounded-2xl border border-border dark:border-dark-border p-8 shadow-sm flex-1 flex flex-col">
+          <div className="flex flex-col" ref={resultContainerRef}>
+            <div className="bg-card dark:bg-dark-card rounded-2xl border border-border dark:border-dark-border p-8 shadow-sm flex-1 flex flex-col scroll-mt-24">
               
               {!validationResult && scannerStatus !== 'processing' && (
                 <div className="flex-1 flex flex-col items-center justify-center text-outline text-center space-y-4">
