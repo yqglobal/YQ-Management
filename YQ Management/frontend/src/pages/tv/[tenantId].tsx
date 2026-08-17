@@ -189,7 +189,7 @@ export default function TVDisplay() {
                 <Logo width={140} height={22} forceTheme="dark" />
               )}
               <div className="hidden lg:block">
-                <p className="font-bold text-white text-lg leading-tight">{branding?.logoUrl ? tenantName : 'Qmova'}</p>
+                <p className="font-bold text-white text-lg leading-tight">{tenantName || 'Queue Display'}</p>
                 <p className="text-zinc-500 text-xs">Live Queue Display</p>
               </div>
             </div>

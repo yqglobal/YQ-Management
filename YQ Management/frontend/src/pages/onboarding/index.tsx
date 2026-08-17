@@ -434,8 +434,8 @@ export default function Onboarding() {
     router.push('/dashboard');
   };
 
-  const totalSteps = inviteCode ? 2 : 3;
-  const currentStepProgress = inviteCode ? (step === 1 ? 1 : 2) : (step === 4 ? 3 : step);
+  const totalSteps = inviteCode ? 2 : 4;
+  const currentStepProgress = inviteCode ? (step === 1 ? 1 : 2) : (step === 5 ? 4 : step === 4 ? 4 : step);
 
   return (
     <div className="bg-canvas dark:bg-zinc-950 min-h-screen flex items-center justify-center p-4 md:p-8 font-body-md text-on-surface dark:text-white">
@@ -802,10 +802,10 @@ export default function Onboarding() {
                       Your account is successfully linked and ready to send notifications.
                     </p>
                     <button
-                      onClick={finishOnboarding}
+                      onClick={() => updateStep(5)}
                       className="w-full h-[56px] bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 rounded-xl font-body-md font-semibold transition-colors flex items-center justify-center gap-2"
                     >
-                      Go to Dashboard <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                      Continue <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                     </button>
                   </div>
                 )}
@@ -821,7 +821,7 @@ export default function Onboarding() {
                     Back
                   </button>
                   <button
-                    onClick={finishOnboarding}
+                    onClick={() => updateStep(5)}
                     className="w-full sm:w-auto min-h-[44px] px-8 rounded-lg font-body-md font-medium border border-border dark:border-dark-border text-on-surface dark:text-white hover:bg-surface-container-lowest dark:hover:bg-white/5 transition-colors"
                   >
                     Skip for now
@@ -884,6 +884,104 @@ export default function Onboarding() {
                   {joiningWorkspace ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Join Workspace'}
                   {!joiningWorkspace && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
                 </button>
+              </div>
+            </motion.div>
+          )}
+          {step === 5 && (
+            <motion.div 
+              key="step5"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-8"
+            >
+              <header className="text-center flex flex-col gap-2">
+                <h1 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight">
+                  Choose Your Plan
+                </h1>
+                <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline max-w-lg mx-auto">
+                  Get started with the plan that fits your business best. Upgrade later as you grow.
+                </p>
+              </header>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
+                {/* Standard Plan */}
+                <div className="relative flex flex-col p-6 rounded-3xl bg-surface-container-lowest dark:bg-zinc-900 border border-border dark:border-dark-border shadow-sm">
+                  <h3 className="text-xl font-bold text-on-surface dark:text-white mb-2">Standard</h3>
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <span className="text-3xl font-bold text-on-surface dark:text-white">$0</span>
+                    <span className="text-on-surface-variant dark:text-outline font-medium">/ forever</span>
+                  </div>
+                  <ul className="space-y-3 mb-8 flex-1">
+                    <li className="flex items-center gap-3 text-sm text-on-surface-variant dark:text-outline">
+                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+                      <span>Up to 1000 tokens/month</span>
+                    </li>
+                    <li className="flex items-center gap-3 text-sm text-on-surface-variant dark:text-outline">
+                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+                      <span>1 Location & 3 Services</span>
+                    </li>
+                    <li className="flex items-center gap-3 text-sm text-on-surface-variant dark:text-outline">
+                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+                      <span>Basic TV Display</span>
+                    </li>
+                  </ul>
+                  <button
+                    onClick={finishOnboarding}
+                    className="w-full py-3 px-4 rounded-xl font-semibold bg-surface-container-high dark:bg-white/10 text-on-surface dark:text-white hover:bg-surface-container-highest dark:hover:bg-white/20 transition-colors"
+                  >
+                    Start Free
+                  </button>
+                </div>
+
+                {/* Premium Plan */}
+                <div className="relative flex flex-col p-6 rounded-3xl bg-gradient-to-br from-primary-container to-primary/10 dark:from-sky-900/40 dark:to-sky-800/10 border-2 border-primary dark:border-sky-500 shadow-md transform md:-translate-y-2">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary dark:bg-sky-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                    Recommended
+                  </div>
+                  <h3 className="text-xl font-bold text-on-surface dark:text-white mb-2">Premium</h3>
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <span className="text-3xl font-bold text-primary dark:text-sky-400">$29</span>
+                    <span className="text-on-surface-variant dark:text-outline font-medium">/ month</span>
+                  </div>
+                  <ul className="space-y-3 mb-8 flex-1">
+                    <li className="flex items-center gap-3 text-sm text-on-surface dark:text-white font-medium">
+                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+                      <span>Unlimited tokens</span>
+                    </li>
+                    <li className="flex items-center gap-3 text-sm text-on-surface dark:text-white font-medium">
+                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+                      <span>Unlimited Locations & Services</span>
+                    </li>
+                    <li className="flex items-center gap-3 text-sm text-on-surface dark:text-white font-medium">
+                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+                      <span>WhatsApp Integration</span>
+                    </li>
+                    <li className="flex items-center gap-3 text-sm text-on-surface dark:text-white font-medium">
+                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+                      <span>Custom Branding & Logos</span>
+                    </li>
+                  </ul>
+                  <button
+                    onClick={() => {
+                      toast.success("Redirecting to checkout...");
+                      setTimeout(() => finishOnboarding(), 1000);
+                    }}
+                    className="w-full py-3 px-4 rounded-xl font-semibold bg-primary hover:bg-primary-container text-white transition-colors"
+                  >
+                    Upgrade Now
+                  </button>
+                </div>
+              </div>
+
+              <div className="w-full pt-6 mt-2 flex justify-center border-t border-border dark:border-dark-border">
+                  <button
+                    onClick={finishOnboarding}
+                    className="text-on-surface-variant dark:text-outline hover:text-on-surface dark:hover:text-white text-sm font-medium transition-colors underline decoration-border dark:decoration-dark-border underline-offset-4"
+                  >
+                    Skip for now, I'll decide later
+                  </button>
               </div>
             </motion.div>
           )}

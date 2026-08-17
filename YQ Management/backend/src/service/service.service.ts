@@ -50,7 +50,7 @@ export class ServiceService {
   async findAll(tenantId: string) {
     return this.prisma.extendedClient.service.findMany({
       where: { tenantId },
-      include: { location: true },
+      include: { location: true, queues: true },
     });
   }
 
@@ -95,18 +95,28 @@ export class ServiceService {
       description?: string;
       expectedDuration?: number;
       locationId?: string;
+      queueIds?: string[];
     },
   ) {
+    const { queueIds, ...restData } = data;
+    const updateData: any = { ...restData };
+
+    if (queueIds !== undefined) {
+      updateData.queues = {
+        set: queueIds.map((qId) => ({ id: qId })),
+      };
+    }
+
     return this.prisma.extendedClient.service
       .update({
         where: { id_tenantId: { id, tenantId } },
-        data,
+        data: updateData,
       })
       .catch(async () => {
         const exists = await this.findOne(id, tenantId);
         return this.prisma.extendedClient.service.update({
           where: { id: exists.id },
-          data,
+          data: updateData,
         });
       });
   }

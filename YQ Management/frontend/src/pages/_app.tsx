@@ -10,7 +10,6 @@ import { useRouter } from 'next/router';
 
 import CookieConsent from '../components/CookieConsent';
 import { GlobalCommandPalette } from '../components/GlobalCommandPalette';
-import { AcceptPoliciesModal } from '../components/modals/AcceptPoliciesModal';
 import { Toaster } from 'sonner';
 
 function AppRouterSetter() {
@@ -30,7 +29,6 @@ export default function App({ Component, pageProps }: AppProps) {
             <AppRouterSetter />
             <Component {...pageProps} />
             <CookieConsent />
-            <AcceptPoliciesModal />
             <GlobalCommandPalette />
           </TrackingProvider>
         </AuthProvider>

@@ -1457,29 +1457,58 @@ export class WhatsappService implements OnModuleInit {
       };
       const t = i18n[lang as keyof typeof i18n] || i18n.en;
 
-      if ((config?.quickReplies?.status !== false) && (text === 'STATUS' || text === t.btnStatus.toUpperCase())) {
-        const position = await this.prisma.token.count({
-          where: {
-            queueId: activeToken.queueId,
-            status: 'WAITING',
-            joinedAt: { lt: activeToken.joinedAt },
-          },
-        });
-        let responseText = config?.templates?.status || t.status;
-        responseText = responseText
-          .replace('{position}', (position + 1).toString())
-          .replace('{queueName}', activeToken.queue.name);
-        await this.sendMessage(instanceName, jid, responseText);
-        return { handled: true, action: 'status' };
-      } else if ((config?.quickReplies?.cancel !== false) && (text === 'CANCEL' || text === t.btnCancel.toUpperCase())) {
-        await this.prisma.token.update({
-          where: { id: activeToken.id },
-          data: { status: 'MISSED' },
-        });
-        const responseText = config?.templates?.cancel || t.cancel;
-        await this.sendMessage(instanceName, jid, responseText);
-        return { handled: true, action: 'cancel' };
-      } else {
+      const isBotPaused = await this.redisService.client.get(`chatbot_paused:${activeToken.id}`);
+
+      // If the admin replies via the manual chat, they'll likely send a message which will be logged as 'STAFF' sender.
+      // We assume the bot is paused if they explicitly requested human, or we can just pause it.
+      
+      if (!isBotPaused) {
+        if ((config?.quickReplies?.status !== false) && (text === '1' || text === 'STATUS' || text === t.btnStatus.toUpperCase())) {
+          const position = await this.prisma.token.count({
+            where: {
+              queueId: activeToken.queueId,
+              status: 'WAITING',
+              joinedAt: { lt: activeToken.joinedAt },
+            },
+          });
+          let responseText = config?.templates?.status || t.status;
+          responseText = responseText
+            .replace('{position}', (position + 1).toString())
+            .replace('{queueName}', activeToken.queue.name);
+          await this.sendMessage(instanceName, jid, responseText);
+          return { handled: true, action: 'status' };
+        } else if ((config?.quickReplies?.cancel !== false) && (text === '2' || text === 'CANCEL' || text === t.btnCancel.toUpperCase())) {
+          await this.prisma.token.update({
+            where: { id: activeToken.id },
+            data: { status: 'MISSED' },
+          });
+          const responseText = config?.templates?.cancel || t.cancel;
+          await this.sendMessage(instanceName, jid, responseText);
+          return { handled: true, action: 'cancel' };
+        } else if ((config?.quickReplies?.human !== false) && (text === '3' || text === 'HUMAN' || text === 'HELP')) {
+          await this.redisService.client.set(`chatbot_paused:${activeToken.id}`, '1', 'EX', 86400); // 24 hours
+          
+          const responseText = 'Connecting you to a human agent. Please wait...';
+          await this.sendMessage(instanceName, jid, responseText);
+          
+          const newMessage = await this.prisma.message.create({
+            data: {
+              tokenId: activeToken.id,
+              body: 'Requested human assistance.',
+              sender: 'CUSTOMER',
+            },
+          });
+          
+          try {
+            this.redisService.client.publish('queue_events', JSON.stringify({ type: 'NEW_MESSAGE', queueId: activeToken.queueId, message: newMessage }));
+          } catch (e) {}
+          
+          return { handled: true, action: 'human' };
+        }
+      }
+
+      // If bot is paused, or input was not 1/2/3, we save it as a manual chat message.
+      {
         const newMessage = await this.prisma.message.create({
           data: {
             tokenId: activeToken.id,

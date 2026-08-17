@@ -14,7 +14,7 @@ const settingsNavLinks = [
   { label: 'My Profile', href: '/dashboard/settings/profile', icon: <User className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Workspace & Identity', href: '/dashboard/settings/workspace', icon: <Building className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Team & Security', href: '/dashboard/settings/team', icon: <Shield className="w-4 h-4" strokeWidth={1.5} /> },
-  { label: 'Resources & Assets', href: '/dashboard/settings/resources', icon: <Box className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'Operations', href: '/dashboard/settings/operations', icon: <Box className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Integrations & Comms', href: '/dashboard/settings/integrations', icon: <Workflow className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Billing & Usage', href: '/dashboard/settings/billing', icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
 ];

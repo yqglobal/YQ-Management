@@ -10,7 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
 import { usePlan } from '../hooks/usePlan';
 import { toast } from 'sonner';
-import { CreateServiceModal } from './modals/CreateServiceModal';
+import { QueueMigrationModal } from './modals/QueueMigrationModal';
 import { io } from 'socket.io-client';
 import { getBackendUrl } from '../lib/api';
 
@@ -30,7 +30,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
-  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [activeLocationId, setActiveLocationId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const locationDropdownRef = useRef<HTMLDivElement>(null);
@@ -157,6 +157,13 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const [showQueueMigration, setShowQueueMigration] = useState(true);
+
+  // Derive unlinked queues for the transition modal
+  const hasQueuePermissions = user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN';
+  const unlinkedQueues = tenant?.queues?.filter((q: any) => !q.services || q.services.length === 0) || [];
+  const services = tenant?.services || [];
 
   return (
     <div className="bg-canvas dark:bg-dark-canvas text-on-surface dark:text-white font-body-md h-full overflow-hidden flex flex-col antialiased">
@@ -312,7 +319,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                       <div className="px-4 py-2 text-sm text-on-surface-variant">No locations found</div>
                     )}
                     <div className="border-t border-border mt-1 pt-1">
-                      <Link href="/dashboard/settings/resources" className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors text-on-surface-variant flex items-center gap-3">
+                      <Link href="/dashboard/settings/operations" className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors text-on-surface-variant flex items-center gap-3">
                         <span className="material-symbols-outlined text-[18px]">settings</span> Manage Locations
                       </Link>
                     </div>
@@ -385,13 +392,8 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
               : '';
 
             const steps: { label: string; done: boolean; href?: string; onClick?: () => void; isButton?: boolean }[] = [
-              { label: 'Add a Location', done: !!(tenant.locations && tenant.locations.length > 0), href: '/dashboard/settings/resources' },
-              { 
-                label: 'Create a Service', 
-                done: !!(tenant.services && tenant.services.length > 0), 
-                isButton: true,
-                onClick: () => setIsServiceModalOpen(true)
-              },
+              { label: 'Add a Location', done: !!(tenant.locations && tenant.locations.length > 0), href: '/dashboard/settings/operations' },
+              { label: 'Create a Service', done: !!(tenant.services && tenant.services.length > 0), href: '/dashboard/settings/operations' },
               { label: 'Set up a Queue', done: !!(tenant.queues && tenant.queues.length > 0), href: '/dashboard/queues' },
               { label: 'Connect WhatsApp', done: !!tenant.whatsappConnected, href: '/dashboard/settings/integrations' },
               {
@@ -480,62 +482,72 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
               </>
             );
           })()}
-        </div>
+          {/* Upgrade Card */}
+          {(() => {
+            const bookingShared = typeof window !== 'undefined' && !!localStorage.getItem('bookingPageShared');
+            const steps = [
+              { done: !!(tenant?.locations && tenant.locations.length > 0) },
+              { done: !!(tenant?.services && tenant.services.length > 0) },
+              { done: !!(tenant?.queues && tenant.queues.length > 0) },
+              { done: !!tenant?.whatsappConnected },
+              { done: bookingShared }
+            ];
+            const doneCount = steps.filter(s => s.done).length;
+            const allDone = doneCount === steps.length;
 
-        {/* Upgrade Card moved to bottom */}
-        {(() => {
-          if (plan.isLoading) return null;
-          return (
-            <div className="px-2 pb-2 mt-auto">
-              {(plan.status === 'TRIAL' || !plan.status) && (
-                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl text-white shadow-lg shadow-indigo-500/20 relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5">
-                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                  <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="material-symbols-outlined text-[20px]">stars</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full backdrop-blur-md">Trial</span>
+            if (plan.isLoading || !allDone) return null;
+            return (
+              <div className="px-2 pb-2 mt-4">
+                {(plan.status === 'TRIAL' || !plan.status) && (
+                  <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl text-white shadow-lg shadow-indigo-500/20 relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5">
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="material-symbols-outlined text-[20px]">stars</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full backdrop-blur-md">Trial</span>
+                      </div>
+                      <h4 className="font-bold text-sm mb-1">Upgrade to Pro</h4>
+                      <p className="text-xs text-white/80 mb-3">{plan.trialDaysLeft > 0 ? `${plan.trialDaysLeft} days left in trial` : 'Trial expired'}</p>
+                      <Link href="/dashboard/settings/billing" className="block w-full text-center bg-white text-indigo-600 font-bold text-xs py-2 rounded-lg hover:bg-indigo-50 transition-colors">
+                        View Plans
+                      </Link>
                     </div>
-                    <h4 className="font-bold text-sm mb-1">Upgrade to Pro</h4>
-                    <p className="text-xs text-white/80 mb-3">{plan.trialDaysLeft > 0 ? `${plan.trialDaysLeft} days left in trial` : 'Trial expired'}</p>
-                    <Link href="/dashboard/settings/billing" className="block w-full text-center bg-white text-indigo-600 font-bold text-xs py-2 rounded-lg hover:bg-indigo-50 transition-colors">
-                      View Plans
-                    </Link>
                   </div>
-                </div>
-              )}
-              {plan.status === 'ACTIVE' && plan.planTier === 'standard' && (
-                <div className="bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5 hover:border-primary">
-                  <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="material-symbols-outlined text-[20px] text-primary">rocket_launch</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full">Standard</span>
+                )}
+                {plan.status === 'ACTIVE' && plan.planTier === 'standard' && (
+                  <div className="bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5 hover:border-primary">
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="material-symbols-outlined text-[20px] text-primary">rocket_launch</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full">Standard</span>
+                      </div>
+                      <h4 className="font-bold text-sm text-on-surface dark:text-white mb-1">Unlock Features</h4>
+                      <p className="text-xs text-on-surface-variant dark:text-zinc-400 mb-3">Upgrade to access AI & Webhooks.</p>
+                      <Link href="/dashboard/settings/billing" className="block w-full text-center bg-primary text-on-primary font-bold text-xs py-2 rounded-lg hover:bg-primary-container transition-colors">
+                        Upgrade
+                      </Link>
                     </div>
-                    <h4 className="font-bold text-sm text-on-surface dark:text-white mb-1">Unlock Features</h4>
-                    <p className="text-xs text-on-surface-variant dark:text-zinc-400 mb-3">Upgrade to access AI & Webhooks.</p>
-                    <Link href="/dashboard/settings/billing" className="block w-full text-center bg-primary text-on-primary font-bold text-xs py-2 rounded-lg hover:bg-primary-container transition-colors">
-                      Upgrade
-                    </Link>
                   </div>
-                </div>
-              )}
-              {(plan.status === 'EXPIRED' || plan.status === 'CANCELLED') && (
-                <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5">
-                  <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="material-symbols-outlined text-[20px] text-red-600 dark:text-red-400">warning</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">Expired</span>
+                )}
+                {(plan.status === 'EXPIRED' || plan.status === 'CANCELLED') && (
+                  <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5">
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="material-symbols-outlined text-[20px] text-red-600 dark:text-red-400">warning</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">Expired</span>
+                      </div>
+                      <h4 className="font-bold text-sm text-red-900 dark:text-red-300 mb-1">Action Required</h4>
+                      <p className="text-xs text-red-700 dark:text-red-400/80 mb-3">Please renew your subscription.</p>
+                      <Link href="/dashboard/settings/billing" className="block w-full text-center bg-red-600 text-white font-bold text-xs py-2 rounded-lg hover:bg-red-700 transition-colors">
+                        Renew Now
+                      </Link>
                     </div>
-                    <h4 className="font-bold text-sm text-red-900 dark:text-red-300 mb-1">Action Required</h4>
-                    <p className="text-xs text-red-700 dark:text-red-400/80 mb-3">Please renew your subscription.</p>
-                    <Link href="/dashboard/settings/billing" className="block w-full text-center bg-red-600 text-white font-bold text-xs py-2 rounded-lg hover:bg-red-700 transition-colors">
-                      Renew Now
-                    </Link>
                   </div>
-                </div>
-              )}
-            </div>
-          );
-        })()}
+                )}
+              </div>
+            );
+          })()}
+        </div>
 
         <div className="flex flex-col gap-2 pt-4 border-t border-border dark:border-dark-border">
           {filteredBottomItems.map((item) => {
@@ -562,8 +574,8 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
       </nav>
 
       {/* Main Content Canvas */}
-      <main className={`ml-0 md:ml-sidebar-w flex-1 flex flex-col overflow-hidden bg-canvas dark:bg-dark-canvas relative ${settingsMode ? 'mt-[108px]' : 'mt-header-h'}`}>
-        <div className="flex-1 overflow-auto p-margin-mobile md:p-margin-desktop w-full relative">
+      <main className={`ml-0 md:ml-sidebar-w flex-1 flex flex-col overflow-hidden overscroll-none bg-canvas dark:bg-dark-canvas relative ${settingsMode ? 'mt-[108px]' : 'mt-header-h'}`}>
+        <div className="flex-1 overflow-auto overscroll-none p-margin-mobile md:p-margin-desktop w-full relative">
            {children}
         </div>
       </main>
@@ -648,10 +660,14 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
         </>
       )}
 
-      <CreateServiceModal 
-        isOpen={isServiceModalOpen}
-        onClose={() => setIsServiceModalOpen(false)}
-      />
+      {showQueueMigration && hasQueuePermissions && unlinkedQueues.length > 0 && (
+        <QueueMigrationModal
+          unlinkedQueues={unlinkedQueues}
+          services={services}
+          tenantId={tenant?.id}
+          onComplete={() => setShowQueueMigration(false)}
+        />
+      )}
     </div>
   );
 }

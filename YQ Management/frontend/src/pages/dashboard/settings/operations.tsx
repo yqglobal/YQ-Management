@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
 import { Box, Plus, Trash2, Loader2, MapPin, Pencil, Check, X, Layers } from 'lucide-react';
 import { toast } from 'sonner';
-import { CreateServiceModal } from '../../../components/modals/CreateServiceModal';
+import { ServiceModal } from '../../../components/modals/ServiceModal';
 
 export default function ResourcesSettingsPage() {
   const queryClient = useQueryClient();
@@ -31,9 +31,7 @@ export default function ResourcesSettingsPage() {
 
   // --- Services state ---
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
-  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
-  const [editServiceName, setEditServiceName] = useState('');
-  const [editServiceDesc, setEditServiceDesc] = useState('');
+  const [selectedServiceForEdit, setSelectedServiceForEdit] = useState<any>(null);
 
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
     queryKey: ['resources'],
@@ -177,21 +175,12 @@ export default function ResourcesSettingsPage() {
     updateLocationMutation.mutate({ id, data: { name: editLocName, address: editLocAddress || undefined, city: editLocCity || undefined } });
   };
 
-  const startEditService = (service: any) => {
-    setEditingServiceId(service.id);
-    setEditServiceName(service.name || '');
-    setEditServiceDesc(service.description || '');
-  };
 
-  const handleUpdateService = (id: string) => {
-    if (!editServiceName.trim()) return;
-    updateServiceMutation.mutate({ id, data: { name: editServiceName, description: editServiceDesc || undefined } });
-  };
 
   return (
-    <SettingsLayout pageTitle="Resources & Locations" pageSubtitle="Manage your business locations, desks, rooms, counters, and equipment.">
+    <SettingsLayout pageTitle="Operations" pageSubtitle="Manage your business locations, services, and operational resources.">
       <Head>
-        <title>Resources & Locations | Settings | Qmova</title>
+        <title>Operations | Settings | Qmova</title>
       </Head>
 
       {/* ── Locations Section ── */}
@@ -360,48 +349,25 @@ export default function ResourcesSettingsPage() {
             ) : (
               (services as any[]).map((service: any) => (
                 <div key={service.id} className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-zinc-800 rounded-xl gap-3">
-                  {editingServiceId === service.id ? (
-                    <div className="flex-1 grid grid-cols-1 gap-2">
-                      <input type="text" value={editServiceName} onChange={e => setEditServiceName(e.target.value)}
-                        className="bg-canvas dark:bg-zinc-900 border border-blue-500 rounded-lg px-3 py-1.5 text-sm font-medium outline-none" placeholder="Service Name" autoFocus />
-                      <input type="text" value={editServiceDesc} onChange={e => setEditServiceDesc(e.target.value)}
-                        className="bg-canvas dark:bg-zinc-900 border border-border dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm outline-none" placeholder="Description" />
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0">
+                      <Layers className="w-5 h-5 text-blue-500" />
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0">
-                        <Layers className="w-5 h-5 text-blue-500" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm text-on-surface dark:text-white">{service.name}</p>
-                        {service.description && (
-                          <p className="text-xs text-on-surface-variant dark:text-zinc-500 truncate">{service.description}</p>
-                        )}
-                      </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-on-surface dark:text-white">{service.name}</p>
+                      {service.description && (
+                        <p className="text-xs text-on-surface-variant dark:text-zinc-500 truncate">{service.description}</p>
+                      )}
                     </div>
-                  )}
+                  </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {editingServiceId === service.id ? (
-                      <>
-                        <button onClick={() => handleUpdateService(service.id)} disabled={updateServiceMutation.isPending}
-                          className="p-2 text-blue-600 hover:bg-blue-500/10 rounded-lg transition-colors" title="Save">
-                          {updateServiceMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                        </button>
-                        <button onClick={() => setEditingServiceId(null)} className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors" title="Cancel">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button onClick={() => startEditService(service)} className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Edit">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => { if (confirm(`Delete "${service.name}"? Queues linked to this service may be affected.`)) deleteServiceMutation.mutate(service.id); }}
-                          className="p-2 text-on-surface-variant hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Delete">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
+                    <button onClick={() => { setSelectedServiceForEdit(service); setIsServiceModalOpen(true); }} className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Edit">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => { if (confirm(`Delete "${service.name}"? Queues linked to this service may be affected.`)) deleteServiceMutation.mutate(service.id); }}
+                      className="p-2 text-on-surface-variant hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Delete">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))
@@ -582,9 +548,10 @@ export default function ResourcesSettingsPage() {
         )}
       </div>
       
-      <CreateServiceModal 
+      <ServiceModal 
         isOpen={isServiceModalOpen}
-        onClose={() => setIsServiceModalOpen(false)}
+        onClose={() => { setIsServiceModalOpen(false); setSelectedServiceForEdit(null); }}
+        service={selectedServiceForEdit}
       />
     </SettingsLayout>
   );

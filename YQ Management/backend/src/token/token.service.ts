@@ -274,6 +274,9 @@ export class TokenService {
         );
       }
       if (message) {
+        if (queue?.tenant?.chatbotEnabled) {
+          message += '\n\nReply:\n*1* to Check Status\n*2* to Cancel Turn\n*3* to Request Human Assistance';
+        }
         await this.notificationsService.sendWhatsAppMessage(
           phone,
           message,
@@ -484,6 +487,9 @@ export class TokenService {
           );
         }
         if (message) {
+          if (queue?.tenant?.chatbotEnabled) {
+            message += '\n\nReply:\n*1* to Check Status\n*2* to Cancel Turn\n*3* to Request Human Assistance';
+          }
           await this.notificationsService.sendWhatsAppMessage(phone, message, queue.tenantId);
         }
       }

@@ -62,42 +62,49 @@ export function AcceptPoliciesModal() {
           <div 
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 text-on-surface-variant dark:text-zinc-300 font-body-sm relative"
+            className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 text-on-surface-variant dark:text-zinc-300 font-body-sm relative"
           >
             <section>
-              <h3 className="text-lg font-semibold text-on-surface dark:text-white mb-2 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-on-surface dark:text-white mb-3 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-primary" /> Terms of Service
               </h3>
               <p className="mb-4">
                 By accessing and using QMova, you agree to comply with our core terms regarding queue management, fair usage of tokens, and SLA obligations. 
               </p>
-              <ul className="list-disc pl-5 space-y-2 mb-4 text-sm opacity-80">
+              <ul className="list-disc pl-5 space-y-2 mb-6 text-sm opacity-80">
                 <li>You are responsible for the data you collect from your patrons.</li>
                 <li>API limits must be respected; excessive polling may result in temporary suspension.</li>
                 <li>WhatsApp communication is subject to Meta's Business Policies.</li>
               </ul>
               <div className="p-4 bg-surface-container-low dark:bg-black/20 rounded-lg border border-border dark:border-white/5 text-xs font-mono leading-relaxed opacity-70">
                 // Legal Disclaimer Snapshot
+                <br/>
                 QMova provides software "as-is" without warranty. We do not guarantee uninterrupted service, though we strive for 99.9% uptime. Liability is limited to the amount paid in the preceding 12 months.
               </div>
             </section>
 
+            <div className="h-px w-full bg-border dark:bg-white/10 my-4" />
+
             <section>
-              <h3 className="text-lg font-semibold text-on-surface dark:text-white mb-2 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-on-surface dark:text-white mb-3 flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary" /> Privacy Policy & Data Processing
               </h3>
               <p className="mb-4">
                 We act as a Data Processor for the queue information you capture. We strictly adhere to POPIA and GDPR standards for data residency and encryption.
               </p>
-              <ul className="list-disc pl-5 space-y-2 mb-4 text-sm opacity-80">
+              <ul className="list-disc pl-5 space-y-2 mb-6 text-sm opacity-80">
                 <li>All PHI/PII data is encrypted at rest using AES-256.</li>
                 <li>You retain full ownership of your customer lists.</li>
                 <li>We do not sell your patrons' data to third-party brokers.</li>
               </ul>
-              <div className="h-[300px] border border-dashed border-border dark:border-white/10 rounded-lg flex items-center justify-center text-on-surface-variant/50">
-                [Scroll to continue reading full 15-page legal text]
+              <div className="space-y-4 text-sm opacity-60">
+                <p>1. Data Collection: We collect only the minimum necessary data to provide our queue management services.</p>
+                <p>2. Data Retention: Queue data is automatically anonymized after 30 days unless specifically configured otherwise in your workspace settings.</p>
+                <p>3. Third-Party Services: We integrate with essential infrastructure providers (e.g., AWS, Vercel) who are subject to strict DPA agreements.</p>
+                <p>4. User Rights: Your end-users have the right to request deletion of their data, which you must facilitate through our API or dashboard.</p>
+                <br/><br/><br/><br/><br/><br/><br/><br/>
               </div>
-              <p className="mt-8 text-center text-xs opacity-50">End of Document</p>
+              <p className="mt-8 text-center text-xs opacity-50 font-medium tracking-widest uppercase">End of Document</p>
             </section>
           </div>
 

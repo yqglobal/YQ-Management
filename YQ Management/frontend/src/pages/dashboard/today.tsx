@@ -157,9 +157,9 @@ export default function ServiceDeskToday() {
   );
 
   return (
-    <AdminLayout pageTitle="Service Desk Today">
+    <AdminLayout pageTitle="Service Desk">
       <Head>
-        <title>Service Desk Today | Qmova</title>
+        <title>Service Desk | Qmova</title>
       </Head>
 
       <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden h-[calc(100vh-64px)] w-full -m-4 md:-m-10">
@@ -167,7 +167,6 @@ export default function ServiceDeskToday() {
         {/* Column 1: Monitored Pipeline */}
         <section className="hidden md:flex flex-col col-span-3 bg-card dark:bg-dark-card border-r border-border dark:border-dark-border p-6 h-full overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="font-headline-md text-headline-md font-semibold text-primary dark:text-primary-fixed-dim">Service Desk</h1>
             {tenant?.locations && tenant.locations.length > 1 && (
               <select
                 value={selectedLocationId}

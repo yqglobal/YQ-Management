@@ -25,7 +25,48 @@ export default function QRCodesSettings() {
     : `https://qmova.com/public/${tenant?.subdomain}`;
 
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open('', '', 'width=800,height=800');
+    if (!printWindow) return;
+    
+    // Get the SVG HTML string safely
+    const svgElement = document.getElementById('qr-code-svg');
+    const svgHtml = svgElement ? svgElement.outerHTML : '';
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Print QR Code - ${tenant?.name || 'Qmova'}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #fff; color: #000; }
+            .container { text-align: center; max-width: 500px; padding: 40px; border: 2px solid #e5e7eb; border-radius: 24px; }
+            h1 { font-size: 24px; margin-bottom: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; }
+            p { color: #6b7280; margin-bottom: 32px; font-size: 16px; }
+            .qr-wrapper { margin: 0 auto 32px; display: flex; justify-content: center; }
+            .url { background: #f3f4f6; padding: 12px 24px; border-radius: 12px; font-family: monospace; font-size: 14px; word-break: break-all; }
+            @media print {
+              .container { border: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>${tenant?.name || 'Your Business'}</h1>
+            <p>Scan to Check-in</p>
+            <div class="qr-wrapper">
+              ${svgHtml}
+            </div>
+            <div class="url">${publicPortalUrl}</div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              window.setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -61,9 +102,6 @@ export default function QRCodesSettings() {
             <button onClick={handlePrint} className="flex-1 h-[44px] flex items-center justify-center gap-2 bg-[#f59e0b] hover:bg-[#d97706] text-white rounded-lg font-body-md font-semibold transition-colors shadow-sm">
               <Printer strokeWidth={1.5} className="w-4 h-4" /> Print Flyer
             </button>
-            <button className="flex-1 h-[44px] flex items-center justify-center gap-2 bg-transparent border border-border dark:border-dark-border hover:bg-surface-container-low dark:hover:bg-white/5 text-on-surface dark:text-white rounded-lg font-body-md font-semibold transition-colors">
-              <Download strokeWidth={1.5} className="w-4 h-4" /> Save PNG
-            </button>
           </div>
         </div>
 
@@ -76,6 +114,7 @@ export default function QRCodesSettings() {
 
           <div className="p-4 bg-white rounded-2xl shadow-sm border border-border">
             <QRCodeSVG 
+              id="qr-code-svg"
               value={publicPortalUrl} 
               size={240}
               level="Q"
@@ -90,16 +129,6 @@ export default function QRCodesSettings() {
         </div>
 
       </div>
-
-      {/* Print Styles */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          body * { visibility: hidden; }
-          .bg-surface-bright, .bg-surface-bright * { visibility: visible; }
-          .bg-surface-bright { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; display: flex; flex-direction: column; }
-          button { display: none !important; }
-        }
-      `}} />
     </div>
   );
 }

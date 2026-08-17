@@ -33,6 +33,7 @@ export class ServiceController {
       description?: string;
       expectedDuration?: number;
       locationId?: string;
+      queueIds?: string[];
     },
   ) {
     return this.serviceService.create(req.user.tenantId, body);
@@ -61,6 +62,7 @@ export class ServiceController {
       description?: string;
       expectedDuration?: number;
       locationId?: string;
+      queueIds?: string[];
     },
   ) {
     return this.serviceService.update(id, req.user.tenantId, body);

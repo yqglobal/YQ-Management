@@ -38,7 +38,7 @@ export default function QueueDetails() {
     queryKey: ['tenant', user?.tenantId],
     queryFn: async () => {
       if (!user?.tenantId) return null;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/tenant/${user.tenantId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/tenant/me`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       if (!res.ok) throw new Error('Failed to fetch tenant');
@@ -58,6 +58,7 @@ export default function QueueDetails() {
     if (queue) {
       setFormData({
         name: queue.name,
+        serviceIds: queue.services?.map((s: any) => s.id) || [],
         allowAppointments: queue.allowAppointments || false,
         requireManualCheckIn: queue.requireManualCheckIn || false,
         appointmentGranularityMins: queue.appointmentGranularityMins || 15,
@@ -401,6 +402,34 @@ export default function QueueDetails() {
                     className="w-full h-[44px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-md text-on-surface dark:text-white" 
                   />
                 </div>
+
+                {(user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN') && (
+                  <div>
+                    <label className="block font-body-md font-medium text-on-surface dark:text-white mb-2">Linked Service(s)</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {tenant?.services?.map((service: any) => (
+                        <label key={service.id} className="flex items-center gap-3 p-3 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 hover:bg-surface-container-low dark:hover:bg-white/5 cursor-pointer transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={formData.serviceIds?.includes(service.id) || false}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              const newIds = checked 
+                                ? [...(formData.serviceIds || []), service.id]
+                                : (formData.serviceIds || []).filter((id: string) => id !== service.id);
+                              setFormData({ ...formData, serviceIds: newIds });
+                            }}
+                            className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                          />
+                          <span className="font-body-sm text-on-surface dark:text-white">{service.name}</span>
+                        </label>
+                      ))}
+                      {(!tenant?.services || tenant.services.length === 0) && (
+                        <p className="text-sm text-alert col-span-2">No services exist in this workspace. Please create a Service first.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
                 
                 <div className="pt-4 flex items-start gap-4 p-4 rounded-xl border border-border dark:border-dark-border bg-surface-bright dark:bg-zinc-900 cursor-pointer">
                   <div className="flex items-center h-5 mt-1">

@@ -12,14 +12,18 @@ import { usePlan } from '../../../hooks/usePlan';
 import { QuotaExhaustedModal } from '../../../components/QuotaExhaustedModal';
 import Link from 'next/link';
 import { CreateServiceModal } from '../../../components/modals/CreateServiceModal';
+import { LinkServicesModal } from '../../../components/modals/LinkServicesModal';
 
 export default function QueuesList() {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [linkModalQueue, setLinkModalQueue] = useState<any>(null);
   const [newQueueName, setNewQueueName] = useState('');
   const [selectedLocationId, setSelectedLocationId] = useState('');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [allowAppointments, setAllowAppointments] = useState(false);
+  const [requireManualCheckIn, setRequireManualCheckIn] = useState(false);
   const [showQuotaModal, setShowQuotaModal] = useState(false);
   const queryClient = useQueryClient();
   const plan = usePlan();
@@ -40,13 +44,15 @@ export default function QueuesList() {
   });
 
   const createQueueMutation = useMutation({
-    mutationFn: (data: { name: string; locationId?: string; serviceIds?: string[] }) =>
+    mutationFn: (data: { name: string; locationId?: string; serviceIds?: string[]; allowAppointments?: boolean; requireManualCheckIn?: boolean }) =>
       fetchApi('/queue', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
       setIsModalOpen(false);
       setNewQueueName('');
       setSelectedLocationId('');
       setSelectedServiceIds([]);
+      setAllowAppointments(false);
+      setRequireManualCheckIn(false);
       queryClient.invalidateQueries({ queryKey: ['queues'] });
       toast.success('Queue created successfully');
     },
@@ -63,6 +69,8 @@ export default function QueuesList() {
       name: newQueueName,
       locationId: selectedLocationId || undefined,
       serviceIds: selectedServiceIds,
+      allowAppointments,
+      requireManualCheckIn,
     });
   };
 
@@ -180,13 +188,24 @@ export default function QueuesList() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => router.push(`/dashboard/queues/${queue.id}`)}
-                    className="flex items-center gap-2 px-4 py-2 bg-surface-container-low dark:bg-white/5 border border-border dark:border-dark-border hover:bg-surface-container dark:hover:bg-white/10 text-on-surface dark:text-white rounded-lg text-sm font-medium transition-colors self-start sm:self-auto"
-                  >
-                    <Settings2 strokeWidth={1.5} className="w-4 h-4" />
-                    Manage
-                  </button>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {queue.services?.length === 0 && (
+                      <button
+                        onClick={() => setLinkModalQueue(queue)}
+                        className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        <Plus strokeWidth={1.5} className="w-4 h-4" />
+                        Link Services
+                      </button>
+                    )}
+                    <button
+                      onClick={() => router.push(`/dashboard/queues/${queue.id}`)}
+                      className="flex items-center gap-2 px-4 py-2 bg-surface-container-low dark:bg-white/5 border border-border dark:border-dark-border hover:bg-surface-container dark:hover:bg-white/10 text-on-surface dark:text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <Settings2 strokeWidth={1.5} className="w-4 h-4" />
+                      Manage
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -267,6 +286,33 @@ export default function QueuesList() {
                 </div>
               </div>
 
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 p-2 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={allowAppointments}
+                    onChange={(e) => setAllowAppointments(e.target.checked)}
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary dark:border-dark-border dark:bg-dark-canvas"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-on-surface dark:text-white block">Allow Appointments</span>
+                    <span className="text-xs text-on-surface-variant block mt-0.5">Customers can book future time slots.</span>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 p-2 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={requireManualCheckIn}
+                    onChange={(e) => setRequireManualCheckIn(e.target.checked)}
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary dark:border-dark-border dark:bg-dark-canvas"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-on-surface dark:text-white block">Require Manual Check-in</span>
+                    <span className="text-xs text-on-surface-variant block mt-0.5">Customers joining online must physically scan a QR code at the location.</span>
+                  </div>
+                </label>
+              </div>
+
               <div className="pt-4 flex justify-end gap-3 border-t border-border dark:border-dark-border">
                 <button
                   type="button"
@@ -300,6 +346,12 @@ export default function QueuesList() {
           planName={plan.planName}
         />
       )}
+
+      <LinkServicesModal
+        isOpen={!!linkModalQueue}
+        onClose={() => setLinkModalQueue(null)}
+        queue={linkModalQueue}
+      />
 
       <CreateServiceModal 
         isOpen={isServiceModalOpen}

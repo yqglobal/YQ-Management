@@ -76,7 +76,7 @@ export class TenantService {
       include: {
         locations: { select: { id: true, name: true } },
         services: { select: { id: true, name: true } },
-        queues: { select: { id: true, name: true } },
+        queues: { select: { id: true, name: true, services: { select: { id: true } } } },
         workspaces: {
           take: 1,
           include: {
