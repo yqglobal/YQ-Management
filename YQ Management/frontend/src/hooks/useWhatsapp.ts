@@ -45,6 +45,9 @@ export function useWhatsapp() {
         // Also invalidate to fetch fresh full state if needed, though cache is optimistic
         qc.invalidateQueries({ queryKey: ['whatsapp-status'] });
         qc.invalidateQueries({ queryKey: ['whatsapp-cached-qr'] });
+        
+        // Invalidate tenant info to update the sidebar checklist progress
+        qc.invalidateQueries({ queryKey: ['tenant', 'me'] });
       });
     }
 

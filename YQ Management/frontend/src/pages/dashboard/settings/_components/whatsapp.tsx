@@ -85,6 +85,18 @@ export default function WhatsAppSettingsPage() {
     }
   }, [whatsappStatus]);
 
+  // Sync the global tenant query cache with the WhatsApp connection status
+  useEffect(() => {
+    if (tenant && isWhatsAppConnected !== undefined) {
+      if (isWhatsAppConnected !== tenant.whatsappConnected) {
+        queryClient.setQueryData(['tenant', 'me'], (old: any) => {
+          if (!old) return old;
+          return { ...old, whatsappConnected: isWhatsAppConnected };
+        });
+      }
+    }
+  }, [isWhatsAppConnected, tenant?.whatsappConnected, queryClient]);
+
   useEffect(() => {
     if (cachedQrQuery?.data?.qr) {
       console.log('[WhatsApp] Cached QR found:', { expiresAt: cachedQrQuery.data.expiresAt });
