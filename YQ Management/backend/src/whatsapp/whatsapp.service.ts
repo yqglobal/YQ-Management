@@ -120,6 +120,8 @@ export class WhatsappService implements OnModuleInit {
           await this.connect(tenant.id); // Re-run connect to re-create instance & webhooks
         } else {
           // Instance exists - check if it's actually open before doing anything
+          if (!tenant.whatsappInstanceId) continue;
+          
           const stateRes = await this.fetchEvo(
             `/instance/connectionState/${tenant.whatsappInstanceId}`,
             'GET',
