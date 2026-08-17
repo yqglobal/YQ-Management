@@ -1,35 +1,15 @@
 import Footer from "../../components/Footer";
-import React, { useRef } from 'react';
+import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useAuth } from '../../components/AuthContext';
 import { Logo } from '../../components/Logo';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { CheckCircle2, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { CheckCircle2 } from 'lucide-react';
 
 export default function PricingPage() {
   const { user } = useAuth();
   
-  // Parallax scroll effects
-  const { scrollY } = useScroll();
-  const heroY = useTransform(scrollY, [0, 500], [0, 150]);
-  const opacityFade = useTransform(scrollY, [0, 300], [1, 0]);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: { opacity: 1, x: 0 }
-  };
-
   return (
     <div className="dark bg-[#09090b] min-h-screen font-body-md text-white antialiased overflow-x-hidden selection:bg-sky-500/30">
       <Head>
@@ -45,7 +25,6 @@ export default function PricingPage() {
         </div>
         <div className="hidden md:flex gap-8 font-body-sm text-zinc-400 font-medium tracking-wide">
           <Link className="hover:text-white transition-colors" href="/features">Features</Link>
-          <Link className="hover:text-white transition-colors" href="/industries">Industries</Link>
           <Link className="hover:text-white transition-colors" href="/pricing">Pricing</Link>
           <Link className="hover:text-white transition-colors" href="/about">About Us</Link>
         </div>
@@ -68,135 +47,166 @@ export default function PricingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-[500px] flex flex-col items-center justify-center pt-32 px-gutter overflow-hidden">
-        <motion.div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-sky-500/10 blur-[120px] rounded-full z-0 pointer-events-none mix-blend-screen"
-          animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
-          transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
-        />
-
-        <motion.div 
-          style={{ y: heroY, opacity: opacityFade }}
-          className="max-w-4xl mx-auto text-center z-10 space-y-8 flex flex-col items-center"
-        >
+      <section className="relative pt-40 pb-20 px-gutter overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-sky-500/10 blur-[120px] rounded-full z-0 pointer-events-none mix-blend-screen" />
+        
+        <div className="max-w-4xl mx-auto text-center z-10 space-y-6 flex flex-col items-center relative">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="text-5xl md:text-[64px] font-headline-lg font-extrabold tracking-[-0.04em] leading-[1.1] text-white relative z-10 drop-shadow-2xl"
+            transition={{ duration: 0.6 }}
+            className="text-5xl md:text-6xl font-headline-lg font-extrabold tracking-tight text-white drop-shadow-2xl"
           >
-            Transparent <br className="hidden md:block"/>
-            <span className="bg-gradient-to-r from-sky-400 via-emerald-400 to-sky-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">Pricing.</span>
+            Simple, Transparent Pricing
           </motion.h1>
 
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            className="font-body-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed text-lg md:text-xl"
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="font-body-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed text-lg"
           >
-            Choose the plan that fits your business. No hidden fees. Start transforming your waiting room today.
+            Start for free, upgrade when you need to. No hidden fees or surprise charges.
           </motion.p>
-        </motion.div>
+        </div>
       </section>
 
-      {/* Pricing Grid */}
-      <section className="py-20 px-gutter relative overflow-hidden">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+      {/* Pricing Cards */}
+      <section className="pb-32 px-gutter relative z-10">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           
-          {/* Standard Plan */}
+          {/* Starter Tier */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="relative p-[1px] rounded-[2rem] overflow-hidden group"
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-[#0f1219] border border-white/10 rounded-3xl p-8 flex flex-col h-full"
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent"></div>
-            <div className="relative h-full bg-[#0a0a0a] rounded-[2rem] p-10 flex flex-col border border-white/5 group-hover:border-white/10 transition-colors">
-              <div className="mb-8">
-                <span className="text-zinc-400 font-label-caps text-xs tracking-widest font-bold">STANDARD</span>
-                <div className="mt-4 flex items-end gap-2">
-                  <span className="text-5xl font-headline-md font-bold text-white">$49</span>
-                  <span className="text-zinc-500 font-body-sm pb-1">/ month</span>
-                </div>
-                <p className="mt-4 text-zinc-400 font-body-sm">
-                  Perfect for single-location clinics, salons, and retail stores looking to eliminate physical lines.
-                </p>
-              </div>
-
-              <motion.ul variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="space-y-4 flex-1 mb-8">
+            <h3 className="text-xl font-semibold text-white mb-2">Starter</h3>
+            <p className="text-sm text-zinc-400 mb-6">Perfect for small clinics and independent retailers.</p>
+            <div className="mb-8">
+              <span className="text-4xl font-bold text-white">$49</span>
+              <span className="text-zinc-500">/month</span>
+            </div>
+            <Link href="/register" className="w-full block py-3 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-center transition-colors mb-8">
+              Start Free Trial
+            </Link>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-white mb-4">What's included:</p>
+              <ul className="space-y-4">
                 {[
-                  "Smart Walk-in Injection",
-                  "Personalized Status Pages",
-                  "QR Code Quick Join",
-                  "Up to 500 visitors/month",
-                  "Standard Email Support",
+                  'Up to 500 visits per month',
+                  '1 Location',
+                  'Basic algorithmic routing',
+                  'Standard status pages',
+                  'Email support'
                 ].map((feature, i) => (
-                  <motion.li key={i} variants={itemVariants} className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-zinc-500 shrink-0" />
-                    <span className="text-zinc-300 font-body-sm">{feature}</span>
-                  </motion.li>
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
+                    <span className="text-sm text-zinc-300">{feature}</span>
+                  </li>
                 ))}
-              </motion.ul>
-
-              <Link href="/register?plan=standard" className="w-full h-12 rounded-xl border border-white/10 text-white font-body-sm font-semibold flex items-center justify-center hover:bg-white/5 transition-colors">
-                Start Standard Trial
-              </Link>
+              </ul>
             </div>
           </motion.div>
 
-          {/* Premium Plan */}
+          {/* Professional Tier (Highlighted) */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="relative p-[1px] rounded-[2rem] overflow-hidden group"
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="bg-[#151b2b] border-2 border-sky-500 rounded-3xl p-8 flex flex-col h-full relative transform md:-translate-y-4 shadow-2xl shadow-sky-900/20"
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-sky-500 to-sky-900/20"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/20 blur-[50px] -mr-10 -mt-10 pointer-events-none"></div>
-            
-            <div className="relative h-full bg-[#0a0a0a] rounded-[2rem] p-10 flex flex-col border border-white/5 shadow-[0_0_40px_rgba(2,132,199,0.15)]">
-              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-sky-400 via-indigo-400 to-sky-400"></div>
-              
-              <div className="mb-8">
-                <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-3 py-1 rounded-full font-label-caps text-[10px] tracking-widest font-bold inline-block mb-4">RECOMMENDED</span>
-                <div className="flex items-end gap-2">
-                  <span className="text-5xl font-headline-md font-bold text-white">$149</span>
-                  <span className="text-zinc-500 font-body-sm pb-1">/ month</span>
-                </div>
-                <p className="mt-4 text-zinc-400 font-body-sm">
-                  Advanced features for multi-location enterprises, hospitals, and high-volume environments.
-                </p>
-              </div>
-
-              <motion.ul variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="space-y-4 flex-1 mb-8">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-sky-500 text-white px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase">
+              Most Popular
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Professional</h3>
+            <p className="text-sm text-sky-200/70 mb-6">For growing businesses needing advanced capabilities.</p>
+            <div className="mb-8">
+              <span className="text-4xl font-bold text-white">$149</span>
+              <span className="text-sky-200/50">/month</span>
+            </div>
+            <Link href="/register" className="w-full block py-3 px-6 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-center transition-colors mb-8 shadow-lg shadow-sky-500/25">
+              Start Free Trial
+            </Link>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-white mb-4">Everything in Starter, plus:</p>
+              <ul className="space-y-4">
                 {[
-                  "Everything in Standard",
-                  "WhatsApp Native Chatbot",
-                  "AI Voice Announcements (TV)",
-                  "Personalized Booking Pages",
-                  "Unlimited Visitors",
-                  "Multi-Queue Routing",
-                  "24/7 Priority Support",
+                  'Unlimited visits',
+                  'Up to 5 Locations',
+                  'WhatsApp native ticketing',
+                  'AI Voice Announcements',
+                  'Custom branding',
+                  'Priority support'
                 ].map((feature, i) => (
-                  <motion.li key={i} variants={itemVariants} className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-sky-500 shrink-0" />
-                    <span className="text-white font-body-sm font-medium">{feature}</span>
-                  </motion.li>
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
+                    <span className="text-sm text-zinc-200">{feature}</span>
+                  </li>
                 ))}
-              </motion.ul>
+              </ul>
+            </div>
+          </motion.div>
 
-              <Link href="/register?plan=premium" className="w-full h-12 rounded-xl bg-sky-600 text-white font-body-sm font-semibold flex items-center justify-center hover:bg-sky-500 transition-colors shadow-[0_0_20px_rgba(2,132,199,0.3)]">
-                Start Premium Trial
-              </Link>
+          {/* Enterprise Tier */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="bg-[#0f1219] border border-white/10 rounded-3xl p-8 flex flex-col h-full"
+          >
+            <h3 className="text-xl font-semibold text-white mb-2">Enterprise</h3>
+            <p className="text-sm text-zinc-400 mb-6">Custom solutions for large-scale operations.</p>
+            <div className="mb-8">
+              <span className="text-4xl font-bold text-white">Custom</span>
+            </div>
+            <Link href="/register" className="w-full block py-3 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-center transition-colors mb-8">
+              Contact Sales
+            </Link>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-white mb-4">Everything in Pro, plus:</p>
+              <ul className="space-y-4">
+                {[
+                  'Unlimited Locations',
+                  'Dedicated account manager',
+                  'Custom API integrations',
+                  'SLA guarantees',
+                  'On-premise deployment options',
+                  '24/7 phone support'
+                ].map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
+                    <span className="text-sm text-zinc-300">{feature}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </motion.div>
 
         </div>
       </section>
 
-      {/* Footer */}
+      {/* FAQs */}
+      <section className="py-24 px-gutter border-t border-white/5 relative">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl font-bold text-white text-center mb-12">Frequently Asked Questions</h2>
+          <div className="space-y-6">
+            {[
+              { q: 'Can I change my plan later?', a: 'Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately, and we will prorate any differences.' },
+              { q: 'Are there any setup fees?', a: 'No, there are no hidden setup fees. You only pay the flat monthly rate for the plan you choose.' },
+              { q: 'Do you offer annual discounts?', a: 'Yes! If you choose to be billed annually, you will receive a 20% discount on all plans.' },
+              { q: 'What happens if I exceed my visit limit on Starter?', a: 'We will notify you when you reach 80% and 100% of your limit. Your queues will continue to function, but we will ask you to upgrade to Professional for the next billing cycle.' }
+            ].map((faq, i) => (
+              <div key={i} className="bg-[#0f1219] border border-white/5 rounded-2xl p-6">
+                <h4 className="text-lg font-semibold text-white mb-2">{faq.q}</h4>
+                <p className="text-zinc-400">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );

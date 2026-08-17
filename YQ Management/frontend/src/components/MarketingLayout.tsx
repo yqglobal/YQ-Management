@@ -42,7 +42,6 @@ export default function MarketingLayout({ children, title, description }: Market
           
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
             <Link href="/features" className="hover:text-white transition-colors">Features</Link>
-            <Link href="/industries" className="hover:text-white transition-colors">Industries</Link>
             <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
             <Link href="/about" className="hover:text-white transition-colors">About</Link>
           </div>
@@ -89,7 +88,6 @@ export default function MarketingLayout({ children, title, description }: Market
         {mobileMenuOpen && (
           <div className="md:hidden absolute top-20 left-0 right-0 bg-zinc-900 border-b border-white/10 p-6 flex flex-col gap-4 shadow-xl">
             <Link href="/features" className="text-zinc-300 font-medium" onClick={() => setMobileMenuOpen(false)}>Features</Link>
-            <Link href="/industries" className="text-zinc-300 font-medium" onClick={() => setMobileMenuOpen(false)}>Industries</Link>
             <Link href="/pricing" className="text-zinc-300 font-medium" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
             <Link href="/about" className="text-zinc-300 font-medium" onClick={() => setMobileMenuOpen(false)}>About</Link>
             <hr className="border-white/10 my-2" />

@@ -32,7 +32,6 @@ export default function LandingPage() {
         </div>
         <div className="hidden md:flex gap-8 font-body-sm text-zinc-400 font-medium tracking-wide">
           <Link className="hover:text-white transition-colors" href="/features">Features</Link>
-          <Link className="hover:text-white transition-colors" href="/industries">Industries</Link>
           <Link className="hover:text-white transition-colors" href="/pricing">Pricing</Link>
           <Link className="hover:text-white transition-colors" href="/about">About Us</Link>
         </div>

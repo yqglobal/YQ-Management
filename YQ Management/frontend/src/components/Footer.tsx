@@ -21,7 +21,6 @@ export default function Footer() {
             <ul className="flex flex-col gap-3 text-sm text-zinc-400">
               <li><Link href="/features" className="hover:text-white transition-colors">Features</Link></li>
               <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-              <li><Link href="/industries" className="hover:text-white transition-colors">Industries</Link></li>
             </ul>
           </div>
 
