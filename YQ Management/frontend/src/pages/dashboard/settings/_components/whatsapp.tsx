@@ -39,7 +39,7 @@ export default function WhatsAppSettingsPage() {
   });
 
   const updateTenantMutation = useMutation({
-    mutationFn: (data: any) => fetchApi('/tenant/settings', { method: 'PATCH', body: JSON.stringify(data) }),
+    mutationFn: (data: any) => fetchApi(`/tenant/${tenant?.id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant', 'me'] });
       toast.success('Settings saved');
