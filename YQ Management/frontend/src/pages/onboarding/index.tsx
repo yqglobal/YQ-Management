@@ -728,9 +728,14 @@ const totalSteps = inviteCode ? 2 : 4;
                         <p className="text-on-surface-variant dark:text-outline font-body-md mb-6 max-w-xs mx-auto">
                           Open WhatsApp on your phone, go to Settings → Linked Devices, and scan this QR code.
                         </p>
-                        <div className="flex items-center justify-center gap-3 text-outline font-medium">
-                          <Loader2 className="w-5 h-5 animate-spin text-[#25D366]" />
-                          Waiting for connection...
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <div className="flex items-center justify-center gap-3 text-indigo-500 font-semibold">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Status: Connecting...
+                          </div>
+                          <p className="text-sm text-gray-500 dark:text-zinc-400 text-center max-w-[280px]">
+                            After scanning QR on WhatsApp mobile phone, wait for 15-20 seconds for the screen to update.
+                          </p>
                         </div>
                       </div>
                     ) : connectionMode === 'code' ? (

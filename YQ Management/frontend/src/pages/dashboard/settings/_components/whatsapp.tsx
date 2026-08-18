@@ -314,6 +314,9 @@ export default function WhatsAppSettingsPage() {
                       </div>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-zinc-400 text-center max-w-[280px] mt-2">
+                      <span className="font-semibold text-indigo-500 dark:text-indigo-400 block mb-1 flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Status: Connecting...
+                      </span>
                       After scanning QR on WhatsApp mobile phone, wait for 15-20 seconds for the screen to update.
                     </p>
                   </div>
