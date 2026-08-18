@@ -279,6 +279,7 @@ export class AuthController {
       phone?: string;
       location?: string;
       companyName?: string;
+      subdomain?: string;
     },
   ) {
     let currentSettings = req.user.personalSettings || {};
@@ -308,7 +309,7 @@ export class AuthController {
     });
 
     if (
-      body.companyName &&
+      (body.companyName || body.subdomain) &&
       (req.user.role === 'ADMIN' ||
         req.user.role === 'SUPER_ADMIN' ||
         req.user.role === 'TENANT_ADMIN')
@@ -319,9 +320,13 @@ export class AuthController {
             where: { id: req.user.tenantId },
           });
           if (tenant) {
+            const dataToUpdate: any = {};
+            if (body.companyName) dataToUpdate.name = body.companyName;
+            if (body.subdomain) dataToUpdate.subdomain = body.subdomain;
+            
             await this.usersService['prisma'].tenant.update({
               where: { id: req.user.tenantId },
-              data: { name: body.companyName },
+              data: dataToUpdate,
             });
           }
         } catch (error) {
@@ -330,7 +335,7 @@ export class AuthController {
           );
         }
       }
-      if (req.user.workspaceId) {
+      if (body.companyName && req.user.workspaceId) {
         try {
           const existingWs = await this.usersService[
             'prisma'

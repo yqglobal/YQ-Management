@@ -13,6 +13,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { Role } from '@prisma/client';
 import { WorkspaceGuard } from '../auth/workspace.guard';
+import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { PaymentsService } from '../payments/payments.service';
 import { InvoiceService } from '../invoice/invoice.service';
@@ -34,11 +35,22 @@ export class BillingController {
     private readonly paymentsService: PaymentsService,
     private readonly invoiceService: InvoiceService,
     private readonly usageService: UsageService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  private async resolveWorkspaceId(req: AuthenticatedRequest): Promise<string | null> {
+    if (req.user.workspaceId) return req.user.workspaceId;
+    if (req.user.tenantId) {
+      const workspace = await this.prisma.workspace.findFirst({ where: { tenantId: req.user.tenantId } });
+      return workspace?.id || null;
+    }
+    return null;
+  }
 
   @Get('workspace')
   async getWorkspaceBilling(@Request() req: AuthenticatedRequest) {
-    const workspaceId = req.user.workspaceId || req.user.tenantId;
+    const workspaceId = await this.resolveWorkspaceId(req);
+    if (!workspaceId) return null;
     const [subscription, transactions, usage] = await Promise.all([
       this.subscriptionService.getSubscription(workspaceId),
       this.paymentsService.getTransactionHistory(workspaceId, 0, 20),
@@ -61,12 +73,14 @@ export class BillingController {
   ) {
     const ps = periodStart ? new Date(periodStart) : undefined;
     const pe = periodEnd ? new Date(periodEnd) : undefined;
-    return this.usageService.getUsage(req.user.workspaceId, ps, pe);
+    const workspaceId = await this.resolveWorkspaceId(req);
+    if (!workspaceId) return null;
+    return this.usageService.getUsage(workspaceId, ps, pe);
   }
 
   @Get(['workspace/subscription', 'subscriptions/current'])
   async getCurrentSubscription(@Request() req: AuthenticatedRequest) {
-    const targetId = req.user.workspaceId || req.user.tenantId;
+    const targetId = await this.resolveWorkspaceId(req);
     if (!targetId) return null;
     return this.subscriptionService.getSubscription(targetId);
   }
@@ -77,8 +91,10 @@ export class BillingController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: CreateSubscriptionDto,
   ) {
+    const workspaceId = await this.resolveWorkspaceId(req);
+    if (!workspaceId) return null;
     return this.subscriptionService.createSubscription(
-      req.user.workspaceId,
+      workspaceId,
       dto,
     );
   }
@@ -89,8 +105,10 @@ export class BillingController {
     @Request() req: AuthenticatedRequest,
     @Body() body: CreateSubscriptionDto,
   ) {
+    const workspaceId = await this.resolveWorkspaceId(req);
+    if (!workspaceId) return null;
     return this.subscriptionService.startFreeTrial(
-      req.user.workspaceId,
+      workspaceId,
       body.planId,
       body.trialDays ?? 7,
     );
@@ -102,8 +120,10 @@ export class BillingController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: UpgradeSubscriptionDto,
   ) {
+    const workspaceId = await this.resolveWorkspaceId(req);
+    if (!workspaceId) return null;
     return this.subscriptionService.upgradeSubscription(
-      req.user.workspaceId,
+      workspaceId,
       dto,
     );
   }

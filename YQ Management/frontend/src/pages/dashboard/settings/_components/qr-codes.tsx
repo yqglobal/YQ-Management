@@ -5,6 +5,7 @@ import { fetchApi } from '../../../../lib/api';
 import { QRCodeSVG } from 'qrcode.react';
 import { Printer, Download, ScanLine, QrCode } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
+import { getTenantUrl } from '../../../../lib/utils';
 
 export default function QRCodesSettings() {
   const { data: tenant = null, isLoading } = useQuery({
@@ -20,9 +21,7 @@ export default function QRCodesSettings() {
     );
   }
 
-  const publicPortalUrl = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.host}/public/${tenant?.subdomain}`
-    : `https://qmova.com/public/${tenant?.subdomain}`;
+  const publicPortalUrl = tenant?.subdomain ? getTenantUrl(tenant.subdomain) : '';
 
   const handlePrint = () => {
     const printWindow = window.open('', '', 'width=800,height=800');

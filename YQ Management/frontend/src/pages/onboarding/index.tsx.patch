@@ -1,0 +1,165 @@
+--- frontend/src/pages/onboarding/index.tsx
++++ frontend/src/pages/onboarding/index.tsx
+@@ -415,6 +415,19 @@
+ 
+   const whatsappStatus = whatsappStatusQuery.data;
+ 
++  // Fetch Active Plans
++  const { data: plans = [], isLoading: isPlansLoading } = useQuery({
++    queryKey: ['active-plans'],
++    queryFn: () => fetchApi('/billing/plans?status=ACTIVE'),
++  });
++
++  const subscribeMutation = useMutation({
++    mutationFn: (data: { planId: string; billingInterval: string }) =>
++      fetchApi('/payments/generate-link', {
++        method: 'POST',
++        body: JSON.stringify(data)
++      }),
++    onSuccess: (data: any) => {
++      if (data?.checkoutUrl) {
++        window.location.href = data.checkoutUrl;
++      } else {
++        toast.error('Could not initiate checkout');
++      }
++    },
++    onError: () => {
++      toast.error('Error generating payment link');
++    },
++  });
++
+   // When entering step 3, try to load a cached QR quickly
+   useEffect(() => {
+     if (step === 3 && whatsappStatus?.state !== 'open' && whatsappStatus?.state !== 'connecting') {
+@@ -915,75 +928,68 @@
+               <header className="text-center flex flex-col gap-2">
+                 <h1 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight">
+                   Choose Your Plan
+                 </h1>
+                 <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline max-w-lg mx-auto">
+                   Get started with the plan that fits your business best. Upgrade later as you grow.
+                 </p>
+               </header>
+ 
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
+-                {/* Standard Plan */}
+-                <div className="relative flex flex-col p-6 rounded-3xl bg-surface-container-lowest dark:bg-zinc-900 border border-border dark:border-dark-border shadow-sm">
+-                  <h3 className="text-xl font-bold text-on-surface dark:text-white mb-2">Standard</h3>
+-                  <div className="flex items-baseline gap-1 mb-4">
+-                    <span className="text-3xl font-bold text-on-surface dark:text-white">$0</span>
+-                    <span className="text-on-surface-variant dark:text-outline font-medium">/ forever</span>
+-                  </div>
+-                  <ul className="space-y-3 mb-8 flex-1">
+-                    <li className="flex items-center gap-3 text-sm text-on-surface-variant dark:text-outline">
+-                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+-                      <span>Up to 1000 tokens/month</span>
+-                    </li>
+-                    <li className="flex items-center gap-3 text-sm text-on-surface-variant dark:text-outline">
+-                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+-                      <span>1 Location & 3 Services</span>
+-                    </li>
+-                    <li className="flex items-center gap-3 text-sm text-on-surface-variant dark:text-outline">
+-                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+-                      <span>Basic TV Display</span>
+-                    </li>
+-                  </ul>
+-                  <button
+-                    onClick={finishOnboarding}
+-                    className="w-full py-3 px-4 rounded-xl font-semibold bg-surface-container-high dark:bg-white/10 text-on-surface dark:text-white hover:bg-surface-container-highest dark:hover:bg-white/20 transition-colors"
+-                  >
+-                    Start Free
+-                  </button>
+-                </div>
+-
+-                {/* Premium Plan */}
+-                <div className="relative flex flex-col p-6 rounded-3xl bg-gradient-to-br from-primary-container to-primary/10 dark:from-sky-900/40 dark:to-sky-800/10 border-2 border-primary dark:border-sky-500 shadow-md transform md:-translate-y-2">
+-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary dark:bg-sky-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+-                    Recommended
+-                  </div>
+-                  <h3 className="text-xl font-bold text-on-surface dark:text-white mb-2">Premium</h3>
+-                  <div className="flex items-baseline gap-1 mb-4">
+-                    <span className="text-3xl font-bold text-primary dark:text-sky-400">$29</span>
+-                    <span className="text-on-surface-variant dark:text-outline font-medium">/ month</span>
+-                  </div>
+-                  <ul className="space-y-3 mb-8 flex-1">
+-                    <li className="flex items-center gap-3 text-sm text-on-surface dark:text-white font-medium">
+-                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+-                      <span>Unlimited tokens</span>
+-                    </li>
+-                    <li className="flex items-center gap-3 text-sm text-on-surface dark:text-white font-medium">
+-                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+-                      <span>Unlimited Locations & Services</span>
+-                    </li>
+-                    <li className="flex items-center gap-3 text-sm text-on-surface dark:text-white font-medium">
+-                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+-                      <span>WhatsApp Integration</span>
+-                    </li>
+-                    <li className="flex items-center gap-3 text-sm text-on-surface dark:text-white font-medium">
+-                      <Check className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+-                      <span>Custom Branding & Logos</span>
+-                    </li>
+-                  </ul>
+-                  <button
+-                    onClick={() => {
+-                      finishOnboarding();
+-                    }}
+-                    className="w-full py-3 px-4 rounded-xl font-semibold bg-primary hover:bg-primary-container text-white transition-colors"
+-                  >
+-                     Upgrade Now
+-                  </button>
+-                </div>
++                {isPlansLoading ? (
++                  <div className="col-span-2 flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
++                ) : (
++                  plans.filter((p: any) => !p.name.toLowerCase().includes('enterprise')).map((plan: any) => {
++                    const isPopular = plan.name.toLowerCase().includes('standard') || plan.name.toLowerCase().includes('pro');
++                    return (
++                      <div key={plan.id} className={`relative flex flex-col p-6 rounded-3xl ${isPopular ? 'bg-gradient-to-br from-primary-container to-primary/10 dark:from-sky-900/40 dark:to-sky-800/10 border-2 border-primary dark:border-sky-500 shadow-md transform md:-translate-y-2' : 'bg-surface-container-lowest dark:bg-zinc-900 border border-border dark:border-dark-border shadow-sm'}`}>
++                        {isPopular && (
++                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary dark:bg-sky-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
++                            Recommended
++                          </div>
++                        )}
++                        <h3 className="text-xl font-bold text-on-surface dark:text-white mb-2">{plan.name}</h3>
++                        <div className="flex items-baseline gap-1 mb-4">
++                          <span className={`text-3xl font-bold ${isPopular ? 'text-primary dark:text-sky-400' : 'text-on-surface dark:text-white'}`}>
++                            {plan.currency === 'ZAR' ? 'R' : '$'}{plan.price}
++                          </span>
++                          <span className="text-on-surface-variant dark:text-outline font-medium">/ month</span>
++                        </div>
++                        <ul className="space-y-3 mb-8 flex-1">
++                          <li className="flex items-center gap-3 text-sm text-on-surface-variant dark:text-outline">
++                            <Check className={`w-5 h-5 shrink-0 ${isPopular ? 'text-primary dark:text-sky-400' : 'text-on-surface-variant dark:text-outline'}`} />
++                            <span>Up to {plan.limits?.maxTokens || 500} Tokens/day</span>
++                          </li>
++                          <li className="flex items-center gap-3 text-sm text-on-surface-variant dark:text-outline">
++                            <Check className={`w-5 h-5 shrink-0 ${isPopular ? 'text-primary dark:text-sky-400' : 'text-on-surface-variant dark:text-outline'}`} />
++                            <span>Up to {plan.limits?.maxQueues || 1} Queues</span>
++                          </li>
++                          {plan.features?.whatsappNotifications && (
++                            <li className="flex items-center gap-3 text-sm text-on-surface-variant dark:text-outline">
++                              <Check className={`w-5 h-5 shrink-0 ${isPopular ? 'text-primary dark:text-sky-400' : 'text-on-surface-variant dark:text-outline'}`} />
++                              <span>WhatsApp Notifications</span>
++                            </li>
++                          )}
++                        </ul>
++                        <button
++                          onClick={() => {
++                            if (plan.price === 0) {
++                              finishOnboarding();
++                            } else {
++                              subscribeMutation.mutate({ planId: plan.id, billingInterval: 'monthly' });
++                            }
++                          }}
++                          disabled={subscribeMutation.isPending && subscribeMutation.variables?.planId === plan.id}
++                          className={`w-full py-3 px-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 ${isPopular ? 'bg-primary hover:bg-primary-container text-white' : 'bg-surface-container-high dark:bg-white/10 text-on-surface dark:text-white hover:bg-surface-container-highest dark:hover:bg-white/20'}`}
++                        >
++                          {subscribeMutation.isPending && subscribeMutation.variables?.planId === plan.id ? <Loader2 className="w-5 h-5 animate-spin" /> : (plan.price === 0 ? 'Start Free' : 'Upgrade Now')}
++                        </button>
++                      </div>
++                    );
++                  })
++                )}
+               </div>
+ 
+               <div className="w-full pt-6 mt-2 flex justify-center border-t border-border dark:border-dark-border">

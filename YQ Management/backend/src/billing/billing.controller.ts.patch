@@ -1,0 +1,83 @@
+--- backend/src/billing/billing.controller.ts
++++ backend/src/billing/billing.controller.ts
+@@ -17,6 +17,7 @@
+ import { PaymentsService } from '../payments/payments.service';
+ import { InvoiceService } from '../invoice/invoice.service';
+ import { UsageService } from '../usage/usage.service';
++import { PrismaService } from '../prisma/prisma.service';
+ import { CreateSubscriptionDto } from '../subscription/dto/subscription.dto';
+ import { UpgradeSubscriptionDto } from '../subscription/dto/subscription.dto';
+ import { DowngradeSubscriptionDto } from '../subscription/dto/subscription.dto';
+@@ -34,11 +35,22 @@
+     private readonly paymentsService: PaymentsService,
+     private readonly invoiceService: InvoiceService,
+     private readonly usageService: UsageService,
++    private readonly prisma: PrismaService,
+   ) {}
+ 
++  private async resolveWorkspaceId(req: AuthenticatedRequest): Promise<string | null> {
++    if (req.user.workspaceId) return req.user.workspaceId;
++    if (req.user.tenantId) {
++      const workspace = await this.prisma.workspace.findFirst({ where: { tenantId: req.user.tenantId } });
++      return workspace?.id || null;
++    }
++    return null;
++  }
++
+   @Get('workspace')
+   async getWorkspaceBilling(@Request() req: AuthenticatedRequest) {
+-    const workspaceId = req.user.workspaceId || req.user.tenantId;
++    const workspaceId = await this.resolveWorkspaceId(req);
++    if (!workspaceId) return null;
+     const [subscription, transactions, usage] = await Promise.all([
+       this.subscriptionService.getSubscription(workspaceId),
+       this.paymentsService.getTransactionHistory(workspaceId, 0, 20),
+@@ -60,42 +72,46 @@
+     @Query('periodEnd') periodEnd?: string,
+   ) {
+     const ps = periodStart ? new Date(periodStart) : undefined;
+     const pe = periodEnd ? new Date(periodEnd) : undefined;
+-    return this.usageService.getUsage(req.user.workspaceId, ps, pe);
++    const workspaceId = await this.resolveWorkspaceId(req);
++    if (!workspaceId) return null;
++    return this.usageService.getUsage(workspaceId, ps, pe);
+   }
+ 
+   @Get(['workspace/subscription', 'subscriptions/current'])
+   async getCurrentSubscription(@Request() req: AuthenticatedRequest) {
+-    const targetId = req.user.workspaceId || req.user.tenantId;
+-    if (!targetId) return null;
+-    return this.subscriptionService.getSubscription(targetId);
++    const workspaceId = await this.resolveWorkspaceId(req);
++    if (!workspaceId) return null;
++    return this.subscriptionService.getSubscription(workspaceId);
+   }
+ 
+   @Post('workspace/subscription')
+   @Roles(Role.TENANT_ADMIN)
+   async createSubscription(
+     @Request() req: AuthenticatedRequest,
+     @Body() dto: CreateSubscriptionDto,
+   ) {
++    const workspaceId = await this.resolveWorkspaceId(req);
+     return this.subscriptionService.createSubscription(
+-      req.user.workspaceId,
++      workspaceId,
+       dto,
+     );
+   }
+ 
+   @Post('workspace/subscription/trial')
+   @Roles(Role.TENANT_ADMIN)
+   async startTrial(
+     @Request() req: AuthenticatedRequest,
+     @Body() body: CreateSubscriptionDto,
+   ) {
++    const workspaceId = await this.resolveWorkspaceId(req);
+     return this.subscriptionService.startFreeTrial(
+-      req.user.workspaceId,
++      workspaceId,
+       body.planId,
+       body.trialDays ?? 7,
+     );
+   }

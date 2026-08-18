@@ -109,7 +109,7 @@ export function usePlan(): UsePlanResult {
       limits,
       features,
       usage: { queues: queueCount, tokensThisMonth },
-      isFeatureEnabled: (key) => features[key] === true,
+      isFeatureEnabled: (key) => isTrialActive || features[key] === true,
       isAtQueueLimit: queueCount >= limits.maxQueues,
       isAtTokenLimit: tokensThisMonth >= limits.maxTokens,
       queueUsagePct,
