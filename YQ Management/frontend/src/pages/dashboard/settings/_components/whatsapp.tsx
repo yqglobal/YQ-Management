@@ -8,7 +8,7 @@ import { Send, MessageSquare, QrCode, Loader2, AlertCircle, CheckCircle2, Phone,
 import { QRCodeSVG } from 'qrcode.react';
 import PhoneInput from '../../../../components/PhoneInput';
 import { toast } from 'sonner';
-import { FeatureGuard } from '../../../../components/FeatureGuard';
+import { FeatureGuard } from '../../../../components/guards/FeatureGuard';
 
 export default function WhatsAppSettingsPage() {
   const { user } = useAuth();

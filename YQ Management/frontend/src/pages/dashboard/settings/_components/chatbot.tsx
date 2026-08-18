@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { FeatureGuard } from '../../../../components/FeatureGuard';
+import { FeatureGuard } from '../../../../components/guards/FeatureGuard';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import { toast } from 'sonner';
