@@ -44,6 +44,17 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // Extract path-based subdomain (/t/[subdomain]/...)
+  if (url.pathname.startsWith('/t/')) {
+    const parts = url.pathname.split('/');
+    if (parts.length >= 3) {
+      const pathSubdomain = parts[2];
+      const restOfPath = parts.slice(3).join('/');
+      url.pathname = `/_tenant/${pathSubdomain}/${restOfPath}`;
+      return NextResponse.rewrite(url);
+    }
+  }
+
   // Rewrite to the _tenant dynamic route for subdomains
   if (subdomain && subdomain !== 'www' && !url.pathname.startsWith('/_tenant')) {
     url.pathname = `/_tenant/${subdomain}${url.pathname}`;
