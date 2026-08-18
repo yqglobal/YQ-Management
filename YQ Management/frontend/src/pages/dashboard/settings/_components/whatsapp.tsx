@@ -313,6 +313,9 @@ export default function WhatsAppSettingsPage() {
                         Expires in {qrCountdown}s
                       </div>
                     </div>
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 text-center max-w-[280px] mt-2">
+                      After scanning QR on WhatsApp mobile phone, wait for 15-20 seconds for the screen to update.
+                    </p>
                   </div>
                 ) : connectionMode === 'code' && pairingCode ? (
                    <div className="flex flex-col items-center justify-center h-full animate-in zoom-in duration-500 w-full">
