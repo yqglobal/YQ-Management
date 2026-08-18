@@ -195,6 +195,7 @@ export class QueueService {
   async getAvailableSlots(queueId: string, date: string) {
     const queue = await this.prisma.queue.findUnique({
       where: { id: queueId },
+      include: { location: true },
     });
 
     if (!queue) throw new NotFoundException('Queue not found');
@@ -212,13 +213,38 @@ export class QueueService {
     }
 
     // Default business hours: 09:00 to 17:00 local time.
-    // For simplicity, we generate times in UTC relative to the selected date.
-    // E.g., if targetDate is 2026-08-02, we generate from 09:00 to 17:00 of that day.
+    let startHour = 9;
+    let startMinute = 0;
+    let endHour = 17;
+    let endMinute = 0;
+
+    if (queue.location?.businessHours) {
+      const bh = queue.location.businessHours as any;
+      const dayOfWeek = targetDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const dayName = days[dayOfWeek];
+
+      if (bh[dayName]) {
+        const { start, end, closed } = bh[dayName];
+        if (closed) return []; // No slots if closed
+        if (start) {
+          const [h, m] = start.split(':');
+          startHour = parseInt(h);
+          startMinute = parseInt(m || '0');
+        }
+        if (end) {
+          const [h, m] = end.split(':');
+          endHour = parseInt(h);
+          endMinute = parseInt(m || '0');
+        }
+      }
+    }
+
     const startOfDay = new Date(targetDate);
-    startOfDay.setHours(9, 0, 0, 0);
+    startOfDay.setHours(startHour, startMinute, 0, 0);
 
     const endOfDay = new Date(targetDate);
-    endOfDay.setHours(17, 0, 0, 0);
+    endOfDay.setHours(endHour, endMinute, 0, 0);
 
     const slots: string[] = [];
     let currentTime = startOfDay;

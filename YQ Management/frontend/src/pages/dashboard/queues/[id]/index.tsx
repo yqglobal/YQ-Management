@@ -533,7 +533,8 @@ export default function QueueDetails() {
           )}
 
           {activeTab === 'links' && (() => {
-            const tenantUrl = tenant?.subdomain ? getTenantUrl(tenant.subdomain) : (typeof window !== 'undefined' ? window.location.origin : '');
+            const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+            const tenantUrl = tenant?.subdomain ? getTenantUrl(tenant.subdomain) : baseUrl;
               
             const tenantId = user?.tenantId || '';
             const links = [
@@ -541,7 +542,7 @@ export default function QueueDetails() {
                 icon: 'monitor',
                 title: 'TV Lobby Display',
                 description: 'Open this URL on a TV or screen share to show a live calling board for your lobby.',
-                url: `${tenantUrl}/tv/${tenantId}`,
+                url: `${baseUrl}/tv/${tenantId}`,
               },
               {
                 icon: 'queue',

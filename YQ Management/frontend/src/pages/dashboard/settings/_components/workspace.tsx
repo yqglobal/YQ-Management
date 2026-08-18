@@ -215,8 +215,8 @@ export default function WorkspaceSettingsPage() {
             icon="event"
             title="Appointment Booking Page"
             description="Customer-facing page to browse and book appointments."
-            url={`${baseUrl}/book`}
-            onCopy={() => copyLink(`${baseUrl}/book`, 'Booking page link')}
+            url={`${portalUrl}/booking`}
+            onCopy={() => copyLink(`${portalUrl}/booking`, 'Booking page link')}
           />
 
           {/* Per-queue links */}

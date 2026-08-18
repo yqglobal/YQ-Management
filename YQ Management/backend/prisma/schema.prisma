@@ -142,6 +142,7 @@ model Tenant {
   visits              Visit[]
   enterpriseInquiries EnterpriseInquiry[]
   operatingCountries  String[] @default([])
+  chatSessions        ChatSession[]
 
   createdAt DateTime @default(now())
 }
@@ -465,6 +466,20 @@ model WhatsAppTemplate {
   updatedAt   DateTime @updatedAt
 }
 
+model ChatSession {
+  id          String   @id @default(uuid())
+  tenantId    String
+  phone       String
+  step        Int      @default(0) // 0: Menu, 1: Book Service, 2: Book Date, 3: Book Slot, etc.
+  context     Json?    // To store temporary data (e.g. selected serviceId, date)
+  lastActive  DateTime @default(now())
+  
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@unique([tenantId, phone])
+  @@index([tenantId])
+}
+
 model CommunicationLog {
   id          String    @id @default(uuid())
   workspaceId String?
@@ -557,6 +572,7 @@ model Location {
   name        String
   address     String?
   city        String?
+  businessHours Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

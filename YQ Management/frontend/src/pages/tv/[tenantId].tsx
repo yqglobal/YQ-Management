@@ -5,6 +5,7 @@ import { io } from 'socket.io-client';
 import { Volume2, VolumeX } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { Logo } from '../../components/Logo';
+import { getTenantUrl } from '../../lib/utils';
 
 interface CalledToken {
   id: string;
@@ -35,6 +36,7 @@ export default function TVDisplay() {
   });
   const [branding, setBranding] = useState<any>(null);
   const [tenantName, setTenantName] = useState<string>('Qmova');
+  const [tenantSubdomain, setTenantSubdomain] = useState<string>('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const isMutedRef = useRef(isMuted);
@@ -50,7 +52,7 @@ export default function TVDisplay() {
   // Fetch tenant TTS config via public endpoint
   useEffect(() => {
     if (!tenantId) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/tenant/public/${tenantId}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/tenant/public/id/${tenantId}`)
       .then(r => r.json())
       .then(data => {
         const tts = data?.customerExperience?.ttsAnnouncements;
@@ -67,6 +69,9 @@ export default function TVDisplay() {
         }
         if (data?.name) {
           setTenantName(data.name);
+        }
+        if (data?.subdomain) {
+          setTenantSubdomain(data.subdomain);
         }
       })
       .catch(() => {/* use defaults */});
@@ -153,11 +158,7 @@ export default function TVDisplay() {
   const timeStr = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const dateStr = currentTime.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
 
-  const joinUrl = typeof window !== 'undefined' && tenantId
-    ? (window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')
-        ? `${window.location.protocol}//${tenantId}.localhost:${window.location.port}`
-        : `https://${tenantId}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'qmova.app'}`)
-    : '';
+  const joinUrl = tenantSubdomain ? getTenantUrl(tenantSubdomain) : '';
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-zinc-950 p-6 text-white select-none" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>

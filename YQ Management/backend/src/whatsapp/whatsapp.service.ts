@@ -10,6 +10,7 @@ import { RedisService } from '../redis/redis.service';
 import { Cron } from '@nestjs/schedule';
 import { WhatsappLogger } from './whatsapp.logger';
 import { QueueGateway } from '../queue/queue.gateway';
+import { WhatsappChatbot } from './whatsapp.chatbot';
 
 interface EvolutionError {
   message: string;
@@ -1384,192 +1385,13 @@ export class WhatsappService implements OnModuleInit {
         return { ignored: true };
       }
 
-      const activeToken = await this.prisma.token.findFirst({
-        where: {
-          queue: { tenantId: tenant.id },
-          phone,
-          status: { in: ['WAITING', 'SERVING'] },
-        },
-        include: { queue: true },
-        orderBy: { joinedAt: 'desc' },
+      // Delegate to chatbot state machine
+      const bot = new WhatsappChatbot(this.prisma, async (jidToSend, textToSend) => {
+        await this.sendMessage(instanceName, jidToSend, textToSend);
       });
+      await bot.process(tenant.id, phone, jid, text);
+      return { handled: true, action: 'chatbot' };
 
-      if (!activeToken) {
-        const completedToken = await this.prisma.token.findFirst({
-          where: {
-            queue: { tenantId: tenant.id },
-            phone,
-            status: 'COMPLETED',
-            completedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-          },
-          orderBy: { completedAt: 'desc' },
-          include: { queue: true },
-        });
-
-        if (completedToken) {
-          const lang = completedToken.language || 'en';
-          const i18n = {
-            en: {
-              thanksRating:
-                'Thank you for your rating! Please tell us more about your experience (optional).',
-              thanksFeedback: 'Thank you for your feedback!',
-            },
-            es: {
-              thanksRating:
-                '¡Gracias por tu calificación! Por favor cuéntanos más sobre tu experiencia (opcional).',
-              thanksFeedback: '¡Gracias por tus comentarios!',
-            },
-            fr: {
-              thanksRating:
-                'Merci pour votre note ! Veuillez nous en dire plus sur votre expérience (facultatif).',
-              thanksFeedback: 'Merci pour vos commentaires !',
-            },
-          };
-          const t = i18n[lang as keyof typeof i18n] || i18n.en;
-
-          if (completedToken.rating === null && /^[1-5]$/.test(text)) {
-            await this.prisma.token.update({
-              where: { id: completedToken.id },
-              data: { rating: parseInt(text) },
-            });
-            await this.sendMessage(instanceName, jid, t.thanksRating);
-            return { handled: true, action: 'rating' };
-          } else if (
-            completedToken.rating !== null &&
-            completedToken.feedbackText === null
-          ) {
-            await this.prisma.token.update({
-              where: { id: completedToken.id },
-              data: {
-                feedbackText:
-                  message?.conversation ||
-                  message?.extendedTextMessage?.text ||
-                  text,
-              },
-            });
-            await this.sendMessage(instanceName, jid, t.thanksFeedback);
-            return { handled: true, action: 'feedback' };
-          }
-        }
-
-        const fallbackGreeting = "You don't have any active queues at the moment. Please scan a QR code to join a queue.";
-        const config = tenant.chatbotConfig as any;
-        const greeting = config?.welcomeMessage || fallbackGreeting;
-
-        await this.sendMessage(instanceName, jid, greeting);
-        return { handled: true, action: 'greeting' };
-      }
-
-      const config = tenant.chatbotConfig as any;
-      const lang = activeToken.language || 'en';
-      const i18n = {
-        en: {
-          status: 'You are number {position} in the {queueName} queue.',
-          cancel: 'Your token has been successfully cancelled.',
-          menu: 'Hello! How can we help you today?',
-          btnStatus: 'Check Status',
-          btnCancel: 'Cancel Turn',
-          footer: 'Powered by YQ',
-        },
-        es: {
-          status: 'Eres el número {position} en la fila {queueName}.',
-          cancel: 'Tu turno ha sido cancelado con éxito.',
-          menu: '¡Hola! ¿Cómo podemos ayudarte hoy?',
-          btnStatus: 'Ver Estado',
-          btnCancel: 'Cancelar Turno',
-          footer: 'Desarrollado por YQ',
-        },
-        fr: {
-          status: 'Vous êtes numéro {position} dans la file {queueName}.',
-          cancel: 'Votre ticket a été annulé avec succès.',
-          menu: "Bonjour ! Comment pouvons-nous vous aider aujourd'hui ?",
-          btnStatus: 'Voir le Statut',
-          btnCancel: 'Annuler le Ticket',
-          footer: 'Propulsé par YQ',
-        },
-      };
-      const t = i18n[lang as keyof typeof i18n] || i18n.en;
-
-      const isBotPaused = await this.redisService.client.get(`chatbot_paused:${activeToken.id}`);
-
-      // If the admin replies via the manual chat, they'll likely send a message which will be logged as 'STAFF' sender.
-      // We assume the bot is paused if they explicitly requested human, or we can just pause it.
-      
-      if (!isBotPaused) {
-        if ((config?.quickReplies?.status !== false) && (text === '1' || text === 'STATUS' || text === t.btnStatus.toUpperCase())) {
-          const position = await this.prisma.token.count({
-            where: {
-              queueId: activeToken.queueId,
-              status: 'WAITING',
-              joinedAt: { lt: activeToken.joinedAt },
-            },
-          });
-          let responseText = config?.templates?.status || t.status;
-          responseText = responseText
-            .replace('{position}', (position + 1).toString())
-            .replace('{queueName}', activeToken.queue.name);
-          await this.sendMessage(instanceName, jid, responseText);
-          return { handled: true, action: 'status' };
-        } else if ((config?.quickReplies?.cancel !== false) && (text === '2' || text === 'CANCEL' || text === t.btnCancel.toUpperCase())) {
-          await this.prisma.token.update({
-            where: { id: activeToken.id },
-            data: { status: 'MISSED' },
-          });
-          const responseText = config?.templates?.cancel || t.cancel;
-          await this.sendMessage(instanceName, jid, responseText);
-          return { handled: true, action: 'cancel' };
-        } else if ((config?.quickReplies?.human !== false) && (text === '3' || text === 'HUMAN' || text === 'HELP')) {
-          await this.redisService.client.set(`chatbot_paused:${activeToken.id}`, '1', 'EX', 86400); // 24 hours
-          
-          const responseText = 'Connecting you to a human agent. Please wait...';
-          await this.sendMessage(instanceName, jid, responseText);
-          
-          const newMessage = await this.prisma.message.create({
-            data: {
-              tokenId: activeToken.id,
-              body: 'Requested human assistance.',
-              sender: 'CUSTOMER',
-            },
-          });
-          
-          try {
-            this.redisService.client.publish('queue_events', JSON.stringify({ type: 'NEW_MESSAGE', queueId: activeToken.queueId, message: newMessage }));
-          } catch (e) {}
-          
-          return { handled: true, action: 'human' };
-        }
-      }
-
-      // If bot is paused, or input was not 1/2/3, we save it as a manual chat message.
-      {
-        const newMessage = await this.prisma.message.create({
-          data: {
-            tokenId: activeToken.id,
-            body:
-              message?.conversation ||
-              message?.extendedTextMessage?.text ||
-              text,
-            sender: 'CUSTOMER',
-          },
-        });
-
-        try {
-          this.redisService.client.publish(
-            'queue_events',
-            JSON.stringify({
-              type: 'NEW_MESSAGE',
-              queueId: activeToken.queueId,
-              message: newMessage,
-            }),
-          );
-        } catch (redisError) {
-          this.logger.warn(
-            `Redis publish failed for queue ${activeToken.queueId}: ${redisError instanceof Error ? redisError.message : redisError}`,
-          );
-        }
-
-        return { handled: true, action: 'message' };
-      }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       this.logger.error(
