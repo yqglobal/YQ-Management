@@ -126,36 +126,52 @@ export default function PricingPage({ plans }: PricingProps) {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-white mb-4">What's included:</p>
                   <ul className="space-y-4">
-                    <li className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
-                      <span className="text-sm text-zinc-300">
-                        {plan.limits?.maxTokens ? `Up to ${plan.limits.maxTokens} visits per month` : 'Unlimited visits'}
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
-                      <span className="text-sm text-zinc-300">
-                        {plan.limits?.maxQueues ? `Up to ${plan.limits.maxQueues} Queues` : 'Unlimited Queues'}
-                      </span>
-                    </li>
-                    {plan.features?.whatsappNotifications && (
-                      <li className="flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
-                        <span className="text-sm text-zinc-300">WhatsApp Notifications</span>
-                      </li>
-                    )}
-                    {plan.features?.whatsappChat && (
-                      <li className="flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
-                        <span className="text-sm text-zinc-300">WhatsApp Live Chat</span>
-                      </li>
-                    )}
-                    {plan.features?.whatsappChatbot && (
-                      <li className="flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
-                        <span className="text-sm text-zinc-300">Automated WhatsApp Chatbot</span>
-                      </li>
-                    )}
+                    {/* Render Limits */}
+                    {Object.entries(plan.limits || {}).map(([key, value]) => {
+                      if (!value) return null;
+                      
+                      let label = '';
+                      if (key === 'maxTokens') label = `Up to ${value} visits per month`;
+                      else if (key === 'maxQueues') label = `Up to ${value} Queues`;
+                      else if (key === 'maxLocations') label = `Up to ${value} Locations`;
+                      else if (key === 'maxStaff') label = `Up to ${value} Staff Members`;
+                      else label = `${key}: ${value}`;
+
+                      return (
+                        <li key={key} className="flex items-start gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
+                          <span className="text-sm text-zinc-300">{label}</span>
+                        </li>
+                      );
+                    })}
+
+                    {/* Render Features */}
+                    {Object.entries(plan.features || {}).map(([key, value]) => {
+                      if (!value) return null;
+
+                      const featureNames: Record<string, string> = {
+                        textToSpeech: 'AI Voice Announcements',
+                        whatsappNotifications: 'WhatsApp Notifications',
+                        customBranding: 'Custom Branding',
+                        apiAccess: 'API Access',
+                        multiLocation: 'Multi-Location Support',
+                        advancedAnalytics: 'Advanced Analytics',
+                        appointmentsModule: 'Appointments Module',
+                        whatsappChat: 'WhatsApp Live Chat',
+                        whatsappChatbot: 'Automated WhatsApp Chatbot'
+                      };
+
+                      const label = featureNames[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+
+                      return (
+                        <li key={key} className="flex items-start gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
+                          <span className="text-sm text-zinc-300">{label}</span>
+                        </li>
+                      );
+                    })}
+                    
+                    {/* Default Features */}
                     <li className="flex items-start gap-3">
                       <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
                       <span className="text-sm text-zinc-300">Standard Status Pages</span>
