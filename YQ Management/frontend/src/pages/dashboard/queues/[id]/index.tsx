@@ -544,18 +544,6 @@ export default function QueueDetails() {
                 description: 'Open this URL on a TV or screen share to show a live calling board for your lobby.',
                 url: `${baseUrl}/tv/${tenantId}`,
               },
-              {
-                icon: 'queue',
-                title: 'Queue Join Link',
-                description: 'Share this link with customers so they can join this specific queue and track their position.',
-                url: `${tenantUrl}/queue/${id}`,
-              },
-              {
-                icon: 'calendar_add_on',
-                title: 'Appointment Booking',
-                description: 'Customer-facing booking page for scheduling appointments.',
-                url: `${tenantUrl}/booking`,
-              },
             ];
             return (
               <div className="space-y-4">

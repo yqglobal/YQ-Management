@@ -210,33 +210,6 @@ export default function WorkspaceSettingsPage() {
             />
           )}
 
-          {/* General booking */}
-          <LinkRow
-            icon="event"
-            title="Appointment Booking Page"
-            description="Customer-facing page to browse and book appointments."
-            url={`${portalUrl}/booking`}
-            onCopy={() => copyLink(`${portalUrl}/booking`, 'Booking page link')}
-          />
-
-          {/* Per-queue links */}
-          {(queues as any[]).length > 0 && (
-            <>
-              <div className="pt-2 pb-1">
-                <p className="text-xs font-semibold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider">Queue Join Links</p>
-              </div>
-              {(queues as any[]).map((q: any) => (
-                <LinkRow
-                  key={q.id}
-                  icon="queue"
-                  title={q.name}
-                  description="Customers scan or click to join this queue and track their position."
-                  url={portalUrl ? `${portalUrl}/queue/${q.id}` : `${baseUrl}/queue/${q.id}`}
-                  onCopy={() => copyLink(portalUrl ? `${portalUrl}/queue/${q.id}` : `${baseUrl}/queue/${q.id}`, `${q.name} link`)}
-                />
-              ))}
-            </>
-          )}
         </div>
       </div>
     </div>
