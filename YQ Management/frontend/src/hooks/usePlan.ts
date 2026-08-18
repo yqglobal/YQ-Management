@@ -78,8 +78,12 @@ export function usePlan(): UsePlanResult {
     const plan = sub?.plan;
     const planName: string | null = plan?.name ?? null;
     const planTier = guessTier(planName ?? undefined);
-    const limits: PlanLimits = { ...DEFAULT_LIMITS, ...(plan?.limits as Partial<PlanLimits> ?? {}) };
-    const features: PlanFeatures = { ...DEFAULT_FEATURES, ...(plan?.features as Partial<PlanFeatures> ?? {}) };
+    const rawLimits = plan?.limits;
+    const parsedLimits = typeof rawLimits === 'string' ? JSON.parse(rawLimits) : rawLimits;
+    const limits: PlanLimits = { ...DEFAULT_LIMITS, ...(parsedLimits as Partial<PlanLimits> ?? {}) };
+    const rawFeatures = plan?.features;
+    const parsedFeatures = typeof rawFeatures === 'string' ? JSON.parse(rawFeatures) : rawFeatures;
+    const features: PlanFeatures = { ...DEFAULT_FEATURES, ...(parsedFeatures as Partial<PlanFeatures> ?? {}) };
 
     const isTrialActive = status === 'TRIAL';
     const subscriptionEndDate: Date | null = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
