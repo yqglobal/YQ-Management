@@ -106,7 +106,7 @@ export default function AboutPage() {
               <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-6">
                 <span className="material-symbols-outlined text-3xl">favorite</span>
               </div>
-              <h3 className="text-xl font-bold text-white">Radical Empathy</h3>
+              <h3 className="text-xl font-bold text-white">Reliability</h3>
               <p className="text-zinc-400">Waiting is stressful. We design our software to be calming, accessible, and empathetic to the end-user's experience.</p>
             </div>
             <div className="space-y-4">
@@ -121,6 +121,7 @@ export default function AboutPage() {
       </section>
 
       {/* Team Section */}
+      {/*
       <section className="py-24 px-gutter relative border-t border-white/5">
         <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-6">Meet the Team</h2>
@@ -145,6 +146,7 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      */}
 
       <Footer />
     </div>
