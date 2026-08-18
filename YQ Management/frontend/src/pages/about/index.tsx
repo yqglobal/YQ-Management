@@ -128,7 +128,7 @@ export default function AboutPage() {
           <p className="text-zinc-400 max-w-2xl mx-auto mb-16">We are a small, dedicated team of engineers and designers passionate about solving real-world operational problems.</p>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Placeholder Team Members */}
+            
             {[
               { name: 'Alex Rivera', role: 'CEO & Co-Founder', initial: 'A' },
               { name: 'Sarah Chen', role: 'CTO & Co-Founder', initial: 'S' },

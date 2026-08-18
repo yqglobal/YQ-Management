@@ -6,8 +6,31 @@ import { useAuth } from '../../components/AuthContext';
 import { Logo } from '../../components/Logo';
 import { motion } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
+import { GetServerSideProps } from 'next';
 
-export default function PricingPage() {
+interface Plan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  interval: string;
+  features: {
+    whatsappNotifications?: boolean;
+    whatsappChat?: boolean;
+    whatsappChatbot?: boolean;
+  };
+  limits: {
+    maxQueues?: number;
+    maxTokens?: number;
+  };
+}
+
+interface PricingProps {
+  plans: Plan[];
+}
+
+export default function PricingPage({ plans }: PricingProps) {
   const { user } = useAuth();
   
   return (
@@ -74,116 +97,74 @@ export default function PricingPage() {
       {/* Pricing Cards */}
       <section className="pb-32 px-gutter relative z-10">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          
-          {/* Starter Tier */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-[#0f1219] border border-white/10 rounded-3xl p-8 flex flex-col h-full"
-          >
-            <h3 className="text-xl font-semibold text-white mb-2">Starter</h3>
-            <p className="text-sm text-zinc-400 mb-6">Perfect for small clinics and independent retailers.</p>
-            <div className="mb-8">
-              <span className="text-4xl font-bold text-white">$49</span>
-              <span className="text-zinc-500">/month</span>
-            </div>
-            <Link href="/register" className="w-full block py-3 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-center transition-colors mb-8">
-              Start Free Trial
-            </Link>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-white mb-4">What's included:</p>
-              <ul className="space-y-4">
-                {[
-                  'Up to 500 visits per month',
-                  '1 Location',
-                  'Basic algorithmic routing',
-                  'Standard status pages',
-                  'Email support'
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
-                    <span className="text-sm text-zinc-300">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </motion.div>
-
-          {/* Professional Tier (Highlighted) */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="bg-[#151b2b] border-2 border-sky-500 rounded-3xl p-8 flex flex-col h-full relative transform md:-translate-y-4 shadow-2xl shadow-sky-900/20"
-          >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-sky-500 text-white px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase">
-              Most Popular
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Professional</h3>
-            <p className="text-sm text-sky-200/70 mb-6">For growing businesses needing advanced capabilities.</p>
-            <div className="mb-8">
-              <span className="text-4xl font-bold text-white">$149</span>
-              <span className="text-sky-200/50">/month</span>
-            </div>
-            <Link href="/register" className="w-full block py-3 px-6 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-center transition-colors mb-8 shadow-lg shadow-sky-500/25">
-              Start Free Trial
-            </Link>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-white mb-4">Everything in Starter, plus:</p>
-              <ul className="space-y-4">
-                {[
-                  'Unlimited visits',
-                  'Up to 5 Locations',
-                  'WhatsApp native ticketing',
-                  'AI Voice Announcements',
-                  'Custom branding',
-                  'Priority support'
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
-                    <span className="text-sm text-zinc-200">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </motion.div>
-
-          {/* Enterprise Tier */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="bg-[#0f1219] border border-white/10 rounded-3xl p-8 flex flex-col h-full"
-          >
-            <h3 className="text-xl font-semibold text-white mb-2">Enterprise</h3>
-            <p className="text-sm text-zinc-400 mb-6">Custom solutions for large-scale operations.</p>
-            <div className="mb-8">
-              <span className="text-4xl font-bold text-white">Custom</span>
-            </div>
-            <Link href="/register" className="w-full block py-3 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-center transition-colors mb-8">
-              Contact Sales
-            </Link>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-white mb-4">Everything in Pro, plus:</p>
-              <ul className="space-y-4">
-                {[
-                  'Unlimited Locations',
-                  'Dedicated account manager',
-                  'Custom API integrations',
-                  'SLA guarantees',
-                  'On-premise deployment options',
-                  '24/7 phone support'
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
-                    <span className="text-sm text-zinc-300">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </motion.div>
-
+          {plans.map((plan, index) => {
+            const isPopular = plan.name.toLowerCase().includes('standard');
+            return (
+              <motion.div 
+                key={plan.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 + (index * 0.1) }}
+                className={`bg-[#0f1219] border ${isPopular ? 'border-sky-500 shadow-2xl shadow-sky-900/20 md:-translate-y-4' : 'border-white/10'} rounded-3xl p-8 flex flex-col h-full relative`}
+              >
+                {isPopular && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-sky-500 text-white px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase">
+                    Most Popular
+                  </div>
+                )}
+                <h3 className="text-xl font-semibold text-white mb-2">{plan.name}</h3>
+                <p className="text-sm text-zinc-400 mb-6">{plan.description || "Everything you need to get started."}</p>
+                <div className="mb-8">
+                  <span className="text-4xl font-bold text-white">
+                    {plan.price === 0 ? "Free" : `${plan.currency === 'ZAR' ? 'R' : '$'}${plan.price}`}
+                  </span>
+                  {plan.price > 0 && <span className="text-zinc-500">/{plan.interval || 'month'}</span>}
+                </div>
+                <Link href="/register" className={`w-full block py-3 px-6 rounded-xl ${isPopular ? 'bg-sky-500 hover:bg-sky-400 font-bold shadow-lg shadow-sky-500/25' : 'bg-white/10 hover:bg-white/20 font-medium'} text-white text-center transition-colors mb-8`}>
+                  Start Free Trial
+                </Link>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white mb-4">What's included:</p>
+                  <ul className="space-y-4">
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
+                      <span className="text-sm text-zinc-300">
+                        {plan.limits?.maxTokens ? `Up to ${plan.limits.maxTokens} visits per month` : 'Unlimited visits'}
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
+                      <span className="text-sm text-zinc-300">
+                        {plan.limits?.maxQueues ? `Up to ${plan.limits.maxQueues} Queues` : 'Unlimited Queues'}
+                      </span>
+                    </li>
+                    {plan.features?.whatsappNotifications && (
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
+                        <span className="text-sm text-zinc-300">WhatsApp Notifications</span>
+                      </li>
+                    )}
+                    {plan.features?.whatsappChat && (
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
+                        <span className="text-sm text-zinc-300">WhatsApp Live Chat</span>
+                      </li>
+                    )}
+                    {plan.features?.whatsappChatbot && (
+                      <li className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
+                        <span className="text-sm text-zinc-300">Automated WhatsApp Chatbot</span>
+                      </li>
+                    )}
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-sky-400 shrink-0" />
+                      <span className="text-sm text-zinc-300">Standard Status Pages</span>
+                    </li>
+                  </ul>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </section>
 
@@ -211,3 +192,50 @@ export default function PricingPage() {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  let plans: Plan[] = [];
+  
+  try {
+    const res = await fetch(`${baseUrl}/public/plans`);
+    if (res.ok) {
+      plans = await res.json();
+      
+      // Sort plans by price
+      plans.sort((a, b) => a.price - b.price);
+    }
+  } catch (error) {
+    console.error('Failed to fetch public plans:', error);
+  }
+
+  // Fallback plans if backend fails
+  if (plans.length === 0) {
+    plans = [
+      {
+        id: '1', name: 'Starter (14 Days Trial)', description: 'Perfect for small retail or single service point environments.',
+        price: 0, currency: 'ZAR', interval: 'monthly',
+        features: { whatsappNotifications: false, whatsappChat: false, whatsappChatbot: false },
+        limits: { maxQueues: 1, maxTokens: 100 }
+      },
+      {
+        id: '2', name: 'Standard Plan', description: 'Ideal for busy clinics, restaurants, and customer service centers.',
+        price: 499, currency: 'ZAR', interval: 'monthly',
+        features: { whatsappNotifications: true, whatsappChat: true, whatsappChatbot: true },
+        limits: { maxQueues: 5, maxTokens: 1000 }
+      },
+      {
+        id: '3', name: 'Premium Plan', description: 'Comprehensive solution for healthcare networks and large retail chains.',
+        price: 1499, currency: 'ZAR', interval: 'monthly',
+        features: { whatsappNotifications: true, whatsappChat: true, whatsappChatbot: true },
+        limits: { maxQueues: 20, maxTokens: 10000 }
+      }
+    ];
+  }
+
+  return {
+    props: {
+      plans,
+    },
+  };
+};
