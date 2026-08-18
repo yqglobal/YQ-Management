@@ -5,7 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { fetchApi } from '../../lib/api';
-import { PremiumFeatureGate } from '../../components/PremiumFeatureGate';
+import { FeatureGuard } from '../../components/guards/FeatureGuard';
 import { Search, Users, Phone, Mail, Clock, BarChart2 } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -177,10 +177,9 @@ export default function Analytics() {
         <title>Analytics | Qmova</title>
       </Head>
 
-      <PremiumFeatureGate
+      <FeatureGuard
         featureKey="advancedAnalytics"
         featureName="Advanced Analytics"
-        description="Get deep insights into wait times, SLA violations, walkaway rates, and per-queue performance."
       >
         <div className="max-w-7xl mx-auto space-y-6">
 
@@ -205,7 +204,7 @@ export default function Analytics() {
           {activeTab === 'insights' && (
             <>
               {/* AI Insights Ribbon */}
-              <motion.div
+              {/* <motion.div
                 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
                 className="bg-gradient-to-r from-sky-500/10 to-indigo-500/10 border border-sky-500/20 rounded-xl p-5 mb-4 shadow-sm flex items-start gap-4"
               >
@@ -218,7 +217,7 @@ export default function Analytics() {
                     Wait times have been exceptionally low today! However, based on the last 30 days, we've identified a 30% visitor surge between <span className="text-on-surface dark:text-white font-semibold">10 AM and 11 AM</span>. Consider assigning an additional desk during this peak hour.
                   </p>
                 </div>
-              </motion.div>
+              </motion.div> */}
 
               {/* KPI Ribbon */}
               <motion.div
@@ -487,7 +486,7 @@ export default function Analytics() {
             </motion.div>
           )}
         </div>
-      </PremiumFeatureGate>
+      </FeatureGuard>
     </AdminLayout>
   );
 }

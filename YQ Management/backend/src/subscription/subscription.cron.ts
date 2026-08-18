@@ -42,51 +42,58 @@ export class SubscriptionCron {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async sendRenewalReminders() {
     this.logger.log('Running renewal reminder cron');
-    const upcoming = await this.prisma.subscription.findMany({
-      where: {
-        status: 'ACTIVE',
-        nextBillingDate: {
-          lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          gte: new Date(),
-        },
-      },
-      include: {
-        workspace: { select: { id: true, name: true } },
-        plan: { select: { name: true } },
-      },
-    });
+    
+    // Find subscriptions expiring in exactly 7, 3, or 1 days
+    const targets = [7, 3, 1];
+    
+    for (const days of targets) {
+      const targetDateStart = new Date();
+      targetDateStart.setDate(targetDateStart.getDate() + days);
+      targetDateStart.setHours(0, 0, 0, 0);
+      
+      const targetDateEnd = new Date(targetDateStart);
+      targetDateEnd.setHours(23, 59, 59, 999);
 
-    for (const sub of upcoming) {
-      try {
-        const daysRemaining = Math.ceil(
-          ((sub.nextBillingDate?.getTime() || Date.now()) - Date.now()) /
-            (24 * 60 * 60 * 1000),
-        );
-
-        const workspaceOwner = await this.prisma.user.findFirst({
-          where: { workspaceId: sub.workspaceId, role: 'ADMIN' },
-          select: { email: true },
-        });
-
-        const email = workspaceOwner?.email || 'admin@example.com';
-
-        await this.communicationService.publish(
-          CommunicationEvent.BILLING_TRIAL_ENDING,
-          {
-            email,
-            workspaceName: sub.workspace?.name || 'Your Workspace',
-            daysRemaining,
-            workspaceId: sub.workspaceId,
+      const upcoming = await this.prisma.subscription.findMany({
+        where: {
+          status: 'ACTIVE',
+          nextBillingDate: {
+            gte: targetDateStart,
+            lte: targetDateEnd,
           },
-        );
-        this.logger.log(
-          `Sent renewal reminder for workspace ${sub.workspaceId}`,
-        );
-      } catch (e) {
-        this.logger.error(
-          `Failed to send renewal reminder for workspace ${sub.workspaceId}`,
-          e,
-        );
+        },
+        include: {
+          workspace: { select: { id: true, name: true } },
+          plan: { select: { name: true } },
+        },
+      });
+
+      for (const sub of upcoming) {
+        try {
+          const workspaceOwner = await this.prisma.user.findFirst({
+            where: { workspaceId: sub.workspaceId, role: 'TENANT_ADMIN' },
+            select: { email: true },
+          });
+          const adminOwner = await this.prisma.user.findFirst({
+            where: { workspaceId: sub.workspaceId, role: 'ADMIN' },
+            select: { email: true },
+          });
+
+          const email = workspaceOwner?.email || adminOwner?.email || 'admin@example.com';
+
+          await this.communicationService.publish(
+            CommunicationEvent.BILLING_TRIAL_ENDING,
+            {
+              email,
+              workspaceName: sub.workspace?.name || 'Your Workspace',
+              daysRemaining: days,
+              workspaceId: sub.workspaceId,
+            },
+          );
+          this.logger.log(`Sent ${days}-day renewal reminder for workspace ${sub.workspaceId}`);
+        } catch (e) {
+          this.logger.error(`Failed to send ${days}-day renewal reminder for workspace ${sub.workspaceId}`, e);
+        }
       }
     }
   }
@@ -106,16 +113,29 @@ export class SubscriptionCron {
       try {
         await this.subscriptionService.cancelSubscription(sub.workspaceId, {
           immediate: true,
-          reason: 'Payment failed - subscription expired',
+          reason: 'Subscription expired - Next billing date passed',
         });
-        this.logger.log(
-          `Cancelled expired subscription for workspace ${sub.workspaceId}`,
-        );
+        
+        const workspaceOwner = await this.prisma.user.findFirst({
+          where: { workspaceId: sub.workspaceId, role: 'TENANT_ADMIN' },
+          select: { email: true },
+        });
+
+        if (workspaceOwner?.email) {
+          await this.communicationService.publish(
+            CommunicationEvent.BILLING_TRIAL_ENDING,
+            {
+              email: workspaceOwner.email,
+              workspaceName: sub.workspace?.name || 'Your Workspace',
+              daysRemaining: 0,
+              workspaceId: sub.workspaceId,
+            },
+          );
+        }
+
+        this.logger.log(`Cancelled expired subscription for workspace ${sub.workspaceId}`);
       } catch (e) {
-        this.logger.error(
-          `Failed to cancel expired subscription for workspace ${sub.workspaceId}`,
-          e,
-        );
+        this.logger.error(`Failed to cancel expired subscription for workspace ${sub.workspaceId}`, e);
       }
     }
   }

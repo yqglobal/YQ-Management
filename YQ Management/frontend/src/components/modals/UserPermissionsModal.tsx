@@ -142,9 +142,8 @@ export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }:
                   onChange={(e) => setRole(e.target.value)}
                   className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
                 >
-                  <option value="OPERATOR">OPERATOR</option>
-                  <option value="ADMIN">ADMIN</option>
-                  <option value="TENANT_ADMIN">TENANT_ADMIN</option>
+                  <option value="OPERATOR">Operator</option>
+                  <option value="TENANT_ADMIN">Admin</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-2">
                   Admins have full access. Operators can be restricted to specific locations, services, and pages.

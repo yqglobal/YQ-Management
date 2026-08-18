@@ -8,7 +8,7 @@ import { Send, MessageSquare, QrCode, Loader2, AlertCircle, CheckCircle2, Phone,
 import { QRCodeSVG } from 'qrcode.react';
 import PhoneInput from '../../../../components/PhoneInput';
 import { toast } from 'sonner';
-import { PremiumFeatureGate } from '../../../../components/PremiumFeatureGate';
+import { FeatureGuard } from '../../../../components/FeatureGuard';
 
 export default function WhatsAppSettingsPage() {
   const { user } = useAuth();
@@ -152,7 +152,7 @@ export default function WhatsAppSettingsPage() {
   }, [qrCountdown, qrCode, isWhatsAppConnected, connectionMode, connectMutation]);
 
   return (
-    <PremiumFeatureGate
+    <FeatureGuard
       featureKey="whatsappNotifications"
       featureName="WhatsApp Integration"
       description="Connect your WhatsApp Business account to send automated notifications, position updates, and serve customers via chat."
@@ -521,6 +521,6 @@ export default function WhatsAppSettingsPage() {
         )}
       </div>
     </div>
-    </PremiumFeatureGate>
+    </FeatureGuard>
   );
 }

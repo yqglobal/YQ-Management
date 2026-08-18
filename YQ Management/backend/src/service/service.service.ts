@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
 
@@ -19,6 +19,19 @@ export class ServiceService {
       locationId?: string;
     },
   ) {
+    const servicesCount = await this.prisma.extendedClient.service.count({
+      where: { 
+        tenantId, 
+        locationId: data.locationId || null 
+      },
+    });
+
+    if (servicesCount >= 20) {
+      throw new BadRequestException(
+        `Maximum number of services (20) reached for this ${data.locationId ? 'location' : 'tenant'}.`
+      );
+    }
+
     const service = await this.prisma.extendedClient.service.create({
       data: {
         tenantId,

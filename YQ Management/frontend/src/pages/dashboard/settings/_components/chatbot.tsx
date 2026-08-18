@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { PremiumFeatureGate } from '../../../../components/PremiumFeatureGate';
+import { FeatureGuard } from '../../../../components/FeatureGuard';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import { toast } from 'sonner';
@@ -69,7 +69,7 @@ export default function ChatbotSettings() {
         </div>
       </div>
 
-      <PremiumFeatureGate 
+      <FeatureGuard 
         featureKey="whatsappChatbot" 
         featureName="AI WhatsApp Chatbot" 
         description="Automate your waiting room with a 2-way conversational bot that handles status checks, cancellations, and frequently asked questions."
@@ -216,7 +216,7 @@ export default function ChatbotSettings() {
             </div>
           </div>
         )}
-      </PremiumFeatureGate>
+      </FeatureGuard>
     </div>
   );
 }
