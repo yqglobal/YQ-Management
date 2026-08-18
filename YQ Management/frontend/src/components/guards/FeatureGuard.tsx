@@ -7,10 +7,11 @@ import Link from 'next/link';
 interface FeatureGuardProps {
   featureKey: keyof PlanFeatures;
   featureName: string;
+  description?: string;
   children: React.ReactNode;
 }
 
-export function FeatureGuard({ featureKey, featureName, children }: FeatureGuardProps) {
+export function FeatureGuard({ featureKey, featureName, description, children }: FeatureGuardProps) {
   const { user } = useAuth();
   const plan = usePlan();
 
@@ -30,7 +31,7 @@ export function FeatureGuard({ featureKey, featureName, children }: FeatureGuard
         {featureName} Not Available
       </h3>
       <p className="text-gray-500 dark:text-zinc-400 max-w-md mb-8">
-        This feature is not included in your current plan. Upgrade your subscription to unlock {featureName} and other premium features.
+        {description || `This feature is not included in your current plan. Upgrade your subscription to unlock ${featureName} and other premium features.`}
       </p>
       {user?.role === 'ADMIN' || user?.role === 'TENANT_ADMIN' ? (
         <Link 
