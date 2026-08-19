@@ -84,6 +84,7 @@ function cleanLogForFile(log: Record<string, any>): string {
           host: headers.host,
           'content-type': headers['content-type'],
           origin: headers.origin || headers.referer,
+          'x-request-id': headers['x-request-id'],
         }
       : undefined;
     cloned.req = { ...restReq, headers: cleanHeaders };

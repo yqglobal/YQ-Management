@@ -54,6 +54,9 @@ import { GoogleModule } from './integrations/google/google.module';
       pinoHttp: {
         level: process.env.LOG_LEVEL || 'debug',
         stream: createLogRoutingTransport(),
+        genReqId: (req) => {
+          return req.headers['x-request-id'] || require('crypto').randomUUID();
+        },
         serializers: {
           req: (req: any) => ({
             id: req.id,

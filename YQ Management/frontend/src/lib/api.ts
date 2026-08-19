@@ -120,6 +120,11 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
+  const requestId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+  if (!headers.has('x-request-id')) {
+    headers.set('x-request-id', requestId);
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
 
@@ -144,13 +149,13 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
         errorMessage = response.statusText;
       }
       if (response.status === 401) {
-        console.warn(`[API Auth Error] ${options.method || 'GET'} ${endpoint} → 401 Unauthorized`);
+        console.warn(`[API Auth Error] [${requestId}] ${options.method || 'GET'} ${endpoint} → 401 Unauthorized`);
         if (router && !redirecting) {
           redirecting = true;
           router.push('/login');
         }
       } else {
-        console.error(`[API Error] ${options.method || 'GET'} ${endpoint} → ${response.status}: ${errorMessage}`, errorDetails);
+        console.error(`[API Error] [${requestId}] ${options.method || 'GET'} ${endpoint} → ${response.status}: ${errorMessage}`, errorDetails);
       }
       throw new ApiError(response.status, errorMessage, endpoint, errorDetails);
     }
@@ -164,17 +169,17 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      console.warn(`[API Timeout] ${options.method || 'GET'} ${endpoint} → Request timed out after 30s`);
+      console.warn(`[API Timeout] [${requestId}] ${options.method || 'GET'} ${endpoint} → Request timed out after 30s`);
       throw new ApiError(408, 'Request timed out. Please try again.', endpoint);
     }
     if (error instanceof ApiError) {
       throw error;
     }
     if (!navigator.onLine) {
-      console.warn(`[API Offline] ${options.method || 'GET'} ${endpoint} → Device is offline`);
+      console.warn(`[API Offline] [${requestId}] ${options.method || 'GET'} ${endpoint} → Device is offline`);
       throw new ApiError(0, 'You are offline. Please check your internet connection.', endpoint);
     }
-    console.warn(`[API Network Error] ${options.method || 'GET'} ${endpoint} → ${error.message}`);
+    console.warn(`[API Network Error] [${requestId}] ${options.method || 'GET'} ${endpoint} → ${error.message}`);
     throw new ApiError(0, error.message || 'Network error', endpoint);
   }
 };
