@@ -80,6 +80,25 @@ export class VisitService {
     return visit;
   }
 
+  async findMultiplePublic(accessTokens: string[]) {
+    return this.prisma.visit.findMany({
+      where: { accessToken: { in: accessTokens } },
+      select: {
+        id: true,
+        queueId: true,
+        displayId: true,
+        accessToken: true,
+        currentState: true,
+        waitingStart: true,
+        createdAt: true,
+        customer: { select: { name: true } },
+        service: { select: { name: true, expectedDuration: true } },
+        location: { select: { name: true, address: true } },
+        tenant: { select: { name: true } },
+      },
+    });
+  }
+
   async update(id: string, tenantId: string, updateVisitDto: UpdateVisitDto) {
     await this.findOne(id, tenantId);
     return this.prisma.visit.update({ where: { id }, data: updateVisitDto });

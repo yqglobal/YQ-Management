@@ -1,9 +1,16 @@
-import { Controller, Get, Param, Post, Body } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Query } from '@nestjs/common';
 import { VisitService } from './visit.service';
 
 @Controller('public-visit')
 export class PublicVisitController {
   constructor(private readonly visitService: VisitService) {}
+
+  @Get('status-multiple')
+  async statusMultiple(@Query('tokens') tokens: string) {
+    if (!tokens) return [];
+    const tokenArray = tokens.split(',').map(t => t.trim()).filter(Boolean);
+    return this.visitService.findMultiplePublic(tokenArray);
+  }
 
   @Get(':accessToken')
   async getPublicVisit(@Param('accessToken') accessToken: string) {

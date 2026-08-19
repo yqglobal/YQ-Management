@@ -41,13 +41,18 @@ export default function Analytics() {
   // All historical visits (for analytics & customers)
   const { data: visits = [], isLoading: isVisitsLoading } = useQuery({
     queryKey: ['visits', 'history-all'],
-    queryFn: () => fetchApi('/visits').catch(() => []),
+    queryFn: () => fetchApi('/visits?scope=history').catch(() => []),
   });
 
   // Queues for per-queue breakdown
   const { data: queues = [] } = useQuery({
     queryKey: ['queues'],
     queryFn: () => fetchApi('/queue').catch(() => []),
+  });
+
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => fetchApi('/service').catch(() => []),
   });
 
   // ── KPI calculations ────────────────────────────────────────────────────
@@ -105,33 +110,64 @@ export default function Analytics() {
     return days;
   }, [visits, timeRange]);
 
-  // ── Per-queue SLA heatmap (REAL data) ──────────────────────────────────
-  const queueStats = useMemo(() => {
+  // ── Service & Queue Performance ──────────────────────────────────────────
+  const servicePerformance = useMemo(() => {
     const v = visits as any[];
-    const map = new Map<string, { name: string; totalWaitMs: number; count: number; violations: number }>();
+    const svcMap = new Map<string, { id: string, name: string, totalWaitMs: number, count: number, violations: number, walkaways: number, queues: Map<string, { name: string, totalWaitMs: number, count: number, violations: number, walkaways: number }> }>();
 
-    (queues as any[]).forEach((q) => {
-      map.set(q.id, { name: q.name, totalWaitMs: 0, count: 0, violations: 0 });
+    (services as any[]).forEach(s => {
+      svcMap.set(s.id, { id: s.id, name: s.name, totalWaitMs: 0, count: 0, violations: 0, walkaways: 0, queues: new Map() });
     });
 
-    v.forEach((visit) => {
-      if (!visit.queue?.id && !visit.queueId) return;
+    (queues as any[]).forEach(q => {
+      // Find the service that owns this queue. The API returns queues with serviceId if we look closely, or we can look up services.
+      // Assuming visit has serviceId and queueId
+    });
+
+    v.forEach(visit => {
+      const sId = visit.service?.id || visit.serviceId;
       const qId = visit.queue?.id || visit.queueId;
-      if (!map.has(qId)) return;
+      if (!sId || !svcMap.has(sId)) return;
+      
+      const svcEntry = svcMap.get(sId)!;
+      let waitMs = 0;
+      let hasWait = false;
+      let isWalkaway = ['NO_SHOW', 'CANCELLED'].includes(visit.currentState);
+
       if (visit.serviceStart && visit.waitingStart) {
-        const wait = new Date(visit.serviceStart).getTime() - new Date(visit.waitingStart).getTime();
-        const entry = map.get(qId)!;
-        entry.totalWaitMs += wait;
-        entry.count++;
-        if (wait > SLA_THRESHOLD_MINS * 60 * 1000) entry.violations++;
+        waitMs = new Date(visit.serviceStart).getTime() - new Date(visit.waitingStart).getTime();
+        hasWait = true;
+      }
+
+      // Update Service level
+      svcEntry.count++;
+      if (hasWait) svcEntry.totalWaitMs += waitMs;
+      if (hasWait && waitMs > SLA_THRESHOLD_MINS * 60 * 1000) svcEntry.violations++;
+      if (isWalkaway) svcEntry.walkaways++;
+
+      // Update Queue level
+      if (qId) {
+        if (!svcEntry.queues.has(qId)) {
+          const qObj = (queues as any[]).find(x => x.id === qId);
+          svcEntry.queues.set(qId, { name: qObj?.name || 'Unknown Queue', totalWaitMs: 0, count: 0, violations: 0, walkaways: 0 });
+        }
+        const qEntry = svcEntry.queues.get(qId)!;
+        qEntry.count++;
+        if (hasWait) qEntry.totalWaitMs += waitMs;
+        if (hasWait && waitMs > SLA_THRESHOLD_MINS * 60 * 1000) qEntry.violations++;
+        if (isWalkaway) qEntry.walkaways++;
       }
     });
 
-    return Array.from(map.values()).map((q) => ({
-      ...q,
-      avgMins: q.count > 0 ? Math.round(q.totalWaitMs / q.count / 60000) : null,
+    return Array.from(svcMap.values()).map(s => ({
+      ...s,
+      avgMins: s.count > 0 && s.totalWaitMs > 0 ? Math.round(s.totalWaitMs / s.count / 60000) : null,
+      queues: Array.from(s.queues.values()).map(q => ({
+        ...q,
+        avgMins: q.count > 0 && q.totalWaitMs > 0 ? Math.round(q.totalWaitMs / q.count / 60000) : null,
+      }))
     }));
-  }, [visits, queues]);
+  }, [visits, services, queues]);
 
   // ── Customer map (absorbing Records page) ──────────────────────────────
   const { people } = useMemo(() => {
@@ -301,58 +337,68 @@ export default function Analytics() {
                 </div>
               </motion.div>
 
-              {/* Per-Queue SLA Heatmap — REAL DATA */}
+              {/* Service & Queue Performance */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
               >
-                <h3 className="font-semibold text-on-surface dark:text-white mb-4">Queue Performance (Avg Wait)</h3>
-                {queueStats.length === 0 ? (
+                <h3 className="font-semibold text-on-surface dark:text-white mb-4">Service Performance</h3>
+                {servicePerformance.length === 0 ? (
                   <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-10 text-center">
-                    <p className="text-on-surface-variant text-sm">No queues configured yet. Create queues to see per-queue SLA data.</p>
+                    <p className="text-on-surface-variant text-sm">No services found.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {queueStats.map((q, i) => {
-                      const isViolating = q.avgMins !== null && q.avgMins > SLA_THRESHOLD_MINS;
-                      const hasData = q.avgMins !== null;
-                      return (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.3 + i * 0.05 }}
-                          className={`rounded-xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm border ${
-                            !hasData
-                              ? 'bg-surface-container-low dark:bg-zinc-900 border-border dark:border-dark-border'
-                              : isViolating
-                              ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800'
-                              : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
-                          }`}
-                        >
-                          <p className={`font-semibold text-sm truncate ${
-                            !hasData ? 'text-on-surface-variant' : isViolating ? 'text-rose-900 dark:text-rose-300' : 'text-emerald-900 dark:text-emerald-300'
-                          }`}>{q.name}</p>
-                          <div className="flex items-end justify-between mt-3">
-                            <span className={`font-mono text-2xl font-bold ${
-                              !hasData ? 'text-on-surface-variant' : isViolating ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
-                            }`}>
-                              {hasData ? `${q.avgMins}m` : '—'}
-                            </span>
-                            {hasData ? (
-                              <span className={`material-symbols-outlined text-[20px] ${isViolating ? 'text-rose-500' : 'text-emerald-500'}`}
-                                style={{ fontVariationSettings: "'FILL' 1" }}>
-                                {isViolating ? 'warning' : 'check_circle'}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-on-surface-variant">No data</span>
-                            )}
+                  <div className="space-y-6">
+                    {servicePerformance.map((svc, i) => (
+                      <div key={svc.id} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
+                        <div className="flex justify-between items-center mb-4 border-b border-border dark:border-dark-border pb-4">
+                          <div>
+                            <h4 className="font-bold text-lg text-on-surface dark:text-white">{svc.name}</h4>
+                            <p className="text-sm text-outline mt-1">{svc.count} total visits · {svc.walkaways} walkaways · {svc.violations} SLA violations</p>
                           </div>
-                          {q.count > 0 && (
-                            <p className="text-[10px] text-outline mt-1">{q.count} served · {q.violations} violations</p>
-                          )}
-                        </motion.div>
-                      );
-                    })}
+                          <div className="text-right">
+                            <span className="text-xs text-on-surface-variant uppercase tracking-widest font-bold">Avg Wait</span>
+                            <p className="font-mono text-2xl font-bold text-primary">{svc.avgMins !== null ? `${svc.avgMins}m` : '—'}</p>
+                          </div>
+                        </div>
+                        
+                        <h5 className="font-semibold text-sm text-on-surface dark:text-white mb-3">Queue Breakdown</h5>
+                        {svc.queues.length === 0 ? (
+                          <p className="text-sm text-on-surface-variant">No queue data for this service yet.</p>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {svc.queues.map((q, j) => {
+                              const isViolating = q.avgMins !== null && q.avgMins > SLA_THRESHOLD_MINS;
+                              const hasData = q.avgMins !== null;
+                              return (
+                                <div key={j} className={`rounded-xl p-4 border flex flex-col justify-between ${
+                                  !hasData ? 'bg-surface-container-low dark:bg-zinc-900 border-border dark:border-dark-border' 
+                                  : isViolating ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800' 
+                                  : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
+                                }`}>
+                                  <p className={`font-semibold text-sm truncate ${
+                                    !hasData ? 'text-on-surface-variant' 
+                                    : isViolating ? 'text-rose-900 dark:text-rose-300' 
+                                    : 'text-emerald-900 dark:text-emerald-300'
+                                  }`}>{q.name}</p>
+                                  <div className="flex items-end justify-between mt-3">
+                                    <span className={`font-mono text-xl font-bold ${
+                                      !hasData ? 'text-on-surface-variant' 
+                                      : isViolating ? 'text-rose-600 dark:text-rose-400' 
+                                      : 'text-emerald-600 dark:text-emerald-400'
+                                    }`}>
+                                      {hasData ? `${q.avgMins}m` : '—'}
+                                    </span>
+                                  </div>
+                                  {q.count > 0 && (
+                                    <p className="text-[10px] text-outline mt-1">{q.count} served · {q.violations} violations · {q.walkaways} walkaways</p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </motion.div>

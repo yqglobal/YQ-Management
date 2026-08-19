@@ -141,26 +141,7 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
   const [tokens, setTokens] = useState<any[]>([]);
   const [statusDataMap, setStatusDataMap] = useState<Record<string, any>>({});
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`yq_active_visits_${tenant?.id}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.length > 0) {
-          setTokens(parsed);
-          setStep(6);
-        }
-      }
-    } catch(e) {}
-  }, [tenant?.id]);
-
-  useEffect(() => {
-    if (tokens.length > 0 && tenant?.id) {
-      localStorage.setItem(`yq_active_visits_${tenant.id}`, JSON.stringify(tokens));
-    } else if (tenant?.id && tokens.length === 0) {
-      localStorage.removeItem(`yq_active_visits_${tenant.id}`);
-    }
-  }, [tokens, tenant?.id]);
+  // Local storage persistence removed in favor of secure shareable URLs
 
   const primaryColor = tenant?.branding?.primaryColor || '#4f46e5';
   const logoUrl = tenant?.branding?.logoUrl;
@@ -352,14 +333,8 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
         throw new Error(err.message || 'Failed to complete booking.');
       }
       const data = await res.json();
-      setTokens(prev => {
-        const newTokens = [...prev];
-        data.forEach((d: any) => {
-          if (!newTokens.some(t => t.id === d.id)) newTokens.push(d);
-        });
-        return newTokens;
-      });
-      setStep(6);
+      const accessTokens = data.map((d: any) => d.accessToken).filter(Boolean).join(',');
+      router.push(`/booking/status?tokens=${accessTokens}`);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to complete booking.');
     } finally {
