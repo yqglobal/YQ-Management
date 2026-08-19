@@ -148,7 +148,7 @@ export class AppointmentService {
     const updated = await this.prisma.appointment.update({
       where: { id },
       data: updateAppointmentDto,
-      include: { customer: true, tenant: true },
+      include: { customer: true, tenant: true, location: true },
     });
 
     // Notify customer on status change
@@ -164,6 +164,12 @@ export class AppointmentService {
       const message = `Hello ${updated.customer.name}, your appointment requested for ${formattedDate} has been accepted and is now scheduled. See you soon!`;
       if (updated.customer.phone) {
         await this.whatsappService.sendToTenant(updated.tenantId, updated.customer.phone, message).catch(e => console.error('Failed to send approval whatsapp', e));
+      }
+    } else if (existing.status !== 'CHECKED_IN' && updated.status === 'CHECKED_IN') {
+      const locationName = updated.location?.name ? ` at ${updated.location.name}` : '';
+      const message = `Hello ${updated.customer.name}, you have been successfully checked in${locationName}. We will be with you shortly.`;
+      if (updated.customer.phone) {
+        await this.whatsappService.sendToTenant(updated.tenantId, updated.customer.phone, message).catch(e => console.error('Failed to send checkin whatsapp', e));
       }
     }
 

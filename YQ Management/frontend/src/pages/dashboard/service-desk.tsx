@@ -78,7 +78,7 @@ export default function ServiceDeskToday() {
 
   const { data: resources = [] } = useQuery({
     queryKey: ['resources'],
-    queryFn: () => fetchApi('/resources').catch(() => []),
+    queryFn: () => fetchApi('/resource').catch(() => []),
   });
 
   const updateVisitMutation = useMutation({

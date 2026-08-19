@@ -24,7 +24,7 @@ interface TTSConfig {
 
 export default function TVDisplay() {
   const router = useRouter();
-  const { tenantId } = router.query;
+  const { tenantId, queueId } = router.query;
   const [calledTokens, setCalledTokens] = useState<CalledToken[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -37,6 +37,7 @@ export default function TVDisplay() {
   const [branding, setBranding] = useState<any>(null);
   const [tenantName, setTenantName] = useState<string>('Qmova');
   const [tenantSubdomain, setTenantSubdomain] = useState<string>('');
+  const [queueInfo, setQueueInfo] = useState<{name: string, serviceName?: string} | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const isMutedRef = useRef(isMuted);
@@ -48,6 +49,17 @@ export default function TVDisplay() {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch queue info if queueId provided
+  useEffect(() => {
+    if (!queueId) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/queue/public/${queueId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data) setQueueInfo({ name: data.name, serviceName: data.service?.name });
+      })
+      .catch(console.error);
+  }, [queueId]);
 
   // Fetch tenant TTS config via public endpoint
   useEffect(() => {
@@ -159,7 +171,7 @@ export default function TVDisplay() {
   const dateStr = currentTime.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
 
   const { serviceId, queueId } = router.query;
-  const joinUrl = tenantSubdomain ? `${getTenantUrl(tenantSubdomain)}${(serviceId || queueId) ? `?${new URLSearchParams({
+  const joinUrl = tenantSubdomain ? `${getTenantUrl(tenantSubdomain, '/booking')}${(serviceId || queueId) ? `?${new URLSearchParams({
     ...(serviceId && { serviceId: serviceId as string }),
     ...(queueId && { queueId: queueId as string })
   }).toString()}` : ''}` : '';
@@ -193,9 +205,17 @@ export default function TVDisplay() {
               ) : (
                 <Logo width={140} height={22} forceTheme="dark" />
               )}
-              <div className="hidden lg:block">
+              <div className="hidden lg:block ml-2 border-l border-zinc-700 pl-4">
                 <p className="font-bold text-white text-lg leading-tight">{tenantName || 'Queue Display'}</p>
-                <p className="text-zinc-500 text-xs">Live Queue Display</p>
+                {queueInfo ? (
+                  <p className="text-zinc-400 text-sm font-medium">
+                    {queueInfo.serviceName && <span className="text-primary-400">{queueInfo.serviceName}</span>}
+                    {queueInfo.serviceName && queueInfo.name && <span className="mx-2 text-zinc-600">•</span>}
+                    {queueInfo.name && <span>{queueInfo.name}</span>}
+                  </p>
+                ) : (
+                  <p className="text-zinc-500 text-xs">Live Queue Display</p>
+                )}
               </div>
             </div>
             <div className="text-right">

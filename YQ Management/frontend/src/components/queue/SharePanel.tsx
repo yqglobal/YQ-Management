@@ -17,9 +17,9 @@ export function SharePanel({ queueId }: SharePanelProps) {
   useEffect(() => {
     // Only access window on the client side
     const subdomain = user?.tenant?.subdomain || '';
-    setPublicUrl(getTenantUrl(subdomain, `/customer/join/${queueId}`));
-    setTvDisplayUrl(getTenantUrl(subdomain, `/public/display/${queueId}`));
-  }, [queueId, user?.tenant?.subdomain]);
+    setPublicUrl(getTenantUrl(subdomain, `/booking?queueId=${queueId}`));
+    setTvDisplayUrl(getTenantUrl(subdomain, `/tv/${user?.tenant?.id}?queueId=${queueId}`));
+  }, [queueId, user?.tenant?.id, user?.tenant?.subdomain]);
 
   const iframeCode = `<iframe src="${publicUrl}" width="100%" height="600px" style="border:none;border-radius:12px;background:#fff;"></iframe>`;
 

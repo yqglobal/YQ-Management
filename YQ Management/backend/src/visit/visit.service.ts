@@ -8,12 +8,16 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 
 @Injectable()
 export class VisitService {
   private readonly logger = new Logger(VisitService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly whatsappService: WhatsappService
+  ) {}
 
   // Basic CRUD for controllers
   async create(createVisitDto: CreateVisitDto) {
@@ -193,7 +197,7 @@ export class VisitService {
       // Find the first service to get tenantId and locationId (assuming all bookings are for the same location/tenant)
       const firstService = await tx.service.findUnique({
         where: { id: data.bookings[0].serviceId },
-        include: { queues: true }
+        include: { queues: true, location: true }
       });
       if (!firstService) throw new BadRequestException('Service not found');
 
@@ -281,6 +285,12 @@ export class VisitService {
             payload: { visitId: visit.id, queueId, tenantId, displayId }
           }
         });
+
+        if (customer.phone && (currentState === 'WAITING' || currentState === 'CREATED')) {
+          const locationName = firstService.location?.name ? ` at ${firstService.location.name}` : '';
+          const message = `Hello ${customer.name}, you have been successfully checked in${locationName} for ${service.name}. Your token is ${displayId}. We will be with you shortly.`;
+          await this.whatsappService.sendToTenant(tenantId, customer.phone, message).catch(e => this.logger.error('Failed to send walkin checkin whatsapp', e));
+        }
 
         visits.push(visit);
       }

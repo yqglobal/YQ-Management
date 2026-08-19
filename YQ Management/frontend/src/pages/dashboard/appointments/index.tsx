@@ -40,6 +40,9 @@ export default function AppointmentsPage() {
   const [view, setView] = useState<CalendarView>('day');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [serviceFilter, setServiceFilter] = useState<string>('ALL');
+  
+  // Reschedule Confirmation State
+  const [rescheduleData, setRescheduleData] = useState<{apt: any, newTime: Date, serviceId: string | null} | null>(null);
 
   const { data: visitsData = [], isLoading: visitsLoading, refetch: refetchVisits } = useQuery({
     queryKey: ['visits'],
@@ -72,6 +75,18 @@ export default function AppointmentsPage() {
   const checkInMutation = useMutation({
     mutationFn: (id: string) => fetchApi(`/appointments/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'CHECKED_IN' }) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] })
+  });
+
+  const rescheduleMutation = useMutation({
+    mutationFn: ({ id, scheduledStart, serviceId }: { id: string, scheduledStart: Date, serviceId: string | null }) => 
+      fetchApi(`/appointments/${id}`, { 
+        method: 'PATCH', 
+        body: JSON.stringify({ scheduledStart, serviceId }) 
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      setRescheduleData(null);
+    }
   });
 
   const combinedItems = useMemo(() => {
@@ -342,7 +357,12 @@ export default function AppointmentsPage() {
         {/* Calendar */}
         {view === 'day' ? (
           <div className="mt-2">
-            <MatrixCalendar appointments={filteredAppointments} services={services} currentDate={currentDate} />
+            <MatrixCalendar 
+              appointments={filteredAppointments} 
+              services={services} 
+              currentDate={currentDate} 
+              onReschedule={(apt, newTime, serviceId) => setRescheduleData({ apt, newTime, serviceId })}
+            />
           </div>
         ) : (
           /* Week / Month: grouped list view */
@@ -449,6 +469,52 @@ export default function AppointmentsPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
+
+      {/* Reschedule Confirmation Modal */}
+      {rescheduleData && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-card dark:bg-dark-card rounded-2xl w-full max-w-md shadow-xl border border-border dark:border-dark-border overflow-hidden">
+            <div className="p-6">
+              <h3 className="text-xl font-bold mb-2">Confirm Reschedule</h3>
+              <p className="text-on-surface-variant mb-6 text-sm">
+                Are you sure you want to reschedule the appointment for <strong>{rescheduleData.apt.customer?.name || rescheduleData.apt.customerName || 'Walk-in'}</strong>?
+              </p>
+              
+              <div className="bg-surface-container-low dark:bg-white/5 rounded-xl p-4 mb-6 space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-on-surface-variant">From:</span>
+                  <span className="font-medium">{format(new Date(rescheduleData.apt.scheduledTime || rescheduleData.apt.createdAt), 'MMM d, h:mm a')}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-on-surface-variant">To:</span>
+                  <span className="font-medium text-indigo-500">{format(rescheduleData.newTime, 'MMM d, h:mm a')}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setRescheduleData(null)}
+                  className="px-4 py-2 rounded-xl text-sm font-medium hover:bg-surface-container-high transition-colors"
+                  disabled={rescheduleMutation.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => rescheduleMutation.mutate({ 
+                    id: rescheduleData.apt.id, 
+                    scheduledStart: rescheduleData.newTime,
+                    serviceId: rescheduleData.serviceId
+                  })}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
+                  disabled={rescheduleMutation.isPending}
+                >
+                  {rescheduleMutation.isPending ? 'Rescheduling...' : 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

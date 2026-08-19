@@ -9,7 +9,17 @@ const TIMES = Array.from({ length: 48 }, (_, i) => {
   return `${displayHr.toString().padStart(2, '0')}:${min} ${ampm}`;
 });
 
-export function MatrixCalendar({ appointments = [], services = [], currentDate = new Date() }: { appointments: any[], services?: any[], currentDate?: Date }) {
+export function MatrixCalendar({ 
+  appointments = [], 
+  services = [], 
+  currentDate = new Date(),
+  onReschedule
+}: { 
+  appointments: any[], 
+  services?: any[], 
+  currentDate?: Date,
+  onReschedule?: (apt: any, newTime: Date, serviceId: string | null) => void
+}) {
   const [now, setNow] = useState<Date | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasScrolledRef = useRef(false);
@@ -109,7 +119,7 @@ export function MatrixCalendar({ appointments = [], services = [], currentDate =
         <div className="relative min-w-max">
           {/* Current time indicator - only show if currentDate is today */}
           {now && now.toDateString() === currentDate.toDateString() && (
-            <div className="absolute top-0 bottom-0 w-px bg-rose-500 z-10 opacity-60 pointer-events-none" 
+            <div className="absolute top-0 bottom-0 w-px bg-rose-500 z-20 pointer-events-none" 
                  style={{ left: `${256 + Math.max(0, (now.getHours() + (now.getMinutes() / 60)) * 240)}px` }}>
               <div className="w-3 h-3 bg-rose-500 rounded-full absolute -top-1.5 -left-1.5 shadow-[0_0_8px_rgba(243,24,96,0.8)]"></div>
             </div>
@@ -152,18 +162,60 @@ export function MatrixCalendar({ appointments = [], services = [], currentDate =
                   </div>
                 </div>
                 
-                <div className="relative" style={{ gridColumn: 'span 48' }}>
-                  <div className="border-l border-border border-dashed opacity-20 pointer-events-none w-full h-full absolute"></div>
-                  <div className="relative w-full h-full">
+                <div 
+                  className="relative" 
+                  style={{ gridColumn: 'span 48' }}
+                  onDragOver={(e) => {
+                    if (onReschedule) e.preventDefault();
+                  }}
+                  onDrop={(e) => {
+                    if (!onReschedule) return;
+                    e.preventDefault();
+                    const aptData = e.dataTransfer.getData('application/json');
+                    if (!aptData) return;
+                    const apt = JSON.parse(aptData);
+                    
+                    const rowRect = e.currentTarget.getBoundingClientRect();
+                    const x = e.clientX - rowRect.left;
+                    
+                    const hoursOffset = x / 240;
+                    const snappedHours = Math.round(hoursOffset * 4) / 4;
+                    
+                    const newTime = new Date(currentDate);
+                    newTime.setHours(0, 0, 0, 0);
+                    newTime.setMinutes(snappedHours * 60);
+
+                    onReschedule(apt, newTime, row.id === 'unassigned' ? null : row.id);
+                  }}
+                >
+                  <div className="border-l border-border border-dashed opacity-20 pointer-events-none w-full h-full absolute z-0"></div>
+                  
+                  {now && now.toDateString() === currentDate.toDateString() && (
+                    <div 
+                      className="absolute top-0 bottom-0 bg-zinc-500/10 z-0 pointer-events-none" 
+                      style={{ left: '0px', width: `${Math.max(0, (now.getHours() + (now.getMinutes() / 60)) * 240)}px` }}
+                    ></div>
+                  )}
+
+                  <div className="relative w-full h-full z-10">
                     {row.appointments.map((apt: any, i: number) => {
                       const style = getApptStyle(apt, i, row.appointments);
                       return (
-                        <button key={apt.id || i} style={style} className="absolute h-[76px] bg-sky-50 border border-sky-200 rounded-xl p-3 flex flex-col justify-between items-start hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-sky-500 min-h-[44px]">
+                        <button 
+                          key={apt.id || i} 
+                          style={style} 
+                          draggable={!!onReschedule && apt._type === 'Appointment'}
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('application/json', JSON.stringify(apt));
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          className={`absolute h-[76px] rounded-xl p-3 flex flex-col justify-between items-start transition-shadow focus:outline-none focus:ring-2 min-h-[44px] ${apt._type === 'Appointment' ? 'bg-sky-50 border border-sky-200 hover:shadow-md focus:ring-sky-500 cursor-move' : 'bg-emerald-50 border border-emerald-200 hover:shadow-md focus:ring-emerald-500 cursor-default'}`}
+                        >
                           <div className="flex items-center gap-2 w-full">
-                            <div className="w-1 h-3 bg-sky-500 rounded-full"></div>
-                            <span className="font-label-caps text-label-caps text-sky-800">Appt #{apt.id?.substring(0,4) || i+1}</span>
+                            <div className={`w-1 h-3 rounded-full ${apt._type === 'Appointment' ? 'bg-sky-500' : 'bg-emerald-500'}`}></div>
+                            <span className={`font-label-caps text-label-caps ${apt._type === 'Appointment' ? 'text-sky-800' : 'text-emerald-800'}`}>{apt._type === 'Appointment' ? 'Appt' : 'Walk-in'} #{apt.id?.substring(0,4) || i+1}</span>
                           </div>
-                          <span className="font-body-sm text-sky-900 truncate w-full text-left">{apt.customer?.name || 'Walk-in'}</span>
+                          <span className={`font-body-sm truncate w-full text-left ${apt._type === 'Appointment' ? 'text-sky-900' : 'text-emerald-900'}`}>{apt.customer?.name || apt.customerName || 'Walk-in'}</span>
                         </button>
                       );
                     })}
