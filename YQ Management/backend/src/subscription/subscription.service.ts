@@ -15,9 +15,9 @@ export class SubscriptionService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getSubscription(workspaceId: string): Promise<(Subscription & { plan: Plan }) | null> {
+  async getSubscription(tenantId: string): Promise<(Subscription & { plan: Plan }) | null> {
     let sub = await this.prisma.subscription.findUnique({
-      where: { workspaceId },
+      where: { tenantId },
       include: {
         plan: true,
       },
@@ -29,7 +29,7 @@ export class SubscriptionService {
       });
       if (starterPlan) {
         sub = await this.startFreeTrial(
-          workspaceId,
+          tenantId,
           starterPlan.id,
           starterPlan.trialDays || 14,
         );
@@ -40,7 +40,7 @@ export class SubscriptionService {
   }
 
   async createSubscription(
-    workspaceId: string,
+    tenantId: string,
     dto: CreateSubscriptionDto,
   ): Promise<Subscription> {
     const plan = await this.prisma.plan.findUnique({
@@ -55,7 +55,7 @@ export class SubscriptionService {
     }
 
     const existing = await this.prisma.subscription.findUnique({
-      where: { workspaceId },
+      where: { tenantId },
     });
 
     if (existing) {
@@ -96,7 +96,7 @@ export class SubscriptionService {
 
     const subscription = await this.prisma.subscription.create({
       data: {
-        workspaceId,
+        tenantId,
         planId: dto.planId,
         status,
         billingInterval,
@@ -110,22 +110,19 @@ export class SubscriptionService {
       include: { plan: true },
     });
 
-    await this.prisma.workspace.update({
-      where: { id: workspaceId },
-      data: { subscriptionStatus: status },
-    });
+    
 
     this.logger.log(
-      `Subscription created for workspace ${workspaceId}, plan ${dto.planId}, status ${status}`,
+      `Subscription created for workspace ${tenantId}, plan ${dto.planId}, status ${status}`,
     );
     return subscription;
   }
 
   async upgradeSubscription(
-    workspaceId: string,
+    tenantId: string,
     dto: UpgradeSubscriptionDto,
   ): Promise<Subscription> {
-    const subscription = await this.getSubscription(workspaceId);
+    const subscription = await this.getSubscription(tenantId);
     if (!subscription) {
       throw new NotFoundException('No subscription found for workspace');
     }
@@ -144,7 +141,7 @@ export class SubscriptionService {
     const billingInterval = dto.billingInterval || subscription.billingInterval;
 
     const updated = await this.prisma.subscription.update({
-      where: { workspaceId },
+      where: { tenantId },
       data: {
         planId: dto.planId,
         billingInterval,
@@ -163,16 +160,16 @@ export class SubscriptionService {
     });
 
     this.logger.log(
-      `Subscription upgraded for workspace ${workspaceId} to plan ${dto.planId}`,
+      `Subscription upgraded for workspace ${tenantId} to plan ${dto.planId}`,
     );
     return updated;
   }
 
   async downgradeSubscription(
-    workspaceId: string,
+    tenantId: string,
     dto: DowngradeSubscriptionDto,
   ): Promise<Subscription> {
-    const subscription = await this.getSubscription(workspaceId);
+    const subscription = await this.getSubscription(tenantId);
     if (!subscription) {
       throw new NotFoundException('No subscription found for workspace');
     }
@@ -189,7 +186,7 @@ export class SubscriptionService {
     }
 
     const updated = await this.prisma.subscription.update({
-      where: { workspaceId },
+      where: { tenantId },
       data: {
         planId: dto.planId,
         status: SubscriptionStatus.ACTIVE,
@@ -212,23 +209,23 @@ export class SubscriptionService {
     });
 
     this.logger.log(
-      `Subscription downgraded for workspace ${workspaceId} to plan ${dto.planId}`,
+      `Subscription downgraded for workspace ${tenantId} to plan ${dto.planId}`,
     );
     return updated;
   }
 
   async cancelSubscription(
-    workspaceId: string,
+    tenantId: string,
     dto: CancelSubscriptionDto,
   ): Promise<Subscription> {
-    const subscription = await this.getSubscription(workspaceId);
+    const subscription = await this.getSubscription(tenantId);
     if (!subscription) {
       throw new NotFoundException('No subscription found for workspace');
     }
 
     const now = new Date();
     const updated = await this.prisma.subscription.update({
-      where: { workspaceId },
+      where: { tenantId },
       data: {
         status: SubscriptionStatus.CANCELLED,
         cancellationDate: now,
@@ -246,22 +243,17 @@ export class SubscriptionService {
       include: { plan: true },
     });
 
-    await this.prisma.workspace.update({
-      where: { id: workspaceId },
-      data: { subscriptionStatus: 'CANCELLED' },
-    });
-
     this.logger.log(
-      `Subscription cancelled for workspace ${workspaceId}, immediate=${dto.immediate}`,
+      `Subscription cancelled for workspace ${tenantId}, immediate=${dto.immediate}`,
     );
     return updated;
   }
 
   async resumeSubscription(
-    workspaceId: string,
+    tenantId: string,
     dto: ResumeSubscriptionDto,
   ): Promise<Subscription> {
-    const subscription = await this.getSubscription(workspaceId);
+    const subscription = await this.getSubscription(tenantId);
     if (!subscription) {
       throw new NotFoundException('No subscription found for workspace');
     }
@@ -286,7 +278,7 @@ export class SubscriptionService {
     const billingInterval = subscription.billingInterval;
 
     const updated = await this.prisma.subscription.update({
-      where: { workspaceId },
+      where: { tenantId },
       data: {
         planId: dto.planId || subscription.planId,
         status: SubscriptionStatus.ACTIVE,
@@ -303,17 +295,14 @@ export class SubscriptionService {
       include: { plan: true },
     });
 
-    await this.prisma.workspace.update({
-      where: { id: workspaceId },
-      data: { subscriptionStatus: 'ACTIVE' },
-    });
+    
 
-    this.logger.log(`Subscription resumed for workspace ${workspaceId}`);
+    this.logger.log(`Subscription resumed for workspace ${tenantId}`);
     return updated;
   }
 
   async startFreeTrial(
-    workspaceId: string,
+    tenantId: string,
     planId: string,
     trialDays: number,
   ): Promise<Subscription & { plan: Plan }> {
@@ -325,7 +314,7 @@ export class SubscriptionService {
     }
 
     const existing = await this.prisma.subscription.findUnique({
-      where: { workspaceId },
+      where: { tenantId },
     });
 
     if (
@@ -345,7 +334,7 @@ export class SubscriptionService {
 
     const subscription = await this.prisma.subscription.create({
       data: {
-        workspaceId,
+        tenantId,
         planId,
         status: SubscriptionStatus.TRIAL,
         billingInterval: plan.billingInterval || 'monthly',
@@ -357,20 +346,15 @@ export class SubscriptionService {
       include: { plan: true },
     });
 
-    await this.prisma.workspace.update({
-      where: { id: workspaceId },
-      data: { subscriptionStatus: 'TRIAL' },
-    });
-
     this.logger.log(
-      `Free trial started for workspace ${workspaceId}, plan ${planId}, ${trialDays} days`,
+      `Free trial started for workspace ${tenantId}, plan ${planId}, ${trialDays} days`,
     );
     return subscription;
   }
 
-  async expireTrial(workspaceId: string): Promise<Subscription | null> {
+  async expireTrial(tenantId: string): Promise<Subscription | null> {
     const subscription = await this.prisma.subscription.findUnique({
-      where: { workspaceId },
+      where: { tenantId },
       include: { plan: true },
     });
 
@@ -387,7 +371,7 @@ export class SubscriptionService {
     const billingInterval = subscription.billingInterval;
 
     const updated = await this.prisma.subscription.update({
-      where: { workspaceId },
+      where: { tenantId },
       data: {
         status: SubscriptionStatus.PENDING_PAYMENT,
         trialStartDate: null,
@@ -399,17 +383,12 @@ export class SubscriptionService {
       include: { plan: true },
     });
 
-    await this.prisma.workspace.update({
-      where: { id: workspaceId },
-      data: { subscriptionStatus: 'PENDING_PAYMENT' },
-    });
-
-    this.logger.log(`Trial expired for workspace ${workspaceId}`);
+    this.logger.log(`Trial expired for workspace ${tenantId}`);
     return updated;
   }
 
-  async renewSubscription(workspaceId: string): Promise<Subscription> {
-    const subscription = await this.getSubscription(workspaceId);
+  async renewSubscription(tenantId: string): Promise<Subscription> {
+    const subscription = await this.getSubscription(tenantId);
     if (!subscription) {
       throw new NotFoundException('No subscription found for workspace');
     }
@@ -418,7 +397,7 @@ export class SubscriptionService {
     const billingInterval = subscription.billingInterval;
 
     const updated = await this.prisma.subscription.update({
-      where: { workspaceId },
+      where: { tenantId },
       data: {
         status: SubscriptionStatus.ACTIVE,
         currentPeriodStart: now,
@@ -435,22 +414,19 @@ export class SubscriptionService {
       include: { plan: true },
     });
 
-    await this.prisma.workspace.update({
-      where: { id: workspaceId },
-      data: { subscriptionStatus: 'ACTIVE' },
-    });
+    
 
-    this.logger.log(`Subscription renewed for workspace ${workspaceId}`);
+    this.logger.log(`Subscription renewed for workspace ${tenantId}`);
     return updated;
   }
 
   async getSubscriptionHistory(
-    workspaceId: string,
+    tenantId: string,
     offset = 0,
     limit = 50,
   ): Promise<Subscription[]> {
     return this.prisma.subscription.findMany({
-      where: { workspaceId },
+      where: { tenantId },
       skip: offset,
       take: limit,
       orderBy: { createdAt: 'desc' },

@@ -23,16 +23,16 @@ export class SubscriptionCron {
         status: 'TRIAL',
         trialEndDate: { lte: new Date() },
       },
-      include: { workspace: { select: { id: true, name: true } } },
+      include: { tenant: { select: { id: true, name: true } } },
     });
 
     for (const sub of expired) {
       try {
-        await this.subscriptionService.expireTrial(sub.workspaceId);
-        this.logger.log(`Expired trial for workspace ${sub.workspaceId}`);
+        await this.subscriptionService.expireTrial(sub.tenantId);
+        this.logger.log(`Expired trial for workspace ${sub.tenantId}`);
       } catch (e) {
         this.logger.error(
-          `Failed to expire trial for workspace ${sub.workspaceId}`,
+          `Failed to expire trial for workspace ${sub.tenantId}`,
           e,
         );
       }
@@ -63,7 +63,7 @@ export class SubscriptionCron {
           },
         },
         include: {
-          workspace: { select: { id: true, name: true } },
+          tenant: { select: { id: true, name: true } },
           plan: { select: { name: true } },
         },
       });
@@ -71,11 +71,11 @@ export class SubscriptionCron {
       for (const sub of upcoming) {
         try {
           const workspaceOwner = await this.prisma.user.findFirst({
-            where: { workspaceId: sub.workspaceId, role: 'TENANT_ADMIN' },
+            where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
             select: { email: true },
           });
           const adminOwner = await this.prisma.user.findFirst({
-            where: { workspaceId: sub.workspaceId, role: 'ADMIN' },
+            where: { tenantId: sub.tenantId, role: 'ADMIN' },
             select: { email: true },
           });
 
@@ -85,14 +85,14 @@ export class SubscriptionCron {
             CommunicationEvent.BILLING_TRIAL_ENDING,
             {
               email,
-              workspaceName: sub.workspace?.name || 'Your Workspace',
+              workspaceName: sub.tenant?.name || 'Your Workspace',
               daysRemaining: days,
-              workspaceId: sub.workspaceId,
+              tenantId: sub.tenantId,
             },
           );
-          this.logger.log(`Sent ${days}-day renewal reminder for workspace ${sub.workspaceId}`);
+          this.logger.log(`Sent ${days}-day renewal reminder for workspace ${sub.tenantId}`);
         } catch (e) {
-          this.logger.error(`Failed to send ${days}-day renewal reminder for workspace ${sub.workspaceId}`, e);
+          this.logger.error(`Failed to send ${days}-day renewal reminder for workspace ${sub.tenantId}`, e);
         }
       }
     }
@@ -106,18 +106,18 @@ export class SubscriptionCron {
         status: 'ACTIVE',
         nextBillingDate: { lt: new Date() },
       },
-      include: { workspace: { select: { id: true, name: true } } },
+      include: { tenant: { select: { id: true, name: true } } },
     });
 
     for (const sub of expired) {
       try {
-        await this.subscriptionService.cancelSubscription(sub.workspaceId, {
+        await this.subscriptionService.cancelSubscription(sub.tenantId, {
           immediate: true,
           reason: 'Subscription expired - Next billing date passed',
         });
         
         const workspaceOwner = await this.prisma.user.findFirst({
-          where: { workspaceId: sub.workspaceId, role: 'TENANT_ADMIN' },
+          where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
           select: { email: true },
         });
 
@@ -126,16 +126,16 @@ export class SubscriptionCron {
             CommunicationEvent.BILLING_TRIAL_ENDING,
             {
               email: workspaceOwner.email,
-              workspaceName: sub.workspace?.name || 'Your Workspace',
+              workspaceName: sub.tenant?.name || 'Your Workspace',
               daysRemaining: 0,
-              workspaceId: sub.workspaceId,
+              tenantId: sub.tenantId,
             },
           );
         }
 
-        this.logger.log(`Cancelled expired subscription for workspace ${sub.workspaceId}`);
+        this.logger.log(`Cancelled expired subscription for workspace ${sub.tenantId}`);
       } catch (e) {
-        this.logger.error(`Failed to cancel expired subscription for workspace ${sub.workspaceId}`, e);
+        this.logger.error(`Failed to cancel expired subscription for workspace ${sub.tenantId}`, e);
       }
     }
   }

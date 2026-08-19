@@ -82,8 +82,8 @@ export class TasksService {
         where: { createdAt: { lt: twoYearsAgo } }
       });
       
-      const tokenResult = await this.prisma.token.deleteMany({
-        where: { joinedAt: { lt: twoYearsAgo } }
+      const tokenResult = await this.prisma.visit.deleteMany({
+        where: { createdAt: { lt: twoYearsAgo } }
       });
 
       this.logger.log(`Data Retention: Cleaned up ${visitResult.count} old visits and ${tokenResult.count} old tokens.`);

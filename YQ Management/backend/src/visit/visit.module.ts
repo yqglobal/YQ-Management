@@ -10,5 +10,6 @@ import { PublicVisitController } from './public-visit.controller';
   imports: [WhatsappModule],
   providers: [VisitService, VisitCron],
   controllers: [VisitController, PublicVisitController],
+  exports: [VisitService],
 })
 export class VisitModule {}

@@ -258,7 +258,7 @@ export default function QueueDetails() {
                 </div>
                 <button 
                   onClick={() => advanceTurnMutation.mutate()}
-                  disabled={advanceTurnMutation.isPending || tokens.filter((t: any) => t.status === 'WAITING').length === 0}
+                  disabled={advanceTurnMutation.isPending || tokens.filter((t: any) => t.currentState === 'WAITING').length === 0}
                   className="min-h-[44px] px-8 bg-primary hover:bg-primary-container text-white rounded-xl font-body-md font-semibold transition-colors shadow-sm disabled:opacity-50"
                 >
                   {advanceTurnMutation.isPending ? 'Calling...' : 'Call Next Patient'}
@@ -273,32 +273,32 @@ export default function QueueDetails() {
                     className={`bg-card dark:bg-dark-card border rounded-[24px] p-6 relative overflow-hidden group hover:shadow-md transition-all cursor-pointer ${
                       selectedToken?.id === token.id
                         ? 'border-primary dark:border-primary ring-2 ring-primary/20'
-                        : token.status === 'SERVING'
+                        : token.currentState === 'IN_SERVICE'
                           ? 'border-primary dark:border-sky-500 shadow-[0_0_15px_rgba(0,97,148,0.1)] dark:shadow-[0_0_15px_rgba(14,165,233,0.1)]'
                           : 'border-border dark:border-dark-border'
                     }`}
                   >
-                    {token.status === 'SERVING' && (
+                    {token.currentState === 'IN_SERVICE' && (
                       <div className="absolute top-0 left-0 w-full h-1 bg-primary dark:bg-sky-500 animate-pulse"></div>
                     )}
                     <div className="flex justify-between items-start mb-4">
                       <span className="font-data-mono-lg text-data-mono-lg text-on-surface dark:text-white tracking-tight">{token.displayId}</span>
-                      <span className={`px-2 py-0.5 rounded font-label-caps text-label-caps uppercase tracking-wider ${token.status === 'SERVING' ? 'bg-primary-fixed text-on-primary-fixed dark:bg-sky-900/40 dark:text-sky-300' : 'bg-tertiary-container/10 text-tertiary-container dark:bg-amber-900/30 dark:text-amber-400'}`}>
-                        {token.status}
+                      <span className={`px-2 py-0.5 rounded font-label-caps text-label-caps uppercase tracking-wider ${token.currentState === 'IN_SERVICE' ? 'bg-primary-fixed text-on-primary-fixed dark:bg-sky-900/40 dark:text-sky-300' : 'bg-tertiary-container/10 text-tertiary-container dark:bg-amber-900/30 dark:text-amber-400'}`}>
+                        {token.currentState}
                       </span>
                     </div>
                     <div className="space-y-2 mb-6">
                       <div className="flex items-center gap-2 font-body-md font-semibold text-on-surface dark:text-white">
                         <span className="material-symbols-outlined text-[18px] text-outline">person</span>
-                        {token.customerName}
+                        {token.metadata?.customerName || 'Walk-in Customer'}
                       </div>
                       <div className="font-data-mono text-[12px] text-on-surface-variant dark:text-outline flex items-center gap-2">
                          <span className="material-symbols-outlined text-[16px]">schedule</span>
-                        Joined: {new Date(token.joinedAt).toLocaleTimeString()}
+                        Joined: {new Date(token.waitingStart || token.createdAt).toLocaleTimeString()}
                       </div>
                     </div>
                     
-                    {token.status === 'SERVING' && (
+                    {token.currentState === 'IN_SERVICE' && (
                       <div className="flex gap-3 pt-6 border-t border-border dark:border-dark-border">
                         <button 
                           onClick={() => completeTokenMutation.mutate(token.id)}
@@ -319,7 +319,7 @@ export default function QueueDetails() {
                       </div>
                     )}
                     
-                    {token.status === 'SERVING' && (
+                    {token.currentState === 'IN_SERVICE' && (
                       <div className="mt-3">
                         {transferTokenId === token.id ? (
                           <div className="flex gap-2">

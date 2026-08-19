@@ -23,6 +23,26 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
   constructor(private readonly redisService: RedisService) {}
 
+  private sanitizePayload(data: any): any {
+    if (!data) return data;
+    const sanitized = { ...data };
+    
+    // Explicitly delete PII fields that might be embedded
+    if (sanitized.customer) delete sanitized.customer;
+    if (sanitized.customerName) delete sanitized.customerName;
+    if (sanitized.phone) delete sanitized.phone;
+    if (sanitized.email) delete sanitized.email;
+    if (sanitized.operatorUser) delete sanitized.operatorUser;
+    
+    // Also scrub nested objects if they contain these fields
+    for (const key in sanitized) {
+      if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
+        sanitized[key] = this.sanitizePayload(sanitized[key]);
+      }
+    }
+    return sanitized;
+  }
+
   onModuleInit() {
     this.redisService.subscriber.subscribe('queue_events', (err, count) => {
       if (err) {
@@ -37,12 +57,13 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect, O
         try {
           const payload = JSON.parse(message);
           const { type, queueId, tenantId, ...data } = payload;
+          const sanitizedData = this.sanitizePayload(data);
           
           if (queueId) {
-            this.broadcastQueueUpdate(queueId, type, data);
+            this.broadcastQueueUpdate(queueId, type, sanitizedData);
           }
           if (tenantId) {
-            this.broadcastTenantUpdate(tenantId, type, data);
+            this.broadcastTenantUpdate(tenantId, type, sanitizedData);
           }
         } catch (error) {
           this.logger.error('Failed to parse queue_events message', error);

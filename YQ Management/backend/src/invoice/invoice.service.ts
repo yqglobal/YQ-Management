@@ -14,22 +14,22 @@ export class InvoiceService {
   async getInvoice(invoiceId: string) {
     return this.prisma.invoice.findUnique({
       where: { id: invoiceId },
-      include: { workspace: { select: { name: true } } },
+      include: { tenant: { select: { name: true } } },
     });
   }
 
-  async listInvoices(workspaceId: string, offset = 0, limit = 50) {
+  async listInvoices(tenantId: string, offset = 0, limit = 50) {
     return this.prisma.invoice.findMany({
-      where: { workspaceId },
+      where: { tenantId },
       skip: offset,
       take: limit,
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async generateInvoice(workspaceId: string) {
+  async generateInvoice(tenantId: string) {
     const workspace = await this.prisma.workspace.findUnique({
-      where: { id: workspaceId },
+      where: { id: tenantId },
       select: { name: true, subdomain: true },
     });
 
@@ -42,7 +42,7 @@ export class InvoiceService {
 
     const invoice = await this.prisma.invoice.create({
       data: {
-        workspaceId,
+        tenantId,
         amount,
         currency,
         status: 'DRAFT',
@@ -50,7 +50,7 @@ export class InvoiceService {
     });
 
     this.logger.log(
-      `Invoice generated: ${invoice.id} for workspace ${workspaceId}`,
+      `Invoice generated: ${invoice.id} for workspace ${tenantId}`,
     );
     return invoice;
   }

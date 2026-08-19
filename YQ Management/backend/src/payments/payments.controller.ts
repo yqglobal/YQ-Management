@@ -26,10 +26,8 @@ export class PaymentsController {
     @Body() body: { planId: string; billingInterval: string },
   ) {
     const tenantId = req.user.tenantId;
-    const workspaceId = req.user.workspaceId;
     return this.paymentsService.generatePaymentLink(
       tenantId,
-      workspaceId,
       body.planId,
       body.billingInterval,
     );

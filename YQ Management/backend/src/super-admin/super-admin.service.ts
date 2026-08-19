@@ -87,8 +87,8 @@ export class SuperAdminService {
       where: { status: 'COMPLETE' },
     });
 
-    const totalCustomersResult = await this.prisma.token.count({
-      where: { status: 'COMPLETED' },
+    const totalCustomersResult = await this.prisma.visit.count({
+      where: { currentState: 'COMPLETED' },
     });
 
     const activeQueues = await this.prisma.queue.count({
@@ -122,8 +122,8 @@ export class SuperAdminService {
           },
         },
         workspaces: {
-          select: { id: true, name: true, subscriptionStatus: true },
-        },
+          select: { id: true, name: true }
+        }
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -139,7 +139,7 @@ export class SuperAdminService {
             id: true,
             name: true,
             subdomain: true,
-            subscriptionStatus: true,
+            
             ownerId: true,
             _count: { select: { queues: true, transactions: true } },
           },
@@ -171,7 +171,6 @@ export class SuperAdminService {
       where,
       include: {
         tenant: { select: { name: true } },
-        workspace: { select: { name: true } },
       },
       take: 100,
     });
@@ -210,18 +209,18 @@ export class SuperAdminService {
     const activeQueues = await this.prisma.queue.count({
       where: { status: 'ACTIVE' },
     });
-    const totalTokens = await this.prisma.token.count();
-    const waitingTokens = await this.prisma.token.count({
-      where: { status: 'WAITING' },
+    const totalTokens = await this.prisma.visit.count();
+    const waitingTokens = await this.prisma.visit.count({
+      where: { currentState: 'WAITING' },
     });
-    const servedTokens = await this.prisma.token.count({
-      where: { status: 'SERVING' },
+    const servedTokens = await this.prisma.visit.count({
+      where: { currentState: 'IN_SERVICE' },
     });
-    const completedTokens = await this.prisma.token.count({
-      where: { status: 'COMPLETED' },
+    const completedTokens = await this.prisma.visit.count({
+      where: { currentState: 'COMPLETED' },
     });
-    const missedTokens = await this.prisma.token.count({
-      where: { status: 'MISSED' },
+    const missedTokens = await this.prisma.visit.count({
+      where: { currentState: 'MISSED' },
     });
 
     const recentTenants = await this.prisma.tenant.findMany({
@@ -302,7 +301,7 @@ export class SuperAdminService {
       planCounts[planName] = (planCounts[planName] || 0) + 1;
     });
     const trialCount = await this.prisma.tenant.count({
-      where: { subscriptionStatus: 'TRIAL' },
+      where: { subscriptions: { some: { status: 'TRIAL' } } }
     });
     const realARR = realMRR * 12;
     const arpu = totalTenants > 0 ? realMRR / totalTenants : 0;
@@ -417,17 +416,17 @@ export class SuperAdminService {
     ];
 
     // Real Operational Wait Statistics
-    const recentTokens = await this.prisma.token.findMany({
-      where: { status: 'COMPLETED', servedAt: { not: null } },
-      select: { joinedAt: true, servedAt: true },
+    const recentTokens = await this.prisma.visit.findMany({
+      where: { currentState: 'COMPLETED', serviceStart: { not: null } },
+      select: { createdAt: true, serviceStart: true },
       take: 200,
     });
     let avgWaitMilli = 0;
     if (recentTokens.length > 0) {
       let totalWait = 0;
       recentTokens.forEach((t) => {
-        if (t.servedAt && t.joinedAt) {
-          totalWait += t.servedAt.getTime() - t.joinedAt.getTime();
+        if (t.serviceStart && t.createdAt) {
+          totalWait += t.serviceStart.getTime() - t.createdAt.getTime();
         }
       });
       avgWaitMilli = Math.round(totalWait / recentTokens.length);
@@ -435,12 +434,12 @@ export class SuperAdminService {
     const avgWaitMins = Math.round(avgWaitMilli / 60000);
 
     const hoursCount = new Array(24).fill(0);
-    const allTokensForTime = await this.prisma.token.findMany({
-      select: { joinedAt: true },
+    const allTokensForTime = await this.prisma.visit.findMany({
+      select: { createdAt: true },
       take: 500,
     });
     allTokensForTime.forEach((t) => {
-      hoursCount[new Date(t.joinedAt).getHours()]++;
+      hoursCount[new Date(t.createdAt).getHours()]++;
     });
     let maxHour = 10;
     let maxCount = 0;
@@ -490,8 +489,8 @@ export class SuperAdminService {
   async getAllSubscriptions() {
     return this.prisma.subscription.findMany({
       include: {
-        workspace: {
-          select: { name: true, tenant: { select: { name: true } } },
+        tenant: {
+          select: { name: true },
         },
         plan: { select: { name: true, price: true } },
       },

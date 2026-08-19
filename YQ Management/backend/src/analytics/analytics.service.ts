@@ -16,18 +16,18 @@ export class AnalyticsService {
       startDate.setDate(startDate.getDate() - 30);
     }
 
-    const tokens = await this.prisma.token.findMany({
+    const tokens = await this.prisma.visit.findMany({
       where: {
-        queue: { tenantId },
-        joinedAt: { gte: startDate },
+        tenantId,
+        createdAt: { gte: startDate },
       },
       select: {
-        status: true,
-        joinedAt: true,
-        servedAt: true,
+        currentState: true,
+        createdAt: true,
+        serviceStart: true,
         completedAt: true,
         rating: true,
-        operator: {
+        operatorUser: {
           select: { id: true, email: true, personalSettings: true },
         },
       },
@@ -51,17 +51,17 @@ export class AnalyticsService {
       { email: string; name: string; served: number; serviceTimeMs: number }
     >();
 
-    tokens.forEach((t) => {
-      if (t.status === 'COMPLETED') totalCompleted++;
-      if (t.status === 'MISSED') totalMissed++;
+    tokens.forEach((t: any) => {
+      if (t.currentState === 'COMPLETED') totalCompleted++;
+      if (t.currentState === 'MISSED') totalMissed++;
 
-      if (t.servedAt && t.status !== 'MISSED') {
+      if (t.serviceStart && t.currentState !== 'MISSED') {
         totalServed++;
-        totalWaitTimeMs += t.servedAt.getTime() - t.joinedAt.getTime();
+        totalWaitTimeMs += t.serviceStart.getTime() - t.createdAt.getTime();
         waitTimeCount++;
 
         if (t.completedAt) {
-          totalServiceTimeMs += t.completedAt.getTime() - t.servedAt.getTime();
+          totalServiceTimeMs += t.completedAt.getTime() - t.serviceStart.getTime();
           serviceTimeCount++;
         }
       }
@@ -71,10 +71,10 @@ export class AnalyticsService {
         ratingCount++;
       }
 
-      if (t.operator && t.status === 'COMPLETED' && t.servedAt && t.completedAt) {
-        const opId = t.operator.id;
-        const opEmail = t.operator.email;
-        const settings: any = t.operator.personalSettings || {};
+      if (t.operatorUser && t.currentState === 'COMPLETED' && t.serviceStart && t.completedAt) {
+        const opId = t.operatorUser.id;
+        const opEmail = t.operatorUser.email;
+        const settings: any = t.operatorUser.personalSettings || {};
         const opName = settings.firstName
           ? `${settings.firstName} ${settings.lastName || ''}`.trim()
           : opEmail.split('@')[0];
@@ -84,7 +84,7 @@ export class AnalyticsService {
         }
         const stats = operatorStats.get(opId)!;
         stats.served++;
-        stats.serviceTimeMs += t.completedAt.getTime() - t.servedAt.getTime();
+        stats.serviceTimeMs += t.completedAt.getTime() - t.serviceStart.getTime();
       }
     });
 
@@ -126,14 +126,14 @@ export class AnalyticsService {
         });
       }
 
-      tokens.forEach((t) => {
-        const h = t.joinedAt.getHours();
+      tokens.forEach((t: any) => {
+        const h = t.createdAt.getHours();
         if (hourlyDataMap.has(h)) {
           const entry = hourlyDataMap.get(h)!;
           entry.volume++;
-          if (t.servedAt) {
+          if (t.serviceStart) {
             entry.waitTimeSum +=
-              (t.servedAt.getTime() - t.joinedAt.getTime()) / 60000;
+              (t.serviceStart.getTime() - t.createdAt.getTime()) / 60000;
             entry.waitCount++;
           }
         }
@@ -171,14 +171,14 @@ export class AnalyticsService {
         });
       }
 
-      tokens.forEach((t) => {
-        const key = t.joinedAt.toISOString().split('T')[0];
+      tokens.forEach((t: any) => {
+        const key = t.createdAt.toISOString().split('T')[0];
         if (dailyDataMap.has(key)) {
           const entry = dailyDataMap.get(key)!;
           entry.volume++;
-          if (t.servedAt) {
+          if (t.serviceStart) {
             entry.waitTimeSum +=
-              (t.servedAt.getTime() - t.joinedAt.getTime()) / 60000;
+              (t.serviceStart.getTime() - t.createdAt.getTime()) / 60000;
             entry.waitCount++;
           }
         }

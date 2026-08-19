@@ -7,14 +7,14 @@ export class UsageService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getUsage(workspaceId: string, periodStart?: Date, periodEnd?: Date) {
+  async getUsage(tenantId: string, periodStart?: Date, periodEnd?: Date) {
     const start =
       periodStart || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const end = periodEnd || new Date();
 
-    const usage = await this.prisma.workspaceUsage.findMany({
+    const usage = await this.prisma.tenantUsage.findMany({
       where: {
-        workspaceId,
+        tenantId,
         periodStart: { gte: start },
         periodEnd: { lte: end },
       },
@@ -23,7 +23,7 @@ export class UsageService {
 
     if (usage.length === 0) {
       return {
-        workspaceId,
+        tenantId,
         periodStart: start,
         periodEnd: end,
         activeQueues: 0,
@@ -50,7 +50,7 @@ export class UsageService {
     const currentPeriod = usage[usage.length - 1];
 
     return {
-      workspaceId,
+      tenantId,
       periodStart: start,
       periodEnd: end,
       activeQueues: currentPeriod.activeQueues,
@@ -76,7 +76,7 @@ export class UsageService {
   }
 
   async recordUsage(
-    workspaceId: string,
+    tenantId: string,
     data: {
       activeQueues?: number;
       queueJoins?: number;
@@ -92,15 +92,15 @@ export class UsageService {
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    let usage = await this.prisma.workspaceUsage.findFirst({
+    let usage = await this.prisma.tenantUsage.findFirst({
       where: {
-        workspaceId,
+        tenantId,
         periodStart,
       },
     });
 
     if (usage) {
-      usage = await this.prisma.workspaceUsage.update({
+      usage = await this.prisma.tenantUsage.update({
         where: { id: usage.id },
         data: {
           activeQueues: (usage.activeQueues || 0) + (data.activeQueues ?? 0),
@@ -117,9 +117,9 @@ export class UsageService {
         },
       });
     } else {
-      usage = await this.prisma.workspaceUsage.create({
+      usage = await this.prisma.tenantUsage.create({
         data: {
-          workspaceId,
+          tenantId,
           periodStart,
           periodEnd,
           activeQueues: data.activeQueues ?? 0,
@@ -134,7 +134,7 @@ export class UsageService {
       });
     }
 
-    this.logger.log(`Usage recorded for workspace ${workspaceId}`);
+    this.logger.log(`Usage recorded for tenant ${tenantId}`);
     return usage;
   }
 }

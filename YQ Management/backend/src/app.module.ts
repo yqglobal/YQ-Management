@@ -20,7 +20,6 @@ import { TenantContextMiddleware } from './tenant/middlewares/tenant-context/ten
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { QueueModule } from './queue/queue.module';
-import { TokenModule } from './token/token.module';
 import { RedisModule } from './redis/redis.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
@@ -102,7 +101,6 @@ import { GoogleModule } from './integrations/google/google.module';
     UsersModule,
     AuthModule,
     QueueModule,
-    TokenModule,
     RedisModule,
     NotificationsModule,
     WhatsappModule,

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import AdminLayout from '../../../components/AdminLayout';
 import { Search, Filter, Plus, ChevronLeft, ChevronRight, Calendar, Download, RefreshCw, Eye, XCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
 import { VisitDrawer } from '../../../components/VisitDrawer';
 import { CreateAppointmentModal } from '../../../components/modals/CreateAppointmentModal';
@@ -32,6 +32,7 @@ function getMonthEnd(date: Date) {
 }
 
 export default function AppointmentsPage() {
+  const queryClient = useQueryClient();
   const [selectedVisit, setSelectedVisit] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -67,6 +68,11 @@ export default function AppointmentsPage() {
     refetchAppointments();
     refetchQueues();
   };
+
+  const checkInMutation = useMutation({
+    mutationFn: (id: string) => fetchApi(`/appointments/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'CHECKED_IN' }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] })
+  });
 
   const combinedItems = useMemo(() => {
     const items: any[] = [];
@@ -401,6 +407,15 @@ export default function AppointmentsPage() {
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                   <div className="flex justify-end gap-2">
+                                    {apt._type === 'Appointment' && (apt.currentState === 'SCHEDULED' || apt.currentState === 'CONFIRMED') && isSameDay(d, new Date()) && (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); checkInMutation.mutate(apt.id); }}
+                                        disabled={checkInMutation.isPending}
+                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1 transition-colors"
+                                      >
+                                        Check In
+                                      </button>
+                                    )}
                                     <button
                                       onClick={(e) => { e.stopPropagation(); setSelectedVisit(apt); }}
                                       className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"

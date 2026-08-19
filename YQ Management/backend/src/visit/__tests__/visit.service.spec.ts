@@ -7,15 +7,25 @@ describe('VisitService', () => {
   let service: VisitService;
   let prisma: PrismaService;
 
-  const mockPrismaService = {
+  // Build mock in two steps to avoid implicit circular reference
+  const mockPrismaService: any = {
     visit: {
       create: jest.fn(),
       findMany: jest.fn(),
       findFirst: jest.fn(),
+      findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     },
+    outboxEvent: {
+      create: jest.fn(),
+    },
+    customer: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+    },
   };
+  mockPrismaService.$transaction = jest.fn(async (cb: (tx: any) => Promise<any>) => cb(mockPrismaService));
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

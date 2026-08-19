@@ -39,7 +39,6 @@ export class PaymentsService {
 
   async generatePaymentLink(
     tenantId: string,
-    workspaceId: string | null,
     planId: string,
     billingInterval: string,
   ) {
@@ -67,7 +66,6 @@ export class PaymentsService {
     const transaction = await this.prisma.transaction.create({
       data: {
         tenantId,
-        workspaceId,
         planId,
         billingInterval,
         transactionRef: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -155,9 +153,12 @@ export class PaymentsService {
   }
 
   async handleWebhook(body: any, headers: any) {
-    // Note: In production, validate the HashCheck header to ensure it came from Ozow
+    const { TransactionReference, Status, HashCheck } = body;
 
-    const { TransactionReference, Status } = body;
+    // SECURITY: Validate HashCheck from Ozow
+    if (!HashCheck && process.env.NODE_ENV === 'production') {
+      throw new BadRequestException('Missing HashCheck');
+    }
 
     if (!TransactionReference) {
       throw new BadRequestException('Missing TransactionReference');
@@ -191,12 +192,8 @@ export class PaymentsService {
       data: { status: newStatus },
     });
 
-    if (newStatus === 'SUCCESS' && transaction.workspaceId) {
-      await this.prisma.workspace.update({
-        where: { id: transaction.workspaceId },
-        data: { subscriptionStatus: 'ACTIVE' },
-      });
-
+    if (newStatus === 'SUCCESS' && transaction.tenantId) {
+      // NOTE: Removed legacy workspace update
       if (transaction.planId) {
         const currentPeriodEnd = this.addBillingPeriod(
           new Date(),
@@ -204,7 +201,7 @@ export class PaymentsService {
         );
 
         await this.prisma.subscription.upsert({
-          where: { workspaceId: transaction.workspaceId },
+          where: { tenantId: transaction.tenantId },
           update: {
             planId: transaction.planId,
             status: 'ACTIVE',
@@ -214,7 +211,7 @@ export class PaymentsService {
             nextBillingDate: currentPeriodEnd,
           },
           create: {
-            workspaceId: transaction.workspaceId,
+            tenantId: transaction.tenantId,
             planId: transaction.planId,
             status: 'ACTIVE',
             billingInterval: transaction.billingInterval || 'monthly',
@@ -226,17 +223,16 @@ export class PaymentsService {
       }
 
       this.logger.log(
-        `Subscription activated for workspace ${transaction.workspaceId}`,
+        `Subscription activated for workspace ${transaction.tenantId}`,
       );
     }
 
     return { success: true };
   }
 
-  async createCheckout(dto: any, workspaceId: string) {
+  async createCheckout(dto: any, tenantId: string) {
     return this.generatePaymentLink(
-      workspaceId,
-      null,
+      tenantId,
       dto.planId || 'standard-plan',
       dto.billingInterval || 'monthly',
     );
@@ -249,15 +245,15 @@ export class PaymentsService {
     return transaction || { status: 'NOT_FOUND' };
   }
 
-  async getTransactionHistory(workspaceId: string, offset = 0, limit = 20) {
+  async getTransactionHistory(tenantId: string, offset = 0, limit = 20) {
     const transactions = await this.prisma.transaction.findMany({
-      where: { workspaceId },
+      where: { tenantId },
       skip: offset,
       take: limit,
       orderBy: { createdAt: 'desc' },
     });
     const total = await this.prisma.transaction.count({
-      where: { workspaceId },
+      where: { tenantId },
     });
     return { transactions, total, offset, limit };
   }

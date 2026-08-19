@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PaymentProviderName } from '@prisma/client';
 
 export interface CreateCheckoutInput {
-  workspaceId: string;
+  tenantId: string;
   subscriptionId: string;
   planId: string;
   amount: number;
@@ -32,7 +32,7 @@ export interface VerifyWebhookResult {
   valid: boolean;
   eventId?: string;
   eventType?: string;
-  workspaceId?: string;
+  tenantId?: string;
   subscriptionId?: string;
   transactionId?: string;
   amount?: number;

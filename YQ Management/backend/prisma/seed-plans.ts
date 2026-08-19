@@ -17,7 +17,7 @@ async function main() {
       billingInterval: 'monthly',
       trialDays: 14,
       maxQueues: 1,
-      maxTokens: 500,
+      maxVisits: 500,
       active: true,
       sortOrder: 1,
       features: {
@@ -27,7 +27,7 @@ async function main() {
       },
       limits: {
         maxQueues: 1,
-        maxTokens: 500,
+        maxVisits: 500,
       },
     },
   });
@@ -46,7 +46,7 @@ async function main() {
       billingInterval: 'monthly',
       trialDays: 0,
       maxQueues: 5,
-      maxTokens: 2000,
+      maxVisits: 2000,
       active: true,
       sortOrder: 2,
       features: {
@@ -56,7 +56,7 @@ async function main() {
       },
       limits: {
         maxQueues: 5,
-        maxTokens: 2000,
+        maxVisits: 2000,
       },
     },
   });
@@ -75,7 +75,7 @@ async function main() {
       billingInterval: 'monthly',
       trialDays: 0,
       maxQueues: 20,
-      maxTokens: 10000,
+      maxVisits: 10000,
       active: true,
       sortOrder: 3,
       features: {
@@ -85,7 +85,7 @@ async function main() {
       },
       limits: {
         maxQueues: 20,
-        maxTokens: 10000,
+        maxVisits: 10000,
       },
     },
   });

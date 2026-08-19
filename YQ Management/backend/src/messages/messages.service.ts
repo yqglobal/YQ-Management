@@ -11,43 +11,43 @@ export class MessagesService {
     private redisService: RedisService,
   ) {}
 
-  async getMessages(tokenId: string, tenantId: string) {
-    const token = await this.prisma.token.findFirst({
-      where: { id: tokenId, queue: { tenantId } },
+  async getMessages(visitId: string, tenantId: string) {
+    const token = await this.prisma.visit.findFirst({
+      where: { id: visitId, tenantId },
     });
-    if (!token) throw new NotFoundException('Token not found');
+    if (!token) throw new NotFoundException('Visit not found');
 
     return this.prisma.message.findMany({
-      where: { tokenId },
+      where: { visitId },
       orderBy: { createdAt: 'asc' },
     });
   }
 
   async sendMessageFromOperator(
-    tokenId: string,
+    visitId: string,
     text: string,
     tenantId: string,
   ) {
-    const token = await this.prisma.token.findFirst({
-      where: { id: tokenId, queue: { tenantId } },
-      include: { queue: true },
+    const token = await this.prisma.visit.findFirst({
+      where: { id: visitId, tenantId },
+      include: { queue: true, customer: true },
     });
-    if (!token) throw new NotFoundException('Token not found');
+    if (!token) throw new NotFoundException('Visit not found');
 
     const message = await this.prisma.message.create({
       data: {
-        tokenId,
+        visitId,
         body: text,
         sender: 'OPERATOR',
       },
     });
 
     // Notify customer via WhatsApp
-    if (token.phone) {
+    if (token.customer?.phone) {
       await this.notificationsService.sendWhatsAppMessage(
-        token.phone,
+        token.customer.phone,
         text,
-        token.queue?.tenantId,
+        token.tenantId,
       );
     }
 

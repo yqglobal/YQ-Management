@@ -38,15 +38,10 @@ export class TenantService {
       where: { subdomain },
       include: {
         locations: { select: { id: true, name: true, address: true, city: true } },
-        workspaces: {
+        subscriptions: {
           take: 1,
-          include: {
-            subscriptions: {
-              take: 1,
-              orderBy: { createdAt: 'desc' },
-              include: { plan: true },
-            },
-          },
+          orderBy: { createdAt: 'desc' },
+          include: { plan: true },
         },
       },
     });
@@ -58,7 +53,7 @@ export class TenantService {
     }
 
     // Enforce customBranding feature toggle
-    const plan = tenant.workspaces[0]?.subscriptions?.[0]?.plan;
+    const plan = tenant.subscriptions?.[0]?.plan;
     const hasCustomBranding = plan?.features
       ? (plan.features as any).customBranding === true
       : false;
@@ -77,15 +72,10 @@ export class TenantService {
         locations: { select: { id: true, name: true } },
         services: { select: { id: true, name: true } },
         queues: { select: { id: true, name: true, services: { select: { id: true } } } },
-        workspaces: {
+        subscriptions: {
           take: 1,
-          include: {
-            subscriptions: {
-              take: 1,
-              orderBy: { createdAt: 'desc' },
-              include: { plan: true },
-            },
-          },
+          orderBy: { createdAt: 'desc' },
+          include: { plan: true },
         },
       },
     });
@@ -95,7 +85,7 @@ export class TenantService {
     }
 
     // Enforce customBranding feature toggle
-    const plan = tenant.workspaces[0]?.subscriptions?.[0]?.plan;
+    const plan = tenant.subscriptions?.[0]?.plan;
     const hasCustomBranding = plan?.features
       ? (plan.features as any).customBranding === true
       : false;

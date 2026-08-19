@@ -7,9 +7,10 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
-import { QueueStatus, TokenStatus } from '@prisma/client';
+import { QueueStatus, VisitState } from '@prisma/client';
 import { QueueGateway } from './queue.gateway';
 import { WebhooksService } from '../webhooks/webhooks.service';
+import { VisitService } from '../visit/visit.service';
 
 @Injectable()
 export class QueueService {
@@ -19,6 +20,7 @@ export class QueueService {
     @Inject(forwardRef(() => QueueGateway))
     private readonly queueGateway: QueueGateway,
     private readonly webhooksService: WebhooksService,
+    private readonly visitService: VisitService,
   ) {}
 
   async createQueue(
@@ -46,6 +48,22 @@ export class QueueService {
 
     if (!serviceIds || serviceIds.length === 0) {
       throw new BadRequestException('A queue must be linked to at least one service.');
+    }
+
+    // SECURITY: Enforce plan limits
+    const subscription = await this.prisma.subscription.findFirst({
+      where: { tenantId },
+      include: { plan: true },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const maxQueues = subscription?.plan?.limits ? (subscription.plan.limits as any).maxQueues : 1;
+    const currentQueuesCount = await this.prisma.queue.count({
+      where: { tenantId },
+    });
+
+    if (currentQueuesCount >= maxQueues) {
+      throw new BadRequestException(`Queue limit reached (${maxQueues}). Please upgrade your plan to create more queues.`);
     }
 
     const queue = await this.prisma.queue.create({
@@ -149,19 +167,19 @@ export class QueueService {
       include: {
         location: true,
         services: true,
-        tokens: {
+        visits: {
           where: {
-            status: TokenStatus.WAITING,
+            currentState: 'WAITING',
           },
           orderBy: {
-            joinedAt: 'asc',
+            createdAt: 'asc',
           },
         },
         _count: {
           select: {
-            tokens: {
+            visits: {
               where: {
-                status: TokenStatus.WAITING,
+                currentState: 'WAITING',
               },
             },
           },
@@ -255,23 +273,21 @@ export class QueueService {
     }
 
     // Fetch existing appointments for that day that are not cancelled or missed
-    const existingTokens = await this.prisma.token.findMany({
+    const existingTokens = await this.prisma.visit.findMany({
       where: {
         queueId,
-        isAppointment: true,
-        scheduledFor: {
+        currentState: { in: ['WAITING', 'SCHEDULED', 'CREATED'] },
+        scheduledTime: {
           gte: startOfDay,
           lt: endOfDay,
         },
-        status: {
-          notIn: ['COMPLETED', 'MISSED'],
-        },
       },
+      select: { scheduledTime: true },
     });
 
     const bookedSlots = existingTokens
-      .filter((t) => t.scheduledFor)
-      .map((t) => t.scheduledFor!.toISOString());
+      .filter((t) => t.scheduledTime)
+      .map((t) => t.scheduledTime!.toISOString());
 
     const availableSlots = slots.filter((slot) => !bookedSlots.includes(slot));
     return availableSlots;
@@ -291,12 +307,12 @@ export class QueueService {
   }
 
   async getQueueTokens(queueId: string) {
-    return this.prisma.token.findMany({
+    return this.prisma.visit.findMany({
       where: {
         queueId,
-        status: { in: [TokenStatus.WAITING, TokenStatus.SERVING] },
+        currentState: { in: ['WAITING', 'IN_SERVICE'] },
       },
-      orderBy: { joinedAt: 'asc' },
+      orderBy: { createdAt: 'asc' },
     });
   }
 
@@ -306,13 +322,13 @@ export class QueueService {
   }
 
   async getHistory(tenantId: string) {
-    return this.prisma.token.findMany({
+    return this.prisma.visit.findMany({
       where: {
         queue: { tenantId },
-        status: { in: [TokenStatus.COMPLETED, TokenStatus.MISSED] },
+        currentState: { in: ['COMPLETED', 'MISSED'] },
       },
       include: { queue: true },
-      orderBy: { joinedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 100, // Limit for MVP
     });
   }
@@ -343,250 +359,15 @@ export class QueueService {
     return this.updateQueueStatus(queueId, status);
   }
 
-  // --- Advanced Queue Logic ---
-
-  async joinQueue(
-    queueId: string,
-    customerName: string,
-    phone: string | null,
-    isAppointment = false,
-  ) {
-    const queueWithConfig = await this.prisma.queue.findUnique({
-      where: { id: queueId },
-      select: { tokenDisplayConfig: true, tenantId: true },
-    });
-
-    let displayId: string | undefined;
-    const config = (queueWithConfig?.tokenDisplayConfig as any) || {};
-    const mode = config.generationMode || 'random';
-    const format = config.format || 'alphanumeric';
-    const prefix = config.prefix || 'CC';
-    let counter = config.counter || 0;
-
-    if (mode === 'sequential') {
-      counter = await this.redisService.client.incr(
-        `queue:${queueId}:sequence`,
-      );
-      const numberPart = counter.toString();
-      displayId =
-        format === 'alphanumeric' ? `${prefix}${numberPart}` : numberPart;
-    } else {
-      const numberPart = Math.floor(1000 + Math.random() * 9000).toString();
-      displayId =
-        format === 'alphanumeric' ? `${prefix}${numberPart}` : numberPart;
-    }
-
-    const token = await this.prisma.token.create({
-      data: {
-        queueId,
-        customerName,
-        phone,
-        displayId,
-        status: 'WAITING',
-        isAppointment,
-      },
-    });
-
-    // Add to Redis sorted set for position tracking (score is timestamp)
-    await this.redisService.client.zadd(
-      `queue:${queueId}:waiting`,
-      Date.now(),
-      token.id,
-    );
-
-    // --- LEGACY QUEUE INTERCEPT: Parallel Visit Creation ---
-    // Look up or create Customer
-    const customer =
-      (await this.prisma.customer.findFirst({
-        where: { phone, tenantId: queueWithConfig?.tenantId || '' },
-      })) ||
-      (await this.prisma.customer
-        .create({
-          data: {
-            name: customerName,
-            phone,
-            tenantId: queueWithConfig?.tenantId || '',
-          },
-        })
-        .catch(() => null));
-
-    // Fallback Location and Service for legacy queues
-    const location = await this.prisma.location.findFirst({
-      where: { tenantId: queueWithConfig?.tenantId || '' },
-    });
-    const service = await this.prisma.service.findFirst({
-      where: { tenantId: queueWithConfig?.tenantId || '' },
-    });
-
-    if (customer && location && service) {
-      await this.prisma.visit.create({
-        data: {
-          tenantId: location.tenantId,
-          customerId: customer.id,
-          locationId: location.id,
-          serviceId: service.id,
-          queueId: queueId,
-          source: isAppointment ? 'APPOINTMENT' : 'WALK_IN',
-          currentState: 'WAITING',
-          waitingStart: new Date(),
-        },
-      });
-    }
-    // -------------------------------------------------------
-
-    this.queueGateway.broadcastQueueUpdate(queueId, 'token_joined', { token });
-    const queue = await this.prisma.queue.findUnique({
-      where: { id: queueId },
-    });
-    if (queue) {
-      this.webhooksService.triggerWebhooks(
-        queue.tenantId,
-        'TOKEN_JOINED',
-        token,
-      );
-    }
-    return token;
-  }
-
-  async getEstimatedWaitTime(queueId: string, tokenId: string) {
-    const rank = await this.redisService.client.zrank(
-      `queue:${queueId}:waiting`,
-      tokenId,
-    );
-    if (rank === null) return 0; // Not waiting
-
-    // Dynamic EWT: average service time of last 10 customers
-    const avgServiceTimeRaw = await this.redisService.client.get(
-      `queue:${queueId}:avg_time`,
-    );
-    const avgServiceTime = avgServiceTimeRaw
-      ? parseInt(avgServiceTimeRaw, 10)
-      : 5; // Default 5 mins
-
-    return rank * avgServiceTime;
-  }
-
   async advanceTurn(queueId: string) {
-    // Pop the lowest score (oldest) from waiting set
-    const nextTokenIds = await this.redisService.client.zpopmin(
-      `queue:${queueId}:waiting`,
-    );
-    if (!nextTokenIds || nextTokenIds.length === 0) return null;
-
-    const tokenId = nextTokenIds[0];
-
-    // Update DB
-    const token = await this.prisma.token.update({
-      where: { id: tokenId },
-      data: {
-        status: TokenStatus.SERVING,
-        servedAt: new Date(),
-      },
-    });
-
-    // Broadcast
-    this.queueGateway.broadcastQueueUpdate(queueId, 'token_serving', { token });
-    const queue = await this.prisma.queue.findUnique({
-      where: { id: queueId },
-    });
-    if (queue) {
-      this.webhooksService.triggerWebhooks(
-        queue.tenantId,
-        'TOKEN_SERVING',
-        token,
-      );
-    }
-    return token;
+    return this.visitService.advanceTurn(queueId);
   }
 
-  async completeToken(tokenId: string, tenantId?: string, operatorId?: string) {
-    const token = await this.prisma.token.findUnique({
-      where: { id: tokenId },
-      include: { queue: true },
-    });
-    if (!token) throw new NotFoundException();
-
-    if (tenantId && token.queue.tenantId !== tenantId) {
-      throw new NotFoundException(); // Treat as not found to prevent leaking existence
-    }
-
-    const updatedToken = await this.prisma.token.update({
-      where: { id: tokenId },
-      data: {
-        status: TokenStatus.COMPLETED,
-        completedAt: new Date(),
-        operatorId: operatorId || undefined,
-      },
-    });
-
-    await this.redisService.client.zrem(
-      `queue:${updatedToken.queueId}:waiting`,
-      tokenId,
-    );
-
-    if (updatedToken.servedAt && updatedToken.completedAt) {
-      const diffMs =
-        updatedToken.completedAt.getTime() - updatedToken.servedAt.getTime();
-      let diffMins = Math.max(1, Math.floor(diffMs / 60000));
-      diffMins = Math.min(diffMins, 60); // Cap at 60 mins to prevent outliers
-
-      const currentAvgRaw = await this.redisService.client.get(
-        `queue:${updatedToken.queueId}:avg_time`,
-      );
-      let newAvg = diffMins;
-      if (currentAvgRaw) {
-        newAvg = Math.max(
-          1,
-          Math.floor((parseInt(currentAvgRaw, 10) * 9 + diffMins) / 10),
-        ); // Exponential moving average over ~10 customers
-      }
-      await this.redisService.client.set(
-        `queue:${updatedToken.queueId}:avg_time`,
-        newAvg,
-      );
-    }
-
-    // Multi-step routing logic
-    if (token.queue.nextQueueId) {
-      await this.joinQueue(
-        token.queue.nextQueueId,
-        token.customerName,
-        token.phone,
-        token.isAppointment,
-      );
-    }
-
-    this.queueGateway.broadcastQueueUpdate(token.queueId, 'token_completed', {
-      tokenId,
-    });
-    this.webhooksService.triggerWebhooks(
-      token.queue.tenantId,
-      'TOKEN_COMPLETED',
-      token,
-    );
-    return true;
+  async completeToken(visitId: string, tenantId?: string, operatorId?: string) {
+    return this.visitService.completeService(visitId, tenantId, operatorId);
   }
 
-  async skipToken(tokenId: string) {
-    const token = await this.prisma.token.update({
-      where: { id: tokenId },
-      data: { status: TokenStatus.MISSED },
-      include: { queue: true },
-    });
-
-    await this.redisService.client.zrem(
-      `queue:${token.queueId}:waiting`,
-      tokenId,
-    );
-
-    this.queueGateway.broadcastQueueUpdate(token.queueId, 'token_missed', {
-      tokenId,
-    });
-    this.webhooksService.triggerWebhooks(
-      token.queue.tenantId,
-      'TOKEN_MISSED',
-      token,
-    );
-    return token;
+  async skipToken(visitId: string) {
+    return this.visitService.skipVisit(visitId);
   }
 }

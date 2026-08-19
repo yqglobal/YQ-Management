@@ -2,17 +2,20 @@ import { getTenantUrl } from "../../lib/utils";
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import AdminLayout from '../../components/AdminLayout';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchApi } from '../../lib/api';
 import { WelcomeModal } from '../../components/modals/WelcomeModal';
 import { CreateVisitModal } from '../../components/modals/CreateVisitModal';
-import { MonitorPlay } from 'lucide-react';
+import { ScannerModal } from '../../components/modals/ScannerModal';
+import { WhatsAppChatPanel } from '../../components/WhatsAppChatPanel';
+import { MonitorPlay, ScanLine } from 'lucide-react';
 
 export default function ServiceDeskToday() {
   const queryClient = useQueryClient();
   const [selectedVisit, setSelectedVisit] = useState<any | null>(null);
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
@@ -48,6 +51,17 @@ export default function ServiceDeskToday() {
     queryKey: ['appointments', 'pending'],
     queryFn: () => fetchApi('/appointments?status=PENDING_APPROVAL').catch(() => []),
     refetchInterval: 15000,
+  });
+
+  const { data: resources = [] } = useQuery({
+    queryKey: ['resources'],
+    queryFn: () => fetchApi('/resources').catch(() => []),
+  });
+
+  const updateVisitMutation = useMutation({
+    mutationFn: (data: { id: string, resourceId: string }) => 
+      fetchApi(`/visits/${data.id}`, { method: 'PATCH', body: JSON.stringify({ resourceId: data.resourceId }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['visits'] }),
   });
 
   const filteredVisits = selectedLocationId === 'all' ? visits : visits.filter((v: any) => v.locationId === selectedLocationId);
@@ -329,6 +343,9 @@ export default function ServiceDeskToday() {
                   className="pl-9 pr-4 py-1.5 bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-lg text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                 />
               </div>
+              <button onClick={() => setIsScannerOpen(true)} className="bg-surface-container hover:bg-surface-container-high text-on-surface px-3 py-1.5 rounded-lg text-body-sm font-semibold transition-colors flex items-center gap-1 border border-border">
+                <ScanLine className="w-[18px] h-[18px]" /> Scan QR
+              </button>
               <button onClick={() => setIsVisitModalOpen(true)} className="bg-primary hover:bg-primary-container text-on-primary px-3 py-1.5 rounded-lg text-body-sm font-semibold transition-colors flex items-center gap-1">
                 <span className="material-symbols-outlined text-[18px]">add</span> Add
               </button>
@@ -458,26 +475,38 @@ export default function ServiceDeskToday() {
                   <div className="flex justify-between"><span className="font-medium text-on-surface dark:text-white">Service:</span> <span>{selectedVisit.service?.name || 'General'}</span></div>
                   <div className="flex justify-between"><span className="font-medium text-on-surface dark:text-white">Source:</span> <span className="capitalize">{selectedVisit.source?.toLowerCase()}</span></div>
                   <div className="flex justify-between"><span className="font-medium text-on-surface dark:text-white">Status:</span> <span className="font-medium text-primary">{selectedVisit.currentState}</span></div>
+                  
+                  {selectedVisit.source === 'APPOINTMENT' && selectedVisit.scheduledFor && (
+                    <div className="flex justify-between pt-2 border-t border-border/50">
+                      <span className="font-medium text-on-surface dark:text-white">Scheduled Time:</span>
+                      <span className="font-medium">{new Date(selectedVisit.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between items-center pt-2 border-t border-border/50">
+                    <span className="font-medium text-on-surface dark:text-white">Provider/Room:</span>
+                    <select 
+                      value={selectedVisit.resourceId || ''}
+                      onChange={(e) => updateVisitMutation.mutate({ id: selectedVisit.id, resourceId: e.target.value })}
+                      className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-lg text-xs py-1 px-2 max-w-[120px] outline-none"
+                    >
+                      <option value="">Unassigned</option>
+                      {resources.map((r: any) => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center text-outline">
-               <span className="material-symbols-outlined text-4xl mb-2 opacity-30">chat</span>
-               <p className="text-sm">No messages yet.</p>
-            </div>
-            
-            <div className="p-4 bg-surface dark:bg-dark-card border-t border-border dark:border-dark-border shrink-0">
-              <div className="relative flex items-end gap-2">
-                <textarea 
-                  className="w-full bg-card dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl p-3 pr-10 text-body-sm resize-none focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary custom-scrollbar h-[44px]" 
-                  placeholder="Send SMS update..." 
-                  rows={1}
-                />
-                <button className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 w-[44px] h-[44px] rounded-xl flex items-center justify-center shrink-0 transition-colors shadow-sm">
-                  <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
-                </button>
-              </div>
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-surface dark:bg-dark-card border-t border-border dark:border-dark-border shrink-0">
+              <WhatsAppChatPanel 
+                tokenId={selectedVisit.id}
+                customerName={selectedVisit.customer?.name}
+                customerPhone={selectedVisit.customer?.phone}
+                queueName={selectedVisit.service?.name}
+              />
             </div>
           </section>
         )}
@@ -487,6 +516,26 @@ export default function ServiceDeskToday() {
       <CreateVisitModal 
         isOpen={isVisitModalOpen} 
         onClose={() => setIsVisitModalOpen(false)} 
+      />
+      <ScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanSuccess={(data) => {
+          setIsScannerOpen(false);
+          const found = visits.find((v:any) => v.id === data.tokenId) || queueTokens.find((t:any) => t.id === data.tokenId);
+          if (found) {
+            setSelectedVisit(found);
+          } else {
+            setSelectedVisit({
+              id: data.tokenId || 'UNKNOWN',
+              customer: { name: data.customerName, phone: data.phone },
+              service: { name: data.queueName || data.serviceBooked },
+              source: data.isAppointment ? 'APPOINTMENT' : 'WALK_IN',
+              currentState: data.status,
+              ticketNumber: data.tokenId ? `#TKT-${data.tokenId.substring(0,4)}` : ''
+            });
+          }
+        }}
       />
       <WelcomeModal 
         isOpen={isWelcomeModalOpen} 

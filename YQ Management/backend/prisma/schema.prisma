@@ -124,8 +124,6 @@ model Tenant {
   googleLocationId        String?
 
   appointmentApprovalMode String            @default("AUTO") // AUTO, MANUAL
-
-  subscriptionStatus String            @default("TRIAL") // TRIAL, ACTIVE, EXPIRED
   users              User[]
   workspaces         Workspace[]
   queues             Queue[]
@@ -143,7 +141,10 @@ model Tenant {
   enterpriseInquiries EnterpriseInquiry[]
   operatingCountries  String[] @default([])
   chatSessions        ChatSession[]
-
+  subscriptions       Subscription[]
+  invoices            Invoice[]
+  usages              TenantUsage[]
+  autonomousEnabled   Boolean @default(false)
   createdAt DateTime @default(now())
 }
 
@@ -170,6 +171,7 @@ model User {
   cookiePreferences CookiePreference[]
   sessions          UserSession[]
   tokens            Token[]
+  operatorVisits    Visit[] @relation("OperatorVisits")
 
   @@index([tenantId])
   @@index([workspaceId])
@@ -267,7 +269,6 @@ model Token {
   completedAt DateTime?
 
   queue    Queue     @relation(fields: [queueId], references: [id], onDelete: Cascade)
-  messages Message[]
 
   operatorId String?
   operator   User?   @relation(fields: [operatorId], references: [id])
@@ -280,14 +281,14 @@ model Token {
 
 model Message {
   id        String   @id @default(uuid())
-  tokenId   String
+  visitId   String
   body      String
   sender    String // 'OPERATOR' or 'CUSTOMER'
   createdAt DateTime @default(now())
 
-  token Token @relation(fields: [tokenId], references: [id])
+  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
 
-  @@index([tokenId])
+  @@index([visitId])
 }
 
 model Transaction {
@@ -333,16 +334,12 @@ model Workspace {
   name               String
   subdomain          String   @unique
   branding           Json?
-  subscriptionStatus String   @default("TRIAL")
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   users             User[]
   queues            Queue[]
-  subscriptions     Subscription[]
-  invoices          Invoice[]
-  usages            WorkspaceUsage[]
   transactions      Transaction[]
   locations         Location[]
   communicationLogs CommunicationLog[]
@@ -364,19 +361,18 @@ model Plan {
   trialDays       Int      @default(0)
   features        Json?
   limits          Json?
-  maxTokens       Int?
+  maxVisits       Int?
   maxQueues       Int?
   sortOrder       Int      @default(0)
   active          Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-
-  subscriptions Subscription[]
+  subscriptions   Subscription[]
 }
 
 model Subscription {
   id                 String             @id @default(uuid())
-  workspaceId        String
+  tenantId        String
   planId             String
   status             SubscriptionStatus @default(TRIAL)
   currentPeriodStart DateTime           @default(now())
@@ -394,11 +390,11 @@ model Subscription {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   plan      Plan      @relation(fields: [planId], references: [id])
 
-  @@unique([workspaceId])
-  @@index([workspaceId])
+  @@unique([tenantId])
+  @@index([tenantId])
 }
 
 model PaymentProvider {
@@ -416,7 +412,7 @@ model PaymentProvider {
 
 model Invoice {
   id          String    @id @default(uuid())
-  workspaceId String
+  tenantId String
   amount      Float
   currency    String    @default("ZAR")
   status      String    @default("DRAFT")
@@ -425,14 +421,14 @@ model Invoice {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@index([workspaceId])
+  @@index([tenantId])
 }
 
-model WorkspaceUsage {
+model TenantUsage {
   id               String    @id @default(uuid())
-  workspaceId      String
+  tenantId      String
   tokensUsed       Int       @default(0)
   messagesSent     Int       @default(0)
   branches         Int       @default(0)
@@ -447,10 +443,10 @@ model WorkspaceUsage {
   periodEnd        DateTime
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
-  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tenant           Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([workspaceId, periodStart, periodEnd])
-  @@index([workspaceId])
+  @@unique([tenantId, periodStart, periodEnd])
+  @@index([tenantId])
 }
 
 model WhatsAppTemplate {
@@ -717,6 +713,19 @@ model Visit {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
+
+  // Hybrid Queue Fields
+  displayId     String? // Human-readable queue number (e.g. "CC876")
+  accessToken   String    @unique @default(uuid()) // Opaque capability token
+  operatorId    String?
+  operatorUser  User?     @relation("OperatorVisits", fields: [operatorId], references: [id])
+  language      String    @default("en")
+  rating        Int?
+  feedbackText  String?
+  purpose       String?
+  formResponses Json?
+  messages      Message[]
+
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
   location    Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
@@ -797,6 +806,20 @@ model UserSession {
 
   @@index([userId])
   @@index([token])
+}
+
+
+model OutboxEvent {
+  id          String    @id @default(uuid())
+  type        String
+  payload     Json
+  status      String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  error       String?
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([status])
+  @@index([createdAt])
 }
 
 model SystemLog {

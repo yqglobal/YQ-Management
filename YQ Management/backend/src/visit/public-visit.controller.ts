@@ -1,15 +1,22 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body } from '@nestjs/common';
 import { VisitService } from './visit.service';
 
 @Controller('public-visit')
 export class PublicVisitController {
   constructor(private readonly visitService: VisitService) {}
 
-  @Get(':id')
-  async getPublicVisit(@Param('id') id: string) {
+  @Get(':accessToken')
+  async getPublicVisit(@Param('accessToken') accessToken: string) {
     // In a real scenario, this would only return non-sensitive data
-    // For now, we bypass the tenant check by passing undefined or finding a way to fetch it
-    const visit = await this.visitService.findOnePublic(id);
+    const visit = await this.visitService.findOnePublic(accessToken);
     return visit;
+  }
+
+  @Post('queue/:queueId/join')
+  async joinQueue(
+    @Param('queueId') queueId: string,
+    @Body() body: { name: string; phone?: string | null },
+  ) {
+    return this.visitService.joinQueue(queueId, body);
   }
 }

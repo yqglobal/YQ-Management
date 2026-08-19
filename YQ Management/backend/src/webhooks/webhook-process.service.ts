@@ -63,9 +63,9 @@ export class WebhookProcessService {
 
     const webhookEvent = await this.prisma.webhookEvent.create({
       data: {
-        tenantId: body.tenantId || body.workspaceId || 'unknown',
+        tenantId: body.tenantId || body.tenantId || 'unknown',
         eventType: this.mapEventType(body.Status),
-        workspaceId: body.workspaceId || undefined,
+        
         transactionId: body.TransactionReference || undefined,
         payload: body,
         processingStatus: WebhookProcessingStatus.PROCESSING,
@@ -89,7 +89,7 @@ export class WebhookProcessService {
           data: {
             signatureValid: verification.valid,
             processingResult: JSON.stringify({
-              workspaceValid: !!verification.workspaceId,
+              tenantValid: !!verification.tenantId,
               transactionValid: !!verification.transactionId,
               amountValid: !!verification.amount,
               currencyValid: !!verification.currency,
@@ -158,14 +158,14 @@ export class WebhookProcessService {
             },
           });
 
-          if (Status === 'Complete' && transaction.workspaceId) {
+          if (Status === 'Complete' && transaction.tenantId) {
             await tx.workspace.update({
-              where: { id: transaction.workspaceId },
-              data: { subscriptionStatus: 'ACTIVE' },
+              where: { id: transaction.tenantId },
+              data: {},
             });
 
             const subscription = await tx.subscription.findUnique({
-              where: { workspaceId: transaction.workspaceId },
+              where: { tenantId: transaction.tenantId },
             });
 
             if (subscription) {
@@ -227,9 +227,9 @@ export class WebhookProcessService {
     return statusMap[status] || WebhookEventType.PAYMENT_PENDING;
   }
 
-  async getWebhookEvents(workspaceId: string, offset = 0, limit = 50) {
+  async getWebhookEvents(tenantId: string, offset = 0, limit = 50) {
     return this.prisma.webhookEvent.findMany({
-      where: { workspaceId },
+      where: { tenantId },
       skip: offset,
       take: limit,
       orderBy: { createdAt: 'desc' },

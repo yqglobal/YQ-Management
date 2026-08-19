@@ -60,6 +60,11 @@ export class TenantController {
     @Param('id') id: string,
     @Body() body: { name?: string; subdomain?: string; branding?: any; customerExperience?: any },
   ) {
+    // SECURITY: TENANT_ADMIN can only update their own tenant.
+    // SUPER_ADMIN can update any tenant.
+    if (req.user.role !== Role.SUPER_ADMIN && id !== req.user.tenantId) {
+      throw new Error('Forbidden: You can only update your own tenant.');
+    }
     return this.tenantService.updateTenant(id, body);
   }
 

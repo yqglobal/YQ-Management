@@ -32,7 +32,7 @@ export class SubscriptionController {
 
   @Get('current')
   async getCurrent(@Req() req: AuthenticatedRequest) {
-    return this.subscriptionService.getSubscription(req.user.workspaceId);
+    return this.subscriptionService.getSubscription(req.user.tenantId);
   }
 
   @Post('')
@@ -42,7 +42,7 @@ export class SubscriptionController {
     @Body() dto: CreateSubscriptionDto,
   ) {
     return this.subscriptionService.createSubscription(
-      req.user.workspaceId,
+      req.user.tenantId,
       dto,
     );
   }
@@ -54,7 +54,7 @@ export class SubscriptionController {
     @Body() body: CreateSubscriptionDto,
   ) {
     return this.subscriptionService.startFreeTrial(
-      req.user.workspaceId,
+      req.user.tenantId,
       body.planId,
       body.trialDays ?? 7,
     );
@@ -67,7 +67,7 @@ export class SubscriptionController {
     @Body() dto: UpgradeSubscriptionDto,
   ) {
     return this.subscriptionService.upgradeSubscription(
-      req.user.workspaceId,
+      req.user.tenantId,
       dto,
     );
   }
@@ -79,7 +79,7 @@ export class SubscriptionController {
     @Body() dto: DowngradeSubscriptionDto,
   ) {
     return this.subscriptionService.downgradeSubscription(
-      req.user.workspaceId,
+      req.user.tenantId,
       dto,
     );
   }
@@ -91,7 +91,7 @@ export class SubscriptionController {
     @Body() dto: CancelSubscriptionDto,
   ) {
     return this.subscriptionService.cancelSubscription(
-      req.user.workspaceId,
+      req.user.tenantId,
       dto,
     );
   }
@@ -103,7 +103,7 @@ export class SubscriptionController {
     @Body() dto: ResumeSubscriptionDto,
   ) {
     return this.subscriptionService.resumeSubscription(
-      req.user.workspaceId,
+      req.user.tenantId,
       dto,
     );
   }
@@ -115,7 +115,7 @@ export class SubscriptionController {
     @Query('limit') limit?: number,
   ) {
     return this.subscriptionService.getSubscriptionHistory(
-      req.user.workspaceId,
+      req.user.tenantId,
       offset ?? 0,
       limit ?? 50,
     );
@@ -124,12 +124,12 @@ export class SubscriptionController {
   @Post('expire-trial')
   @Roles(Role.TENANT_ADMIN)
   async expireTrial(@Req() req: AuthenticatedRequest) {
-    return this.subscriptionService.expireTrial(req.user.workspaceId);
+    return this.subscriptionService.expireTrial(req.user.tenantId);
   }
 
   @Post('renew')
   @Roles(Role.TENANT_ADMIN)
   async renewSubscription(@Req() req: AuthenticatedRequest) {
-    return this.subscriptionService.renewSubscription(req.user.workspaceId);
+    return this.subscriptionService.renewSubscription(req.user.tenantId);
   }
 }
