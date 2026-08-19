@@ -23,6 +23,15 @@ export class ServiceController {
     return this.serviceService.findAllPublic(tenantId);
   }
 
+  // Public endpoint to get available slots for appointments
+  @Get(':id/slots')
+  async getAvailableSlots(
+    @Param('id') id: string,
+    @Query('date') date: string,
+  ) {
+    return this.serviceService.getAvailableSlots(id, date);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post()
   create(
@@ -34,6 +43,9 @@ export class ServiceController {
       expectedDuration?: number;
       locationId?: string;
       queueIds?: string[];
+      allowAppointments?: boolean;
+      requireManualCheckIn?: boolean;
+      appointmentGranularityMins?: number;
     },
   ) {
     return this.serviceService.create(req.user.tenantId, body);
@@ -63,6 +75,9 @@ export class ServiceController {
       expectedDuration?: number;
       locationId?: string;
       queueIds?: string[];
+      allowAppointments?: boolean;
+      requireManualCheckIn?: boolean;
+      appointmentGranularityMins?: number;
     },
   ) {
     return this.serviceService.update(id, req.user.tenantId, body);

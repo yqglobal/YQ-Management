@@ -83,7 +83,9 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
       }
     }
 
-    const { locationId } = router.query;
+    const { locationId, serviceId, queueId } = router.query;
+    
+    // Auto-select location
     if (locationId && typeof locationId === 'string' && tenant?.locations?.some((l: any) => l.id === locationId)) {
       setSelectedLocationId(locationId);
       setStep(2); // Skip location step
@@ -93,6 +95,29 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
     } else if (!tenant?.locations || tenant.locations.length === 0) {
       setStep(2); // Skip location step if none exist
     }
+
+    // Auto-select service & queue
+    if (serviceId && typeof serviceId === 'string') {
+      const s = services.find(x => x.id === serviceId);
+      if (s) {
+        if (s.locationId) setSelectedLocationId(s.locationId);
+        setSelectedServiceIds([serviceId]);
+        if (queueId && typeof queueId === 'string') {
+          setServiceDetails(prev => ({
+            ...prev,
+            [serviceId]: { 
+              joinMode: 'immediate',
+              selectedDate: '',
+              selectedSlot: '',
+              responses: {},
+              ...(prev[serviceId] || {}), 
+              queueId 
+            }
+          }));
+        }
+        setStep(3); // Jump straight to service details
+      }
+    }
   }, [tenant, router.query]);
   
   // State for the per-service dynamic flow
@@ -101,6 +126,7 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
     joinMode: 'immediate' | 'appointment',
     selectedDate: string,
     selectedSlot: string,
+    queueId?: string,
     responses: Record<string, any>
   }>>({});
   
@@ -114,6 +140,27 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
   
   const [tokens, setTokens] = useState<any[]>([]);
   const [statusDataMap, setStatusDataMap] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`yq_active_visits_${tenant?.id}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.length > 0) {
+          setTokens(parsed);
+          setStep(6);
+        }
+      }
+    } catch(e) {}
+  }, [tenant?.id]);
+
+  useEffect(() => {
+    if (tokens.length > 0 && tenant?.id) {
+      localStorage.setItem(`yq_active_visits_${tenant.id}`, JSON.stringify(tokens));
+    } else if (tenant?.id && tokens.length === 0) {
+      localStorage.removeItem(`yq_active_visits_${tenant.id}`);
+    }
+  }, [tokens, tenant?.id]);
 
   const primaryColor = tenant?.branding?.primaryColor || '#4f46e5';
   const logoUrl = tenant?.branding?.logoUrl;
@@ -191,14 +238,14 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
 
   // Fetch slots when date changes for current service
   useEffect(() => {
-    if (!currentQueue || !currentDetails.selectedDate || currentDetails.joinMode !== 'appointment') return;
+    if (!currentService || !currentDetails.selectedDate || currentDetails.joinMode !== 'appointment') return;
     setLoadingSlots(p => ({ ...p, [currentServiceId]: true }));
-    fetch(`${baseUrl}/queue/${currentQueue.id}/slots?date=${currentDetails.selectedDate}`)
+    fetch(`${baseUrl}/service/${currentService.id}/slots?date=${currentDetails.selectedDate}`)
       .then(r => r.ok ? r.json() : [])
       .then(slots => setAvailableSlots(p => ({ ...p, [currentServiceId]: slots })))
       .catch(() => setAvailableSlots(p => ({ ...p, [currentServiceId]: [] })))
       .finally(() => setLoadingSlots(p => ({ ...p, [currentServiceId]: false })));
-  }, [currentDetails.selectedDate, currentQueue, currentDetails.joinMode, currentServiceId, baseUrl]);
+  }, [currentDetails.selectedDate, currentService, currentDetails.joinMode, currentServiceId, baseUrl]);
 
   const formConfig = React.useMemo(() => {
     if (!currentService || !currentQueue) return [];
@@ -216,6 +263,12 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
     if (currentDetails.joinMode === 'appointment' && !currentDetails.selectedSlot) {
       return setErrorMsg('Please select a time slot.');
     }
+    
+    const activeQueues = currentService?.queues?.filter(q => q.status === 'ACTIVE') || [];
+    if (activeQueues.length > 1 && !currentDetails.queueId) {
+      return setErrorMsg('Please select a queue.');
+    }
+
     for (const field of formConfig) {
       if (field.required && !currentDetails.responses[field.id]) {
         return setErrorMsg(`Please fill in: ${field.label}`);
@@ -226,12 +279,16 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
     if (currentServiceIndex < selectedServiceIds.length - 1) {
       setCurrentServiceIndex(idx => idx + 1);
     } else {
-      setStep(4); // All services configured, trigger OTP
+      setStep(4); // Show confirmation
     }
   };
 
+  const handleConfirm = () => {
+    setStep(5);
+  };
+
   useEffect(() => {
-    if (step === 4) triggerJoinSequence();
+    if (step === 5) triggerJoinSequence();
   }, [step]);
 
   const triggerJoinSequence = async () => {
@@ -279,7 +336,7 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
         };
       });
 
-      const res = await fetch(`${baseUrl}/token/join-multiple`, {
+      const res = await fetch(`${baseUrl}/public-visit/join-multiple`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -295,8 +352,14 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
         throw new Error(err.message || 'Failed to complete booking.');
       }
       const data = await res.json();
-      setTokens(data);
-      setStep(5);
+      setTokens(prev => {
+        const newTokens = [...prev];
+        data.forEach((d: any) => {
+          if (!newTokens.some(t => t.id === d.id)) newTokens.push(d);
+        });
+        return newTokens;
+      });
+      setStep(6);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to complete booking.');
     } finally {
@@ -306,7 +369,8 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
 
   const handleCancel = async (tokenId: string) => {
     try {
-      await fetch(`${baseUrl}/token/${tokenId}/cancel`, { method: 'POST' });
+      // It might be Visit cancel not Token, but let's assume /visit/cancel exists. Actually let's use the visit ID.
+      await fetch(`${baseUrl}/visit/${tokenId}/cancel`, { method: 'POST' });
       setTokens(prev => prev.filter(t => t.id !== tokenId));
       if (tokens.length <= 1) {
         setStep(1); // Reset if all cancelled
@@ -530,7 +594,25 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
                   </div>
                 ))}
 
-                {currentQueue?.allowAppointments && (
+                {(currentService?.queues?.filter(q => q.status === 'ACTIVE').length || 0) > 1 && (
+                  <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-zinc-800">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Select Queue <span className="text-red-500">*</span></label>
+                    <select 
+                      value={currentDetails.queueId || ''} 
+                      onChange={e => updateCurrentDetails({ queueId: e.target.value })} 
+                      required 
+                      className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent" 
+                      style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+                    >
+                      <option value="" disabled>Select a queue</option>
+                      {currentService.queues.filter(q => q.status === 'ACTIVE').map(q => (
+                        <option key={q.id} value={q.id}>{q.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {currentService?.allowAppointments && (
                   <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-zinc-800">
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">When do you want to visit?</label>
                     <div className="flex gap-2">
@@ -564,8 +646,62 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
             </motion.div>
           )}
 
-          {/* STEP 4: OTP */}
+          {/* STEP 4: Confirmation */}
           {step === 4 && (
+            <motion.div key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6 flex-1 w-full max-w-lg mx-auto">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold">Review Your Booking</h2>
+                <p className="text-gray-500">Please confirm your details</p>
+              </div>
+
+              <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 space-y-4">
+                <div className="border-b border-gray-100 dark:border-zinc-800 pb-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Name</p>
+                  <p className="font-bold text-lg">{name}</p>
+                </div>
+                {phone && (
+                  <div className="border-b border-gray-100 dark:border-zinc-800 pb-4">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Phone</p>
+                    <p className="font-bold text-lg">{phone}</p>
+                  </div>
+                )}
+                
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Selected Services</p>
+                  <div className="space-y-3">
+                    {selectedServiceIds.map(sid => {
+                      const s = services.find(x => x.id === sid);
+                      const details = serviceDetails[sid];
+                      return (
+                        <div key={sid} className="bg-gray-50 dark:bg-black/50 rounded-xl p-3 border border-gray-100 dark:border-zinc-800">
+                          <p className="font-bold">{s?.name}</p>
+                          {details?.joinMode === 'appointment' ? (
+                            <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium mt-1">
+                              Appointment: {new Date(details.selectedSlot).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-amber-600 dark:text-amber-400 font-medium mt-1">Walk-in (Join Now)</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setStep(3)} className="px-6 py-4 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
+                  Back
+                </button>
+                <button type="button" onClick={handleConfirm} className="flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95" style={{ backgroundColor: primaryColor }}>
+                  Confirm Booking
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 5: OTP */}
+          {step === 5 && (
             <motion.div key="step4" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex-1 flex flex-col items-center justify-center text-center space-y-6 pt-8">
               {loading && !otpSent ? (
                 <div className="flex flex-col items-center">
@@ -594,9 +730,9 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
             </motion.div>
           )}
 
-          {/* STEP 5: Boarding Passes */}
-          {step === 5 && tokens.length > 0 && (
-            <motion.div key="step5" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 w-full space-y-6">
+          {/* STEP 6: Boarding Passes */}
+          {step === 6 && tokens.length > 0 && (
+            <motion.div key="step6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 w-full space-y-6">
               <h2 className="text-xl font-bold text-center">Your Boarding Passes</h2>
               {tokens.map(token => {
                 const statusData = statusDataMap[token.id] || { token };

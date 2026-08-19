@@ -17,6 +17,9 @@ export class ServiceService {
       description?: string;
       expectedDuration?: number;
       locationId?: string;
+      allowAppointments?: boolean;
+      requireManualCheckIn?: boolean;
+      appointmentGranularityMins?: number;
     },
   ) {
     const servicesCount = await this.prisma.extendedClient.service.count({
@@ -39,6 +42,9 @@ export class ServiceService {
         description: data.description,
         expectedDuration: data.expectedDuration,
         locationId: data.locationId,
+        allowAppointments: data.allowAppointments,
+        requireManualCheckIn: data.requireManualCheckIn,
+        appointmentGranularityMins: data.appointmentGranularityMins,
       },
     });
 
@@ -76,14 +82,15 @@ export class ServiceService {
         description: true,
         expectedDuration: true,
         formConfig: true,
+        allowAppointments: true,
+        appointmentGranularityMins: true,
+        requireManualCheckIn: true,
         queues: {
           where: { status: 'ACTIVE' },
           select: {
             id: true,
             name: true,
             status: true,
-            allowAppointments: true,
-            appointmentGranularityMins: true,
             formConfig: true,
           },
         },
@@ -109,6 +116,9 @@ export class ServiceService {
       expectedDuration?: number;
       locationId?: string;
       queueIds?: string[];
+      allowAppointments?: boolean;
+      requireManualCheckIn?: boolean;
+      appointmentGranularityMins?: number;
     },
   ) {
     const { queueIds, ...restData } = data;
@@ -139,5 +149,88 @@ export class ServiceService {
     return this.prisma.extendedClient.service.delete({
       where: { id: exists.id },
     });
+  }
+
+  async getAvailableSlots(serviceId: string, date: string) {
+    const service = await this.prisma.service.findUnique({
+      where: { id: serviceId },
+      include: { location: true },
+    });
+
+    if (!service) throw new NotFoundException('Service not found');
+    if (!service.allowAppointments)
+      throw new BadRequestException(
+        'Appointments are not enabled for this service',
+      );
+
+    const granularityMins = service.appointmentGranularityMins || 15;
+
+    // Parse the date (assuming format YYYY-MM-DD)
+    const targetDate = new Date(date);
+    if (isNaN(targetDate.getTime())) {
+      throw new BadRequestException('Invalid date format. Use YYYY-MM-DD');
+    }
+
+    // Default business hours: 09:00 to 17:00 local time.
+    let startHour = 9;
+    let startMinute = 0;
+    let endHour = 17;
+    let endMinute = 0;
+
+    if (service.location?.businessHours) {
+      const bh = service.location.businessHours as any;
+      const dayOfWeek = targetDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const dayName = days[dayOfWeek];
+
+      if (bh[dayName]) {
+        const { start, end, closed } = bh[dayName];
+        if (closed) return []; // No slots if closed
+        if (start) {
+          const [h, m] = start.split(':');
+          startHour = parseInt(h);
+          startMinute = parseInt(m || '0');
+        }
+        if (end) {
+          const [h, m] = end.split(':');
+          endHour = parseInt(h);
+          endMinute = parseInt(m || '0');
+        }
+      }
+    }
+
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(startHour, startMinute, 0, 0);
+
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(endHour, endMinute, 0, 0);
+
+    const slots: string[] = [];
+    let currentTime = startOfDay;
+
+    while (currentTime < endOfDay) {
+      slots.push(currentTime.toISOString());
+      currentTime = new Date(currentTime.getTime() + granularityMins * 60000);
+    }
+
+    // Fetch existing appointments for that day that are not cancelled or missed
+    const existingTokens = await this.prisma.visit.findMany({
+      where: {
+        serviceId,
+        currentState: { in: ['WAITING', 'SCHEDULED', 'CREATED'] },
+        scheduledTime: {
+          gte: startOfDay,
+          lt: endOfDay,
+        },
+      },
+      select: { scheduledTime: true },
+    });
+
+    const bookedSlots = existingTokens
+      .filter((t) => t.scheduledTime)
+      .map((t) => t.scheduledTime!.toISOString());
+
+    const availableSlots = slots.filter((slot) => !bookedSlots.includes(slot));
+    return availableSlots;
   }
 }

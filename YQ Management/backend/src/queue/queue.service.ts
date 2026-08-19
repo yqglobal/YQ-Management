@@ -93,9 +93,6 @@ export class QueueService {
       formConfig?: any;
       tokenDisplayConfig?: any;
       nextQueueId?: string | null;
-      allowAppointments?: boolean;
-      requireManualCheckIn?: boolean;
-      appointmentGranularityMins?: number;
       locationId?: string | null;
       serviceIds?: string[];
     },
@@ -118,9 +115,6 @@ export class QueueService {
       formConfig?: any;
       tokenDisplayConfig?: any;
       nextQueueId?: string | null;
-      allowAppointments?: boolean;
-      requireManualCheckIn?: boolean;
-      appointmentGranularityMins?: number;
       locationId?: string | null;
       serviceIds?: string[];
     },
@@ -210,88 +204,6 @@ export class QueueService {
     });
   }
 
-  async getAvailableSlots(queueId: string, date: string) {
-    const queue = await this.prisma.queue.findUnique({
-      where: { id: queueId },
-      include: { location: true },
-    });
-
-    if (!queue) throw new NotFoundException('Queue not found');
-    if (!queue.allowAppointments)
-      throw new BadRequestException(
-        'Appointments are not enabled for this queue',
-      );
-
-    const granularityMins = queue.appointmentGranularityMins || 15;
-
-    // Parse the date (assuming format YYYY-MM-DD)
-    const targetDate = new Date(date);
-    if (isNaN(targetDate.getTime())) {
-      throw new BadRequestException('Invalid date format. Use YYYY-MM-DD');
-    }
-
-    // Default business hours: 09:00 to 17:00 local time.
-    let startHour = 9;
-    let startMinute = 0;
-    let endHour = 17;
-    let endMinute = 0;
-
-    if (queue.location?.businessHours) {
-      const bh = queue.location.businessHours as any;
-      const dayOfWeek = targetDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-      const dayName = days[dayOfWeek];
-
-      if (bh[dayName]) {
-        const { start, end, closed } = bh[dayName];
-        if (closed) return []; // No slots if closed
-        if (start) {
-          const [h, m] = start.split(':');
-          startHour = parseInt(h);
-          startMinute = parseInt(m || '0');
-        }
-        if (end) {
-          const [h, m] = end.split(':');
-          endHour = parseInt(h);
-          endMinute = parseInt(m || '0');
-        }
-      }
-    }
-
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(startHour, startMinute, 0, 0);
-
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(endHour, endMinute, 0, 0);
-
-    const slots: string[] = [];
-    let currentTime = startOfDay;
-
-    while (currentTime < endOfDay) {
-      slots.push(currentTime.toISOString());
-      currentTime = new Date(currentTime.getTime() + granularityMins * 60000);
-    }
-
-    // Fetch existing appointments for that day that are not cancelled or missed
-    const existingTokens = await this.prisma.visit.findMany({
-      where: {
-        queueId,
-        currentState: { in: ['WAITING', 'SCHEDULED', 'CREATED'] },
-        scheduledTime: {
-          gte: startOfDay,
-          lt: endOfDay,
-        },
-      },
-      select: { scheduledTime: true },
-    });
-
-    const bookedSlots = existingTokens
-      .filter((t) => t.scheduledTime)
-      .map((t) => t.scheduledTime!.toISOString());
-
-    const availableSlots = slots.filter((slot) => !bookedSlots.includes(slot));
-    return availableSlots;
-  }
 
   async getQueueByIdForTenant(id: string, tenantId: string) {
     const queue = await this.prisma.queue.findFirst({

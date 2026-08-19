@@ -83,6 +83,7 @@ export class TenantController {
       id: tenant?.id,
       name: tenant?.name,
       branding: tenant?.branding,
+      subdomain: tenant?.subdomain,
       customerExperience: tenant?.customerExperience,
     };
   }

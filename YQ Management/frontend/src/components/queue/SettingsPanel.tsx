@@ -172,50 +172,6 @@ export function SettingsPanel({
             </div>
           </div>
 
-          <div className="mt-6 border-t border-gray-200 dark:border-white/10 pt-6">
-            <h3 className="text-md font-bold text-gray-900 dark:text-white mb-4">Appointments & Hybrid Queuing</h3>
-            <div className="space-y-4">
-              <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/5 rounded-xl cursor-pointer">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Allow Future Appointments</p>
-                  <p className="text-sm text-gray-500 dark:text-zinc-500">Customers can book timeslots instead of joining immediately.</p>
-                </div>
-                <input type="checkbox" checked={allowAppointments} onChange={e => setAllowAppointments(e.target.checked)} className="sr-only peer" />
-                <div className="relative inline-flex items-center">
-                  <input type="checkbox" checked={allowAppointments} onChange={e => setAllowAppointments(e.target.checked)} className="sr-only peer" />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                </div>
-              </label>
-
-              {allowAppointments && (
-                <>
-                  <label className="flex items-center justify-between p-4 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/5 rounded-xl cursor-pointer">
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">Require Manual Check-In</p>
-                      <p className="text-sm text-gray-500 dark:text-zinc-500">Customers must click "I have arrived" to enter the live line.</p>
-                    </div>
-                    <input type="checkbox" checked={requireManualCheckIn} onChange={e => setRequireManualCheckIn(e.target.checked)} className="sr-only peer" />
-                    <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                  </label>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-zinc-400 mb-2">Scheduling Granularity (Minutes)</label>
-                    <select
-                      value={appointmentGranularityMins}
-                      onChange={(e) => setAppointmentGranularityMins(Number(e.target.value))}
-                      className="w-full max-w-xs bg-white dark:bg-black/50 border border-gray-300 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm dark:shadow-none appearance-none"
-                    >
-                      <option value={5}>5 minutes</option>
-                      <option value={10}>10 minutes</option>
-                      <option value={15}>15 minutes</option>
-                      <option value={30}>30 minutes</option>
-                      <option value={60}>60 minutes</option>
-                    </select>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
         </CardContent>
       </Card>
 

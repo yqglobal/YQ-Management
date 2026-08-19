@@ -19,4 +19,22 @@ export class PublicVisitController {
   ) {
     return this.visitService.joinQueue(queueId, body);
   }
+
+  @Post('join-multiple')
+  async joinMultiple(
+    @Body()
+    body: {
+      customerName: string;
+      phone?: string | null;
+      language?: string;
+      bookings: {
+        serviceId: string;
+        queueId?: string; // Made optional so frontend can specify or we infer
+        scheduledFor?: string;
+        formResponses?: any;
+      }[];
+    },
+  ) {
+    return this.visitService.joinMultiple(body);
+  }
 }

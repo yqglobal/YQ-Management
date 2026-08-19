@@ -10,6 +10,8 @@ import { CreateVisitModal } from '../../components/modals/CreateVisitModal';
 import { ScannerModal } from '../../components/modals/ScannerModal';
 import { WhatsAppChatPanel } from '../../components/WhatsAppChatPanel';
 import { MonitorPlay, ScanLine } from 'lucide-react';
+import { usePlan } from '../../hooks/usePlan';
+import Link from 'next/link';
 
 export default function ServiceDeskToday() {
   const queryClient = useQueryClient();
@@ -20,6 +22,8 @@ export default function ServiceDeskToday() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
   const [mobileTab, setMobileTab] = useState<'pool' | 'pipeline'>('pool');
+  
+  const plan = usePlan();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -41,6 +45,25 @@ export default function ServiceDeskToday() {
     queryKey: ['tenant', 'me'],
     queryFn: () => fetchApi('/tenant/me').catch(() => null),
   });
+
+  useEffect(() => {
+    if (!tenant || tenant.whatsappConnected) return;
+
+    const initialTimer = setTimeout(() => {
+      const toastEvent = new CustomEvent('admin-toast', { detail: { message: 'WhatsApp is not connected. Automated messages to customers are disabled.', type: 'error' } });
+      window.dispatchEvent(toastEvent);
+    }, 10000);
+
+    const interval = setInterval(() => {
+      const toastEvent = new CustomEvent('admin-toast', { detail: { message: 'Reminder: WhatsApp is disconnected. Reconnect in Settings > Integrations.', type: 'error' } });
+      window.dispatchEvent(toastEvent);
+    }, 180000);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
+  }, [tenant]);
 
   const { data: queues = [] } = useQuery({
     queryKey: ['queues'],
@@ -171,14 +194,13 @@ export default function ServiceDeskToday() {
     v.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     v.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
   return (
-    <AdminLayout pageTitle="Service Desk">
+    <AdminLayout pageTitle="Service Desk" noPadding={true}>
       <Head>
         <title>Service Desk | Qmova</title>
       </Head>
 
-      <div className="absolute inset-0 flex flex-col md:grid md:grid-cols-12 overflow-hidden bg-canvas dark:bg-dark-canvas">
+      <div className="h-full w-full flex flex-col md:grid md:grid-cols-12 overflow-hidden bg-canvas dark:bg-dark-canvas">
         
         {/* Mobile Tab Switcher */}
         <div className="md:hidden flex items-center p-3 bg-card dark:bg-dark-card border-b border-border dark:border-dark-border gap-2 shrink-0 z-20 shadow-sm">
@@ -501,12 +523,39 @@ export default function ServiceDeskToday() {
             </div>
 
             <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-surface dark:bg-dark-card border-t border-border dark:border-dark-border shrink-0">
-              <WhatsAppChatPanel 
-                tokenId={selectedVisit.id}
-                customerName={selectedVisit.customer?.name}
-                customerPhone={selectedVisit.customer?.phone}
-                queueName={selectedVisit.service?.name}
-              />
+              {plan.isFeatureEnabled('whatsappChat') ? (
+                tenant?.whatsappConnected ? (
+                  <WhatsAppChatPanel 
+                    tokenId={selectedVisit.id}
+                    customerName={selectedVisit.customer?.name}
+                    customerPhone={selectedVisit.customer?.phone}
+                    queueName={selectedVisit.service?.name}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full p-6 text-center space-y-4">
+                    <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[32px] text-amber-600 dark:text-amber-400">warning</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-on-surface dark:text-white">WhatsApp Disconnected</h3>
+                    <p className="text-body-sm text-outline">You need to connect WhatsApp to use the customer chat feature.</p>
+                    <Link href="/dashboard/settings/integrations" className="bg-primary hover:bg-primary-container text-white px-6 py-2 rounded-xl font-bold transition-colors">
+                      Connect WhatsApp
+                    </Link>
+                  </div>
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full p-6 text-center space-y-4 relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/5 dark:to-primary/10 pointer-events-none"></div>
+                  <div className="w-16 h-16 bg-surface-container dark:bg-zinc-800 rounded-full flex items-center justify-center relative z-10">
+                    <span className="material-symbols-outlined text-[32px] text-outline">lock</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-on-surface dark:text-white relative z-10">WhatsApp Chat Locked</h3>
+                  <p className="text-body-sm text-outline relative z-10 max-w-[250px]">Upgrade your plan to unlock direct WhatsApp chat with customers.</p>
+                  <Link href="/dashboard/settings/billing" className="bg-surface-container-high hover:bg-inverse-surface dark:hover:bg-white text-on-surface dark:hover:text-black px-6 py-2 rounded-xl font-bold transition-colors relative z-10 border border-border">
+                    Upgrade Plan
+                  </Link>
+                </div>
+              )}
             </div>
           </section>
         )}

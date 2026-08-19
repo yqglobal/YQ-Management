@@ -155,6 +155,121 @@ export class VisitService {
     });
   }
 
+  async joinMultiple(data: {
+    customerName: string;
+    phone?: string | null;
+    language?: string;
+    bookings: {
+      serviceId: string;
+      queueId?: string;
+      scheduledFor?: string;
+      formResponses?: any;
+    }[];
+  }) {
+    if (!data.bookings || data.bookings.length === 0) {
+      throw new BadRequestException('No bookings provided');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Find the first service to get tenantId and locationId (assuming all bookings are for the same location/tenant)
+      const firstService = await tx.service.findUnique({
+        where: { id: data.bookings[0].serviceId },
+        include: { queues: true }
+      });
+      if (!firstService) throw new BadRequestException('Service not found');
+
+      const tenantId = firstService.tenantId;
+      const locationId = firstService.locationId;
+      if (!locationId) throw new BadRequestException('Service is not assigned to a Location');
+
+      let customer = await tx.customer.findFirst({
+        where: { phone: data.phone || undefined, tenantId }
+      });
+
+      if (!customer) {
+        customer = await tx.customer.create({
+          data: {
+            tenantId,
+            name: data.customerName || 'Walk-in',
+            phone: data.phone,
+          }
+        });
+      }
+
+      const visits = [];
+
+      for (const booking of data.bookings) {
+        const service = await tx.service.findUnique({
+          where: { id: booking.serviceId },
+          include: { queues: true }
+        });
+
+        if (!service) throw new BadRequestException(`Service ${booking.serviceId} not found`);
+
+        let queueId = booking.queueId;
+
+        if (!queueId) {
+          const activeQueues = service.queues.filter(q => q.status === 'ACTIVE');
+          if (activeQueues.length > 0) {
+            queueId = activeQueues[0].id;
+          } else {
+            throw new BadRequestException(`No active queue found for service ${service.name}`);
+          }
+        } else {
+          const queue = await tx.queue.findUnique({ where: { id: queueId }});
+          if (!queue || queue.status !== 'ACTIVE') {
+            throw new BadRequestException(`Queue ${queueId} is not active or doesn't exist`);
+          }
+        }
+
+        const q = await tx.queue.findUnique({ where: { id: queueId }});
+        const config = (q?.tokenDisplayConfig as any) || {};
+        const prefix = config.prefix || 'Q';
+        const numberPart = Math.floor(1000 + Math.random() * 9000).toString();
+        const displayId = `${prefix}${numberPart}`;
+
+        let scheduledTime: Date | undefined;
+        let currentState = 'WAITING';
+
+        if (booking.scheduledFor && service.allowAppointments) {
+           scheduledTime = new Date(booking.scheduledFor);
+           currentState = service.requireManualCheckIn ? 'CREATED' : 'SCHEDULED';
+        }
+
+        const visit = await tx.visit.create({
+          data: {
+            tenantId,
+            customerId: customer.id,
+            locationId: locationId,
+            queueId,
+            serviceId: service.id,
+            displayId,
+            currentState,
+            scheduledTime,
+            waitingStart: currentState === 'WAITING' ? new Date() : null,
+            language: data.language || 'en',
+            formResponses: booking.formResponses || {},
+            metadata: {
+              customerName: data.customerName,
+              phone: data.phone
+            }
+          }
+        });
+
+        await tx.outboxEvent.create({
+          data: {
+            type: 'VISIT_CREATED',
+            payload: { visitId: visit.id, queueId, tenantId, displayId }
+          }
+        });
+
+        visits.push(visit);
+      }
+
+      return visits;
+    });
+  }
+
   async advanceTurn(queueId: string, operatorId?: string) {
     return this.prisma.$transaction(async (tx) => {
       const oldestWaiting = await tx.visit.findFirst({

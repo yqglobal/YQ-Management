@@ -18,6 +18,9 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   const [expectedDuration, setExpectedDuration] = useState('15');
   const [selectedLocId, setSelectedLocId] = useState(locationId || '');
   const [selectedQueueIds, setSelectedQueueIds] = useState<string[]>([]);
+  const [allowAppointments, setAllowAppointments] = useState(false);
+  const [requireManualCheckIn, setRequireManualCheckIn] = useState(false);
+  const [appointmentGranularityMins, setAppointmentGranularityMins] = useState(15);
 
   const queryClient = useQueryClient();
 
@@ -27,6 +30,9 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setDescription(service.description || '');
       setExpectedDuration(service.expectedDuration?.toString() || '15');
       setSelectedLocId(service.locationId || locationId || '');
+      setAllowAppointments(service.allowAppointments || false);
+      setRequireManualCheckIn(service.requireManualCheckIn || false);
+      setAppointmentGranularityMins(service.appointmentGranularityMins || 15);
       // If service includes queues, map them
       if (service.queues) {
         setSelectedQueueIds(service.queues.map((q: any) => q.id));
@@ -37,6 +43,9 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setExpectedDuration('15');
       setSelectedLocId(locationId || '');
       setSelectedQueueIds([]);
+      setAllowAppointments(false);
+      setRequireManualCheckIn(false);
+      setAppointmentGranularityMins(15);
     }
   }, [service, locationId, isOpen]);
 
@@ -85,7 +94,10 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       description, 
       expectedDuration: parseInt(expectedDuration, 10),
       locationId: selectedLocId,
-      queueIds: selectedQueueIds
+      queueIds: selectedQueueIds,
+      allowAppointments,
+      requireManualCheckIn,
+      appointmentGranularityMins
     });
   };
 
@@ -163,6 +175,55 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
               onChange={(e) => setExpectedDuration(e.target.value)}
               className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
             />
+          </div>
+
+          <div className="pt-4 border-t border-gray-200 dark:border-white/10 space-y-4">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">Appointments & Booking</h3>
+            
+            <label className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/5 rounded-xl cursor-pointer">
+              <input
+                type="checkbox"
+                checked={allowAppointments}
+                onChange={(e) => setAllowAppointments(e.target.checked)}
+                className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+              />
+              <div>
+                <span className="text-sm font-medium text-gray-900 dark:text-white block">Allow Appointments</span>
+                <span className="text-xs text-gray-500 dark:text-zinc-500 block">Customers can book future timeslots</span>
+              </div>
+            </label>
+
+            {allowAppointments && (
+              <>
+                <label className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/5 rounded-xl cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={requireManualCheckIn}
+                    onChange={(e) => setRequireManualCheckIn(e.target.checked)}
+                    className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white block">Require Manual Check-In</span>
+                    <span className="text-xs text-gray-500 dark:text-zinc-500 block">Customers must physically check-in at location</span>
+                  </div>
+                </label>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Timeslot Size (Minutes)</label>
+                  <select
+                    value={appointmentGranularityMins}
+                    onChange={(e) => setAppointmentGranularityMins(Number(e.target.value))}
+                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+                  >
+                    <option value={5}>Every 5 minutes</option>
+                    <option value={10}>Every 10 minutes</option>
+                    <option value={15}>Every 15 minutes</option>
+                    <option value={30}>Every 30 minutes</option>
+                    <option value={60}>Every 1 hour</option>
+                  </select>
+                </div>
+              </>
+            )}
           </div>
 
           {service && queues.length > 0 && (

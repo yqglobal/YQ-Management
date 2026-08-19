@@ -60,9 +60,6 @@ export default function QueueDetails() {
       setFormData({
         name: queue.name,
         serviceIds: queue.services?.map((s: any) => s.id) || [],
-        allowAppointments: queue.allowAppointments || false,
-        requireManualCheckIn: queue.requireManualCheckIn || false,
-        appointmentGranularityMins: queue.appointmentGranularityMins || 15,
         tokenDisplayConfig: queue.tokenDisplayConfig || { prefix: '', format: 'SEQUENTIAL' },
         formConfig: queue.formConfig || { requireEmail: false, requirePhone: false, customFields: [] },
       });
@@ -230,12 +227,6 @@ export default function QueueDetails() {
             onClick={() => setActiveTab('token')}
             icon="tag"
             label="Token Settings" 
-          />
-          <TabButton 
-            active={activeTab === 'appointments'} 
-            onClick={() => setActiveTab('appointments')}
-            icon="event_note"
-           label="Appointments" 
           />
           <TabButton
             active={activeTab === 'links'}
@@ -490,48 +481,6 @@ export default function QueueDetails() {
             </div>
           )}
 
-          {activeTab === 'appointments' && (
-            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-[24px] p-8 relative overflow-hidden">
-               <div className="absolute left-0 top-0 bottom-0 w-2 bg-primary dark:bg-sky-500"></div>
-              <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white border-b border-border dark:border-dark-border pb-4 mb-6 tracking-tight font-semibold">Appointments & Booking</h2>
-              
-              <div className="space-y-6 max-w-xl">
-                <div className="flex items-start gap-4 p-4 rounded-xl border border-border dark:border-dark-border bg-surface-bright dark:bg-zinc-900 cursor-pointer">
-                  <div className="flex items-center h-5 mt-1">
-                    <input 
-                      type="checkbox" 
-                      id="allowAppointments"
-                      checked={formData.allowAppointments || false}
-                      onChange={(e) => setFormData({...formData, allowAppointments: e.target.checked})}
-                      className="w-5 h-5 text-primary border-border rounded focus:ring-primary"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="allowAppointments" className="font-body-md font-bold text-on-surface dark:text-white cursor-pointer">Allow Appointments</label>
-                    <p className="font-body-sm text-on-surface-variant dark:text-outline mt-1">Enable customers to book future timeslots in this queue.</p>
-                  </div>
-                </div>
-
-                {formData.allowAppointments && (
-                  <div className="pl-10">
-                    <label className="block font-body-md font-medium text-on-surface dark:text-white mb-2">Timeslot Granularity (Minutes)</label>
-                    <select 
-                      value={formData.appointmentGranularityMins || 15} 
-                      onChange={(e) => setFormData({...formData, appointmentGranularityMins: parseInt(e.target.value)})}
-                      className="w-full h-[44px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-md text-on-surface dark:text-white cursor-pointer" 
-                    >
-                      <option value={5}>Every 5 minutes</option>
-                      <option value={10}>Every 10 minutes</option>
-                      <option value={15}>Every 15 minutes</option>
-                      <option value={30}>Every 30 minutes</option>
-                      <option value={60}>Every 1 hour</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {activeTab === 'links' && (() => {
             const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
             const tenantUrl = tenant?.subdomain ? getTenantUrl(tenant.subdomain) : baseUrl;
@@ -542,7 +491,7 @@ export default function QueueDetails() {
                 icon: 'monitor',
                 title: 'TV Lobby Display',
                 description: 'Open this URL on a TV or screen share to show a live calling board for your lobby.',
-                url: `${baseUrl}/tv/${tenantId}`,
+                url: `${baseUrl}/tv/${tenantId}?serviceId=${queue?.serviceId || ''}&queueId=${queue?.id || ''}`,
               },
             ];
             return (

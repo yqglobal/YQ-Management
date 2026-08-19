@@ -158,7 +158,11 @@ export default function TVDisplay() {
   const timeStr = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const dateStr = currentTime.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
 
-  const joinUrl = tenantSubdomain ? getTenantUrl(tenantSubdomain) : '';
+  const { serviceId, queueId } = router.query;
+  const joinUrl = tenantSubdomain ? `${getTenantUrl(tenantSubdomain)}${(serviceId || queueId) ? `?${new URLSearchParams({
+    ...(serviceId && { serviceId: serviceId as string }),
+    ...(queueId && { queueId: queueId as string })
+  }).toString()}` : ''}` : '';
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-zinc-950 p-6 text-white select-none" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>

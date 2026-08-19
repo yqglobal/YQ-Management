@@ -70,9 +70,6 @@ export class QueueController {
       formConfig?: any;
       tokenDisplayConfig?: any;
       nextQueueId?: string | null;
-      allowAppointments?: boolean;
-      requireManualCheckIn?: boolean;
-      appointmentGranularityMins?: number;
       locationId?: string | null;
       serviceIds?: string[];
     },
@@ -152,12 +149,5 @@ export class QueueController {
     return this.queueService.getQueueTokens(id);
   }
 
-  // Public endpoint to get available slots for appointments
-  @Get(':id/slots')
-  async getAvailableSlots(
-    @Param('id') id: string,
-    @Query('date') date: string,
-  ) {
-    return this.queueService.getAvailableSlots(id, date);
-  }
+
 }

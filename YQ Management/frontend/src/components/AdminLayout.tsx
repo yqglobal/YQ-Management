@@ -23,9 +23,10 @@ interface AdminLayoutProps {
   topNavLinks?: { label: string; href: string }[];
   settingsMode?: boolean;
   settingsNavLinks?: { label: string; href: string; icon?: React.ReactNode }[];
+  noPadding?: boolean;
 }
 
-export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavLinks = [], settingsMode = false, settingsNavLinks = [] }: AdminLayoutProps) {
+export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavLinks = [], settingsMode = false, settingsNavLinks = [], noPadding = false }: AdminLayoutProps) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
@@ -117,7 +118,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const activeLocation = locations.find((l: any) => l.id === activeLocationId) || locations[0];
 
   const navItems = [
-    { label: 'Service Desk', href: '/dashboard/today', icon: 'desktop_windows', pageId: 'service-desk' },
+    { label: 'Service Desk', href: '/dashboard/service-desk', icon: 'desktop_windows', pageId: 'service-desk' },
     { label: 'Scanner', href: '/dashboard/check-in', icon: 'qr_code_scanner', pageId: 'service-desk' },
     { label: 'Schedule', href: '/dashboard/appointments', icon: 'calendar_today', pageId: 'appointments' },
     { label: 'Queues', href: '/dashboard/queues', icon: 'list_alt', pageId: 'service-desk' },
@@ -281,7 +282,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                       TV Display
                     </a>
                     <a
-                      href={tenant?.subdomain ? `http://${tenant.subdomain}.localhost:3001` : '#'}
+                      href={tenant?.subdomain ? getTenantUrl(tenant.subdomain, '/booking') : '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors text-on-surface"
@@ -571,9 +572,8 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
         </div>
       </nav>
 
-      {/* Main Content Canvas */}
       <main className={`ml-0 md:ml-sidebar-w flex-1 flex flex-col overflow-hidden overscroll-none bg-canvas dark:bg-dark-canvas relative ${settingsMode ? 'mt-[108px]' : 'mt-header-h'}`}>
-        <div className="flex-1 overflow-auto overscroll-none p-margin-mobile md:p-margin-desktop w-full relative">
+        <div className={`flex-1 overflow-auto overscroll-none w-full relative ${noPadding ? '' : 'p-margin-mobile md:p-margin-desktop'}`}>
            {children}
         </div>
       </main>

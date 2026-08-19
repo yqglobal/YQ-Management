@@ -228,9 +228,7 @@ model Queue {
   tokenDisplayConfig Json? // Display settings and token number generation config
 
   // Future Bookings & Hybrid Queuing
-  allowAppointments          Boolean    @default(false)
-  requireManualCheckIn       Boolean    @default(false) // If true, customer must click "I have arrived"
-  appointmentGranularityMins Int        @default(15) // e.g. 15 mins increments
+  // Future Bookings & Hybrid Queuing
   tenant                     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   workspace                  Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   location                   Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
@@ -597,6 +595,11 @@ model Service {
   minDuration      Int?
   maxDuration      Int?
   formConfig       Json? // Service-specific forms
+  // Future Bookings & Hybrid Queuing
+  allowAppointments          Boolean    @default(false)
+  requireManualCheckIn       Boolean    @default(false) // If true, customer must click "I have arrived"
+  appointmentGranularityMins Int        @default(15) // e.g. 15 mins increments
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
