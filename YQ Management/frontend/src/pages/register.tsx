@@ -41,7 +41,21 @@ export default function Register() {
             }
           }
         })
-        .catch(() => {});
+    }
+
+    if (router.query.error) {
+      const err = router.query.error as string;
+      if (err === 'ALREADY_LINKED_GOOGLE') {
+        setError('Account with this email already exists via Google.');
+      } else if (err === 'EMAIL_PWD_ACCOUNT') {
+        setError('Account with this email already exists.');
+      } else {
+        setError(err);
+      }
+      
+      // Clean up the URL
+      const { error: _error, ...restQuery } = router.query;
+      router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
     }
   }, [router.query]);
 
@@ -344,7 +358,7 @@ export default function Register() {
 
               <div className="mt-8">
                 <a 
-                  href={`${getBackendUrl()}/auth/google`}
+                  href={`${getBackendUrl()}/auth/google?intent=signup`}
                   className="w-full h-11 flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors font-medium text-zinc-300"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">

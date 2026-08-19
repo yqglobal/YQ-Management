@@ -1,3 +1,4 @@
+import { GoogleAuthGuard } from './google-auth.guard';
 import {
   Controller,
   Post,
@@ -171,19 +172,27 @@ export class AuthController {
   }
 
   @Get('google')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleAuthGuard)
   async googleAuth(@Req() req: any) {
     // Initiates the Google OAuth2 login flow
   }
 
   @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleAuthGuard)
   async googleAuthRedirect(
     @Req() req: any,
     @Res() res: any,
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
   ) {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+
+    if (req.user?._oauthError) {
+      const intent = req.query.state || 'login';
+      const redirectPage = intent === 'signup' ? 'register' : 'login';
+      return res.redirect(`${frontendUrl}/${redirectPage}?error=${req.user._oauthError}`);
+    }
+
     const { access_token } = await this.authService.login(req.user, ip, userAgent);
 
     res.cookie('token', access_token, {
@@ -201,7 +210,7 @@ export class AuthController {
         process.env.SUPER_ADMIN_EMAIL?.toLowerCase();
     const isNewUser =
       req.user.isNewUser || (!req.user.workspaceId && !isSuperAdmin);
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+
     if (isSuperAdmin) {
       res.redirect(`${frontendUrl}/super-admin?token=${access_token}`);
     } else if (isNewUser) {

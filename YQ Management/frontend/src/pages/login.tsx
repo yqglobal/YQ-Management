@@ -37,6 +37,23 @@ export default function Login() {
         })
         .catch(() => {});
     }
+
+    if (router.query.error) {
+      const err = router.query.error as string;
+      if (err === 'NO_ACCOUNT') {
+        setError('No Google account linked with this email.');
+      } else if (err === 'EMAIL_PWD_ACCOUNT') {
+        setError('Account linked as email/password login.');
+      } else if (err === 'ALREADY_LINKED_GOOGLE') {
+        setError('Account with this email already linked via Google.');
+      } else {
+        setError(err);
+      }
+      
+      // Clean up the URL
+      const { error: _error, ...restQuery } = router.query;
+      router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    }
   }, [router.query]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -293,7 +310,7 @@ export default function Login() {
 
               <div className="mt-8">
                 <a 
-                  href={`${getBackendUrl()}/auth/google`}
+                  href={`${getBackendUrl()}/auth/google?intent=login`}
                   className="w-full h-11 flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors font-medium text-zinc-300"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">

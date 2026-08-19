@@ -29,7 +29,13 @@ export class AuthService {
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersService.findOneByEmail(email);
-    if (user && user.password && (await bcrypt.compare(pass, user.password))) {
+    if (!user) return null;
+
+    if (!user.password && user.googleId) {
+      throw new UnauthorizedException('ACCOUNT_LINKED_GOOGLE');
+    }
+
+    if (user.password && (await bcrypt.compare(pass, user.password))) {
       const { password, ...result } = user;
       return result;
     }
@@ -88,13 +94,33 @@ export class AuthService {
     return user;
   }
 
-  async validateOAuthLogin(email: string, googleId: string, fullName?: string) {
+  async validateOAuthLogin(email: string, googleId: string, fullName?: string, intent: string = 'login') {
     try {
       let user = await this.usersService.findOneByEmail(email);
       let isNewUser = false;
 
-      if (!user) {
-        this.logger.log(`Unknown user attempted Google SSO: ${email}. Creating new tenant and user account.`);
+      if (intent === 'login') {
+        if (!user) {
+          this.logger.log(`User attempted Google Login but has no account: ${email}`);
+          return { _oauthError: 'NO_ACCOUNT' };
+        }
+        
+        if (!user.googleId) {
+          this.logger.log(`User attempted Google Login but account is linked to email/pwd: ${email}`);
+          return { _oauthError: 'EMAIL_PWD_ACCOUNT' };
+        }
+      } else if (intent === 'signup') {
+        if (user) {
+          if (user.googleId) {
+            this.logger.log(`User attempted Google Signup but already linked to Google: ${email}`);
+            return { _oauthError: 'ALREADY_LINKED_GOOGLE' };
+          } else {
+            this.logger.log(`User attempted Google Signup but already has email/pwd account: ${email}`);
+            return { _oauthError: 'EMAIL_PWD_ACCOUNT' };
+          }
+        }
+        
+        this.logger.log(`Unknown user attempted Google SSO Signup: ${email}. Creating new tenant and user account.`);
         const tenantName = email.split('@')[0] + "'s Workspace";
         
         const tenant = await this.usersService['prisma'].tenant.create({
@@ -132,12 +158,6 @@ export class AuthService {
         });
 
         isNewUser = true;
-      } else if (!user.googleId) {
-        // Link Google ID if account already exists with email
-        user = await this.usersService['prisma'].user.update({
-          where: { id: user.id },
-          data: { googleId },
-        });
       }
 
       return { ...user, isNewUser };

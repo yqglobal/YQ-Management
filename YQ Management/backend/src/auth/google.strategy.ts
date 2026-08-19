@@ -29,10 +29,12 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientSecret: clientSecret || 'missing-client-secret',
       callbackURL,
       scope: ['email', 'profile'],
+      passReqToCallback: true,
     });
   }
 
   async validate(
+    req: any,
     accessToken: string,
     refreshToken: string,
     profile: any,
@@ -46,7 +48,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       return done(new Error('No email found in Google profile'));
     }
 
-    const user = await this.authService.validateOAuthLogin(email, googleId, fullName);
+    const intent = req.query.state || 'login';
+    const user = await this.authService.validateOAuthLogin(email, googleId, fullName, intent);
     done(null, user);
   }
 }
