@@ -15,9 +15,8 @@ export class PaymentsService {
   private readonly siteCode = process.env.OZOW_SITE_CODE || '';
   private readonly privateKey = process.env.OZOW_PRIVATE_KEY || '';
   private readonly apiKey = process.env.OZOW_API_KEY || '';
-  private readonly baseUrl = process.env.BACKEND_URL || 'http://localhost:3000';
-  private readonly frontendUrl =
-    process.env.FRONTEND_URL || 'http://localhost:3001';
+  private readonly baseUrl = process.env.BACKEND_URL || (process.env.NODE_ENV === 'production' ? 'https://qmova-backend.onrender.com' : 'http://localhost:3000');
+  private readonly frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://yq-qmova.vercel.app' : 'http://localhost:3001');
 
   private getOzowCheckoutUrl() {
     const sandboxMode =
