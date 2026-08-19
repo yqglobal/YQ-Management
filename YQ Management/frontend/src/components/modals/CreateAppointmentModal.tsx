@@ -16,7 +16,11 @@ interface CreateAppointmentModalProps {
 
 export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentModalProps) {
   const router = useRouter();
-  const [customerId, setCustomerId] = useState('');
+  const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  
   const [locationId, setLocationId] = useState('');
   const [queueId, setQueueId] = useState('');
   const [serviceId, setServiceId] = useState('');
@@ -24,15 +28,11 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
   const [scheduledTime, setScheduledTime] = useState('');
   const [notes, setNotes] = useState('');
   
-  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
-  
   const queryClient = useQueryClient();
   const plan = usePlan();
 
-  const { data: customers = [] } = useQuery({
-    queryKey: ['customers'],
-    queryFn: () => fetchApi('/customer'),
-    enabled: isOpen,
+  const createCustomerMutation = useMutation({
+    mutationFn: (data: any) => fetchApi('/customer', { method: 'POST', body: JSON.stringify(data) })
   });
 
   const { data: locations = [] } = useQuery({
@@ -72,7 +72,10 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
   });
 
   const handleClose = () => {
-    setCustomerId('');
+    setName('');
+    setAge('');
+    setPhone('');
+    setEmail('');
     setLocationId('');
     setQueueId('');
     setServiceId('');
@@ -82,36 +85,49 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerId || !locationId || !serviceId || !scheduledDate || !scheduledTime) return;
+    if (!name || !locationId || !serviceId || !scheduledDate || !scheduledTime) return;
     
-    const service = services.find((s: any) => s.id === serviceId);
-    const duration = service?.expectedDuration || 15;
-    
-    let scheduledStart: Date;
-    let scheduledEnd: Date;
+    try {
+      const service = services.find((s: any) => s.id === serviceId);
+      const duration = service?.expectedDuration || 15;
+      
+      let scheduledStart: Date;
+      let scheduledEnd: Date;
 
-    if (queueId) {
-      // scheduledTime is a full ISO string from the slots endpoint
-      scheduledStart = new Date(scheduledTime);
-      scheduledEnd = new Date(scheduledStart.getTime() + duration * 60000);
-    } else {
-      scheduledStart = new Date(`${scheduledDate}T${scheduledTime}:00`);
-      scheduledEnd = new Date(scheduledStart.getTime() + duration * 60000);
+      if (queueId) {
+        // scheduledTime is a full ISO string from the slots endpoint
+        scheduledStart = new Date(scheduledTime);
+        scheduledEnd = new Date(scheduledStart.getTime() + duration * 60000);
+      } else {
+        scheduledStart = new Date(`${scheduledDate}T${scheduledTime}:00`);
+        scheduledEnd = new Date(scheduledStart.getTime() + duration * 60000);
+      }
+
+      // 1. Create or find customer
+      const customer = await createCustomerMutation.mutateAsync({
+        name,
+        phone: phone || undefined,
+        email: email || undefined,
+      });
+      
+      // 2. Create appointment
+      await createMutation.mutateAsync({
+        customerId: customer.id,
+        locationId,
+        queueId: queueId || undefined,
+        serviceId,
+        customerNotes: notes,
+        scheduledStart: scheduledStart.toISOString(),
+        scheduledEnd: scheduledEnd.toISOString(),
+        bookingSource: 'APPOINTMENT',
+        status: 'CONFIRMED',
+        metadata: age ? { age } : undefined
+      });
+    } catch (error) {
+      toast.error('Failed to create appointment');
     }
-    
-    createMutation.mutate({
-      customerId,
-      locationId,
-      queueId: queueId || undefined,
-      serviceId,
-      customerNotes: notes,
-      scheduledStart: scheduledStart.toISOString(),
-      scheduledEnd: scheduledEnd.toISOString(),
-      bookingSource: 'APPOINTMENT',
-      status: 'CONFIRMED'
-    });
   };
 
   if (!isOpen || typeof document === 'undefined') return null;
@@ -156,28 +172,51 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300">Customer <span className="text-red-500">*</span></label>
-                  <button 
-                    type="button" 
-                    onClick={() => setIsCustomerModalOpen(true)}
-                    className="text-xs font-medium text-indigo-600 hover:text-indigo-500 flex items-center gap-1"
-                  >
-                    <UserPlus className="w-3 h-3" /> New Customer
-                  </button>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    required
+                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                    placeholder="John Doe"
+                  />
                 </div>
-                <select 
-                  value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
-                  className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
-                  required
-                >
-                  <option value="">Select a customer</option>
-                  {customers.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</option>
-                  ))}
-                </select>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Age <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(Optional)</span></label>
+                  <input
+                    type="number"
+                    value={age}
+                    onChange={e => setAge(e.target.value)}
+                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                    placeholder="e.g. 30"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Phone <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(Optional)</span></label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                    placeholder="+1 234 567 8900"
+                  />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Email <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(Optional)</span></label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                    placeholder="john@example.com"
+                  />
+                </div>
               </div>
 
               <div>
@@ -294,7 +333,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                 </button>
                 <button 
                   type="submit"
-                  disabled={createMutation.isPending || !customerId || !locationId || !serviceId || !scheduledDate || !scheduledTime}
+                  disabled={createMutation.isPending || !name || !locationId || !serviceId || !scheduledDate || !scheduledTime}
                   className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors shadow-[0_0_15px_rgba(79,70,229,0.3)] disabled:opacity-50"
                 >
                   {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -306,14 +345,6 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
         </div>,
         document.body
       )}
-
-      <CreateCustomerModal 
-        isOpen={isCustomerModalOpen} 
-        onClose={() => setIsCustomerModalOpen(false)}
-        onSuccess={(customer) => {
-          setCustomerId(customer.id);
-        }}
-      />
     </>
   );
 }

@@ -130,6 +130,15 @@ export class ServiceService {
       };
     }
 
+    if (restData.locationId !== undefined) {
+      if (restData.locationId === null) {
+        updateData.location = { disconnect: true };
+      } else {
+        updateData.location = { connect: { id: restData.locationId } };
+      }
+      delete updateData.locationId;
+    }
+
     return this.prisma.extendedClient.service
       .update({
         where: { id_tenantId: { id, tenantId } },

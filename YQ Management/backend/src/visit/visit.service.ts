@@ -263,7 +263,7 @@ export class VisitService {
             queueId,
             serviceId: service.id,
             displayId,
-            currentState,
+            currentState: currentState as any,
             scheduledTime,
             waitingStart: currentState === 'WAITING' ? new Date() : null,
             language: data.language || 'en',

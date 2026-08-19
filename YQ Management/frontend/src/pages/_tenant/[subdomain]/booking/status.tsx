@@ -4,10 +4,9 @@ import { useRouter } from 'next/router';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'react-qr-code';
-import { getApiUrl } from '../../../../lib/utils';
 import { Sun, Moon } from 'lucide-react';
 
-const baseUrl = getApiUrl();
+const baseUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') : 'http://localhost:3000';
 
 export default function StatusPage() {
   const router = useRouter();
