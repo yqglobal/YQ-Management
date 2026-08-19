@@ -47,7 +47,15 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
     if (!tokenId) return;
     try {
       const data = await fetchApi(`/messages/token/${tokenId}`);
-      if (Array.isArray(data)) setMessages(data);
+      if (Array.isArray(data)) {
+        const mapped = data.map((m: any) => ({
+          id: m.id,
+          body: m.body,
+          fromMe: m.sender === 'OPERATOR',
+          timestamp: m.createdAt,
+        }));
+        setMessages(mapped);
+      }
       setError(null);
     } catch (e: any) {
       setError(e?.message || 'Unable to load messages. Ensure WhatsApp is connected.');

@@ -178,7 +178,7 @@ export default function ServiceDeskToday() {
         <title>Service Desk | Qmova</title>
       </Head>
 
-      <div className="flex-1 flex flex-col md:grid md:grid-cols-12 overflow-hidden h-[calc(100vh-64px)] w-full -m-4 md:-m-10">
+      <div className="absolute inset-0 flex flex-col md:grid md:grid-cols-12 overflow-hidden bg-canvas dark:bg-dark-canvas">
         
         {/* Mobile Tab Switcher */}
         <div className="md:hidden flex items-center p-3 bg-card dark:bg-dark-card border-b border-border dark:border-dark-border gap-2 shrink-0 z-20 shadow-sm">
