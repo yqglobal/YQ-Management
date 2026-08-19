@@ -316,7 +316,7 @@ export default function BillingSettings() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            {plans.filter((p: any) => !p.name.toLowerCase().includes('enterprise')).map((plan: {
+            {plans.map((plan: {
               id: string;
               name: string;
               description?: string;
@@ -525,7 +525,7 @@ export default function BillingSettings() {
               {paymentData && (
                 <form ref={paymentFormRef} action={paymentData.checkoutUrl || paymentData.paymentUrl} method="POST" target="_self" className="hidden">
                   {ozowFields.map(field => (
-                    <input key={field} type="hidden" name={field} value={String(paymentData[field] ?? '')} />
+                    <input key={field} type="hidden" name={field.charAt(0).toUpperCase() + field.slice(1)} value={String(paymentData[field] ?? '')} />
                   ))}
                 </form>
               )}
