@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import AdminLayout from './AdminLayout';
 import { Shield, Workflow, CreditCard, Building, User, Box } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from './AuthContext';
 
 interface SettingsLayoutProps {
   children: React.ReactNode;
@@ -21,15 +22,23 @@ const settingsNavLinks = [
 
 export default function SettingsLayout({ children, pageTitle = 'Settings', pageSubtitle = '' }: SettingsLayoutProps) {
   const router = useRouter();
+  const { user } = useAuth();
 
-  const activeSection = settingsNavLinks.find(l => router.pathname === l.href);
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN';
+
+  const filteredNavLinks = settingsNavLinks.filter(link => {
+    if (link.href === '/dashboard/settings/profile') return true;
+    return isAdmin;
+  });
+
+  const activeSection = filteredNavLinks.find(l => router.pathname === l.href);
   const displayTitle = pageTitle === 'Settings' ? (activeSection?.label || 'Settings') : pageTitle;
 
   return (
     <AdminLayout
       pageTitle="Settings"
       settingsMode
-      settingsNavLinks={settingsNavLinks}
+      settingsNavLinks={filteredNavLinks}
     >
       <div className="max-w-4xl mx-auto">
         {/* Page Header */}

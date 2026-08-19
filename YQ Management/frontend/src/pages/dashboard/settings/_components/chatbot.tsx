@@ -14,6 +14,11 @@ export default function ChatbotSettings() {
     queryFn: () => fetchApi('/tenant/me'),
   });
 
+  const { data: staffList = [] } = useQuery({
+    queryKey: ['staff'],
+    queryFn: () => fetchApi('/staff'),
+  });
+
   const [chatbotEnabled, setChatbotEnabled] = useState(false);
   const [config, setConfig] = useState({
     botName: 'Qmova Assistant',
@@ -125,12 +130,18 @@ export default function ChatbotSettings() {
                       </div>
                       <div className="space-y-2">
                         <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline uppercase tracking-wider">Human Agent Name (Fallback)</label>
-                        <input
-                          type="text"
+                        <select
                           value={config.agentName}
                           onChange={(e) => setConfig({ ...config, agentName: e.target.value })}
-                          className="w-full h-[44px] px-4 bg-white dark:bg-black/50 border border-border dark:border-dark-border rounded-lg font-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-[#8b5cf6] focus:border-[#8b5cf6] shadow-sm"
-                        />
+                          className="w-full h-[44px] px-4 bg-white dark:bg-black/50 border border-border dark:border-dark-border rounded-lg font-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-[#8b5cf6] focus:border-[#8b5cf6] shadow-sm appearance-none"
+                        >
+                          <option value="Support Team">Support Team (Default)</option>
+                          {staffList.map((staff: any) => (
+                            <option key={staff.id} value={staff.name || staff.email}>
+                              {staff.name || staff.email}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
 
