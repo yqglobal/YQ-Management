@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import Head from 'next/head';
 import AdminLayout from '../../../components/AdminLayout';
-import { Plus, X, Loader2, ListOrdered, Settings2, PlayCircle, PauseCircle, CheckCircle2 } from 'lucide-react';
+import { Plus, X, Loader2, ListOrdered, Settings2, PlayCircle, PauseCircle, CheckCircle2, Printer } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import { QuotaExhaustedModal } from '../../../components/QuotaExhaustedModal';
 import Link from 'next/link';
 import { ServiceModal } from '../../../components/modals/ServiceModal';
 import { LinkServicesModal } from '../../../components/modals/LinkServicesModal';
+import PrintQRModal from '../../../components/PrintQRModal';
 
 export default function QueuesList() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function QueuesList() {
   const [selectedLocationId, setSelectedLocationId] = useState('');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [showQuotaModal, setShowQuotaModal] = useState(false);
+  const [isPrintQRModalOpen, setIsPrintQRModalOpen] = useState(false);
   const queryClient = useQueryClient();
   const plan = usePlan();
 
@@ -117,13 +119,23 @@ export default function QueuesList() {
             <h1 className="text-2xl font-bold text-on-surface dark:text-white tracking-tight">Queues</h1>
             <p className="text-sm text-on-surface-variant dark:text-zinc-400 mt-0.5">Manage your virtual and physical queues</p>
           </div>
-          <button
-            onClick={() => plan.isAtQueueLimit ? setShowQuotaModal(true) : setIsModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-container text-white rounded-xl font-semibold transition-all shadow-sm border border-primary/20 hover:-translate-y-0.5 w-fit"
-          >
-            <Plus strokeWidth={1.5} className="w-5 h-5" />
-            Create Queue
-          </button>
+                    <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsPrintQRModalOpen(true)}
+              disabled={isLoading || queues.length === 0}
+              className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-low dark:bg-white/5 border border-border dark:border-dark-border hover:bg-surface-container dark:hover:bg-white/10 text-on-surface dark:text-white rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
+            >
+              <Printer strokeWidth={1.5} className="w-4 h-4" />
+              Print QR
+            </button>
+            <button
+              onClick={() => plan.isAtQueueLimit ? setShowQuotaModal(true) : setIsModalOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-container text-white rounded-xl font-semibold transition-all shadow-sm border border-primary/20 hover:-translate-y-0.5 w-fit"
+            >
+              <Plus strokeWidth={1.5} className="w-5 h-5" />
+              Create Queue
+            </button>
+          </div>
         </div>
 
         {/* List */}
@@ -325,6 +337,11 @@ export default function QueuesList() {
       <ServiceModal 
         isOpen={isServiceModalOpen}
         onClose={() => setIsServiceModalOpen(false)}
+      />
+      <PrintQRModal 
+        open={isPrintQRModalOpen} 
+        onClose={() => setIsPrintQRModalOpen(false)} 
+        queues={queues} 
       />
     </AdminLayout>
   );
