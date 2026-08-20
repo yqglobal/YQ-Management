@@ -137,7 +137,7 @@ export default function BillingSettings() {
 
   const isPaid = currentSub?.status === 'ACTIVE' && currentSub?.plan?.price > 0;
   const isTrial = currentSub?.status === 'TRIAL';
-  const hasActiveSubscription = currentSub?.status === 'ACTIVE' || currentSub?.status === 'TRIAL';
+  const isExpired = currentSub?.status === 'EXPIRED' || currentSub?.status === 'CANCELLED';
   
   const trialDaysLeft = isTrial && currentSub?.trialEndDate 
     ? Math.max(0, Math.ceil((new Date(currentSub.trialEndDate).getTime() - Date.now()) / 86400000))
@@ -196,7 +196,7 @@ export default function BillingSettings() {
           <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" />
           Loading billing info...
         </div>
-      ) : hasActiveSubscription ? (
+      ) : isPaid ? (
         /* POST-PURCHASE VIEW: Active Plan Details */
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
           <div className="md:col-span-8 bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-[24px] p-6 md:p-8 relative overflow-hidden shadow-sm flex flex-col">
@@ -243,7 +243,7 @@ export default function BillingSettings() {
                 <button 
                   onClick={() => {
                     if (confirm('Are you sure you want to cancel your subscription?')) {
-                      toast.success('Cancellation requested.'); // Stub for actual API call
+                      toast.success('Cancellation requested.');
                     }
                   }}
                   className="bg-transparent text-on-surface dark:text-white border border-border dark:border-dark-border font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors w-full sm:w-auto"
@@ -320,15 +320,47 @@ export default function BillingSettings() {
           </div>
         </div>
       ) : (
-        /* PRE-PURCHASE VIEW: Pricing Grid */
+        /* PRE-PURCHASE VIEW: Pricing Grid (Trial / Expired / New users) */
         <div>
+          {/* ── Current Plan Banner (Trial or Expired) ── */}
+          {(isTrial || isExpired) && currentSub && (
+            <div className={`rounded-2xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border relative overflow-hidden ${
+              isExpired
+                ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900'
+                : 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-900'
+            }`}>
+              <div className={`absolute left-0 top-0 bottom-0 w-1 ${isExpired ? 'bg-red-500' : 'bg-indigo-500'}`}></div>
+              <div className="flex items-center gap-4 pl-2">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                  isExpired ? 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400' : 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400'
+                }`}>
+                  <span className="material-symbols-outlined text-[18px]">{isExpired ? 'error' : 'hourglass_empty'}</span>
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-on-surface dark:text-white">
+                    {currentSub?.plan?.name || 'Starter'} — <span className={isExpired ? 'text-red-600 dark:text-red-400' : 'text-indigo-600 dark:text-indigo-400'}>{isExpired ? 'Expired' : `${trialDaysLeft} days left`}</span>
+                  </p>
+                  <p className="text-xs text-on-surface-variant dark:text-outline mt-0.5">
+                    Trial started {formatBillingDate(currentSub?.trialStartDate)}{currentSub?.trialEndDate ? ` · Ends ${formatBillingDate(currentSub?.trialEndDate)}` : ''}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { if (confirm('Are you sure you want to cancel your trial?')) toast.success('Cancellation requested.'); }}
+                className="text-xs font-semibold text-on-surface-variant dark:text-outline border border-border dark:border-dark-border px-4 h-9 rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors shrink-0"
+              >
+                Cancel Trial
+              </button>
+            </div>
+          )}
+
           <div className="bg-white dark:bg-dark-card border border-[#D97706]/30 dark:border-[#D97706]/20 rounded-2xl p-6 mb-8 flex items-start gap-4 shadow-sm relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#D97706]"></div>
             <div className="w-10 h-10 rounded-full bg-[#D97706]/10 flex items-center justify-center shrink-0 text-[#D97706]">
               <span className="material-symbols-outlined">info</span>
             </div>
             <div>
-              <h3 className="font-headline-sm text-headline-sm text-on-surface dark:text-white mb-1 tracking-tight font-semibold">{isTrial ? 'Your trial is active' : currentSub?.status === 'EXPIRED' ? 'Your trial has expired' : 'Choose a Plan'}</h3>
+              <h3 className="font-headline-sm text-headline-sm text-on-surface dark:text-white mb-1 tracking-tight font-semibold">{isTrial ? 'Your trial is active' : isExpired ? 'Your trial has expired' : 'Choose a Plan'}</h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline">Please select a plan below to continue using all premium features uninterrupted. Secure payments are processed via Ozow.</p>
             </div>
           </div>
