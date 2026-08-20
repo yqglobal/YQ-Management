@@ -177,7 +177,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const services = tenant?.services || [];
 
   return (
-    <div className="bg-canvas dark:bg-dark-canvas text-on-surface dark:text-white font-body-md h-full overflow-hidden flex flex-col antialiased">
+    <div className="bg-canvas dark:bg-dark-canvas text-on-surface dark:text-white font-body-md h-screen overflow-hidden flex flex-col antialiased">
       {!hasAcceptedPolicies && <AdvancedPoliciesModal />}
       <DashboardTour />
 
