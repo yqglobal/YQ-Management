@@ -219,7 +219,7 @@ export default function ServiceDeskToday() {
         </div>
 
         {/* Column 1: Monitored Pipeline */}
-        <section className={`${mobileTab === 'pipeline' ? 'flex' : 'hidden'} md:flex flex-col md:col-span-3 bg-card dark:bg-dark-card border-r border-border dark:border-dark-border p-4 md:p-6 h-full overflow-y-auto`}>
+        <section className={`${mobileTab === 'pipeline' ? 'flex' : 'hidden'} md:flex flex-col md:col-span-3 bg-card dark:bg-dark-card border-r border-border dark:border-dark-border p-4 md:p-6 min-h-0 overflow-y-auto`}>
           <div className="flex items-center justify-between mb-6">
             {tenant?.locations && tenant.locations.length > 1 && (
               <select
@@ -346,7 +346,7 @@ export default function ServiceDeskToday() {
         </section>
 
         {/* Column 2: Priority Queue Pool */}
-        <section className={`${mobileTab === 'pool' ? 'flex' : 'hidden'} md:flex md:col-span-1 ${selectedVisit ? 'md:col-span-6' : 'md:col-span-9'} bg-canvas dark:bg-dark-canvas p-4 md:p-6 flex-col h-full overflow-hidden transition-all duration-300`}>
+        <section className={`${mobileTab === 'pool' ? 'flex' : 'hidden'} md:flex md:col-span-1 ${selectedVisit ? 'md:col-span-6' : 'md:col-span-9'} bg-canvas dark:bg-dark-canvas p-4 md:p-6 flex-col min-h-0 overflow-hidden transition-all duration-300`}>
           
 
           <div className="flex items-center justify-between mb-6 shrink-0">
@@ -464,7 +464,7 @@ export default function ServiceDeskToday() {
 
         {/* Column 3: Visitor Context */}
         {selectedVisit && (
-          <section className="hidden md:flex flex-col col-span-3 bg-card dark:bg-dark-card border-l border-border dark:border-dark-border h-full relative animate-in slide-in-from-right-8">
+          <section className="hidden md:flex flex-col col-span-3 bg-card dark:bg-dark-card border-l border-border dark:border-dark-border min-h-0 relative animate-in slide-in-from-right-8">
             <div className="p-6 border-b border-border dark:border-dark-border shrink-0 relative">
               <button 
                 onClick={() => setSelectedVisit(null)} 
