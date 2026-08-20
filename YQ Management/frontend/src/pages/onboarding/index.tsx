@@ -28,8 +28,7 @@ const BUSINESS_TEMPLATES = [
       {
         name: 'General Queue',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Full Name', required: true, system: false },
-          { id: 'phone', type: 'phone', label: 'WhatsApp Number', required: true, system: false }
+          { id: 'notes', type: 'textarea', label: 'Reason for visit', required: false, system: false }
         ]
       }
     ]
@@ -43,23 +42,18 @@ const BUSINESS_TEMPLATES = [
       {
         name: 'Walk-in Clinic',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Patient Name', required: true, system: false },
-          { id: 'phone', type: 'phone', label: 'WhatsApp Number', required: true, system: false },
           { id: 'symptoms', type: 'textarea', label: 'Primary Symptoms', required: true, system: false }
         ]
       },
       {
         name: 'Pharmacy Pickup',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Patient Name', required: true, system: false },
           { id: 'prescription', type: 'text', label: 'Prescription Number', required: true, system: false }
         ]
       },
       {
         name: 'Doctor Appointment',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Patient Name', required: true, system: false },
-          { id: 'phone', type: 'phone', label: 'WhatsApp Number', required: true, system: false },
           { id: 'doctor', type: 'dropdown', label: 'Doctor', required: true, system: false, options: ['Dr. Smith', 'Dr. Johnson', 'Dr. Lee'] }
         ]
       }
@@ -74,15 +68,12 @@ const BUSINESS_TEMPLATES = [
       {
         name: 'Order Pickup',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Customer Name', required: true, system: false },
           { id: 'orderNum', type: 'text', label: 'Order Number', required: true, system: false }
         ]
       },
       {
         name: 'Dine-in Waitlist',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Name', required: true, system: false },
-          { id: 'phone', type: 'phone', label: 'WhatsApp Number', required: true, system: false },
           { id: 'partySize', type: 'dropdown', label: 'Party Size', required: true, system: false, options: ['1-2', '3-4', '5-6', '7+'] },
           { id: 'highChair', type: 'checkbox', label: 'Need a high chair?', required: false, system: false }
         ]
@@ -98,7 +89,6 @@ const BUSINESS_TEMPLATES = [
       {
         name: 'Document Submission',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Applicant Name', required: true, system: false },
           { id: 'passport', type: 'text', label: 'Passport Number', required: true, system: false },
           { id: 'visaType', type: 'dropdown', label: 'Visa Type', required: true, system: false, options: ['Tourist', 'Business', 'Student', 'Work'] }
         ]
@@ -106,8 +96,6 @@ const BUSINESS_TEMPLATES = [
       {
         name: 'Biometrics',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Applicant Name', required: true, system: false },
-          { id: 'phone', type: 'phone', label: 'WhatsApp Number', required: true, system: false },
           { id: 'appointmentId', type: 'text', label: 'Appointment ID', required: true, system: false }
         ]
       }
@@ -122,17 +110,12 @@ const BUSINESS_TEMPLATES = [
       {
         name: 'Haircut & Styling',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Client Name', required: true, system: false },
-          { id: 'phone', type: 'phone', label: 'WhatsApp Number', required: true, system: false },
           { id: 'stylist', type: 'dropdown', label: 'Preferred Stylist', required: false, system: false, options: ['Anyone', 'Alex', 'Sam', 'Jordan'] }
         ]
       },
       {
         name: 'Color & Treatment',
-        formConfig: [
-          { id: 'name', type: 'text', label: 'Client Name', required: true, system: false },
-          { id: 'phone', type: 'phone', label: 'WhatsApp Number', required: true, system: false }
-        ]
+        formConfig: []
       }
     ]
   },
@@ -145,15 +128,12 @@ const BUSINESS_TEMPLATES = [
       {
         name: 'Teller Services',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Customer Name', required: true, system: false },
           { id: 'accountNum', type: 'text', label: 'Account Number (optional)', required: false, system: false }
         ]
       },
       {
         name: 'Loan Consultation',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Customer Name', required: true, system: false },
-          { id: 'phone', type: 'phone', label: 'Phone Number', required: true, system: false },
           { id: 'loanType', type: 'dropdown', label: 'Loan Type', required: true, system: false, options: ['Personal', 'Mortgage', 'Auto', 'Business'] }
         ]
       }
@@ -168,15 +148,13 @@ const BUSINESS_TEMPLATES = [
       {
         name: 'Parcel Pickup',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Customer Name', required: true, system: false },
           { id: 'trackingNum', type: 'text', label: 'Tracking Number', required: true, system: false }
         ]
       },
       {
         name: 'Dispatch / Drop-off',
         formConfig: [
-          { id: 'name', type: 'text', label: 'Sender Name', required: true, system: false },
-          { id: 'phone', type: 'phone', label: 'WhatsApp Number', required: true, system: false }
+          { id: 'reference', type: 'text', label: 'Drop-off Reference', required: false, system: false }
         ]
       }
     ]

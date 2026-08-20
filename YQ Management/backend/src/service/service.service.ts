@@ -20,6 +20,7 @@ export class ServiceService {
       allowAppointments?: boolean;
       requireManualCheckIn?: boolean;
       appointmentGranularityMins?: number;
+      formConfig?: any;
     },
   ) {
     const servicesCount = await this.prisma.extendedClient.service.count({
@@ -45,6 +46,7 @@ export class ServiceService {
         allowAppointments: data.allowAppointments,
         requireManualCheckIn: data.requireManualCheckIn,
         appointmentGranularityMins: data.appointmentGranularityMins,
+        formConfig: data.formConfig,
       },
     });
 
@@ -119,6 +121,7 @@ export class ServiceService {
       allowAppointments?: boolean;
       requireManualCheckIn?: boolean;
       appointmentGranularityMins?: number;
+      formConfig?: any;
     },
   ) {
     const { queueIds, ...restData } = data;

@@ -47,6 +47,7 @@ export class ServiceController {
       allowAppointments?: boolean;
       requireManualCheckIn?: boolean;
       appointmentGranularityMins?: number;
+      formConfig?: any;
     },
   ) {
     return this.serviceService.create(req.user.tenantId, body);
@@ -79,6 +80,7 @@ export class ServiceController {
       allowAppointments?: boolean;
       requireManualCheckIn?: boolean;
       appointmentGranularityMins?: number;
+      formConfig?: any;
     },
   ) {
     return this.serviceService.update(id, req.user.tenantId, body);

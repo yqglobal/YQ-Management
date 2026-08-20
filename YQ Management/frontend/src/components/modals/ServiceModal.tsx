@@ -21,6 +21,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   const [allowAppointments, setAllowAppointments] = useState(false);
   const [requireManualCheckIn, setRequireManualCheckIn] = useState(false);
   const [appointmentGranularityMins, setAppointmentGranularityMins] = useState(15);
+  const [formConfig, setFormConfig] = useState<any[]>([]);
 
   const queryClient = useQueryClient();
 
@@ -33,6 +34,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setAllowAppointments(service.allowAppointments || false);
       setRequireManualCheckIn(service.requireManualCheckIn || false);
       setAppointmentGranularityMins(service.appointmentGranularityMins || 15);
+      setFormConfig(service.formConfig || []);
       // If service includes queues, map them
       if (service.queues) {
         setSelectedQueueIds(service.queues.map((q: any) => q.id));
@@ -46,6 +48,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setAllowAppointments(false);
       setRequireManualCheckIn(false);
       setAppointmentGranularityMins(15);
+      setFormConfig([]);
     }
   }, [service, locationId, isOpen]);
 
@@ -97,7 +100,8 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       queueIds: selectedQueueIds,
       allowAppointments,
       requireManualCheckIn,
-      appointmentGranularityMins
+      appointmentGranularityMins,
+      formConfig
     });
   };
 
@@ -251,6 +255,99 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
               </div>
             </div>
           )}
+
+          <div className="pt-4 border-t border-gray-200 dark:border-white/10 space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">Custom Booking Questions</h3>
+              <button
+                type="button"
+                onClick={() => setFormConfig([...formConfig, { id: Math.random().toString(36).substr(2, 9), type: 'text', label: '', required: false, system: false }])}
+                className="text-xs font-semibold px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+              >
+                + Add Question
+              </button>
+            </div>
+            {formConfig.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-zinc-500 italic">No custom questions added. By default, Name and Phone are collected.</p>
+            ) : (
+              <div className="space-y-3">
+                {formConfig.map((field, index) => (
+                  <div key={field.id} className="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/5 p-4 rounded-xl relative group">
+                    <button
+                      type="button"
+                      onClick={() => setFormConfig(formConfig.filter((_, i) => i !== index))}
+                      className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3 pr-6">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-zinc-300 mb-1">Question Label</label>
+                        <input
+                          type="text"
+                          value={field.label}
+                          onChange={(e) => {
+                            const newConfig = [...formConfig];
+                            newConfig[index].label = e.target.value;
+                            setFormConfig(newConfig);
+                          }}
+                          placeholder="e.g. Order Number"
+                          className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:ring-1 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-zinc-300 mb-1">Response Type</label>
+                        <select
+                          value={field.type}
+                          onChange={(e) => {
+                            const newConfig = [...formConfig];
+                            newConfig[index].type = e.target.value;
+                            setFormConfig(newConfig);
+                          }}
+                          className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:ring-1 focus:ring-indigo-500"
+                        >
+                          <option value="text">Short Text</option>
+                          <option value="textarea">Long Text</option>
+                          <option value="phone">Phone Number</option>
+                          <option value="dropdown">Dropdown</option>
+                          <option value="checkbox">Checkbox (Yes/No)</option>
+                        </select>
+                      </div>
+                    </div>
+                    {field.type === 'dropdown' && (
+                      <div className="mb-3">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-zinc-300 mb-1">Dropdown Options (comma-separated)</label>
+                        <input
+                          type="text"
+                          value={field.options ? field.options.join(', ') : ''}
+                          onChange={(e) => {
+                            const newConfig = [...formConfig];
+                            newConfig[index].options = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                            setFormConfig(newConfig);
+                          }}
+                          placeholder="Option 1, Option 2, Option 3"
+                          className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:ring-1 focus:ring-indigo-500"
+                        />
+                      </div>
+                    )}
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={field.required}
+                        onChange={(e) => {
+                          const newConfig = [...formConfig];
+                          newConfig[index].required = e.target.checked;
+                          setFormConfig(newConfig);
+                        }}
+                        className="w-3.5 h-3.5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                      />
+                      <span className="text-xs font-medium text-gray-700 dark:text-zinc-300">Required field</span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </form>
 
         <div className="p-6 border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20 flex justify-end gap-3 shrink-0">

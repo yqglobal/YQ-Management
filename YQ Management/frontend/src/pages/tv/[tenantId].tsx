@@ -170,7 +170,7 @@ export default function TVDisplay() {
   const timeStr = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const dateStr = currentTime.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
 
-  const { serviceId, queueId } = router.query;
+  const { serviceId } = router.query;
   const joinUrl = tenantSubdomain ? `${getTenantUrl(tenantSubdomain, '/booking')}${(serviceId || queueId) ? `?${new URLSearchParams({
     ...(serviceId && { serviceId: serviceId as string }),
     ...(queueId && { queueId: queueId as string })

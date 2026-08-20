@@ -27,6 +27,7 @@ export class SubscriptionCron {
     });
 
     for (const sub of expired) {
+      if (!sub.tenantId) continue;
       try {
         await this.subscriptionService.expireTrial(sub.tenantId);
         this.logger.log(`Expired trial for workspace ${sub.tenantId}`);
@@ -69,6 +70,7 @@ export class SubscriptionCron {
       });
 
       for (const sub of upcoming) {
+        if (!sub.tenantId) continue;
         try {
           const workspaceOwner = await this.prisma.user.findFirst({
             where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
@@ -110,6 +112,7 @@ export class SubscriptionCron {
     });
 
     for (const sub of expired) {
+      if (!sub.tenantId) continue;
       try {
         await this.subscriptionService.cancelSubscription(sub.tenantId, {
           immediate: true,
