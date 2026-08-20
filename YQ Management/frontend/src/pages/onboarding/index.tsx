@@ -326,20 +326,9 @@ export default function Onboarding() {
           body: JSON.stringify({ 
             name: `${s.name} Service`, 
             locationId: location.id,
-            description: 'Created during setup'
+            description: 'Created during setup',
+            formConfig: s.formConfig
           }),
-        });
-
-        await fetchApi('/queue', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: `${s.name} Queue`,
-            locationId: location.id,
-            serviceIds: [service.id],
-            formConfig: s.formConfig,
-            status: 'active',
-            estimatedWaitTimeMinutes: 15
-          })
         });
       }));
       

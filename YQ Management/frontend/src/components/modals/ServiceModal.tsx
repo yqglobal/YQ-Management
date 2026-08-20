@@ -34,7 +34,14 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setAllowAppointments(service.allowAppointments || false);
       setRequireManualCheckIn(service.requireManualCheckIn || false);
       setAppointmentGranularityMins(service.appointmentGranularityMins || 15);
-      setFormConfig(service.formConfig || []);
+      let initialFormConfig = service.formConfig || [];
+      if (initialFormConfig.length === 0 && service.queues && service.queues.length > 0) {
+        const queueWithConfig = service.queues.find((q: any) => q.formConfig && q.formConfig.length > 0);
+        if (queueWithConfig) {
+          initialFormConfig = queueWithConfig.formConfig;
+        }
+      }
+      setFormConfig(initialFormConfig);
       // If service includes queues, map them
       if (service.queues) {
         setSelectedQueueIds(service.queues.map((q: any) => q.id));
