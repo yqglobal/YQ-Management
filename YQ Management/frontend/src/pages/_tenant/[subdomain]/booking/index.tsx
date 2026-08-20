@@ -71,6 +71,19 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [defaultCountry, setDefaultCountry] = useState<any>('US');
+
+  useEffect(() => {
+    fetch('https://ipapi.co/json/')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.country_code) {
+          setDefaultCountry(data.country_code);
+        }
+      })
+      .catch(() => {
+        // Fallback or ignore error
+      });
+  }, []);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   
   const [regionBlocked, setRegionBlocked] = useState(false);
@@ -347,7 +360,13 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
           targetUrl = `/t/${parts[2]}/booking/status?tokens=${accessTokens}`;
         }
       }
-      router.push(targetUrl);
+      router.push(
+        {
+          pathname: '/_tenant/[subdomain]/booking/status',
+          query: { subdomain: router.query.subdomain, tokens: accessTokens },
+        },
+        targetUrl
+      );
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to complete booking.');
     } finally {

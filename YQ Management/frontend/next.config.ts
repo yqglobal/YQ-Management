@@ -13,9 +13,7 @@ const nextConfig: NextConfig = {
   /* config options */
   reactStrictMode: true,
   turbopack: {},
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+
   typescript: {
     ignoreBuildErrors: true,
   },

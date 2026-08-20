@@ -11,3 +11,7 @@ services:
         value: apikey
       - key: AUTHENTICATION_API_KEY
         value: "<EVOLUTION_API_KEY>"
+      - key: DATABASE_PROVIDER
+        value: "postgresql"
+      - key: DATABASE_CONNECTION_URI
+        value: "<POSTGRES_URL_FROM_RENDER>"

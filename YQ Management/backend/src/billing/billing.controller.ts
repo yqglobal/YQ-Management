@@ -38,23 +38,18 @@ export class BillingController {
     private readonly prisma: PrismaService,
   ) {}
 
-  private async resolveWorkspaceId(req: AuthenticatedRequest): Promise<string | null> {
-    if (req.user.workspaceId) return req.user.workspaceId;
-    if (req.user.tenantId) {
-      const workspace = await this.prisma.workspace.findFirst({ where: { tenantId: req.user.tenantId } });
-      return workspace?.id || null;
-    }
-    return null;
+    private async resolveTenantId(req: AuthenticatedRequest): Promise<string | null> {
+    return req.user.tenantId || null;
   }
 
   @Get('workspace')
   async getWorkspaceBilling(@Request() req: AuthenticatedRequest) {
-    const workspaceId = await this.resolveWorkspaceId(req);
-    if (!workspaceId) return null;
+    const tenantId = await this.resolveTenantId(req);
+    if (!tenantId) return null;
     const [subscription, transactions, usage] = await Promise.all([
-      this.subscriptionService.getSubscription(workspaceId),
-      this.paymentsService.getTransactionHistory(workspaceId, 0, 20),
-      this.usageService.getUsage(workspaceId),
+      this.subscriptionService.getSubscription(tenantId),
+      this.paymentsService.getTransactionHistory(tenantId, 0, 20),
+      this.usageService.getUsage(tenantId),
     ]);
 
     return {
@@ -73,14 +68,14 @@ export class BillingController {
   ) {
     const ps = periodStart ? new Date(periodStart) : undefined;
     const pe = periodEnd ? new Date(periodEnd) : undefined;
-    const workspaceId = await this.resolveWorkspaceId(req);
-    if (!workspaceId) return null;
-    return this.usageService.getUsage(workspaceId, ps, pe);
+    const tenantId = await this.resolveTenantId(req);
+    if (!tenantId) return null;
+    return this.usageService.getUsage(tenantId, ps, pe);
   }
 
   @Get(['workspace/subscription', 'subscriptions/current'])
   async getCurrentSubscription(@Request() req: AuthenticatedRequest) {
-    const targetId = await this.resolveWorkspaceId(req);
+    const targetId = await this.resolveTenantId(req);
     if (!targetId) return null;
     return this.subscriptionService.getSubscription(targetId);
   }
@@ -91,10 +86,10 @@ export class BillingController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: CreateSubscriptionDto,
   ) {
-    const workspaceId = await this.resolveWorkspaceId(req);
-    if (!workspaceId) return null;
+    const tenantId = await this.resolveTenantId(req);
+    if (!tenantId) return null;
     return this.subscriptionService.createSubscription(
-      workspaceId,
+      tenantId,
       dto,
     );
   }
@@ -105,10 +100,10 @@ export class BillingController {
     @Request() req: AuthenticatedRequest,
     @Body() body: CreateSubscriptionDto,
   ) {
-    const workspaceId = await this.resolveWorkspaceId(req);
-    if (!workspaceId) return null;
+    const tenantId = await this.resolveTenantId(req);
+    if (!tenantId) return null;
     return this.subscriptionService.startFreeTrial(
-      workspaceId,
+      tenantId,
       body.planId,
       body.trialDays ?? 7,
     );
@@ -120,10 +115,10 @@ export class BillingController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: UpgradeSubscriptionDto,
   ) {
-    const workspaceId = await this.resolveWorkspaceId(req);
-    if (!workspaceId) return null;
+    const tenantId = await this.resolveTenantId(req);
+    if (!tenantId) return null;
     return this.subscriptionService.upgradeSubscription(
-      workspaceId,
+      tenantId,
       dto,
     );
   }
@@ -135,7 +130,7 @@ export class BillingController {
     @Body() dto: DowngradeSubscriptionDto,
   ) {
     return this.subscriptionService.downgradeSubscription(
-      req.user.workspaceId,
+      req.user.tenantId,
       dto,
     );
   }
@@ -147,7 +142,7 @@ export class BillingController {
     @Body() dto: CancelSubscriptionDto,
   ) {
     return this.subscriptionService.cancelSubscription(
-      req.user.workspaceId,
+      req.user.tenantId,
       dto,
     );
   }
@@ -159,7 +154,7 @@ export class BillingController {
     @Body() dto: ResumeSubscriptionDto,
   ) {
     return this.subscriptionService.resumeSubscription(
-      req.user.workspaceId,
+      req.user.tenantId,
       dto,
     );
   }
@@ -171,7 +166,7 @@ export class BillingController {
     @Query('limit') limit?: number,
   ) {
     return this.subscriptionService.getSubscriptionHistory(
-      req.user.workspaceId,
+      req.user.tenantId,
       offset ?? 0,
       limit ?? 50,
     );
@@ -180,13 +175,13 @@ export class BillingController {
   @Post('workspace/subscription/renew')
   @Roles(Role.TENANT_ADMIN)
   async renewSubscription(@Request() req: AuthenticatedRequest) {
-    return this.subscriptionService.renewSubscription(req.user.workspaceId);
+    return this.subscriptionService.renewSubscription(req.user.tenantId);
   }
 
   @Post('workspace/subscription/expire-trial')
   @Roles(Role.TENANT_ADMIN)
   async expireTrial(@Request() req: AuthenticatedRequest) {
-    return this.subscriptionService.expireTrial(req.user.workspaceId);
+    return this.subscriptionService.expireTrial(req.user.tenantId);
   }
 }
 
@@ -203,7 +198,7 @@ export class BillingInvoicesController {
     @Query('limit') limit?: number,
   ) {
     return this.invoiceService.listInvoices(
-      req.user.workspaceId,
+      req.user.tenantId,
       offset ?? 0,
       limit ?? 50,
     );
@@ -215,6 +210,6 @@ export class BillingInvoicesController {
     @Request() req: AuthenticatedRequest,
     @Body() body: GenerateInvoiceDto,
   ) {
-    return this.invoiceService.generateInvoice(req.user.workspaceId);
+    return this.invoiceService.generateInvoice(req.user.tenantId);
   }
 }

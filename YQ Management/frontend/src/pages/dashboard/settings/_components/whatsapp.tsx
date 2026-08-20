@@ -338,7 +338,7 @@ export default function WhatsAppSettingsPage() {
                        {whatsappStatus?.state === 'connecting' ? (
                          <>
                            <Loader2 strokeWidth={1.5} className="w-12 h-12 text-outline animate-spin" />
-                           <span className="font-body-sm font-semibold text-outline">Connecting...</span>
+                           <span className="font-body-sm font-semibold text-outline">Waiting for scan...</span>
                          </>
                        ) : (
                          <>
