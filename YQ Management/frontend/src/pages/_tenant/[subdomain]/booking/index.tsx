@@ -334,7 +334,14 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
       }
       const data = await res.json();
       const accessTokens = data.map((d: any) => d.accessToken).filter(Boolean).join(',');
-      router.push(`/booking/status?tokens=${accessTokens}`);
+      let targetUrl = `/booking/status?tokens=${accessTokens}`;
+      if (window.location.pathname.startsWith('/t/')) {
+        const parts = window.location.pathname.split('/');
+        if (parts.length >= 3) {
+          targetUrl = `/t/${parts[2]}/booking/status?tokens=${accessTokens}`;
+        }
+      }
+      router.push(targetUrl);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to complete booking.');
     } finally {
