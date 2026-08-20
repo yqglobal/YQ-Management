@@ -233,11 +233,14 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
 
   const formConfig = React.useMemo(() => {
     if (!currentService || !currentQueue) return [];
-    let config: any[] = [];
-    if (currentService.formConfig) config = [...config, ...currentService.formConfig];
-    if (currentQueue.formConfig) config = [...config, ...currentQueue.formConfig];
-    // Deduplicate
-    return Array.from(new Map(config.map(item => [item.id, item])).values());
+    // 2. Add service-specific or queue-specific custom questions
+    let customConfig: any[] = [];
+    if (currentService.formConfig && currentService.formConfig.length > 0) {
+      customConfig = currentService.formConfig;
+    } else if (currentQueue.formConfig && currentQueue.formConfig.length > 0) {
+      customConfig = currentQueue.formConfig;
+    }
+    return customConfig;
   }, [currentService, currentQueue]);
 
   const handleNextStep2 = (e: React.FormEvent) => {
