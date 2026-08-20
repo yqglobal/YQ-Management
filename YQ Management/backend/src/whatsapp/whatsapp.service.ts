@@ -182,6 +182,13 @@ export class WhatsappService implements OnModuleInit {
           const state = this.extractState(stateRes.data);
 
           if (state === 'open') {
+            if (!tenant.whatsappConnected) {
+              this.logger.warn(
+                `Zombie socket detected for ${instanceName}! DB says disconnected, but Evolution API says open. Attempting soft restart...`
+              );
+              // Ping connect to see if Evolution API can force a socket refresh
+              await this.fetchEvo(`/instance/connect/${instanceName}`, 'GET').catch(() => {});
+            }
             // Connected — just ensure webhook is configured
             await this.setWebhook(instanceName).catch(() => {});
             this.logger.log(
@@ -198,8 +205,9 @@ export class WhatsappService implements OnModuleInit {
             // Do NOT call /connect here — that would generate a QR and disrupt the user.
             // The webhook will notify us via 'connection.update' when state changes.
             this.logger.warn(
-              `Instance ${instanceName} is in 'close' state. Will wait for user to manually reconnect if needed.`,
+              `Instance ${instanceName} is in 'close' state. Attempting to wake it up by calling /connect.`,
             );
+            await this.fetchEvo(`/instance/connect/${instanceName}`, 'GET');
           }
         }
       }
@@ -1489,8 +1497,10 @@ export class WhatsappService implements OnModuleInit {
       'POST',
       {
         number: normalizedNumber,
+        options: { delay: 0, presence: "composing" },
         text,
       },
+      25000,
     );
 
     if (result.error) {
@@ -1511,6 +1521,9 @@ export class WhatsappService implements OnModuleInit {
           result.status === 401 ||
           result.status === 404 ||
           result.status === 428 ||
+          result.status === 408 ||
+          result.status === 502 ||
+          result.status === 503 ||
           result.error.message.includes('not connected')
         ) {
           this.logger.warn(
@@ -1526,7 +1539,11 @@ export class WhatsappService implements OnModuleInit {
           });
         }
       }
-      return { success: false, error: result.error.message };
+      let errorMsg = result.error.message;
+      if (result.status === 408 || result.status === 502 || result.status === 503) {
+        errorMsg = "WhatsApp connection is temporarily unsynchronized. The system is auto-recovering the connection in the background. Please try again in 10-20 seconds.";
+      }
+      return { success: false, error: errorMsg };
     }
 
     this.logger.log(
@@ -1576,7 +1593,16 @@ export class WhatsappService implements OnModuleInit {
       }
     );
     if (result.error) {
-      return { success: false, error: result.error.message };
+      let errorMsg = result.error.message;
+      if (result.status === 408 || result.status === 502 || result.status === 503) {
+        // Demote connection state so auto-healer can pick it up
+        await this.prisma.tenant.updateMany({
+          where: { whatsappInstanceId: instanceName },
+          data: { whatsappConnected: false }
+        });
+        errorMsg = "WhatsApp connection is temporarily unsynchronized. The system is auto-recovering the connection in the background. Please try again in 10-20 seconds.";
+      }
+      return { success: false, error: errorMsg };
     }
     return { success: true, providerId: result.data?.key?.id };
   }
@@ -1629,7 +1655,16 @@ export class WhatsappService implements OnModuleInit {
       this.logger.error(
         `Failed to send WhatsApp buttons to ${normalizedNumber} on ${instanceName}: ${result.error.message}`,
       );
-      return { success: false, error: result.error.message };
+      let errorMsg = result.error.message;
+      if (result.status === 408 || result.status === 502 || result.status === 503) {
+        // Demote connection state so auto-healer can pick it up
+        await this.prisma.tenant.updateMany({
+          where: { whatsappInstanceId: instanceName },
+          data: { whatsappConnected: false }
+        });
+        errorMsg = "WhatsApp connection is temporarily unsynchronized. The system is auto-recovering the connection in the background. Please try again in 10-20 seconds.";
+      }
+      return { success: false, error: errorMsg };
     }
 
     this.logger.log(
@@ -1900,7 +1935,11 @@ export class WhatsappService implements OnModuleInit {
       this.logger.error(
         `Failed to send WhatsApp List to ${normalizedNumber}: ${result.error.message}`,
       );
-      return { success: false, error: result.error.message };
+      let errorMsg = result.error.message;
+      if (result.status === 408 || result.status === 502 || result.status === 503) {
+        errorMsg = "WhatsApp phone appears to be offline or unreachable. Please ensure it has an active internet connection.";
+      }
+      return { success: false, error: errorMsg };
     }
 
     return { success: true, providerId: result.data?.key?.id };

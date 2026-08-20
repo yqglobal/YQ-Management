@@ -95,7 +95,7 @@ export default function JoinPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4 relative overflow-x-hidden">
         <Head><title>Join Workspace | Qmova</title></Head>
         <div className="noise-overlay"></div>
         
@@ -132,7 +132,7 @@ export default function JoinPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-4 relative overflow-x-hidden">
       <Head><title>Join Workspace | Qmova</title></Head>
       <div className="noise-overlay"></div>
       

@@ -58,6 +58,7 @@ export class SubscriptionCron {
       const upcoming = await this.prisma.subscription.findMany({
         where: {
           status: 'ACTIVE',
+          cancellationDate: null,
           nextBillingDate: {
             gte: targetDateStart,
             lte: targetDateEnd,

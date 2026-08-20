@@ -135,7 +135,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex relative overflow-hidden">
+    <div className="min-h-screen bg-zinc-950 text-white flex relative overflow-x-hidden">
       <Head>
         <title>Login | Qmova</title>
       </Head>

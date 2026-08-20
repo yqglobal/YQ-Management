@@ -22,6 +22,11 @@ export class CustomerService {
   async findAll(tenantId: string) {
     return this.prisma.extendedClient.customer.findMany({
       where: { tenantId },
+      include: {
+        visits: {
+          select: { id: true, createdAt: true, completedAt: true, currentState: true }
+        }
+      }
     });
   }
 

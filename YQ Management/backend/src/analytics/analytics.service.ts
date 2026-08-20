@@ -27,6 +27,8 @@ export class AnalyticsService {
         serviceStart: true,
         completedAt: true,
         rating: true,
+        service: { select: { id: true, name: true } },
+        queue: { select: { id: true, name: true } },
         operatorUser: {
           select: { id: true, email: true, personalSettings: true },
         },
@@ -46,19 +48,37 @@ export class AnalyticsService {
     let totalRating = 0;
     let ratingCount = 0;
 
+    let slaViolations = 0;
+    const SLA_THRESHOLD_MINS = 15;
+
+    const svcMap = new Map<string, { id: string; name: string; totalWaitMs: number; count: number; violations: number; walkaways: number; queues: Map<string, { name: string; totalWaitMs: number; count: number; violations: number; walkaways: number }> }>();
+
     const operatorStats = new Map<
       string,
       { email: string; name: string; served: number; serviceTimeMs: number }
     >();
 
     tokens.forEach((t: any) => {
-      if (t.currentState === 'COMPLETED') totalCompleted++;
-      if (t.currentState === 'MISSED') totalMissed++;
+      let isWalkaway = ['NO_SHOW', 'CANCELLED', 'MISSED'].includes(t.currentState);
 
-      if (t.serviceStart && t.currentState !== 'MISSED') {
+      if (t.currentState === 'COMPLETED') totalCompleted++;
+      if (isWalkaway) totalMissed++;
+
+      let waitMs = 0;
+      let hasWait = false;
+      if (t.serviceStart && t.createdAt) {
+        waitMs = t.serviceStart.getTime() - t.createdAt.getTime();
+        hasWait = true;
+      }
+
+      if (hasWait && t.currentState !== 'MISSED' && t.currentState !== 'CANCELLED' && t.currentState !== 'NO_SHOW') {
         totalServed++;
-        totalWaitTimeMs += t.serviceStart.getTime() - t.createdAt.getTime();
+        totalWaitTimeMs += waitMs;
         waitTimeCount++;
+
+        if (waitMs > SLA_THRESHOLD_MINS * 60000) {
+          slaViolations++;
+        }
 
         if (t.completedAt) {
           totalServiceTimeMs += t.completedAt.getTime() - t.serviceStart.getTime();
@@ -69,6 +89,29 @@ export class AnalyticsService {
       if (t.rating) {
         totalRating += t.rating;
         ratingCount++;
+      }
+
+      // Populate Service and Queue metrics
+      if (t.service) {
+        if (!svcMap.has(t.service.id)) {
+          svcMap.set(t.service.id, { id: t.service.id, name: t.service.name, totalWaitMs: 0, count: 0, violations: 0, walkaways: 0, queues: new Map() });
+        }
+        const svcEntry = svcMap.get(t.service.id)!;
+        svcEntry.count++;
+        if (hasWait) svcEntry.totalWaitMs += waitMs;
+        if (hasWait && waitMs > SLA_THRESHOLD_MINS * 60000) svcEntry.violations++;
+        if (isWalkaway) svcEntry.walkaways++;
+
+        if (t.queue) {
+          if (!svcEntry.queues.has(t.queue.id)) {
+            svcEntry.queues.set(t.queue.id, { name: t.queue.name, totalWaitMs: 0, count: 0, violations: 0, walkaways: 0 });
+          }
+          const qEntry = svcEntry.queues.get(t.queue.id)!;
+          qEntry.count++;
+          if (hasWait) qEntry.totalWaitMs += waitMs;
+          if (hasWait && waitMs > SLA_THRESHOLD_MINS * 60000) qEntry.violations++;
+          if (isWalkaway) qEntry.walkaways++;
+        }
       }
 
       if (t.operatorUser && t.currentState === 'COMPLETED' && t.serviceStart && t.completedAt) {
@@ -202,16 +245,28 @@ export class AnalyticsService {
     // Sort leaderboard by most served
     staffPerformance.sort((a, b) => b.served - a.served);
 
+    const servicePerformance = Array.from(svcMap.values()).map(s => ({
+      ...s,
+      avgMins: s.count > 0 && s.totalWaitMs > 0 ? Math.round(s.totalWaitMs / s.count / 60000) : null,
+      queues: Array.from(s.queues.values()).map(q => ({
+        ...q,
+        avgMins: q.count > 0 && q.totalWaitMs > 0 ? Math.round(q.totalWaitMs / q.count / 60000) : null,
+      }))
+    }));
+
     return {
       kpis: {
+        totalVisits: tokens.length,
         totalServed,
         averageWaitTimeMins,
         averageServiceTimeMins,
         dropOffRate,
         csatScore,
+        slaViolations,
       },
       chartData,
       staffPerformance,
+      servicePerformance,
     };
   }
 }

@@ -123,7 +123,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex relative overflow-hidden">
+    <div className="min-h-screen bg-zinc-950 text-white flex relative overflow-x-hidden">
       <Head>
         <title>Sign Up | Qmova</title>
       </Head>

@@ -143,6 +143,17 @@ export default function BillingSettings() {
     ? Math.max(0, Math.ceil((new Date(currentSub.trialEndDate).getTime() - Date.now()) / 86400000))
     : 0;
 
+  const handleCancelSubscription = async (immediate: boolean) => {
+    try {
+      await api.post('/subscription/cancel', { immediate, reason: 'User requested cancellation from dashboard' });
+      toast.success(immediate ? 'Trial cancelled successfully.' : 'Plan cancellation requested. You will retain access until the end of the billing period.');
+      // Refresh page data
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to cancel subscription.');
+    }
+  };
+
   return (
     <>
       {/* Payment Confirmation Modal */}
@@ -235,21 +246,29 @@ export default function BillingSettings() {
                     <span className="material-symbols-outlined text-[18px]">payments</span>
                     <span>Billed {currentSub?.billingInterval}</span>
                   </div>
+                  {currentSub?.cancellationDate && (
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-500 bg-amber-500/10 dark:bg-amber-500/20 px-2 py-1 rounded-md">
+                      <span className="material-symbols-outlined text-[16px]">cancel</span>
+                      <span>Cancels on {formatBillingDate(currentSub?.nextBillingDate)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               
               <div className="shrink-0 flex flex-col gap-3 w-full md:w-auto">
                 {!isTrial && <button className="bg-primary text-white font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-primary-container transition-colors w-full sm:w-auto shadow-sm">Upgrade Plan</button>}
-                <button 
-                  onClick={() => {
-                    if (confirm('Are you sure you want to cancel your subscription?')) {
-                      toast.success('Cancellation requested.');
-                    }
-                  }}
-                  className="bg-transparent text-on-surface dark:text-white border border-border dark:border-dark-border font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors w-full sm:w-auto"
-                >
-                  Cancel Plan
-                </button>
+                {!currentSub?.cancellationDate && (
+                  <button 
+                    onClick={() => {
+                      if (confirm('Are you sure you want to cancel your subscription? You will retain access until the end of your billing cycle.')) {
+                        handleCancelSubscription(false);
+                      }
+                    }}
+                    className="bg-transparent text-on-surface dark:text-white border border-border dark:border-dark-border font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors w-full sm:w-auto"
+                  >
+                    Cancel Plan
+                  </button>
+                )}
               </div>
             </div>
 
@@ -346,7 +365,7 @@ export default function BillingSettings() {
                 </div>
               </div>
               <button
-                onClick={() => { if (confirm('Are you sure you want to cancel your trial?')) toast.success('Cancellation requested.'); }}
+                onClick={() => { if (confirm('Are you sure you want to cancel your trial? You will lose access immediately.')) handleCancelSubscription(true); }}
                 className="text-xs font-semibold text-on-surface-variant dark:text-outline border border-border dark:border-dark-border px-4 h-9 rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors shrink-0"
               >
                 Cancel Trial

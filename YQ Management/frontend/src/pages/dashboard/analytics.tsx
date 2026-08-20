@@ -38,151 +38,38 @@ export default function Analytics() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerSort, setCustomerSort] = useState<'visits' | 'recent' | 'name'>('visits');
 
-  // All historical visits (for analytics & customers)
-  const { data: visits = [], isLoading: isVisitsLoading } = useQuery({
-    queryKey: ['visits', 'history-all'],
-    queryFn: () => fetchApi('/visits?scope=history').catch(() => []),
+  const timeParam = timeRange === 'Day' ? 'today' : timeRange === 'Week' ? '7d' : '30d';
+
+  const { data: analytics = null, isLoading: isAnalyticsLoading } = useQuery({
+    queryKey: ['analytics', timeParam],
+    queryFn: () => fetchApi(`/analytics?timeframe=${timeParam}`).catch(() => null),
   });
 
-  // Queues for per-queue breakdown
-  const { data: queues = [] } = useQuery({
-    queryKey: ['queues'],
-    queryFn: () => fetchApi('/queue').catch(() => []),
+  const { data: customers = [], isLoading: isCustomersLoading } = useQuery({
+    queryKey: ['customers', 'with-visits'],
+    queryFn: () => fetchApi('/customer').catch(() => []),
   });
 
-  const { data: services = [] } = useQuery({
-    queryKey: ['services'],
-    queryFn: () => fetchApi('/service').catch(() => []),
-  });
+  const { kpis, chartData: rawChartData, servicePerformance } = analytics || { 
+    kpis: { totalVisits: 0, averageWaitTimeMins: 0, slaViolations: 0, dropOffRate: 0 }, 
+    chartData: [], 
+    servicePerformance: [] 
+  };
 
-  // ── KPI calculations ────────────────────────────────────────────────────
-  const servedVisits = (visits as any[]).filter((v) => v.serviceStart && v.waitingStart);
-  const completedOrExited = (visits as any[]).filter((v) =>
-    ['COMPLETED', 'NO_SHOW', 'CANCELLED'].includes(v.currentState)
-  );
-  const walkawayCount = (visits as any[]).filter((v) =>
-    ['NO_SHOW', 'CANCELLED'].includes(v.currentState)
-  ).length;
-
-  let totalWaitMs = 0;
-  let slaViolations = 0;
-
-  servedVisits.forEach((v) => {
-    const wait = new Date(v.serviceStart).getTime() - new Date(v.waitingStart).getTime();
-    totalWaitMs += wait;
-    if (wait > SLA_THRESHOLD_MINS * 60 * 1000) slaViolations++;
-  });
-
-  const avgWaitMs = servedVisits.length > 0 ? totalWaitMs / servedVisits.length : 0;
-  const avgWaitMins = Math.floor(avgWaitMs / 60000);
-  const avgWaitSecs = Math.floor((avgWaitMs % 60000) / 1000);
-  const walkawayRate = completedOrExited.length > 0
-    ? ((walkawayCount / completedOrExited.length) * 100).toFixed(1)
-    : '0.0';
-
-  // ── Chart data ──────────────────────────────────────────────────────────
   const chartData = useMemo(() => {
-    const v = visits as any[];
-    if (timeRange === 'Day') {
-      const hours = Array.from({ length: 24 }, (_, i) => ({ time: `${i.toString().padStart(2, '0')}:00`, visits: 0 }));
-      v.forEach((visit) => {
-        if (!visit.createdAt) return;
-        const d = new Date(visit.createdAt);
-        if (d.toDateString() === new Date().toDateString()) hours[d.getHours()].visits++;
-      });
-      return hours;
-    }
-    if (timeRange === 'Week') {
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => ({ time: d, visits: 0 }));
-      v.forEach((visit) => {
-        if (!visit.createdAt) return;
-        const day = new Date(visit.createdAt).getDay();
-        if (day >= 0 && day < 7) days[day].visits++;
-      });
-      return days;
-    }
-    const days = Array.from({ length: 30 }, (_, i) => ({ time: `${i + 1}`, visits: 0 }));
-    v.forEach((visit) => {
-      if (!visit.createdAt) return;
-      const d = new Date(visit.createdAt).getDate() - 1;
-      if (d >= 0 && d < 30) days[d].visits++;
-    });
-    return days;
-  }, [visits, timeRange]);
-
-  // ── Service & Queue Performance ──────────────────────────────────────────
-  const servicePerformance = useMemo(() => {
-    const v = visits as any[];
-    const svcMap = new Map<string, { id: string, name: string, totalWaitMs: number, count: number, violations: number, walkaways: number, queues: Map<string, { name: string, totalWaitMs: number, count: number, violations: number, walkaways: number }> }>();
-
-    (services as any[]).forEach(s => {
-      svcMap.set(s.id, { id: s.id, name: s.name, totalWaitMs: 0, count: 0, violations: 0, walkaways: 0, queues: new Map() });
-    });
-
-    (queues as any[]).forEach(q => {
-      // Find the service that owns this queue. The API returns queues with serviceId if we look closely, or we can look up services.
-      // Assuming visit has serviceId and queueId
-    });
-
-    v.forEach(visit => {
-      const sId = visit.service?.id || visit.serviceId;
-      const qId = visit.queue?.id || visit.queueId;
-      if (!sId || !svcMap.has(sId)) return;
-      
-      const svcEntry = svcMap.get(sId)!;
-      let waitMs = 0;
-      let hasWait = false;
-      let isWalkaway = ['NO_SHOW', 'CANCELLED'].includes(visit.currentState);
-
-      if (visit.serviceStart && visit.waitingStart) {
-        waitMs = new Date(visit.serviceStart).getTime() - new Date(visit.waitingStart).getTime();
-        hasWait = true;
-      }
-
-      // Update Service level
-      svcEntry.count++;
-      if (hasWait) svcEntry.totalWaitMs += waitMs;
-      if (hasWait && waitMs > SLA_THRESHOLD_MINS * 60 * 1000) svcEntry.violations++;
-      if (isWalkaway) svcEntry.walkaways++;
-
-      // Update Queue level
-      if (qId) {
-        if (!svcEntry.queues.has(qId)) {
-          const qObj = (queues as any[]).find(x => x.id === qId);
-          svcEntry.queues.set(qId, { name: qObj?.name || 'Unknown Queue', totalWaitMs: 0, count: 0, violations: 0, walkaways: 0 });
-        }
-        const qEntry = svcEntry.queues.get(qId)!;
-        qEntry.count++;
-        if (hasWait) qEntry.totalWaitMs += waitMs;
-        if (hasWait && waitMs > SLA_THRESHOLD_MINS * 60 * 1000) qEntry.violations++;
-        if (isWalkaway) qEntry.walkaways++;
-      }
-    });
-
-    return Array.from(svcMap.values()).map(s => ({
-      ...s,
-      avgMins: s.count > 0 && s.totalWaitMs > 0 ? Math.round(s.totalWaitMs / s.count / 60000) : null,
-      queues: Array.from(s.queues.values()).map(q => ({
-        ...q,
-        avgMins: q.count > 0 && q.totalWaitMs > 0 ? Math.round(q.totalWaitMs / q.count / 60000) : null,
-      }))
-    }));
-  }, [visits, services, queues]);
+    return (rawChartData || []).map((d: any) => ({ time: d.timeLabel, visits: d.volume }));
+  }, [rawChartData]);
 
   // ── Customer map (absorbing Records page) ──────────────────────────────
-  const { people } = useMemo(() => {
-    const peopleMap = new Map<string, any>();
-    (visits as any[]).forEach((v) => {
-      if (v.customer?.id) {
-        if (!peopleMap.has(v.customer.id)) {
-          peopleMap.set(v.customer.id, { ...v.customer, visits: [v] });
-        } else {
-          peopleMap.get(v.customer.id).visits.push(v);
-        }
-      }
-    });
+  // ── Customer map ──────────────────────────────
+  const { people, totalVisits } = useMemo(() => {
+    let list = [...customers].map(c => ({
+      ...c,
+      visits: c.visits || []
+    }));
+    
+    let totalVisitsCount = list.reduce((sum, p) => sum + p.visits.length, 0);
 
-    let list = Array.from(peopleMap.values());
     if (customerSearch) {
       const q = customerSearch.toLowerCase();
       list = list.filter(p =>
@@ -199,8 +86,8 @@ export default function Analytics() {
     });
     else list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-    return { people: list, total: peopleMap.size };
-  }, [visits, customerSearch, customerSort]);
+    return { people: list, totalVisits: totalVisitsCount };
+  }, [customers, customerSearch, customerSort]);
 
   const kpiVariants = {
     hidden: { opacity: 0, y: 15 },
@@ -239,22 +126,6 @@ export default function Analytics() {
           {/* ── INSIGHTS TAB ── */}
           {activeTab === 'insights' && (
             <>
-              {/* AI Insights Ribbon */}
-              {/* <motion.div
-                initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-r from-sky-500/10 to-indigo-500/10 border border-sky-500/20 rounded-xl p-5 mb-4 shadow-sm flex items-start gap-4"
-              >
-                <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="material-symbols-outlined text-sky-400">auto_awesome</span>
-                </div>
-                <div>
-                  <h4 className="font-headline-sm text-on-surface dark:text-white font-bold mb-1">AI Summary & Insights</h4>
-                  <p className="text-body-sm text-outline leading-relaxed">
-                    Wait times have been exceptionally low today! However, based on the last 30 days, we've identified a 30% visitor surge between <span className="text-on-surface dark:text-white font-semibold">10 AM and 11 AM</span>. Consider assigning an additional desk during this peak hour.
-                  </p>
-                </div>
-              </motion.div> */}
-
               {/* KPI Ribbon */}
               <motion.div
                 initial="hidden" animate="visible"
@@ -263,14 +134,14 @@ export default function Analytics() {
               >
                 <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
                   <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Total Visits</p>
-                  <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">{(visits as any[]).length}</p>
+                  <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">{kpis.totalVisits}</p>
                   <p className="text-xs text-outline mt-1">All time</p>
                 </motion.div>
 
                 <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
                   <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Avg Wait Time</p>
                   <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">
-                    {servedVisits.length > 0 ? `${avgWaitMins}m ${avgWaitSecs.toString().padStart(2, '0')}s` : '—'}
+                    {kpis.averageWaitTimeMins > 0 ? `${kpis.averageWaitTimeMins}m` : '—'}
                   </p>
                   <p className="text-xs text-outline mt-1">Served customers</p>
                 </motion.div>
@@ -278,13 +149,15 @@ export default function Analytics() {
                 <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-alert/30 dark:border-alert/20 rounded-xl p-5 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full bg-alert rounded-l-xl" />
                   <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">SLA Violations</p>
-                  <p className="font-mono text-3xl font-bold text-alert">{slaViolations}</p>
-                  <p className="text-xs text-outline mt-1">&gt;{SLA_THRESHOLD_MINS} min waits</p>
+                  <p className="font-mono text-3xl font-bold text-alert">
+                    {kpis.slaViolations}
+                  </p>
+                  <p className="text-xs text-outline mt-1">{`> ${SLA_THRESHOLD_MINS}m wait`}</p>
                 </motion.div>
 
                 <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
                   <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Walkaway Rate</p>
-                  <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">{walkawayRate}%</p>
+                  <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">{kpis.dropOffRate}%</p>
                   <p className="text-xs text-outline mt-1">No-shows & cancels</p>
                 </motion.div>
               </motion.div>
@@ -412,8 +285,8 @@ export default function Analytics() {
               <div className="grid grid-cols-3 gap-4">
                 {[
                   { label: 'Total Customers', value: people.length, icon: Users },
-                  { label: 'Total Visits', value: (visits as any[]).length, icon: BarChart2 },
-                  { label: 'Avg Visits / Customer', value: people.length ? ((visits as any[]).length / people.length).toFixed(1) : '0', icon: Clock },
+                  { label: 'Total Visits', value: totalVisits, icon: BarChart2 },
+                  { label: 'Avg Visits / Customer', value: people.length ? (totalVisits / people.length).toFixed(1) : '0', icon: Clock },
                 ].map(({ label, value, icon: Icon }) => (
                   <div key={label} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-1">
@@ -457,7 +330,7 @@ export default function Analytics() {
 
               {/* Customer Table */}
               <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl shadow-sm overflow-hidden">
-                {isVisitsLoading ? (
+                {isCustomersLoading ? (
                   <div className="p-6 space-y-3">
                     {[1, 2, 3, 4].map(i => (
                       <div key={i} className="h-14 bg-surface-container-low dark:bg-white/5 animate-pulse rounded-xl" />

@@ -435,13 +435,13 @@ const totalSteps = inviteCode ? 2 : 4;
   const currentStepProgress = inviteCode ? (step === 1 ? 1 : 2) : step;
 
   return (
-    <div className="min-h-screen bg-surface dark:bg-[#0a0a0a] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-primary/20">
+    <div className="min-h-screen bg-surface dark:bg-[#0a0a0a] flex flex-col items-center justify-center p-4 relative overflow-x-hidden font-sans selection:bg-primary/20">
       {showConfetti && <Confetti width={typeof window !== 'undefined' ? window.innerWidth : 1000} height={typeof window !== 'undefined' ? window.innerHeight : 1000} recycle={false} numberOfPieces={500} gravity={0.15} />}
       <Head>
         <title>Onboarding | Qmova</title>
       </Head>
 
-      <main className="w-full max-w-2xl bg-card dark:bg-dark-card rounded-[2.5rem] border border-border dark:border-dark-border shadow-sm p-8 md:p-12 relative overflow-hidden">
+      <main className="w-full max-w-2xl bg-card dark:bg-dark-card rounded-[2.5rem] border border-border dark:border-dark-border shadow-sm p-8 md:p-12 relative overflow-hidden my-12">
         {/* Progress Tracker */}
         <div className="flex gap-2 mb-10 w-full max-w-[200px] mx-auto">
           {Array.from({ length: totalSteps }).map((_, i) => (

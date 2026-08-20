@@ -72,7 +72,7 @@ export default function SuperAdminLayout({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white flex overflow-hidden transition-colors font-sans">
+    <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white flex transition-colors font-sans">
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-950 flex flex-col transition-transform duration-200 lg:relative lg:z-auto lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -181,7 +181,7 @@ export default function SuperAdminLayout({
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8 z-10 relative">
+        <main className="flex-1 p-6 lg:p-8 z-10 relative">
           {children}
         </main>
         <NotificationsModal open={notifOpen} onClose={() => setNotifOpen(false)} />

@@ -224,22 +224,32 @@ export class SubscriptionService {
     }
 
     const now = new Date();
+    const isImmediate = dto.immediate || subscription.status === SubscriptionStatus.TRIAL;
+
+    const dataToUpdate: any = {
+      cancellationDate: now,
+      metadata: {
+        ...((subscription.metadata ?? {}) as Record<string, unknown>),
+        cancellationReason: dto.reason,
+        cancelledAt: now.toISOString(),
+        effectiveDate: isImmediate
+          ? now.toISOString()
+          : subscription.currentPeriodEnd?.toISOString(),
+      },
+    };
+
+    if (isImmediate) {
+      dataToUpdate.status = SubscriptionStatus.CANCELLED;
+      dataToUpdate.endedAt = now;
+      dataToUpdate.nextBillingDate = null;
+    } else {
+      // Deferred cancellation - status remains ACTIVE until nextBillingDate
+      dataToUpdate.metadata.cancelAtPeriodEnd = true;
+    }
+
     const updated = await this.prisma.subscription.update({
       where: { tenantId },
-      data: {
-        status: SubscriptionStatus.CANCELLED,
-        cancellationDate: now,
-        endedAt: dto.immediate ? now : null,
-        nextBillingDate: null,
-        metadata: {
-          ...((subscription.metadata ?? {}) as Record<string, unknown>),
-          cancellationReason: dto.reason,
-          cancelledAt: now.toISOString(),
-          effectiveDate: dto.immediate
-            ? now.toISOString()
-            : subscription.currentPeriodEnd?.toISOString(),
-        },
-      },
+      data: dataToUpdate,
       include: { plan: true },
     });
 

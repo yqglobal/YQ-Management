@@ -177,7 +177,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const services = tenant?.services || [];
 
   return (
-    <div className="bg-canvas dark:bg-dark-canvas text-on-surface dark:text-white font-body-md h-screen overflow-hidden flex flex-col antialiased">
+    <div className="bg-canvas dark:bg-dark-canvas text-on-surface dark:text-white font-body-md min-h-screen flex flex-col antialiased">
       {!hasAcceptedPolicies && <AdvancedPoliciesModal />}
       <DashboardTour />
 
@@ -579,8 +579,8 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
         </div>
       </nav>
 
-      <main className={`ml-0 md:ml-sidebar-w flex-1 flex flex-col overflow-hidden overscroll-none bg-canvas dark:bg-dark-canvas relative ${settingsMode ? 'mt-[108px]' : 'mt-header-h'}`}>
-        <div className={`flex-1 overflow-hidden overscroll-none w-full relative flex flex-col ${noPadding ? '' : 'p-margin-mobile md:p-margin-desktop overflow-auto'}`}>
+      <main className={`ml-0 md:ml-sidebar-w flex-1 flex flex-col bg-canvas dark:bg-dark-canvas relative ${settingsMode ? 'pt-[108px]' : 'pt-header-h'}`}>
+        <div className={`flex-1 w-full relative flex flex-col ${noPadding ? '' : 'p-margin-mobile md:p-margin-desktop'}`}>
            {children}
         </div>
       </main>
