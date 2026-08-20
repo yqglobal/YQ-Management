@@ -109,7 +109,7 @@ export default function QueuesList() {
         <title>Queues | Qmova</title>
       </Head>
 
-      <div className="max-w-5xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="w-full mx-auto space-y-6">
 
         {/* Header */}
         <div className="flex items-center justify-between">

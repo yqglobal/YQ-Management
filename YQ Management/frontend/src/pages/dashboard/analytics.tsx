@@ -217,7 +217,7 @@ export default function Analytics() {
         featureKey="advancedAnalytics"
         featureName="Advanced Analytics"
       >
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="w-full mx-auto space-y-6">
 
           {/* Tab Bar */}
           <div className="flex gap-1 bg-surface-container-low dark:bg-zinc-900 p-1 rounded-xl w-fit border border-border dark:border-dark-border">

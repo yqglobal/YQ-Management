@@ -373,7 +373,7 @@ export class SubscriptionService {
     const updated = await this.prisma.subscription.update({
       where: { tenantId },
       data: {
-        status: SubscriptionStatus.PENDING_PAYMENT,
+        status: SubscriptionStatus.EXPIRED,
         trialStartDate: null,
         trialEndDate: null,
         currentPeriodStart: now,

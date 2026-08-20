@@ -136,7 +136,12 @@ export default function BillingSettings() {
   }, [paymentData]);
 
   const isPaid = currentSub?.status === 'ACTIVE' && currentSub?.plan?.price > 0;
-  const isTrial = currentSub?.status === 'ACTIVE' && currentSub?.plan?.price === 0;
+  const isTrial = currentSub?.status === 'TRIAL';
+  const hasActiveSubscription = currentSub?.status === 'ACTIVE' || currentSub?.status === 'TRIAL';
+  
+  const trialDaysLeft = isTrial && currentSub?.trialEndDate 
+    ? Math.max(0, Math.ceil((new Date(currentSub.trialEndDate).getTime() - Date.now()) / 86400000))
+    : 0;
 
   return (
     <>
@@ -191,29 +196,62 @@ export default function BillingSettings() {
           <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" />
           Loading billing info...
         </div>
-      ) : isPaid ? (
+      ) : hasActiveSubscription ? (
         /* POST-PURCHASE VIEW: Active Plan Details */
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          <div className="md:col-span-8 bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-[24px] p-8 relative overflow-hidden shadow-sm flex flex-col">
-            <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#10b981]"></div>
-            <h4 className="font-label-caps text-label-caps text-on-surface-variant dark:text-outline tracking-widest uppercase mb-6 border-b border-border dark:border-dark-border pb-4">Current Subscription</h4>
-
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+          <div className="md:col-span-8 bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-[24px] p-6 md:p-8 relative overflow-hidden shadow-sm flex flex-col">
+            <div className={`absolute left-0 top-0 bottom-0 w-2 ${isTrial ? 'bg-indigo-500' : 'bg-[#10b981]'}`}></div>
+            
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-6 border-b border-border dark:border-dark-border gap-6">
               <div>
-                <h3 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight font-semibold">{currentSub?.plan?.name || 'Unknown Plan'}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-label-caps text-label-caps border border-emerald-200 dark:border-emerald-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    ACTIVE
+                <h4 className="font-label-caps text-label-caps text-on-surface-variant dark:text-outline tracking-widest uppercase mb-4">Current Subscription</h4>
+                <div className="flex items-center gap-4 mb-2">
+                  <h3 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight font-semibold">
+                    {currentSub?.plan?.name || 'Unknown Plan'}
+                  </h3>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-label-caps text-label-caps border ${isTrial ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isTrial ? 'bg-indigo-500' : 'bg-emerald-500'}`}></span>
+                    {isTrial ? 'TRIAL' : 'ACTIVE'}
                   </span>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline">Billed {currentSub?.billingInterval}</span>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-y-2 gap-x-6 font-body-sm text-body-sm text-on-surface-variant dark:text-outline mt-4">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">calendar_today</span>
+                    <span>Started: {formatBillingDate(isTrial ? currentSub?.trialStartDate : currentSub?.currentPeriodStart)}</span>
+                  </div>
+                  {isTrial ? (
+                    <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium">
+                      <span className="material-symbols-outlined text-[18px]">hourglass_empty</span>
+                      <span>{trialDaysLeft} days left</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px]">update</span>
+                      <span>Renews: {formatBillingDate(currentSub?.nextBillingDate)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">payments</span>
+                    <span>Billed {currentSub?.billingInterval}</span>
+                  </div>
                 </div>
               </div>
+              
+              <div className="shrink-0 flex flex-col gap-3 w-full md:w-auto">
+                {!isTrial && <button className="bg-primary text-white font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-primary-container transition-colors w-full sm:w-auto shadow-sm">Upgrade Plan</button>}
+                <button 
+                  onClick={() => {
+                    if (confirm('Are you sure you want to cancel your subscription?')) {
+                      toast.success('Cancellation requested.'); // Stub for actual API call
+                    }
+                  }}
+                  className="bg-transparent text-on-surface dark:text-white border border-border dark:border-dark-border font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors w-full sm:w-auto"
+                >
+                  Cancel Plan
+                </button>
+              </div>
             </div>
-
-            <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline max-w-lg mb-8">
-              Your next billing date is <strong className="text-on-surface dark:text-white">{formatBillingDate(currentSub?.nextBillingDate)}</strong>.
-            </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
               <div className="bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-dark-border rounded-xl p-4 shadow-sm relative overflow-hidden group">
@@ -249,10 +287,7 @@ export default function BillingSettings() {
               </div>
             </div>
 
-            <div className="flex gap-4 border-t border-border dark:border-dark-border pt-6 mt-auto">
-              <button className="bg-primary text-white font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-primary-container transition-colors">Upgrade Plan</button>
-              <button className="bg-transparent text-on-surface dark:text-white border border-border dark:border-dark-border font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors">Cancel Subscription</button>
-            </div>
+            {/* Action buttons moved to the top header */}
           </div>
 
           <div className="md:col-span-4 flex flex-col gap-6 md:gap-8">

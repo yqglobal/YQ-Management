@@ -162,6 +162,13 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Strict enforcement: redirect to billing if plan is expired/pending payment
+  useEffect(() => {
+    if (!plan.isLoading && !plan.canAccess && !router.pathname.startsWith('/dashboard/settings/billing')) {
+      router.replace('/dashboard/settings/billing');
+    }
+  }, [plan.isLoading, plan.canAccess, router.pathname]);
+
   const [showQueueMigration, setShowQueueMigration] = useState(true);
 
   // Derive unlinked queues for the transition modal
