@@ -35,6 +35,7 @@ interface TenantPortalProps {
   services: Service[];
   queues: Queue[];
   error?: string;
+  ipCountry?: string;
 }
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
@@ -54,13 +55,15 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const services: Service[] = servicesRes.ok ? await servicesRes.json() : [];
     const queues: Queue[] = queuesRes.ok ? await queuesRes.json() : [];
 
-    return { props: { tenant, services, queues } };
+    const ipCountry = context.req.headers['x-vercel-ip-country'] as string || null;
+
+    return { props: { tenant, services, queues, ipCountry } };
   } catch (e) {
-    return { props: { tenant: null, services: [], queues: [], error: 'Unable to load tenant information.' } };
+    return { props: { tenant: null, services: [], queues: [], error: 'Unable to load tenant information.', ipCountry: null } };
   }
 };
 
-export default function TenantBooking({ tenant, services, queues, error }: TenantPortalProps) {
+export default function TenantBooking({ tenant, services, queues, error, ipCountry }: TenantPortalProps) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [step, setStep] = useState(1);
@@ -73,7 +76,7 @@ export default function TenantBooking({ tenant, services, queues, error }: Tenan
   const [regionBlocked, setRegionBlocked] = useState(false);
 
   useEffect(() => {
-    const detected = detectCountryByTimezone();
+    const detected = ipCountry || detectCountryByTimezone();
     setDefaultCountry(detected);
     
     // Check operating countries
