@@ -75,6 +75,14 @@ export class WhatsappService implements OnModuleInit {
   async syncAllInstances() {
     try {
       const evoRes = await this.fetchEvo('/instance/fetchInstances', 'GET');
+      // If Evolution API is unreachable (cold start, restart), skip sync entirely
+      if (evoRes.error) {
+        this.logger.warn(
+          `syncAllInstances: Evolution API unreachable (${evoRes.error.message}). Skipping sync to avoid false disconnects.`,
+        );
+        return;
+      }
+
       const activeInstancesData = Array.isArray(evoRes?.data)
         ? evoRes.data
         : [];
@@ -82,56 +90,116 @@ export class WhatsappService implements OnModuleInit {
         (i: any) => i.instance?.instanceName || i.name || i.instanceName,
       );
 
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      // Build a set of instance names owned by a tenant (never prune these)
+      const allTenants = await this.prisma.tenant.findMany({
+        where: { whatsappInstanceId: { not: null } },
+        select: { id: true, whatsappInstanceId: true, whatsappConnected: true },
+      });
+      const ownedInstances = new Set(
+        allTenants.map((t) => t.whatsappInstanceId).filter(Boolean),
+      );
 
-      // 1. Prune stale 'connecting' instances (timeout after 5 mins)
+      // 1. Only prune ORPHANED 'connecting' instances (not owned by any tenant)
+      //    Never prune tenant-owned instances — Evolution may be reconnecting from PostgreSQL.
+      const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
       for (const instance of activeInstancesData) {
-        const status = instance.connectionStatus;
+        const instanceName =
+          instance.instance?.instanceName ||
+          instance.name ||
+          instance.instanceName;
+        if (!instanceName) continue;
+
+        // Skip any instance that belongs to a tenant
+        if (ownedInstances.has(instanceName)) continue;
+
+        const status =
+          instance.connectionStatus ||
+          instance.instance?.state ||
+          instance.state;
         const updatedAtStr = instance.updatedAt || instance.createdAt;
         if (!updatedAtStr) continue;
 
         const updatedAt = new Date(updatedAtStr);
-        if (status === 'connecting' && updatedAt < fiveMinutesAgo) {
-          const instanceName =
-            instance.instance?.instanceName ||
-            instance.name ||
-            instance.instanceName;
-          if (instanceName) {
-            this.logger.warn(
-              `Instance ${instanceName} stuck in connecting state for > 5 mins. Pruning...`,
-            );
-            await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
-          }
+        if (status === 'connecting' && updatedAt < twentyMinutesAgo) {
+          this.logger.warn(
+            `Orphaned instance ${instanceName} stuck in connecting for >20 mins. Pruning...`,
+          );
+          await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
         }
       }
 
       // 2. Sync tenants that should be connected
-      const tenants = await this.prisma.tenant.findMany({
-        where: { whatsappConnected: true, whatsappInstanceId: { not: null } },
-      });
+      const connectedTenants = allTenants.filter((t) => t.whatsappConnected);
+      for (const tenant of connectedTenants) {
+        if (!tenant.whatsappInstanceId) continue;
+        const instanceName = tenant.whatsappInstanceId;
 
-      for (const tenant of tenants) {
-        if (!activeInstances.includes(tenant.whatsappInstanceId)) {
+        if (!activeInstances.includes(instanceName)) {
+          // Instance not found in Evolution API.
+          // With DATABASE_SAVE_DATA_INSTANCE=true, Evolution API persists sessions to PostgreSQL.
+          // After a cold start / redeploy, Evolution loads them automatically — we must give it
+          // time before treating this as a genuine disconnect.
           this.logger.warn(
-            `Tenant ${tenant.id} instance ${tenant.whatsappInstanceId} missing from Evolution API. Attempting auto-recovery.`,
+            `Tenant ${tenant.id} instance ${instanceName} not found in Evolution API. Will attempt soft recovery (create-without-QR).`,
           );
           await this.logTenantEvent(tenant.id, 'AUTO_RECOVERY_STARTED', {
             reason: 'Instance missing from Evolution API',
           });
-          await this.connect(tenant.id); // Re-run connect to re-create instance & webhooks
+
+          // Try to recreate the instance structure without triggering a QR
+          // (Evolution will restore session from PostgreSQL automatically on creation)
+          const createResult = await this.fetchEvo('/instance/create', 'POST', {
+            instanceName,
+            qrcode: false, // Do NOT request QR — the session should restore from DB
+            integration: 'WHATSAPP-BAILEYS',
+            syncFullHistory: false,
+            readMessages: false,
+          });
+
+          if (!createResult.error || createResult.status === 409 || createResult.status === 400) {
+            // Instance was created or already existed — set webhook and let it reconnect on its own
+            await this.setWebhook(instanceName).catch(() => {});
+            this.logger.log(
+              `Auto-recovery: Created instance ${instanceName} (session will restore from DB). Webhook set.`,
+            );
+            await this.logTenantEvent(tenant.id, 'AUTO_RECOVERY_INSTANCE_CREATED', {
+              instanceName,
+            });
+          } else {
+            this.logger.error(
+              `Auto-recovery failed for ${instanceName}: ${createResult.error?.message}`,
+            );
+            await this.logTenantEvent(tenant.id, 'AUTO_RECOVERY_FAILED', {
+              error: createResult.error?.message,
+            });
+          }
         } else {
-          // Instance exists - check if it's actually open before doing anything
-          if (!tenant.whatsappInstanceId) continue;
-          
+          // Instance exists in Evolution API — check its state
           const stateRes = await this.fetchEvo(
-            `/instance/connectionState/${tenant.whatsappInstanceId}`,
+            `/instance/connectionState/${instanceName}`,
             'GET',
           );
           const state = this.extractState(stateRes.data);
+
           if (state === 'open') {
-            // Just ensure webhook is configured, do NOT call /connect
-            await this.setWebhook(tenant.whatsappInstanceId).catch(() => {});
-            this.logger.log(`Instance ${tenant.whatsappInstanceId} is open. Webhook refreshed.`);
+            // Connected — just ensure webhook is configured
+            await this.setWebhook(instanceName).catch(() => {});
+            this.logger.log(
+              `Instance ${instanceName} is open. Webhook refreshed.`,
+            );
+          } else if (state === 'connecting') {
+            // Reconnecting (likely loading from PostgreSQL after restart) — do nothing, let it complete
+            this.logger.debug(
+              `Instance ${instanceName} is reconnecting. Waiting for auto-reconnect from PostgreSQL...`,
+            );
+          } else {
+            // state === 'close' — instance is registered but not reconnecting
+            // This can happen if the session expired or the phone was logged out.
+            // Do NOT call /connect here — that would generate a QR and disrupt the user.
+            // The webhook will notify us via 'connection.update' when state changes.
+            this.logger.warn(
+              `Instance ${instanceName} is in 'close' state. Will wait for user to manually reconnect if needed.`,
+            );
           }
         }
       }
@@ -142,6 +210,7 @@ export class WhatsappService implements OnModuleInit {
       );
     }
   }
+
 
   private buildEvolutionError(status: number, raw: string): EvolutionError {
     let message = 'Evolution API request failed';
