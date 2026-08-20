@@ -580,7 +580,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
       </nav>
 
       <main className={`ml-0 md:ml-sidebar-w flex-1 flex flex-col overflow-hidden overscroll-none bg-canvas dark:bg-dark-canvas relative ${settingsMode ? 'mt-[108px]' : 'mt-header-h'}`}>
-        <div className={`flex-1 overflow-auto overscroll-none w-full relative flex flex-col ${noPadding ? '' : 'p-margin-mobile md:p-margin-desktop'}`}>
+        <div className={`flex-1 overflow-hidden overscroll-none w-full relative flex flex-col ${noPadding ? '' : 'p-margin-mobile md:p-margin-desktop overflow-auto'}`}>
            {children}
         </div>
       </main>
