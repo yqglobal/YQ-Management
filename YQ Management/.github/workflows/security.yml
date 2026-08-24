@@ -1,0 +1,69 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # 1. Secret Scanning with TruffleHog
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+
+  # 2. Software Composition Analysis (SCA)
+  dependency-audit:
+    name: NPM Audit (SCA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Backend Audit
+        run: cd backend && npm audit --audit-level=high || true
+      - name: Frontend Audit
+        run: cd frontend && npm audit --audit-level=high || true
+
+  # 3. Static Application Security Testing (SAST)
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Semgrep CI
+        run: semgrep ci
+        env:
+          SEMGREP_RULES: p/typescript p/nodejs p/react p/security-audit
+
+  # 4. Container Security Scanning
+  trivy-scan:
+    name: Trivy Container Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Backend Docker Image
+        run: docker build -t yq-backend:test ./backend
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'yq-backend:test'
+          format: 'table'
+          exit-code: '1' # Fails pipeline if vulnerabilities are found
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'

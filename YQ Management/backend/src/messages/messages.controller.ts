@@ -13,6 +13,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { Role } from '@prisma/client';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
+import { SendMessageDto } from './dto/message.dto';
 
 @Controller('messages')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -32,12 +33,37 @@ export class MessagesController {
   async sendMessage(
     @Req() req: AuthenticatedRequest,
     @Param('tokenId') tokenId: string,
-    @Body() body: { text: string },
+    @Body() body: SendMessageDto,
   ) {
     return this.messagesService.sendMessageFromOperator(
       tokenId,
       body.text,
       req.user.tenantId,
+    );
+  }
+  @Get('inbox')
+  async getInbox(@Req() req: AuthenticatedRequest) {
+    return this.messagesService.getInbox(req.user.tenantId);
+  }
+
+  @Get('inbox/:phone')
+  async getInboxMessages(
+    @Req() req: AuthenticatedRequest,
+    @Param('phone') phone: string,
+  ) {
+    return this.messagesService.getInboxMessages(req.user.tenantId, phone);
+  }
+
+  @Post('inbox/:phone')
+  async sendInboxMessage(
+    @Req() req: AuthenticatedRequest,
+    @Param('phone') phone: string,
+    @Body() body: SendMessageDto,
+  ) {
+    return this.messagesService.sendInboxMessage(
+      req.user.tenantId,
+      phone,
+      body.text,
     );
   }
 }

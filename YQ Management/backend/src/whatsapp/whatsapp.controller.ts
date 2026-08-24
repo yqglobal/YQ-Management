@@ -163,9 +163,10 @@ export class WhatsappController {
     @Req() req: any,
     @Body() body: any,
   ) {
-    // FIX (2B): Re-enable webhook secret validation.
-    // WEBHOOK_SECRET must be set in production. In local dev, the check is skipped if the env var is absent.
     const expectedSecret = process.env.WEBHOOK_SECRET;
+    if (!expectedSecret && process.env.NODE_ENV === 'production') {
+      throw new UnauthorizedException('Webhook secret not configured');
+    }
     if (expectedSecret) {
       const secret = req.query.secret as string;
       if (!secret || secret !== expectedSecret) {
