@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -9,10 +9,15 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   public extendedClient: any;
+  private readonly logger = new Logger('PrismaSecurity');
 
   constructor() {
     const connectionString = process.env.DATABASE_URL;
-    const pool = new Pool({ connectionString });
+    const pool = new Pool({
+      connectionString,
+      max: process.env.DB_POOL_MAX ? parseInt(process.env.DB_POOL_MAX, 10) : 20,
+      idleTimeoutMillis: 30000,
+    });
     const adapter = new PrismaPg(pool);
     super({ adapter });
 
@@ -44,7 +49,7 @@ export class PrismaService
                   // In a strict mode we would throw an error here,
                   // but because some background jobs or superadmin actions might not have a tenantId,
                   // we log a warning instead of throwing an error for now.
-                  console.warn(
+                  new Logger('PrismaSecurity').warn(
                     `[Prisma Security Warning] ${operation} on ${model} without tenantId filter!`,
                   );
                 }

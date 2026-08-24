@@ -32,6 +32,9 @@ export default function ResourcesSettingsPage() {
   // --- Services state ---
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [selectedServiceForEdit, setSelectedServiceForEdit] = useState<any>(null);
+  const [serviceSearchQuery, setServiceSearchQuery] = useState('');
+  const [selectedServiceLocationId, setSelectedServiceLocationId] = useState('all');
+  const [serviceSort, setServiceSort] = useState('name-asc');
 
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
     queryKey: ['resources'],
@@ -47,6 +50,18 @@ export default function ResourcesSettingsPage() {
     queryKey: ['services'],
     queryFn: () => fetchApi('/service'),
   });
+
+  const filteredServices = React.useMemo(() => {
+    return services.filter((s: any) => {
+      const matchLoc = selectedServiceLocationId === 'all' || s.locationId === selectedServiceLocationId;
+      const matchSearch = !serviceSearchQuery || s.name.toLowerCase().includes(serviceSearchQuery.toLowerCase());
+      return matchLoc && matchSearch;
+    }).sort((a: any, b: any) => {
+      if (serviceSort === 'name-asc') return a.name.localeCompare(b.name);
+      if (serviceSort === 'name-desc') return b.name.localeCompare(a.name);
+      return 0;
+    });
+  }, [services, selectedServiceLocationId, serviceSearchQuery, serviceSort]);
 
   // Resource mutations
   const createResourceMutation = useMutation({
@@ -335,14 +350,57 @@ export default function ResourcesSettingsPage() {
               Manage the services your business offers.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsServiceModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all shadow-sm"
-          >
-            <Plus className="w-4 h-4" strokeWidth={2.5} />
-            Create Service
-          </button>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end shrink-0 mr-2">
+              <span className="text-sm font-semibold text-on-surface dark:text-white mb-1">{services.length} of 5 Services Used</span>
+              <div className="w-32 h-2 bg-surface-container-low dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min((services.length / 5) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setSelectedServiceForEdit(null); setIsServiceModalOpen(true); }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all shadow-sm"
+            >
+              <Plus className="w-4 h-4" strokeWidth={2.5} />
+              Create Service
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between mb-6">
+           <div className="relative flex-1 w-full sm:max-w-xs">
+             <input 
+               type="text" 
+               placeholder="Search services..." 
+               value={serviceSearchQuery}
+               onChange={(e) => setServiceSearchQuery(e.target.value)}
+               className="w-full bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 rounded-lg pl-3 pr-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+             />
+           </div>
+           <div className="flex items-center gap-2 w-full sm:w-auto">
+             <select 
+               value={selectedServiceLocationId}
+               onChange={(e) => setSelectedServiceLocationId(e.target.value)}
+               className="bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
+             >
+               <option value="all">All Locations</option>
+               {locations.map((loc: any) => (
+                 <option key={loc.id} value={loc.id}>{loc.name}</option>
+               ))}
+             </select>
+             <select 
+               value={serviceSort}
+               onChange={(e) => setServiceSort(e.target.value)}
+               className="bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
+             >
+               <option value="name-asc">A to Z</option>
+               <option value="name-desc">Z to A</option>
+             </select>
+           </div>
         </div>
 
         {servicesLoading ? (
@@ -351,12 +409,12 @@ export default function ResourcesSettingsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {services.length === 0 ? (
+            {filteredServices.length === 0 ? (
               <p className="text-sm text-on-surface-variant dark:text-zinc-500 p-4 bg-surface-container-low dark:bg-white/5 rounded-xl border border-dashed border-border dark:border-zinc-700 col-span-full">
-                No services added yet. Click "Create Service" to get started.
+                No services found.
               </p>
             ) : (
-              (services as any[]).map((service: any) => (
+              (filteredServices as any[]).map((service: any) => (
                 <div key={service.id} className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-zinc-800 rounded-xl gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0">
@@ -557,11 +615,14 @@ export default function ResourcesSettingsPage() {
         )}
       </div>
       
-      <ServiceModal 
-        isOpen={isServiceModalOpen}
-        onClose={() => { setIsServiceModalOpen(false); setSelectedServiceForEdit(null); }}
-        service={selectedServiceForEdit}
-      />
+      {isServiceModalOpen && (
+        <ServiceModal 
+          isOpen={isServiceModalOpen} 
+          onClose={() => setIsServiceModalOpen(false)} 
+          service={selectedServiceForEdit} 
+          locationId={selectedServiceLocationId !== 'all' ? selectedServiceLocationId : undefined}
+        />
+      )}
     </SettingsLayout>
   );
 }

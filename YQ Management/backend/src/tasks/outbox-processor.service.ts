@@ -4,6 +4,7 @@ import { RedisService } from '../redis/redis.service';
 import { QueueGateway } from '../queue/queue.gateway';
 import { WebhooksService } from '../webhooks/webhooks.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import * as QRCode from 'qrcode';
 
 @Injectable()
@@ -23,6 +24,28 @@ export class OutboxProcessorService implements OnModuleInit {
 
   onModuleInit() {
     this.processOutbox();
+  }
+
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async recoverStuckEvents() {
+    try {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const recovered = await this.prisma.outboxEvent.updateMany({
+        where: {
+          status: 'PROCESSING',
+          createdAt: { lt: fiveMinutesAgo },
+        },
+        data: {
+          status: 'PENDING',
+        },
+      });
+
+      if (recovered.count > 0) {
+        this.logger.warn(`Recovered ${recovered.count} stuck outbox events from PROCESSING back to PENDING`);
+      }
+    } catch (err) {
+      this.logger.error('Failed to recover stuck outbox events', err);
+    }
   }
 
   private async processOutbox() {

@@ -65,10 +65,11 @@ export class SubscriptionService {
       }
     }
 
-    // FIX (2C): Enforce visit/token quota against the plan's maxVisits limit.
-    // maxVisits = null means unlimited (Enterprise). Otherwise enforced per billing period.
+    // FIX (2C): Enforce visit/token quota against the plan's maxVisits limit or limits.maxTokens.
     if (resource === 'visits') {
-      const maxVisits = (sub.plan as any).maxVisits;
+      const limits = (sub.plan.limits as any) || {};
+      const maxVisits = (sub.plan as any).maxVisits ?? limits.maxTokens;
+      
       if (maxVisits !== undefined && maxVisits !== null) {
         if (currentCount >= maxVisits) {
           throw new BillingException(

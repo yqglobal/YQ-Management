@@ -1,10 +1,38 @@
-# Caddyfile for automatic HTTPS and routing
-
-{$DOMAIN_APP} {
-    reverse_proxy frontend:3000
+{
+    on_demand_tls {
+        ask http://backend:3000/health
+        interval 2m
+        burst    5
+    }
 }
 
-{$DOMAIN_API} {
-    # WebSocket support is automatic in Caddy v2
+api.{$DOMAIN_BASE} {
     reverse_proxy backend:3000
+}
+
+evo.{$DOMAIN_BASE} {
+    reverse_proxy evolution:8080
+}
+
+# Frontend / App and any tenant subdomains (e.g. tenant1.qmova.yqbuddy.com)
+https:// {
+    tls {
+        on_demand
+    }
+    
+    @host {
+        host *.{$DOMAIN_BASE} {$DOMAIN_BASE}
+    }
+    
+    handle @host {
+        header Strict-Transport-Security "max-age=31536000;"
+        header X-Frame-Options "SAMEORIGIN"
+        header X-Content-Type-Options "nosniff"
+        reverse_proxy frontend:3001
+    }
+
+    # Reject anything else
+    handle {
+        abort
+    }
 }

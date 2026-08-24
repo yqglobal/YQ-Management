@@ -147,10 +147,17 @@ export default function BillingSettings() {
   const isPaid = currentSub?.status === 'ACTIVE' && currentSub?.plan?.price > 0;
   const isTrial = currentSub?.status === 'TRIAL';
   const isExpired = currentSub?.status === 'EXPIRED' || currentSub?.status === 'CANCELLED';
+  const isPastDue = currentSub?.status === 'PAST_DUE';
+  const isPendingPayment = currentSub?.status === 'PENDING_PAYMENT';
   
-  const trialDaysLeft = isTrial && currentSub?.trialEndDate 
-    ? Math.max(0, Math.ceil((new Date(currentSub.trialEndDate).getTime() - Date.now()) / 86400000))
-    : 0;
+  let trialDaysLeft = 0;
+  if (isTrial && currentSub?.trialEndDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(currentSub.trialEndDate);
+    end.setHours(0, 0, 0, 0);
+    trialDaysLeft = Math.max(0, Math.round((end.getTime() - today.getTime()) / 86400000));
+  }
 
   const handleCancelSubscription = async (immediate: boolean) => {
     try {
@@ -353,35 +360,58 @@ export default function BillingSettings() {
       ) : (
         /* PRE-PURCHASE VIEW: Pricing Grid (Trial / Expired / New users) */
         <div>
-          {/* ── Current Plan Banner (Trial or Expired) ── */}
-          {(isTrial || isExpired) && currentSub && (
+          {/* ── Current Plan Banner (Trial, Expired, Past Due, Pending) ── */}
+          {(isTrial || isExpired || isPastDue || isPendingPayment) && currentSub && (
             <div className={`rounded-2xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border relative overflow-hidden ${
               isExpired
                 ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900'
+                : isPastDue
+                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900'
+                : isPendingPayment
+                ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900'
                 : 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-900'
             }`}>
-              <div className={`absolute left-0 top-0 bottom-0 w-1 ${isExpired ? 'bg-red-500' : 'bg-indigo-500'}`}></div>
+              <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                isExpired ? 'bg-red-500' : isPastDue ? 'bg-amber-500' : isPendingPayment ? 'bg-blue-500' : 'bg-indigo-500'
+              }`}></div>
               <div className="flex items-center gap-4 pl-2">
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                  isExpired ? 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400' : 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400'
+                  isExpired ? 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400' :
+                  isPastDue ? 'bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400' :
+                  isPendingPayment ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' :
+                  'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400'
                 }`}>
-                  <span className="material-symbols-outlined text-[18px]">{isExpired ? 'error' : 'hourglass_empty'}</span>
+                  <span className="material-symbols-outlined text-[18px]">
+                    {isExpired ? 'error' : isPastDue ? 'credit_card_off' : isPendingPayment ? 'pending' : 'hourglass_empty'}
+                  </span>
                 </div>
                 <div>
                   <p className="font-semibold text-sm text-on-surface dark:text-white">
-                    {currentSub?.plan?.name || 'Starter'} — <span className={isExpired ? 'text-red-600 dark:text-red-400' : 'text-indigo-600 dark:text-indigo-400'}>{isExpired ? 'Expired' : `${trialDaysLeft} days left`}</span>
+                    {currentSub?.plan?.name || 'Starter'} — <span className={
+                      isExpired ? 'text-red-600 dark:text-red-400' :
+                      isPastDue ? 'text-amber-600 dark:text-amber-400' :
+                      isPendingPayment ? 'text-blue-600 dark:text-blue-400' :
+                      'text-indigo-600 dark:text-indigo-400'
+                    }>
+                      {isExpired ? 'Expired' : isPastDue ? 'Grace Period Active' : isPendingPayment ? 'Payment Processing' : `${trialDaysLeft} days left`}
+                    </span>
                   </p>
                   <p className="text-xs text-on-surface-variant dark:text-outline mt-0.5">
-                    Trial started {formatBillingDate(currentSub?.trialStartDate)}{currentSub?.trialEndDate ? ` · Ends ${formatBillingDate(currentSub?.trialEndDate)}` : ''}
+                    {isTrial ? `Trial started ${formatBillingDate(currentSub?.trialStartDate)}${currentSub?.trialEndDate ? ` · Ends ${formatBillingDate(currentSub?.trialEndDate)}` : ''}` :
+                     isPastDue ? 'Your payment failed. Please update your payment method.' :
+                     isPendingPayment ? 'Please wait while we verify your payment.' :
+                     'Action required on your subscription.'}
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => { if (confirm('Are you sure you want to cancel your trial? You will lose access immediately.')) handleCancelSubscription(true); }}
-                className="text-xs font-semibold text-on-surface-variant dark:text-outline border border-border dark:border-dark-border px-4 h-9 rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors shrink-0"
-              >
-                Cancel Trial
-              </button>
+              {isTrial && (
+                <button
+                  onClick={() => { if (confirm('Are you sure you want to cancel your trial? You will lose access immediately.')) handleCancelSubscription(true); }}
+                  className="text-xs font-semibold text-on-surface-variant dark:text-outline border border-border dark:border-dark-border px-4 h-9 rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors shrink-0"
+                >
+                  Cancel Trial
+                </button>
+              )}
             </div>
           )}
 
@@ -391,8 +421,17 @@ export default function BillingSettings() {
               <span className="material-symbols-outlined">info</span>
             </div>
             <div>
-              <h3 className="font-headline-sm text-headline-sm text-on-surface dark:text-white mb-1 tracking-tight font-semibold">{isTrial ? 'Your trial is active' : isExpired ? 'Your trial has expired' : 'Choose a Plan'}</h3>
-              <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline">Please select a plan below to continue using all premium features uninterrupted. Secure payments are processed via Ozow.</p>
+              <h3 className="font-headline-sm text-headline-sm text-on-surface dark:text-white mb-1 tracking-tight font-semibold">
+                {isTrial ? 'Your trial is active' : 
+                 isPastDue ? 'Subscription Past Due' : 
+                 isPendingPayment ? 'Payment Pending' :
+                 isExpired ? 'Your subscription has expired' : 
+                 'Choose a Plan'}
+              </h3>
+              <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline">
+                {isPastDue || isPendingPayment ? 'Please resolve your payment issue or select a plan to continue uninterrupted.' :
+                 'Please select a plan below to continue using all premium features uninterrupted. Secure payments are processed via Ozow.'}
+              </p>
             </div>
           </div>
 
@@ -450,13 +489,13 @@ export default function BillingSettings() {
 
                   <button
                     onClick={() => handleUpgradeClick(plan)}
-                    disabled={subscribeMutation.isPending || plan.price === 0}
+                    disabled={subscribeMutation.isPending || plan.price === 0 || isPendingPayment}
                     className={`w-full h-[44px] rounded-lg font-body-md font-semibold flex items-center justify-center gap-2 transition-colors mb-8 ${isPopular ? 'bg-primary hover:bg-primary-container text-white' : 'bg-surface-container-high dark:bg-white/10 hover:bg-surface-container-highest dark:hover:bg-white/20 text-on-surface dark:text-white'} disabled:opacity-50`}
                   >
                     {subscribeMutation.isPending && subscribeMutation.variables?.planId === plan.id ? (
                       <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" />
                     ) : null}
-                    {plan.price === 0 ? 'Current Plan' : 'Select Plan'}
+                    {plan.price === 0 ? 'Current Plan' : isPendingPayment ? 'Payment Pending' : 'Select Plan'}
                   </button>
 
                   <div className="space-y-4 flex-1">

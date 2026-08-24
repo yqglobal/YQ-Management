@@ -51,6 +51,7 @@ interface ValidationResult {
   isAppointment?: boolean;
   scheduledFor?: string;
   checkedIn?: boolean;
+  multipleResults?: ValidationResult[];
 }
 
 interface HistoryToken {
@@ -463,20 +464,36 @@ export default function AdminScanner() {
     setValidationResult(null);
     setScannerStatus('processing');
     try {
-      const result = await fetchApi(`/customers/by-phone?phone=${encodeURIComponent(manualPhone.trim())}`);
-      if (!result) throw new Error('No customer found with this phone number');
-      // Build a pseudo validation result from customer record
-      const latest = result.visits?.[0];
-      setValidationResult({
+      const results = await fetchApi(`/public-visit/by-phone?phone=${encodeURIComponent(manualPhone.trim())}`);
+      if (!results || results.length === 0) throw new Error('No active tickets found for this phone number');
+      
+      const mappedResults: ValidationResult[] = results.map((result: any) => ({
         valid: true,
-        status: 'FOUND',
-        tokenId: latest?.id || result.id,
-        customerName: result.name || 'Unknown',
-        queueName: latest?.queue?.name || '—',
-        phone: result.phone,
-        joinedAt: latest?.createdAt,
-        queueId: latest?.queueId,
-      });
+        status: result.currentState,
+        tokenId: result.id,
+        customerName: result.customer?.name || 'Unknown',
+        queueName: result.service?.name || '—',
+        phone: result.customer?.phone,
+        joinedAt: result.createdAt,
+        queueId: result.queueId,
+        isAppointment: !!result.scheduledTime,
+        scheduledFor: result.scheduledTime,
+        checkedIn: ['CHECKED_IN', 'WAITING', 'IN_SERVICE'].includes(result.currentState),
+        serviceBooked: result.service?.name,
+        locationName: result.location?.name,
+      }));
+
+      if (mappedResults.length === 1) {
+        setValidationResult(mappedResults[0]);
+      } else {
+        setValidationResult({
+          valid: true,
+          status: 'MULTIPLE',
+          multipleResults: mappedResults,
+          customerName: mappedResults[0].customerName,
+          phone: mappedResults[0].phone,
+        });
+      }
       setScannerStatus('approved');
     } catch (e: any) {
       setValidationResult({
@@ -726,7 +743,31 @@ export default function AdminScanner() {
                       </div>
                     )}
                     
-                    {validationResult.valid && (
+                    {validationResult.valid && validationResult.multipleResults && (
+                      <div className="space-y-3">
+                        <p className="text-sm font-semibold text-primary">Found {validationResult.multipleResults.length} active tickets for this customer:</p>
+                        {validationResult.multipleResults.map((ticket, idx) => (
+                          <div key={idx} className="bg-surface-container-low dark:bg-inverse-surface rounded-xl p-4 border border-border dark:border-dark-border cursor-pointer hover:border-primary transition-colors" onClick={() => setValidationResult(ticket)}>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="font-semibold text-on-surface dark:text-white">{ticket.serviceBooked || ticket.queueName || 'General Consultation'}</h4>
+                                {ticket.isAppointment && ticket.scheduledFor && (
+                                  <p className="text-xs text-on-surface-variant mt-1">
+                                    Appointment: {new Date(ticket.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                )}
+                              </div>
+                              <span className={`px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider ${ticket.status === 'WAITING' ? 'bg-amber-100 text-amber-800' : ticket.status === 'CHECKED_IN' ? 'bg-emerald-100 text-emerald-800' : 'bg-surface-container text-on-surface'}`}>
+                                {ticket.status}
+                              </span>
+                            </div>
+                            <button className="mt-3 text-sm text-primary font-semibold flex items-center gap-1">View Details <Check strokeWidth={1.5} className="w-4 h-4" /></button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {validationResult.valid && !validationResult.multipleResults && (
                       <>
                         <div className="bg-primary/5 dark:bg-primary/10 rounded-xl p-5 border border-primary/20 flex flex-col gap-4">
                           <div className="flex justify-between items-center">
@@ -746,26 +787,34 @@ export default function AdminScanner() {
                             </div>
                           )}
                           {validationResult.isAppointment && validationResult.scheduledFor && (
-                            <div className="flex justify-between items-center pt-2 border-t border-primary/10">
-                              <span className="text-outline text-sm font-medium">Appointment Time</span>
-                              <div className="text-right">
-                                <span className="font-semibold text-on-surface dark:text-white block">
-                                  {new Date(validationResult.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                                {(() => {
-                                  const diffMins = (new Date().getTime() - new Date(validationResult.scheduledFor).getTime()) / 60000;
-                                  if (diffMins < -15) return <span className="text-xs text-amber-500 font-semibold uppercase">Early</span>;
-                                  if (diffMins > 15) return <span className="text-xs text-red-500 font-semibold uppercase">Late</span>;
-                                  return <span className="text-xs text-emerald-500 font-semibold uppercase">On Time</span>;
-                                })()}
+                            <div className="flex flex-col pt-2 border-t border-primary/10 gap-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-outline text-sm font-medium">Appointment Time</span>
+                                <div className="text-right">
+                                  <span className="font-semibold text-on-surface dark:text-white block">
+                                    {new Date(validationResult.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                  {(() => {
+                                    const diffMins = (new Date().getTime() - new Date(validationResult.scheduledFor).getTime()) / 60000;
+                                    if (diffMins < -15) return <span className="text-xs text-amber-500 font-semibold uppercase tracking-wider">Arrived Early</span>;
+                                    if (diffMins > 15) return <span className="text-xs text-red-500 font-semibold uppercase tracking-wider">Arrived Late</span>;
+                                    return <span className="text-xs text-emerald-500 font-semibold uppercase tracking-wider">On Time</span>;
+                                  })()}
+                                </div>
                               </div>
+                              {(() => {
+                                const diffMins = (new Date().getTime() - new Date(validationResult.scheduledFor).getTime()) / 60000;
+                                if (diffMins < -15) return <div className="bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 p-3 rounded-lg text-sm border border-amber-200 dark:border-amber-500/20"><AlertTriangle strokeWidth={1.5} className="w-4 h-4 inline mr-1 -mt-0.5" /> Customer is early. They may check-in but must wait until their scheduled time.</div>;
+                                if (diffMins > 15) return <div className="bg-red-50 dark:bg-red-500/10 text-red-800 dark:text-red-400 p-3 rounded-lg text-sm border border-red-200 dark:border-red-500/20"><AlertTriangle strokeWidth={1.5} className="w-4 h-4 inline mr-1 -mt-0.5" /> Customer is late. Operator override may be required.</div>;
+                                return null;
+                              })()}
                             </div>
                           )}
                         </div>
                         
                         <div className="bg-surface-container-low dark:bg-inverse-surface rounded-xl p-4 border border-border dark:border-dark-border flex justify-between items-center">
                           <span className="text-outline text-sm font-medium">Token Status</span>
-                          <span className={`font-semibold font-data-mono ${validationResult.status === 'WAITING' ? 'text-amber-500' : validationResult.status === 'SERVING' ? 'text-emerald-500' : validationResult.status === 'MISSED' ? 'text-red-500' : 'text-on-surface dark:text-white'}`}>{validationResult.status}</span>
+                          <span className={`font-semibold font-data-mono ${validationResult.status === 'WAITING' ? 'text-amber-500' : validationResult.status === 'SERVING' || validationResult.status === 'IN_SERVICE' ? 'text-emerald-500' : validationResult.status === 'MISSED' ? 'text-red-500' : 'text-on-surface dark:text-white'}`}>{validationResult.status}</span>
                         </div>
                       </>
                     )}
@@ -773,7 +822,7 @@ export default function AdminScanner() {
 
                   {/* Section C: Action */}
                   <div className="mt-auto pt-8 border-t border-border dark:border-dark-border">
-                    {validationResult.valid ? (
+                    {validationResult.valid && !validationResult.multipleResults ? (
                        validationResult.isAppointment && !validationResult.checkedIn ? (
                          <button 
                            onClick={handleCheckIn}
@@ -791,6 +840,14 @@ export default function AdminScanner() {
                            Scan Next Ticket
                          </button>
                        )
+                    ) : validationResult.valid && validationResult.multipleResults ? (
+                         <button 
+                           onClick={() => { setValidationResult(null); startScanning(); }}
+                           className="h-16 min-h-[44px] w-full bg-on-surface dark:bg-white text-white dark:text-zinc-900 text-lg font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+                         >
+                           <RefreshCcw strokeWidth={1.5} className="w-5 h-5" />
+                           Cancel
+                         </button>
                     ) : (
                        <button 
                          onClick={() => { setValidationResult(null); startScanning(); }}

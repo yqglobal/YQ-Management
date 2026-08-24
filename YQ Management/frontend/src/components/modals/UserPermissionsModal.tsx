@@ -36,6 +36,7 @@ export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }:
 
   const availablePages = [
     { id: 'dashboard', label: 'Dashboard' },
+    { id: 'inbox', label: 'Inbox (WhatsApp)' },
     { id: 'service-desk', label: 'Service Desk' },
     { id: 'appointments', label: 'Appointments' },
     { id: 'customers', label: 'Customers' },

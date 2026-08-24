@@ -384,72 +384,83 @@ export default function AppointmentsPage() {
                         {format(groupDate, 'EEEE, MMMM d, yyyy')}
                         {isTodayGroup && <span className="px-2 py-0.5 rounded-full bg-primary text-white text-[10px] uppercase tracking-wider">Today</span>}
                       </div>
-                      <table className="w-full text-left">
-                        <thead>
-                          <tr className="border-b border-border dark:border-dark-border text-xs uppercase tracking-wider text-on-surface-variant">
-                            <th className="px-6 py-3 font-medium">Time</th>
-                            <th className="px-6 py-3 font-medium">Customer</th>
-                            <th className="px-6 py-3 font-medium">Service</th>
-                            <th className="px-6 py-3 font-medium">Status</th>
-                            <th className="px-6 py-3 font-medium text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border dark:divide-dark-border">
-                          {group.appointments.map((apt: any) => {
-                            const d = apt.scheduledTime ? new Date(apt.scheduledTime) : new Date(apt.createdAt);
-                            const isCancelled = apt.currentState === 'CANCELLED' || apt.currentState === 'REJECTED' || apt.currentState === 'MISSED';
-                            return (
-                              <tr
-                                key={apt.id}
-                                className={`hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors ${isCancelled ? 'opacity-60' : ''}`}
-                              >
-                                <td className="px-6 py-4 text-sm font-data-mono text-on-surface dark:text-white">
-                                  {format(d, 'h:mm a')}
-                                </td>
-                                <td className="px-6 py-4">
-                                  <p className="font-medium text-on-surface dark:text-white text-sm">{apt.customer?.name || apt.customerName || '—'}</p>
-                                  {apt.customer?.phone && <p className="text-xs text-on-surface-variant">{apt.customer.phone}</p>}
-                                </td>
-                                <td className="px-6 py-4 text-sm text-on-surface-variant dark:text-zinc-400">
-                                  {apt.service?.name || '—'}
-                                  <div className="text-[10px] uppercase tracking-wider font-bold mt-1 text-primary/70">{apt._type}</div>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                    apt.currentState === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                    : isCancelled ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400'
-                                    : apt.currentState === 'PENDING_APPROVAL' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
-                                    : apt.currentState === 'SERVING' || apt.currentState === 'IN_PROGRESS' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400'
-                                    : 'bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400'
-                                  }`}>
-                                    {apt.currentState || 'Scheduled'}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                  <div className="flex justify-end gap-2">
-                                    {apt._type === 'Appointment' && (apt.currentState === 'SCHEDULED' || apt.currentState === 'CONFIRMED') && isSameDay(d, new Date()) && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="border-b border-border dark:border-dark-border text-xs uppercase tracking-wider text-on-surface-variant">
+                              <th className="px-6 py-3 font-medium">Time</th>
+                              <th className="px-6 py-3 font-medium">Customer</th>
+                              <th className="px-6 py-3 font-medium">Service</th>
+                              <th className="px-6 py-3 font-medium">Status</th>
+                              <th className="px-6 py-3 font-medium text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border dark:divide-dark-border">
+                            {group.appointments.map((apt: any) => {
+                              const d = apt.scheduledTime ? new Date(apt.scheduledTime) : new Date(apt.createdAt);
+                              const isCancelled = apt.currentState === 'CANCELLED' || apt.currentState === 'REJECTED' || apt.currentState === 'MISSED';
+                              return (
+                                <tr
+                                  key={apt.id}
+                                  className={`hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors ${isCancelled ? 'opacity-60' : ''}`}
+                                >
+                                  <td className="px-6 py-4 text-sm font-data-mono text-on-surface dark:text-white">
+                                    {format(d, 'h:mm a')}
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <p className="font-medium text-on-surface dark:text-white text-sm">{apt.customer?.name || apt.customerName || '—'}</p>
+                                    {apt.customer?.phone && <p className="text-xs text-on-surface-variant">{apt.customer.phone}</p>}
+                                  </td>
+                                  <td className="px-6 py-4 text-sm text-on-surface-variant dark:text-zinc-400">
+                                    {apt.service?.name || '—'}
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-[10px] uppercase tracking-wider font-bold text-primary/70">{apt._type}</span>
+                                      {(() => {
+                                         if (!apt.scheduledTime || !apt.waitingStart) return null;
+                                         const diffMins = (new Date(apt.waitingStart).getTime() - new Date(apt.scheduledTime).getTime()) / 60000;
+                                         if (diffMins < -15) return <span className="font-label-caps text-[10px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Early</span>;
+                                         if (diffMins > 15) return <span className="font-label-caps text-[10px] bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Late</span>;
+                                         return null;
+                                      })()}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                      apt.currentState === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                      : isCancelled ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400'
+                                      : apt.currentState === 'PENDING_APPROVAL' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+                                      : apt.currentState === 'SERVING' || apt.currentState === 'IN_PROGRESS' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400'
+                                      : 'bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400'
+                                    }`}>
+                                      {apt.currentState || 'Scheduled'}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 text-right">
+                                    <div className="flex justify-end gap-2">
+                                      {apt._type === 'Appointment' && (apt.currentState === 'SCHEDULED' || apt.currentState === 'CONFIRMED') && isSameDay(d, new Date()) && (
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); checkInMutation.mutate(apt.id); }}
+                                          disabled={checkInMutation.isPending}
+                                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1 transition-colors"
+                                        >
+                                          Check In
+                                        </button>
+                                      )}
                                       <button
-                                        onClick={(e) => { e.stopPropagation(); checkInMutation.mutate(apt.id); }}
-                                        disabled={checkInMutation.isPending}
-                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1 transition-colors"
+                                        onClick={(e) => { e.stopPropagation(); setSelectedVisit(apt); }}
+                                        className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                        title="View Details"
                                       >
-                                        Check In
+                                        <Eye className="w-4 h-4" />
                                       </button>
-                                    )}
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setSelectedVisit(apt); }}
-                                      className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                                      title="View Details"
-                                    >
-                                      <Eye className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   );
                 })}

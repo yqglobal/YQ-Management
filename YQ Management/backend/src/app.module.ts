@@ -91,6 +91,7 @@ import { BlogsModule } from './blogs/blogs.module';
       connection: {
         host: process.env.REDIS_HOST || 'localhost',
         port: Number(process.env.REDIS_PORT) || 6379,
+        maxRetriesPerRequest: null,
       },
     }),
     CacheModule.register({

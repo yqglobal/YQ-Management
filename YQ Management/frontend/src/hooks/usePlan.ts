@@ -87,9 +87,15 @@ export function usePlan(): UsePlanResult {
 
     const isTrialActive = status === 'TRIAL';
     const subscriptionEndDate: Date | null = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
-    const trialDaysLeft = isTrialActive && subscriptionEndDate
-      ? Math.max(0, Math.ceil((subscriptionEndDate.getTime() - Date.now()) / 86400000))
-      : 0;
+    
+    let trialDaysLeft = 0;
+    if (isTrialActive && subscriptionEndDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const end = new Date(subscriptionEndDate);
+      end.setHours(0, 0, 0, 0);
+      trialDaysLeft = Math.max(0, Math.round((end.getTime() - today.getTime()) / 86400000));
+    }
 
     // Usage
     const queueCount = Array.isArray(queues) ? queues.length : 0;
@@ -102,7 +108,7 @@ export function usePlan(): UsePlanResult {
     const queueUsagePct = limits.maxQueues > 0 ? Math.min(100, (queueCount / limits.maxQueues) * 100) : 0;
     const tokenUsagePct = limits.maxTokens > 0 ? Math.min(100, (tokensThisMonth / limits.maxTokens) * 100) : 0;
 
-    const canAccess = status === 'TRIAL' || status === 'ACTIVE';
+    const canAccess = status === 'TRIAL' || status === 'ACTIVE' || status === 'PAST_DUE' || status === 'PENDING_PAYMENT';
 
     return {
       status,

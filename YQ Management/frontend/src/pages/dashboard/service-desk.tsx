@@ -441,6 +441,15 @@ export default function ServiceDeskToday() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`font-data-mono text-data-mono ${isUrgent ? 'text-alert' : 'text-on-surface dark:text-white'}`}>{v.ticketNumber || `#TKT-${v.id.substring(0,4)}`}</span>
                         {isUrgent && <span className="font-label-caps text-[10px] bg-alert/10 text-alert px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Urgent</span>}
+                        {(() => {
+                           if (v.source !== 'APPOINTMENT') return null;
+                           const sched = v.scheduledFor || v.scheduledTime;
+                           if (!sched || !v.waitingStart) return null;
+                           const diffMins = (new Date(v.waitingStart).getTime() - new Date(sched).getTime()) / 60000;
+                           if (diffMins < -15) return <span className="font-label-caps text-[10px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Early</span>;
+                           if (diffMins > 15) return <span className="font-label-caps text-[10px] bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Late</span>;
+                           return null;
+                        })()}
                       </div>
                       <h3 className="font-semibold text-body-lg text-on-surface dark:text-white">{v.customer?.name || 'Walk-in Customer'}</h3>
                       <div className="flex items-center gap-2 text-outline text-body-sm mt-0.5">

@@ -1475,7 +1475,36 @@ export class WhatsappService implements OnModuleInit {
       const bot = new WhatsappChatbot(this.prisma, async (jidToSend, textToSend) => {
         await this.sendMessage(instanceName, jidToSend, textToSend);
       });
-      await bot.process(tenant, phone, jid, rawText);
+      const botResult = await bot.process(tenant, phone, jid, rawText);
+      
+      // If the bot says human is handling it (or they just requested a human), log the message!
+      if (botResult.isHumanPaused) {
+        // Upsert CustomerConversation
+        const conversation = await this.prisma.customerConversation.upsert({
+          where: { tenantId_customerPhone: { tenantId: tenant.id, customerPhone: phone } },
+          update: { lastMessageAt: new Date(), unreadCount: { increment: 1 }, status: 'OPEN' },
+          create: { tenantId: tenant.id, customerPhone: phone, status: 'OPEN', unreadCount: 1 },
+        });
+
+        // Store the incoming message for the Inbox UI
+        await this.prisma.message.create({
+          data: {
+            tenantId: tenant.id,
+            customerPhone: phone,
+            conversationId: conversation.id,
+            body: rawText,
+            sender: 'CUSTOMER',
+            isRead: false,
+          },
+        });
+        
+        // Notify any open dashboard websockets about a new inbox message
+        this.redisService.client.publish(
+          'queue_events',
+          JSON.stringify({ type: 'NEW_INBOX_MESSAGE', tenantId: tenant.id, phone })
+        );
+      }
+
       return { handled: true, action: 'chatbot' };
 
     } catch (e) {

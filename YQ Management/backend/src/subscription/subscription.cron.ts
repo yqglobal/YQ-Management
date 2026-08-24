@@ -28,18 +28,20 @@ export class SubscriptionCron {
       include: { tenant: { select: { id: true, name: true } } },
     });
 
-    for (const sub of expired) {
-      if (!sub.tenantId) continue;
-      try {
-        await this.subscriptionService.expireTrial(sub.tenantId);
-        this.logger.log(`Expired trial for workspace ${sub.tenantId}`);
-      } catch (e) {
-        this.logger.error(
-          `Failed to expire trial for workspace ${sub.tenantId}`,
-          e,
-        );
-      }
-    }
+    await Promise.allSettled(
+      expired.map(async (sub) => {
+        if (!sub.tenantId) return;
+        try {
+          await this.subscriptionService.expireTrial(sub.tenantId);
+          this.logger.log(`Expired trial for workspace ${sub.tenantId}`);
+        } catch (e) {
+          this.logger.error(
+            `Failed to expire trial for workspace ${sub.tenantId}`,
+            e,
+          );
+        }
+      })
+    );
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -68,35 +70,37 @@ export class SubscriptionCron {
         },
       });
 
-      for (const sub of upcoming) {
-        if (!sub.tenantId) continue;
-        try {
-          const workspaceOwner = await this.prisma.user.findFirst({
-            where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
-            select: { email: true },
-          });
+      await Promise.allSettled(
+        upcoming.map(async (sub) => {
+          if (!sub.tenantId) return;
+          try {
+            const workspaceOwner = await this.prisma.user.findFirst({
+              where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
+              select: { email: true },
+            });
 
-          const email = workspaceOwner?.email || 'admin@example.com';
+            const email = workspaceOwner?.email || 'admin@example.com';
 
-          await this.communicationService.publish(
-            CommunicationEvent.BILLING_TRIAL_ENDING,
-            {
-              email,
-              workspaceName: sub.tenant?.name || 'Your Workspace',
-              daysRemaining: days,
-              tenantId: sub.tenantId,
-            },
-          );
-          
-          this.emailService.sendTrialExpiringEmail(email, days).catch(e => {
-            this.logger.error(`Failed to send ${days}-day trial reminder email to ${email}`, e);
-          });
-          
-          this.logger.log(`Sent ${days}-day trial reminder for workspace ${sub.tenantId}`);
-        } catch (e) {
-          this.logger.error(`Failed to send ${days}-day trial reminder for workspace ${sub.tenantId}`, e);
-        }
-      }
+            await this.communicationService.publish(
+              CommunicationEvent.BILLING_TRIAL_ENDING,
+              {
+                email,
+                workspaceName: sub.tenant?.name || 'Your Workspace',
+                daysRemaining: days,
+                tenantId: sub.tenantId,
+              },
+            );
+            
+            this.emailService.sendTrialExpiringEmail(email, days).catch(e => {
+              this.logger.error(`Failed to send ${days}-day trial reminder email to ${email}`, e);
+            });
+            
+            this.logger.log(`Sent ${days}-day trial reminder for workspace ${sub.tenantId}`);
+          } catch (e) {
+            this.logger.error(`Failed to send ${days}-day trial reminder for workspace ${sub.tenantId}`, e);
+          }
+        })
+      );
     }
   }
 
@@ -130,50 +134,80 @@ export class SubscriptionCron {
         },
       });
 
-      for (const sub of upcoming) {
-        if (!sub.tenantId) continue;
-        try {
-          const workspaceOwner = await this.prisma.user.findFirst({
-            where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
-            select: { email: true },
-          });
-          const adminOwner = await this.prisma.user.findFirst({
-            where: { tenantId: sub.tenantId, role: 'ADMIN' },
-            select: { email: true },
-          });
+      await Promise.allSettled(
+        upcoming.map(async (sub) => {
+          if (!sub.tenantId) return;
+          try {
+            const workspaceOwner = await this.prisma.user.findFirst({
+              where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
+              select: { email: true },
+            });
+            const adminOwner = await this.prisma.user.findFirst({
+              where: { tenantId: sub.tenantId, role: 'ADMIN' },
+              select: { email: true },
+            });
 
-          const email = workspaceOwner?.email || adminOwner?.email || 'admin@example.com';
-          const planName = sub.plan?.name || 'Standard';
+            const email = workspaceOwner?.email || adminOwner?.email || 'admin@example.com';
+            const planName = sub.plan?.name || 'Standard';
 
-          await this.communicationService.publish(
-            CommunicationEvent.BILLING_TRIAL_ENDING,
-            {
-              email,
-              workspaceName: sub.tenant?.name || 'Your Workspace',
-              daysRemaining: days,
-              tenantId: sub.tenantId,
-            },
-          );
-          
-          this.emailService.sendPlanExpiringEmail(email, planName, days).catch(e => {
-            this.logger.error(`Failed to send ${days}-day renewal reminder email to ${email}`, e);
-          });
-          
-          this.logger.log(`Sent ${days}-day renewal reminder for workspace ${sub.tenantId}`);
-        } catch (e) {
-          this.logger.error(`Failed to send ${days}-day renewal reminder for workspace ${sub.tenantId}`, e);
-        }
-      }
+            await this.communicationService.publish(
+              CommunicationEvent.BILLING_TRIAL_ENDING,
+              {
+                email,
+                workspaceName: sub.tenant?.name || 'Your Workspace',
+                daysRemaining: days,
+                tenantId: sub.tenantId,
+              },
+            );
+            
+            this.emailService.sendPlanExpiringEmail(email, planName, days).catch(e => {
+              this.logger.error(`Failed to send ${days}-day renewal reminder email to ${email}`, e);
+            });
+            
+            this.logger.log(`Sent ${days}-day renewal reminder for workspace ${sub.tenantId}`);
+          } catch (e) {
+            this.logger.error(`Failed to send ${days}-day renewal reminder for workspace ${sub.tenantId}`, e);
+          }
+        })
+      );
     }
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cancelExpiredSubscriptions() {
     this.logger.log('Running expired subscription cancellation cron');
-    const expired = await this.prisma.subscription.findMany({
+    // 1. Transition ACTIVE to PAST_DUE
+    this.logger.log('Running expired subscription PAST_DUE transition cron');
+    const recentlyExpired = await this.prisma.subscription.findMany({
       where: {
         status: 'ACTIVE',
         nextBillingDate: { lt: new Date() },
+      },
+      include: { tenant: { select: { id: true, name: true } } },
+    });
+
+    await Promise.allSettled(
+      recentlyExpired.map(async (sub) => {
+        if (!sub.tenantId) return;
+        try {
+          await this.prisma.subscription.update({
+            where: { id: sub.id },
+            data: { status: 'PAST_DUE' },
+          });
+          this.logger.log(`Marked subscription PAST_DUE for workspace ${sub.tenantId}`);
+        } catch (e) {
+          this.logger.error(`Failed to mark PAST_DUE for workspace ${sub.tenantId}`, e);
+        }
+      })
+    );
+
+    // 2. Cancel PAST_DUE after 3 days
+    this.logger.log('Running PAST_DUE subscription cancellation cron');
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const pastDueExpired = await this.prisma.subscription.findMany({
+      where: {
+        status: 'PAST_DUE',
+        nextBillingDate: { lt: threeDaysAgo },
       },
       include: { 
         tenant: { select: { id: true, name: true } },
@@ -181,40 +215,42 @@ export class SubscriptionCron {
       },
     });
 
-    for (const sub of expired) {
-      if (!sub.tenantId) continue;
-      try {
-        await this.subscriptionService.cancelSubscription(sub.tenantId, {
-          immediate: true,
-          reason: 'Subscription expired - Next billing date passed',
-        });
-        
-        const workspaceOwner = await this.prisma.user.findFirst({
-          where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
-          select: { email: true },
-        });
-
-        if (workspaceOwner?.email) {
-          const planName = sub.plan?.name || 'Standard';
-          await this.communicationService.publish(
-            CommunicationEvent.BILLING_TRIAL_ENDING,
-            {
-              email: workspaceOwner.email,
-              workspaceName: sub.tenant?.name || 'Your Workspace',
-              daysRemaining: 0,
-              tenantId: sub.tenantId,
-            },
-          );
-          
-          this.emailService.sendPlanExpiredEmail(workspaceOwner.email, planName).catch(e => {
-            this.logger.error(`Failed to send plan expired email to ${workspaceOwner.email}`, e);
+    await Promise.allSettled(
+      pastDueExpired.map(async (sub) => {
+        if (!sub.tenantId) return;
+        try {
+          await this.subscriptionService.cancelSubscription(sub.tenantId, {
+            immediate: true,
+            reason: 'Subscription expired - 3 day grace period ended',
           });
-        }
+          
+          const workspaceOwner = await this.prisma.user.findFirst({
+            where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
+            select: { email: true },
+          });
 
-        this.logger.log(`Cancelled expired subscription for workspace ${sub.tenantId}`);
-      } catch (e) {
-        this.logger.error(`Failed to cancel expired subscription for workspace ${sub.tenantId}`, e);
-      }
-    }
+          if (workspaceOwner?.email) {
+            const planName = sub.plan?.name || 'Standard';
+            await this.communicationService.publish(
+              CommunicationEvent.BILLING_TRIAL_ENDING,
+              {
+                email: workspaceOwner.email,
+                workspaceName: sub.tenant?.name || 'Your Workspace',
+                daysRemaining: 0,
+                tenantId: sub.tenantId,
+              },
+            );
+            
+            this.emailService.sendPlanExpiredEmail(workspaceOwner.email, planName).catch(e => {
+              this.logger.error(`Failed to send plan expired email to ${workspaceOwner?.email}`, e);
+            });
+          }
+
+          this.logger.log(`Cancelled expired subscription for workspace ${sub.tenantId}`);
+        } catch (e) {
+          this.logger.error(`Failed to cancel expired subscription for workspace ${sub.tenantId}`, e);
+        }
+      })
+    );
   }
 }

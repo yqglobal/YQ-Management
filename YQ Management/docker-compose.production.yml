@@ -18,6 +18,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis:
     image: redis:7-alpine
@@ -28,6 +33,53 @@ services:
     networks:
       - yq-network
     command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: yq-evolution
+    restart: always
+    environment:
+      - SERVER_URL=https://evo.${DOMAIN_BASE}
+      - DOCKER_ENV=true
+      - DEL_INSTANCE=false
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_CHATS=true
+      - DATABASE_SAVE_DATA_CONTACTS=true
+      - LOG_LEVEL=DEBUG,ERROR,WARN,INFO,WEBHOOKS
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-yq_queue}?schema=public
+      - DATABASE_CONNECTION_CLIENT_NAME=evolution_api
+      - REDIS_URI=redis://redis:6379/1
+      - CACHE_REDIS_URI=redis://redis:6379/1
+      - REDIS_PREFIX_KEY=evolution
+      - CONFIG_SESSION_PHONE_VERSION=2.3.7
+      - WEB_VERSION=2.3.7
+    volumes:
+      - evolutiondata:/evolution
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - yq-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   backend:
     build: 
@@ -38,24 +90,36 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-yq_queue}
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-yq_queue}?schema=public
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET=${JWT_SECRET}
-      - FRONTEND_URL=https://${DOMAIN_APP}
-      - APP_URL=https://${DOMAIN_APP}
-      - BACKEND_URL=https://${DOMAIN_API}
+      - FRONTEND_URL=https://app.${DOMAIN_BASE}
+      - APP_URL=https://app.${DOMAIN_BASE}
+      - BACKEND_URL=https://api.${DOMAIN_BASE}
+      - BACKEND_PUBLIC_URL=https://api.${DOMAIN_BASE}
+      - EXTRA_ALLOWED_ORIGINS=https://${DOMAIN_BASE},https://app.${DOMAIN_BASE},https://api.${DOMAIN_BASE}
       - SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL}
       - BREVO_API_KEY=${BREVO_API_KEY}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - EVOLUTION_API_URL=http://evolution:8080
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
     depends_on:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      evolution:
         condition: service_started
     networks:
       - yq-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     build:
@@ -65,15 +129,20 @@ services:
     restart: always
     environment:
       - NODE_ENV=production
-      - PORT=3000
-      - NEXT_PUBLIC_API_URL=https://${DOMAIN_API}
-      - NEXT_PUBLIC_BACKEND_URL=https://${DOMAIN_API}
-      - NEXT_PUBLIC_WS_URL=https://${DOMAIN_API}
+      - PORT=3001
+      - NEXT_PUBLIC_API_URL=https://api.${DOMAIN_BASE}
+      - NEXT_PUBLIC_BACKEND_URL=https://api.${DOMAIN_BASE}
+      - NEXT_PUBLIC_WS_URL=https://api.${DOMAIN_BASE}
       - NEXT_PUBLIC_SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL}
     depends_on:
       - backend
     networks:
       - yq-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   caddy:
     image: caddy:2-alpine
@@ -82,6 +151,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      - DOMAIN_BASE=${DOMAIN_BASE}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
@@ -89,12 +160,14 @@ services:
     depends_on:
       - frontend
       - backend
+      - evolution
     networks:
       - yq-network
 
 volumes:
   pgdata:
   redisdata:
+  evolutiondata:
   caddy_data:
   caddy_config:
 

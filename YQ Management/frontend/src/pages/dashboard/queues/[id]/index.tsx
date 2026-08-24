@@ -7,7 +7,7 @@ import { Settings, ArrowLeft, Loader2, ListOrdered, Save, Calendar, CheckSquare,
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi, getBackendUrl } from '../../../../lib/api';
-import { io } from 'socket.io-client';
+import { useSocket } from '../../../../components/SocketProvider';
 import { toast } from 'sonner';
 import { WhatsAppChatPanel } from '../../../../components/WhatsAppChatPanel';
 import { useAuth } from '../../../../components/AuthContext';
@@ -62,22 +62,14 @@ export default function QueueDetails() {
 
   // FIX (1B): Real-time WebSocket subscription replaces 5s polling
   // Subscribes to the queue room and tenant room to receive live updates
+  const { socket } = useSocket();
+
   useEffect(() => {
-    if (!id || !user?.tenantId) return;
+    if (!id || !user?.tenantId || !socket) return;
 
-    const baseUrl = typeof window !== 'undefined'
-      ? (process.env.NEXT_PUBLIC_API_URL || getBackendUrl())
-      : getBackendUrl();
-
-    const socket = io(baseUrl, {
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
-    });
-
-    socket.on('connect', () => {
-      socket.emit('joinQueueRoom', id);
-      socket.emit('joinTenantRoom', user.tenantId);
-    });
+    // Join the specific queue room
+    socket.emit('joinQueueRoom', id);
+    // Tenant room is already joined in SocketProvider
 
     const invalidateTokens = () => {
       queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] });
@@ -94,9 +86,14 @@ export default function QueueDetails() {
     });
 
     return () => {
-      socket.disconnect();
+      socket.off('visit_created', invalidateTokens);
+      socket.off('visit_called', invalidateTokens);
+      socket.off('visit_completed', invalidateTokens);
+      socket.off('visit_missed', invalidateTokens);
+      socket.off('visit_checked_in', invalidateTokens);
+      socket.off('queue_status_changed');
     };
-  }, [id, user?.tenantId, queryClient]);
+  }, [id, user?.tenantId, queryClient, socket]);
 
   const updateQueueMutation = useMutation({
     mutationFn: (data: any) => fetchApi(`/queue/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),

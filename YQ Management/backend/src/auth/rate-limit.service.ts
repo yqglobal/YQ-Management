@@ -8,8 +8,8 @@ export class RateLimitService {
   private readonly maxRequests: number;
 
   constructor(private readonly redisService: RedisService) {
-    this.windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '600000');
-    this.maxRequests = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '10');
+    this.windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000');
+    this.maxRequests = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100');
   }
 
   async checkLimit(ip: string, route: string): Promise<void> {

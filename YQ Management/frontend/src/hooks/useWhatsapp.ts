@@ -1,55 +1,47 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
 import { useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../components/AuthContext';
+import { useSocket } from '../components/SocketProvider';
 
 import { getBackendUrl } from '../lib/api';
-
-const SOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || getBackendUrl();
 
 export function useWhatsapp() {
   const qc = useQueryClient();
   const { user } = useAuth();
-  const socketRef = useRef<Socket | null>(null);
+  const { socket } = useSocket();
 
   useEffect(() => {
-    if (!user?.tenantId) return;
+    if (!user?.tenantId || !socket) return;
 
-    if (!socketRef.current) {
-      socketRef.current = io(SOCKET_URL, { transports: ['websocket'] });
+    const handleConnectionUpdate = (payload: any) => {
+      console.log('[WhatsApp Socket] Received connection update:', payload);
       
-      socketRef.current.on('connect', () => {
-        socketRef.current?.emit('joinTenantRoom', user.tenantId);
+      // Instantly update the status query cache
+      qc.setQueryData(['whatsapp-status'], (old: any) => {
+        return {
+          ...old,
+          instanceName: payload.instanceName || old?.instanceName,
+          state: payload.state || old?.state,
+          qr: payload.qr !== undefined ? payload.qr : old?.qr,
+          qrType: payload.qrType !== undefined ? payload.qrType : old?.qrType,
+        };
       });
 
-      socketRef.current.on('whatsapp_connection_update', (payload: any) => {
-        console.log('[WhatsApp Socket] Received connection update:', payload);
-        
-        // Instantly update the status query cache
-        qc.setQueryData(['whatsapp-status'], (old: any) => {
-          return {
-            ...old,
-            instanceName: payload.instanceName || old?.instanceName,
-            state: payload.state || old?.state,
-            qr: payload.qr !== undefined ? payload.qr : old?.qr,
-            qrType: payload.qrType !== undefined ? payload.qrType : old?.qrType,
-          };
-        });
+      // Instantly update cached QR query cache if a QR is provided
+      if (payload.qr) {
+         qc.setQueryData(['whatsapp-cached-qr'], { qr: payload.qr });
+      }
+      
+      // Also invalidate to fetch fresh full state if needed, though cache is optimistic
+      qc.invalidateQueries({ queryKey: ['whatsapp-status'] });
+      qc.invalidateQueries({ queryKey: ['whatsapp-cached-qr'] });
+      
+      // Invalidate tenant info to update the sidebar checklist progress
+      qc.invalidateQueries({ queryKey: ['tenant', 'me'] });
+    };
 
-        // Instantly update cached QR query cache if a QR is provided
-        if (payload.qr) {
-           qc.setQueryData(['whatsapp-cached-qr'], { qr: payload.qr });
-        }
-        
-        // Also invalidate to fetch fresh full state if needed, though cache is optimistic
-        qc.invalidateQueries({ queryKey: ['whatsapp-status'] });
-        qc.invalidateQueries({ queryKey: ['whatsapp-cached-qr'] });
-        
-        // Invalidate tenant info to update the sidebar checklist progress
-        qc.invalidateQueries({ queryKey: ['tenant', 'me'] });
-      });
-    }
+    socket.on('whatsapp_connection_update', handleConnectionUpdate);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -60,12 +52,9 @@ export function useWhatsapp() {
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
+      socket.off('whatsapp_connection_update', handleConnectionUpdate);
     };
-  }, [user?.tenantId, qc]);
+  }, [user?.tenantId, qc, socket]);
 
   const statusQuery = useQuery({
     queryKey: ['whatsapp-status'],

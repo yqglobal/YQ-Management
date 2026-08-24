@@ -6,7 +6,7 @@ export class WhatsappChatbot {
     private sendMsg: (jid: string, text: string) => Promise<void>,
   ) {}
 
-  async process(tenant: any, phone: string, jid: string, rawText: string) {
+  async process(tenant: any, phone: string, jid: string, rawText: string): Promise<{ handled: boolean, isHumanPaused: boolean }> {
     const text = rawText.trim();
     const upperText = text.toUpperCase();
     const tenantId = tenant.id;
@@ -29,6 +29,7 @@ export class WhatsappChatbot {
     }
 
     const isGreeting = ['HI', 'HELLO', 'HEY', 'START', 'MENU', '0'].includes(upperText);
+    const isTransactionalReply = ['OK', 'OKAY', 'THANKS', 'THANK YOU', '👍'].includes(upperText);
 
     // If human mode is active, block the bot from auto-replying unless they say MENU
     if (session.context && (session.context as any).isHumanPaused) {
@@ -39,10 +40,15 @@ export class WhatsappChatbot {
           data: { step: 0, context: {} },
         });
         await this.sendMenu(jid, config);
-        return;
+        return { handled: true, isHumanPaused: false };
       }
-      // Silently ignore messages while human is handling
-      return;
+      // Return that it's paused so the service can log it
+      return { handled: true, isHumanPaused: true };
+    }
+
+    if (isTransactionalReply) {
+      // Just ignore it entirely to not annoy the customer when they say Thanks to automated alerts
+      return { handled: true, isHumanPaused: false };
     }
 
     if (isGreeting) {
@@ -51,7 +57,7 @@ export class WhatsappChatbot {
         data: { step: 0, context: {} },
       });
       await this.sendMenu(jid, config);
-      return;
+      return { handled: true, isHumanPaused: false };
     }
 
     // Process Menu Options
@@ -61,7 +67,7 @@ export class WhatsappChatbot {
         (upperText === '1' || upperText.includes('STATUS') || upperText.includes('WHERE'))
       ) {
         await this.handleStatusCheck(tenantId, phone, jid);
-        return;
+        return { handled: true, isHumanPaused: false };
       }
 
       if (
@@ -69,7 +75,7 @@ export class WhatsappChatbot {
         (upperText === '2' || upperText.includes('CANCEL') || upperText.includes('STOP'))
       ) {
         await this.handleCancel(tenantId, phone, jid);
-        return;
+        return { handled: true, isHumanPaused: false };
       }
 
       if (
@@ -81,12 +87,14 @@ export class WhatsappChatbot {
           where: { id: session.id },
           data: { context: { isHumanPaused: true } },
         });
-        return;
+        return { handled: true, isHumanPaused: true }; // Trigger inbox saving
       }
 
       await this.sendMsg(jid, "I didn't understand that. Please reply '0' to see the menu again.");
-      return;
+      return { handled: true, isHumanPaused: false };
     }
+
+    return { handled: false, isHumanPaused: false };
   }
 
   private async sendMenu(jid: string, config: any) {

@@ -141,6 +141,8 @@ model Tenant {
   enterpriseInquiries EnterpriseInquiry[]
   operatingCountries  String[] @default([])
   chatSessions        ChatSession[]
+  customerConversations CustomerConversation[]
+  messages            Message[]
   subscriptions       Subscription[]
   invoices            Invoice[]
   usages              TenantUsage[]
@@ -277,16 +279,41 @@ model Token {
   @@index([queueId, joinedAt])
 }
 
-model Message {
-  id        String   @id @default(uuid())
-  visitId   String
-  body      String
-  sender    String // 'OPERATOR' or 'CUSTOMER'
-  createdAt DateTime @default(now())
+model CustomerConversation {
+  id            String   @id @default(uuid())
+  tenantId      String
+  customerPhone String
+  status        String   @default("OPEN") // OPEN, CLOSED
+  unreadCount   Int      @default(0)
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages      Message[]
+
+  @@unique([tenantId, customerPhone])
+  @@index([tenantId, status])
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  tenantId       String
+  customerPhone  String
+  visitId        String?
+  conversationId String?
+  body           String
+  sender         String // 'OPERATOR', 'CUSTOMER', 'SYSTEM'
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  visit          Visit?   @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  conversation   CustomerConversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([visitId])
+  @@index([tenantId, customerPhone])
+  @@index([conversationId])
 }
 
 model Transaction {

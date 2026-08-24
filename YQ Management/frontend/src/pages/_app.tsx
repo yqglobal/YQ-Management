@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { AuthProvider } from '../components/AuthContext';
 import { ThemeProvider } from '../components/ThemeProvider';
 import { TrackingProvider } from '../components/TrackingProvider';
+import { SocketProvider } from '../components/SocketProvider';
 import { setApiRouter } from '../lib/api';
 import { useRouter } from 'next/router';
 
@@ -25,17 +26,17 @@ export default function App({ Component, pageProps }: AppProps) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <TrackingProvider>
-            <AppRouterSetter />
-            <Component {...pageProps} />
-            <CookieConsent />
-            <GlobalCommandPalette />
-          </TrackingProvider>
+          <SocketProvider>
+            <TrackingProvider>
+              <AppRouterSetter />
+              <Component {...pageProps} />
+              <CookieConsent />
+              <GlobalCommandPalette />
+            </TrackingProvider>
+          </SocketProvider>
         </AuthProvider>
         <Toaster position="bottom-right" richColors closeButton />
-
       </ThemeProvider>
-
     </QueryClientProvider>
   );
 }

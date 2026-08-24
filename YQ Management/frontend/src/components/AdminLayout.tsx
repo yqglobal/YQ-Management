@@ -13,8 +13,7 @@ import { usePlan } from '../hooks/usePlan';
 import { toast } from 'sonner';
 import { QueueMigrationModal } from './modals/QueueMigrationModal';
 import { ServiceModal } from './modals/ServiceModal';
-import { io } from 'socket.io-client';
-import { getBackendUrl } from '../lib/api';
+import { useSocket } from '../components/SocketProvider';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -30,6 +29,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const { socket } = useSocket();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
@@ -54,31 +54,30 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   // Socket connection for notifications
   useEffect(() => {
-    if (!user?.tenantId) return;
+    if (!socket || !user?.tenantId) return;
     
-    const baseUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL || getBackendUrl()) : getBackendUrl();
-    const socket = io(baseUrl);
-
-    socket.emit('joinTenantRoom', user.tenantId);
-
-    socket.on('APPOINTMENT_CREATED', (data: any) => {
+    const handleAppointment = (data: any) => {
       toast.success(`New Appointment!`, {
         description: `${data.appointment?.customerName || 'A customer'} booked an appointment.`,
         duration: 8000,
       });
-    });
+    };
 
-    socket.on('TOKEN_JOINED', (data: any) => {
+    const handleToken = (data: any) => {
       toast.info(`New Walk-in`, {
         description: `${data.token?.customerName || 'A customer'} joined the queue.`,
         duration: 5000,
       });
-    });
+    };
+
+    socket.on('APPOINTMENT_CREATED', handleAppointment);
+    socket.on('TOKEN_JOINED', handleToken);
 
     return () => {
-      socket.disconnect();
+      socket.off('APPOINTMENT_CREATED', handleAppointment);
+      socket.off('TOKEN_JOINED', handleToken);
     };
-  }, [user?.tenantId]);
+  }, [socket, user?.tenantId]);
 
   const { data: tenant } = useQuery({
     queryKey: ['tenant', 'me'],
@@ -118,6 +117,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const activeLocation = locations.find((l: any) => l.id === activeLocationId) || locations[0];
 
   const navItems = [
+    { label: 'Inbox', href: '/dashboard/inbox', icon: 'chat', pageId: 'inbox' },
     { label: 'Service Desk', href: '/dashboard/service-desk', icon: 'desktop_windows', pageId: 'service-desk' },
     { label: 'Scanner', href: '/dashboard/check-in', icon: 'qr_code_scanner', pageId: 'service-desk' },
     { label: 'Schedule', href: '/dashboard/appointments', icon: 'calendar_today', pageId: 'appointments' },
@@ -352,7 +352,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
       {/* SideNavBar */}
       <nav 
         aria-label="Main Navigation" 
-        className={`fixed left-0 top-0 h-full w-sidebar-w bg-surface dark:bg-dark-canvas border-r border-border dark:border-dark-border flex flex-col py-gutter px-4 z-50 transition-transform duration-300 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed left-0 top-0 h-full w-sidebar-w bg-surface dark:bg-dark-canvas border-r border-border dark:border-dark-border flex flex-col py-gutter px-4 z-[70] transition-transform duration-300 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="mb-8 px-4 flex flex-col mt-2">
           <div className="flex items-start gap-3">
@@ -535,12 +535,42 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                     </div>
                   </div>
                 )}
+                {plan.status === 'PAST_DUE' && (
+                  <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5">
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="material-symbols-outlined text-[20px] text-amber-600 dark:text-amber-500">credit_card_off</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full">Past Due</span>
+                      </div>
+                      <h4 className="font-bold text-sm text-amber-900 dark:text-amber-400 mb-1">Grace Period</h4>
+                      <p className="text-xs text-amber-700 dark:text-amber-400/80 mb-3">Please update payment method.</p>
+                      <Link href="/dashboard/settings/billing" className="block w-full text-center bg-amber-500 text-white font-bold text-xs py-2 rounded-lg hover:bg-amber-600 transition-colors">
+                        Fix Payment
+                      </Link>
+                    </div>
+                  </div>
+                )}
+                {plan.status === 'PENDING_PAYMENT' && (
+                  <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5">
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="material-symbols-outlined text-[20px] text-blue-600 dark:text-blue-400">pending</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">Processing</span>
+                      </div>
+                      <h4 className="font-bold text-sm text-blue-900 dark:text-blue-300 mb-1">Payment Pending</h4>
+                      <p className="text-xs text-blue-700 dark:text-blue-400/80 mb-3">Your payment is being verified.</p>
+                      <Link href="/dashboard/settings/billing" className="block w-full text-center bg-blue-600 text-white font-bold text-xs py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        View Status
+                      </Link>
+                    </div>
+                  </div>
+                )}
                 {(plan.status === 'EXPIRED' || plan.status === 'CANCELLED') && (
                   <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5">
                     <div className="relative z-10">
                       <div className="flex justify-between items-start mb-2">
                         <span className="material-symbols-outlined text-[20px] text-red-600 dark:text-red-400">warning</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">Expired</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">{plan.status === 'CANCELLED' ? 'Cancelled' : 'Expired'}</span>
                       </div>
                       <h4 className="font-bold text-sm text-red-900 dark:text-red-300 mb-1">Action Required</h4>
                       <p className="text-xs text-red-700 dark:text-red-400/80 mb-3">Please renew your subscription.</p>

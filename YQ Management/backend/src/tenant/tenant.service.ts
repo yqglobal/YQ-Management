@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class TenantService {
   private readonly logger = new Logger(TenantService.name);
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => RedisService)) private readonly redisService: RedisService,
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupGhostTenants() {
@@ -34,6 +38,16 @@ export class TenantService {
   }
 
   async getTenantBySubdomain(subdomain: string) {
+    const cacheKey = `tenant:subdomain:${subdomain}`;
+    try {
+      const cached = await this.redisService.client.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (e) {
+      this.logger.warn(`Failed to read tenant cache for ${subdomain}`);
+    }
+
     const tenant = await this.prisma.tenant.findUnique({
       where: { subdomain },
       include: {
@@ -60,6 +74,12 @@ export class TenantService {
 
     if (!hasCustomBranding) {
       tenant.branding = null;
+    }
+
+    try {
+      await this.redisService.client.set(cacheKey, JSON.stringify(tenant), 'EX', 60);
+    } catch (e) {
+      this.logger.warn(`Failed to set tenant cache for ${subdomain}`);
     }
 
     return tenant;
