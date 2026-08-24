@@ -94,11 +94,11 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET=${JWT_SECRET}
-      - FRONTEND_URL=https://app.${DOMAIN_BASE}
-      - APP_URL=https://app.${DOMAIN_BASE}
+      - FRONTEND_URL=https://${DOMAIN_BASE}
+      - APP_URL=https://${DOMAIN_BASE}
       - BACKEND_URL=https://api.${DOMAIN_BASE}
       - BACKEND_PUBLIC_URL=https://api.${DOMAIN_BASE}
-      - EXTRA_ALLOWED_ORIGINS=https://${DOMAIN_BASE},https://app.${DOMAIN_BASE},https://api.${DOMAIN_BASE}
+      - EXTRA_ALLOWED_ORIGINS=https://${DOMAIN_BASE},https://api.${DOMAIN_BASE}
       - SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL}
       - BREVO_API_KEY=${BREVO_API_KEY}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}

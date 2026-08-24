@@ -20,6 +20,10 @@ echo "====> Rebuilding Docker Containers..."
 # Build without bringing down the system yet
 docker compose -f docker-compose.production.yml build
 
+echo "====> Running Safe Database Migrations..."
+# Run migrations safely using a temporary container to prevent downtime crashes
+docker compose -f docker-compose.production.yml run --rm backend npx prisma migrate deploy
+
 echo "====> Starting new containers..."
 # Recreate only the containers that have changed images or configs
 docker compose -f docker-compose.production.yml up -d --remove-orphans

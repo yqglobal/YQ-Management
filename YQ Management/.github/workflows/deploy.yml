@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: Production
-      url: https://app.qmova.yqbuddy.com
+      url: https://qmova.yqbuddy.com
     steps:
       - name: Trigger VPS Deploy Script
         uses: appleboy/ssh-action@v1.0.3
