@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppointmentService } from '../appointment.service';
-import { WhatsappService } from "../../whatsapp/whatsapp.service";
-import { RedisService } from "../../redis/redis.service";
+import { WhatsappService } from '../../whatsapp/whatsapp.service';
+import { RedisService } from '../../redis/redis.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConflictException } from '@nestjs/common';
 
@@ -49,7 +49,9 @@ describe('AppointmentService', () => {
 
   describe('create', () => {
     it('should create an appointment if no conflict', async () => {
-      mockPrismaService.tenant.findUnique.mockResolvedValue({ appointmentApprovalMode: 'MANUAL' });
+      mockPrismaService.tenant.findUnique.mockResolvedValue({
+        appointmentApprovalMode: 'MANUAL',
+      });
       mockPrismaService.appointment.findFirst.mockResolvedValue(null);
       mockPrismaService.appointment.create.mockResolvedValue({ id: 'app1' });
 

@@ -25,18 +25,25 @@ export class GoogleController {
     @Query('state') state: string, // state contains tenantId
     @Res() res: Response,
   ) {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
     const tenantId = state;
-    
+
     if (!code || !tenantId) {
-      return res.redirect(`${frontendUrl}/dashboard/settings/integrations?google=error`);
+      return res.redirect(
+        `${frontendUrl}/dashboard/settings/integrations?google=error`,
+      );
     }
 
     try {
       await this.googleService.handleCallback(code, tenantId);
-      return res.redirect(`${frontendUrl}/dashboard/settings/integrations?google=success`);
+      return res.redirect(
+        `${frontendUrl}/dashboard/settings/integrations?google=success`,
+      );
     } catch (error) {
-      return res.redirect(`${frontendUrl}/dashboard/settings/integrations?google=error`);
+      return res.redirect(
+        `${frontendUrl}/dashboard/settings/integrations?google=error`,
+      );
     }
   }
 }

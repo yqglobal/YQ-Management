@@ -40,7 +40,7 @@ export class SubscriptionCron {
             e,
           );
         }
-      })
+      }),
     );
   }
 
@@ -48,12 +48,12 @@ export class SubscriptionCron {
   async sendTrialReminders() {
     this.logger.log('Running trial reminder cron');
     const targets = [7, 3, 1];
-    
+
     for (const days of targets) {
       const targetDateStart = new Date();
       targetDateStart.setDate(targetDateStart.getDate() + days);
       targetDateStart.setHours(0, 0, 0, 0);
-      
+
       const targetDateEnd = new Date(targetDateStart);
       targetDateEnd.setHours(23, 59, 59, 999);
 
@@ -90,16 +90,24 @@ export class SubscriptionCron {
                 tenantId: sub.tenantId,
               },
             );
-            
-            this.emailService.sendTrialExpiringEmail(email, days).catch(e => {
-              this.logger.error(`Failed to send ${days}-day trial reminder email to ${email}`, e);
+
+            this.emailService.sendTrialExpiringEmail(email, days).catch((e) => {
+              this.logger.error(
+                `Failed to send ${days}-day trial reminder email to ${email}`,
+                e,
+              );
             });
-            
-            this.logger.log(`Sent ${days}-day trial reminder for workspace ${sub.tenantId}`);
+
+            this.logger.log(
+              `Sent ${days}-day trial reminder for workspace ${sub.tenantId}`,
+            );
           } catch (e) {
-            this.logger.error(`Failed to send ${days}-day trial reminder for workspace ${sub.tenantId}`, e);
+            this.logger.error(
+              `Failed to send ${days}-day trial reminder for workspace ${sub.tenantId}`,
+              e,
+            );
           }
-        })
+        }),
       );
     }
   }
@@ -107,15 +115,15 @@ export class SubscriptionCron {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async sendRenewalReminders() {
     this.logger.log('Running renewal reminder cron');
-    
+
     // Find subscriptions expiring in exactly 7, 3, or 1 days
     const targets = [7, 3, 1];
-    
+
     for (const days of targets) {
       const targetDateStart = new Date();
       targetDateStart.setDate(targetDateStart.getDate() + days);
       targetDateStart.setHours(0, 0, 0, 0);
-      
+
       const targetDateEnd = new Date(targetDateStart);
       targetDateEnd.setHours(23, 59, 59, 999);
 
@@ -147,7 +155,8 @@ export class SubscriptionCron {
               select: { email: true },
             });
 
-            const email = workspaceOwner?.email || adminOwner?.email || 'admin@example.com';
+            const email =
+              workspaceOwner?.email || adminOwner?.email || 'admin@example.com';
             const planName = sub.plan?.name || 'Standard';
 
             await this.communicationService.publish(
@@ -159,16 +168,26 @@ export class SubscriptionCron {
                 tenantId: sub.tenantId,
               },
             );
-            
-            this.emailService.sendPlanExpiringEmail(email, planName, days).catch(e => {
-              this.logger.error(`Failed to send ${days}-day renewal reminder email to ${email}`, e);
-            });
-            
-            this.logger.log(`Sent ${days}-day renewal reminder for workspace ${sub.tenantId}`);
+
+            this.emailService
+              .sendPlanExpiringEmail(email, planName, days)
+              .catch((e) => {
+                this.logger.error(
+                  `Failed to send ${days}-day renewal reminder email to ${email}`,
+                  e,
+                );
+              });
+
+            this.logger.log(
+              `Sent ${days}-day renewal reminder for workspace ${sub.tenantId}`,
+            );
           } catch (e) {
-            this.logger.error(`Failed to send ${days}-day renewal reminder for workspace ${sub.tenantId}`, e);
+            this.logger.error(
+              `Failed to send ${days}-day renewal reminder for workspace ${sub.tenantId}`,
+              e,
+            );
           }
-        })
+        }),
       );
     }
   }
@@ -194,11 +213,16 @@ export class SubscriptionCron {
             where: { id: sub.id },
             data: { status: 'PAST_DUE' },
           });
-          this.logger.log(`Marked subscription PAST_DUE for workspace ${sub.tenantId}`);
+          this.logger.log(
+            `Marked subscription PAST_DUE for workspace ${sub.tenantId}`,
+          );
         } catch (e) {
-          this.logger.error(`Failed to mark PAST_DUE for workspace ${sub.tenantId}`, e);
+          this.logger.error(
+            `Failed to mark PAST_DUE for workspace ${sub.tenantId}`,
+            e,
+          );
         }
-      })
+      }),
     );
 
     // 2. Cancel PAST_DUE after 3 days
@@ -209,9 +233,9 @@ export class SubscriptionCron {
         status: 'PAST_DUE',
         nextBillingDate: { lt: threeDaysAgo },
       },
-      include: { 
+      include: {
         tenant: { select: { id: true, name: true } },
-        plan: { select: { name: true } }
+        plan: { select: { name: true } },
       },
     });
 
@@ -223,7 +247,7 @@ export class SubscriptionCron {
             immediate: true,
             reason: 'Subscription expired - 3 day grace period ended',
           });
-          
+
           const workspaceOwner = await this.prisma.user.findFirst({
             where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
             select: { email: true },
@@ -240,17 +264,27 @@ export class SubscriptionCron {
                 tenantId: sub.tenantId,
               },
             );
-            
-            this.emailService.sendPlanExpiredEmail(workspaceOwner.email, planName).catch(e => {
-              this.logger.error(`Failed to send plan expired email to ${workspaceOwner?.email}`, e);
-            });
+
+            this.emailService
+              .sendPlanExpiredEmail(workspaceOwner.email, planName)
+              .catch((e) => {
+                this.logger.error(
+                  `Failed to send plan expired email to ${workspaceOwner?.email}`,
+                  e,
+                );
+              });
           }
 
-          this.logger.log(`Cancelled expired subscription for workspace ${sub.tenantId}`);
+          this.logger.log(
+            `Cancelled expired subscription for workspace ${sub.tenantId}`,
+          );
         } catch (e) {
-          this.logger.error(`Failed to cancel expired subscription for workspace ${sub.tenantId}`, e);
+          this.logger.error(
+            `Failed to cancel expired subscription for workspace ${sub.tenantId}`,
+            e,
+          );
         }
-      })
+      }),
     );
   }
 }

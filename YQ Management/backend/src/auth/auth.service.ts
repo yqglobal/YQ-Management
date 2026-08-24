@@ -64,7 +64,11 @@ export class AuthService {
     }
   }
 
-  async verifyOTP(email: string, otp: string, intent: 'login' | 'signup' | 'reset' = 'login') {
+  async verifyOTP(
+    email: string,
+    otp: string,
+    intent: 'login' | 'signup' | 'reset' = 'login',
+  ) {
     const user = await this.usersService.findOneByEmail(email);
     if (
       !user ||
@@ -85,7 +89,8 @@ export class AuthService {
     });
 
     if (intent === 'signup') {
-      const personalSettings = user.personalSettings as Record<string, any> || {};
+      const personalSettings =
+        (user.personalSettings as Record<string, any>) || {};
       const fullName = personalSettings.fullName || '';
       this.emailService
         .sendWelcomeEmail(email, fullName)
@@ -97,46 +102,66 @@ export class AuthService {
       this.emailService
         .sendLoginNotification(email)
         .catch((err) =>
-          this.logger.error(`Failed to send login notification to ${email}`, err),
+          this.logger.error(
+            `Failed to send login notification to ${email}`,
+            err,
+          ),
         );
     }
 
     return user;
   }
 
-  async validateOAuthLogin(email: string, googleId: string, fullName?: string, intent: string = 'login', accessToken?: string, refreshToken?: string) {
+  async validateOAuthLogin(
+    email: string,
+    googleId: string,
+    fullName?: string,
+    intent: string = 'login',
+    accessToken?: string,
+    refreshToken?: string,
+  ) {
     try {
       let user = await this.usersService.findOneByEmail(email);
       let isNewUser = false;
 
       if (intent === 'login') {
         if (!user) {
-          this.logger.log(`User attempted Google Login but has no account: ${email}`);
+          this.logger.log(
+            `User attempted Google Login but has no account: ${email}`,
+          );
           return { _oauthError: 'NO_ACCOUNT' };
         }
-        
+
         if (!user.googleId) {
-          this.logger.log(`User attempted Google Login but account is linked to email/pwd: ${email}`);
+          this.logger.log(
+            `User attempted Google Login but account is linked to email/pwd: ${email}`,
+          );
           return { _oauthError: 'EMAIL_PWD_ACCOUNT' };
         }
       } else if (intent === 'signup') {
         if (user) {
           if (user.googleId) {
-            this.logger.log(`User attempted Google Signup but already linked to Google: ${email}`);
+            this.logger.log(
+              `User attempted Google Signup but already linked to Google: ${email}`,
+            );
             return { _oauthError: 'ALREADY_LINKED_GOOGLE' };
           } else {
-            this.logger.log(`User attempted Google Signup but already has email/pwd account: ${email}`);
+            this.logger.log(
+              `User attempted Google Signup but already has email/pwd account: ${email}`,
+            );
             return { _oauthError: 'EMAIL_PWD_ACCOUNT' };
           }
         }
-        
-        this.logger.log(`Unknown user attempted Google SSO Signup: ${email}. Creating new tenant and user account.`);
+
+        this.logger.log(
+          `Unknown user attempted Google SSO Signup: ${email}. Creating new tenant and user account.`,
+        );
         const tenantName = email.split('@')[0] + "'s Workspace";
-        
+
         const tenant = await this.usersService['prisma'].tenant.create({
-          data: { 
-            name: tenantName, 
-            subdomain: `tenant-${Date.now()}` 
+          data: {
+            name: tenantName,
+            subdomain: `tenant-${Date.now()}`,
           },
         });
 
@@ -151,10 +176,10 @@ export class AuthService {
               language: 'en',
               notificationsEnabled: true,
               ...(fullName ? { fullName } : {}),
-            }
+            },
           },
         });
-        
+
         const workspace = await this.workspaceService.createWorkspace({
           name: tenantName,
           subdomain: `ws-${Date.now()}`,
@@ -171,7 +196,11 @@ export class AuthService {
       }
 
       // If tokens are provided and user is TENANT_ADMIN, update the tenant
-      if (user && user.role === 'TENANT_ADMIN' && (accessToken || refreshToken)) {
+      if (
+        user &&
+        user.role === 'TENANT_ADMIN' &&
+        (accessToken || refreshToken)
+      ) {
         await this.usersService['prisma'].tenant.update({
           where: { id: user.tenantId },
           data: {
@@ -209,8 +238,8 @@ export class AuthService {
           ipAddress: ip,
           userAgent: userAgent,
           deviceInfo: { raw: userAgent },
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        }
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
       });
     } catch (e) {
       this.logger.error('Failed to create session record', e);

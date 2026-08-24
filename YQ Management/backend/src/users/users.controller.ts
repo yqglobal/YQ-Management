@@ -51,7 +51,8 @@ export class UsersController {
   async updatePermissions(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { 
+    @Body()
+    body: {
       role: Role;
       allowedLocationIds?: string[];
       allowedServiceIds?: string[];

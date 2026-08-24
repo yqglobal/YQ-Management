@@ -41,10 +41,7 @@ export class SubscriptionController {
     @Req() req: AuthenticatedRequest,
     @Body() dto: CreateSubscriptionDto,
   ) {
-    return this.subscriptionService.createSubscription(
-      req.user.tenantId,
-      dto,
-    );
+    return this.subscriptionService.createSubscription(req.user.tenantId, dto);
   }
 
   @Post('trial')
@@ -66,10 +63,7 @@ export class SubscriptionController {
     @Req() req: AuthenticatedRequest,
     @Body() dto: UpgradeSubscriptionDto,
   ) {
-    return this.subscriptionService.upgradeSubscription(
-      req.user.tenantId,
-      dto,
-    );
+    return this.subscriptionService.upgradeSubscription(req.user.tenantId, dto);
   }
 
   @Put('downgrade')
@@ -90,10 +84,7 @@ export class SubscriptionController {
     @Req() req: AuthenticatedRequest,
     @Body() dto: CancelSubscriptionDto,
   ) {
-    return this.subscriptionService.cancelSubscription(
-      req.user.tenantId,
-      dto,
-    );
+    return this.subscriptionService.cancelSubscription(req.user.tenantId, dto);
   }
 
   @Post('resume')
@@ -102,10 +93,7 @@ export class SubscriptionController {
     @Req() req: AuthenticatedRequest,
     @Body() dto: ResumeSubscriptionDto,
   ) {
-    return this.subscriptionService.resumeSubscription(
-      req.user.tenantId,
-      dto,
-    );
+    return this.subscriptionService.resumeSubscription(req.user.tenantId, dto);
   }
 
   @Get('history')

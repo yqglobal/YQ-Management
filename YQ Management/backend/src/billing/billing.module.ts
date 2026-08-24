@@ -17,7 +17,13 @@ import { EmailModule } from '../email/email.module';
 import { SystemLogModule } from '../system-log/system-log.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, PermissionsModule, SystemLogModule, EmailModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    PermissionsModule,
+    SystemLogModule,
+    EmailModule,
+  ],
   controllers: [BillingController, EnterpriseInquiryController],
   providers: [
     PlansService,

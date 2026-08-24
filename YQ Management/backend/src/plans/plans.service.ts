@@ -42,7 +42,11 @@ export class PlansService {
           trialDays: 14,
           status: 'ACTIVE',
           sortOrder: 1,
-          features: { whatsappNotifications: false, whatsappChat: false, whatsappChatbot: false },
+          features: {
+            whatsappNotifications: false,
+            whatsappChat: false,
+            whatsappChatbot: false,
+          },
           limits: { maxQueues: 1, maxTokens: 100 },
         });
         await this.createPlan({
@@ -56,7 +60,11 @@ export class PlansService {
           trialDays: 0,
           status: 'ACTIVE',
           sortOrder: 2,
-          features: { whatsappNotifications: true, whatsappChat: false, whatsappChatbot: false },
+          features: {
+            whatsappNotifications: true,
+            whatsappChat: false,
+            whatsappChatbot: false,
+          },
           limits: { maxQueues: 5, maxTokens: 1000 },
         });
         await this.createPlan({
@@ -70,7 +78,11 @@ export class PlansService {
           trialDays: 0,
           status: 'ACTIVE',
           sortOrder: 3,
-          features: { whatsappNotifications: true, whatsappChat: true, whatsappChatbot: true },
+          features: {
+            whatsappNotifications: true,
+            whatsappChat: true,
+            whatsappChatbot: true,
+          },
           limits: { maxQueues: 20, maxTokens: 10000 },
         });
         await this.createPlan({
@@ -84,7 +96,15 @@ export class PlansService {
           trialDays: 0,
           status: 'ACTIVE',
           sortOrder: 4,
-          features: { whatsappNotifications: true, whatsappChat: true, whatsappChatbot: true, customBranding: true, apiAccess: true, advancedAnalytics: true, multiLocation: true },
+          features: {
+            whatsappNotifications: true,
+            whatsappChat: true,
+            whatsappChatbot: true,
+            customBranding: true,
+            apiAccess: true,
+            advancedAnalytics: true,
+            multiLocation: true,
+          },
           limits: { maxQueues: 100, maxTokens: 50000 },
         });
         plans = await this.prisma.plan.findMany({

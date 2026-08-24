@@ -46,7 +46,10 @@ export class AppointmentService {
       select: { appointmentApprovalMode: true },
     });
 
-    const status = tenant?.appointmentApprovalMode === 'MANUAL' ? 'PENDING_APPROVAL' : 'SCHEDULED';
+    const status =
+      tenant?.appointmentApprovalMode === 'MANUAL'
+        ? 'PENDING_APPROVAL'
+        : 'SCHEDULED';
 
     const appointment = await this.prisma.appointment.create({
       data: {
@@ -57,23 +60,35 @@ export class AppointmentService {
 
     this.redisService.client.publish(
       'queue_events',
-      JSON.stringify({ type: 'APPOINTMENT_CREATED', tenantId: appointment.tenantId, appointment }),
+      JSON.stringify({
+        type: 'APPOINTMENT_CREATED',
+        tenantId: appointment.tenantId,
+        appointment,
+      }),
     );
 
     // Sync to Google Calendar
-    this.googleService.syncAppointmentToCalendar(appointment.tenantId, appointment).catch(err => {
-      console.error('Failed to sync appointment to Google Calendar', err);
-    });
+    this.googleService
+      .syncAppointmentToCalendar(appointment.tenantId, appointment)
+      .catch((err) => {
+        console.error('Failed to sync appointment to Google Calendar', err);
+      });
 
     return appointment;
   }
 
   async findAll(userTokenPayload: any, status?: string) {
     const where: any = { tenantId: userTokenPayload.tenantId };
-    
+
     if (userTokenPayload.role === 'OPERATOR') {
-      const user = await this.prisma.user.findUnique({ where: { id: userTokenPayload.userId } });
-      if (user && user.allowedLocationIds && user.allowedLocationIds.length > 0) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userTokenPayload.userId },
+      });
+      if (
+        user &&
+        user.allowedLocationIds &&
+        user.allowedLocationIds.length > 0
+      ) {
         where.locationId = { in: user.allowedLocationIds };
       }
     }
@@ -159,24 +174,55 @@ export class AppointmentService {
     });
 
     // Notify customer on status change
-    if (existing.status === 'PENDING_APPROVAL' && updated.status === 'REJECTED') {
+    if (
+      existing.status === 'PENDING_APPROVAL' &&
+      updated.status === 'REJECTED'
+    ) {
       const reason = updateAppointmentDto.notes || 'No reason provided';
-      const formattedDate = new Intl.DateTimeFormat('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(updated.scheduledStart));
+      const formattedDate = new Intl.DateTimeFormat('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }).format(new Date(updated.scheduledStart));
       const message = `Hello ${updated.customer.name}, unfortunately your appointment requested for ${formattedDate} has been declined. Reason: ${reason}. Please contact us if you have any questions.`;
       if (updated.customer.phone) {
-        await this.whatsappService.sendToTenant(updated.tenantId, updated.customer.phone, message).catch(e => console.error('Failed to send rejection whatsapp', e));
+        await this.whatsappService
+          .sendToTenant(updated.tenantId, updated.customer.phone, message)
+          .catch((e) => console.error('Failed to send rejection whatsapp', e));
       }
-    } else if (existing.status === 'PENDING_APPROVAL' && updated.status === 'SCHEDULED') {
-      const formattedDate = new Intl.DateTimeFormat('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(updated.scheduledStart));
+    } else if (
+      existing.status === 'PENDING_APPROVAL' &&
+      updated.status === 'SCHEDULED'
+    ) {
+      const formattedDate = new Intl.DateTimeFormat('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }).format(new Date(updated.scheduledStart));
       const message = `Hello ${updated.customer.name}, your appointment requested for ${formattedDate} has been accepted and is now scheduled. See you soon!`;
       if (updated.customer.phone) {
-        await this.whatsappService.sendToTenant(updated.tenantId, updated.customer.phone, message).catch(e => console.error('Failed to send approval whatsapp', e));
+        await this.whatsappService
+          .sendToTenant(updated.tenantId, updated.customer.phone, message)
+          .catch((e) => console.error('Failed to send approval whatsapp', e));
       }
-    } else if (existing.status !== 'CHECKED_IN' && updated.status === 'CHECKED_IN') {
-      const locationName = updated.location?.name ? ` at ${updated.location.name}` : '';
+    } else if (
+      existing.status !== 'CHECKED_IN' &&
+      updated.status === 'CHECKED_IN'
+    ) {
+      const locationName = updated.location?.name
+        ? ` at ${updated.location.name}`
+        : '';
       const message = `Hello ${updated.customer.name}, you have been successfully checked in${locationName}. We will be with you shortly.`;
       if (updated.customer.phone) {
-        await this.whatsappService.sendToTenant(updated.tenantId, updated.customer.phone, message).catch(e => console.error('Failed to send checkin whatsapp', e));
+        await this.whatsappService
+          .sendToTenant(updated.tenantId, updated.customer.phone, message)
+          .catch((e) => console.error('Failed to send checkin whatsapp', e));
       }
     }
 

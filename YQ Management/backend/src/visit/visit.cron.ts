@@ -38,8 +38,10 @@ export class VisitCron {
       });
 
       if (waitingVisits.length > 0) {
-        this.logger.log(`Found ${waitingVisits.length} waiting visits to mark as NO_SHOW.`);
-        
+        this.logger.log(
+          `Found ${waitingVisits.length} waiting visits to mark as NO_SHOW.`,
+        );
+
         await this.prisma.visit.updateMany({
           where: {
             id: { in: waitingVisits.map((v) => v.id) },
@@ -52,16 +54,22 @@ export class VisitCron {
 
         // Try to notify them
         for (const visit of waitingVisits) {
-          if (visit.customer?.phone && visit.tenant?.whatsappConnected && visit.tenant?.whatsappInstanceId) {
+          if (
+            visit.customer?.phone &&
+            visit.tenant?.whatsappConnected &&
+            visit.tenant?.whatsappInstanceId
+          ) {
             try {
               const message = `Hi ${visit.customer.name}, we're sorry we missed you today! We have closed for the day and your place in the waitlist has been cancelled. Please visit us again tomorrow.`;
               await this.whatsappService.sendMessage(
                 visit.tenant.whatsappInstanceId,
                 visit.customer.phone,
-                message
+                message,
               );
             } catch (err) {
-              this.logger.warn(`Failed to send closing message to ${visit.customer.phone}: ${err}`);
+              this.logger.warn(
+                `Failed to send closing message to ${visit.customer.phone}: ${err}`,
+              );
             }
           }
         }
@@ -75,8 +83,10 @@ export class VisitCron {
       });
 
       if (inServiceVisits.length > 0) {
-        this.logger.log(`Found ${inServiceVisits.length} in-service visits to mark as COMPLETED.`);
-        
+        this.logger.log(
+          `Found ${inServiceVisits.length} in-service visits to mark as COMPLETED.`,
+        );
+
         await this.prisma.visit.updateMany({
           where: {
             id: { in: inServiceVisits.map((v) => v.id) },

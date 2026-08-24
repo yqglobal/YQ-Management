@@ -13,7 +13,7 @@ export class SystemLogService {
     tenantId?: string;
   }) {
     const { skip = 0, take = 50, level, tenantId } = params;
-    
+
     const where: Prisma.SystemLogWhereInput = {};
     if (level) {
       where.level = level.toUpperCase();

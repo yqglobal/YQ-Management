@@ -7,8 +7,12 @@ import { WebhooksModule } from '../webhooks/webhooks.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
 
 @Module({
-  imports: [RedisModule, forwardRef(() => QueueModule), WebhooksModule, forwardRef(() => WhatsappModule)],
+  imports: [
+    RedisModule,
+    forwardRef(() => QueueModule),
+    WebhooksModule,
+    forwardRef(() => WhatsappModule),
+  ],
   providers: [TasksService, OutboxProcessorService],
 })
 export class TasksModule {}
-

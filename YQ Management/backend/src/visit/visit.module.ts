@@ -13,4 +13,3 @@ import { PublicVisitController } from './public-visit.controller';
   exports: [VisitService],
 })
 export class VisitModule {}
-

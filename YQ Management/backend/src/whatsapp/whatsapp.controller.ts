@@ -31,10 +31,12 @@ export class WhatsappController {
   private async checkWhatsappFeature(tenantId: string) {
     const sub = await this.subscriptionService.getSubscription(tenantId);
     if (!sub || !sub.plan) return;
-    
+
     const features = (sub.plan.features as any) || {};
     if (features.whatsapp === false || features.hasWhatsapp === false) {
-      throw new BillingException('WhatsApp integration is not available on your current plan. Please upgrade.');
+      throw new BillingException(
+        'WhatsApp integration is not available on your current plan. Please upgrade.',
+      );
     }
   }
 
@@ -49,7 +51,7 @@ export class WhatsappController {
       req.user.tenantId ||
       (req.user as any).workspaceId ||
       (req.user as any).userId;
-      
+
     await this.checkWhatsappFeature(req.user.tenantId);
     return this.whatsappService.connect(targetId, body?.forceRefresh);
   }

@@ -38,7 +38,9 @@ export class BillingController {
     private readonly prisma: PrismaService,
   ) {}
 
-    private async resolveTenantId(req: AuthenticatedRequest): Promise<string | null> {
+  private async resolveTenantId(
+    req: AuthenticatedRequest,
+  ): Promise<string | null> {
     return req.user.tenantId || null;
   }
 
@@ -88,10 +90,7 @@ export class BillingController {
   ) {
     const tenantId = await this.resolveTenantId(req);
     if (!tenantId) return null;
-    return this.subscriptionService.createSubscription(
-      tenantId,
-      dto,
-    );
+    return this.subscriptionService.createSubscription(tenantId, dto);
   }
 
   @Post('workspace/subscription/trial')
@@ -117,10 +116,7 @@ export class BillingController {
   ) {
     const tenantId = await this.resolveTenantId(req);
     if (!tenantId) return null;
-    return this.subscriptionService.upgradeSubscription(
-      tenantId,
-      dto,
-    );
+    return this.subscriptionService.upgradeSubscription(tenantId, dto);
   }
 
   @Put('workspace/subscription/downgrade')
@@ -141,10 +137,7 @@ export class BillingController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: CancelSubscriptionDto,
   ) {
-    return this.subscriptionService.cancelSubscription(
-      req.user.tenantId,
-      dto,
-    );
+    return this.subscriptionService.cancelSubscription(req.user.tenantId, dto);
   }
 
   @Post('workspace/subscription/resume')
@@ -153,10 +146,7 @@ export class BillingController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: ResumeSubscriptionDto,
   ) {
-    return this.subscriptionService.resumeSubscription(
-      req.user.tenantId,
-      dto,
-    );
+    return this.subscriptionService.resumeSubscription(req.user.tenantId, dto);
   }
 
   @Get('workspace/subscription/history')

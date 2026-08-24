@@ -12,18 +12,25 @@ export class MarketingService {
   ) {}
 
   async getAudienceCounts() {
-    const totalTenants = await this.prisma.user.count({ where: { role: 'TENANT_ADMIN' } });
-    const subscribers = await this.prisma.marketingSubscriber.count({ where: { active: true } });
-    
+    const totalTenants = await this.prisma.user.count({
+      where: { role: 'TENANT_ADMIN' },
+    });
+    const subscribers = await this.prisma.marketingSubscriber.count({
+      where: { active: true },
+    });
+
     // Break down tenants by plan status
     const tenantSubscriptions = await this.prisma.subscription.findMany({
       select: { status: true, plan: { select: { name: true } } },
     });
 
-    const planBreakdown = tenantSubscriptions.reduce((acc, sub) => {
-      acc[sub.plan.name] = (acc[sub.plan.name] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const planBreakdown = tenantSubscriptions.reduce(
+      (acc, sub) => {
+        acc[sub.plan.name] = (acc[sub.plan.name] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       totalTenants,
@@ -40,7 +47,7 @@ export class MarketingService {
         where: { role: 'TENANT_ADMIN' },
         select: { email: true },
       });
-      emails = emails.concat(users.map(u => u.email));
+      emails = emails.concat(users.map((u) => u.email));
     }
 
     if (audience === 'SUBSCRIBERS' || audience === 'ALL') {
@@ -48,18 +55,27 @@ export class MarketingService {
         where: { active: true },
         select: { email: true },
       });
-      emails = emails.concat(subs.map(s => s.email));
+      emails = emails.concat(subs.map((s) => s.email));
     }
 
     if (audience.startsWith('PLAN_')) {
       const planName = audience.replace('PLAN_', '');
       const subs = await this.prisma.subscription.findMany({
         where: { plan: { name: planName } },
-        select: { tenant: { select: { users: { where: { role: 'TENANT_ADMIN' }, select: { email: true } } } } },
+        select: {
+          tenant: {
+            select: {
+              users: {
+                where: { role: 'TENANT_ADMIN' },
+                select: { email: true },
+              },
+            },
+          },
+        },
       });
-      subs.forEach(s => {
+      subs.forEach((s) => {
         if (s.tenant) {
-          s.tenant.users.forEach(u => emails.push(u.email));
+          s.tenant.users.forEach((u) => emails.push(u.email));
         }
       });
     }
@@ -68,7 +84,10 @@ export class MarketingService {
     emails = [...new Set(emails)];
 
     if (emails.length === 0) {
-      return { success: false, message: 'No recipients found for this audience' };
+      return {
+        success: false,
+        message: 'No recipients found for this audience',
+      };
     }
 
     return this.emailService.sendMarketingEmail(emails, subject, htmlContent);

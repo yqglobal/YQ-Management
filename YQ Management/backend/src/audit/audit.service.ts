@@ -51,10 +51,15 @@ export class AuditService {
   }
 
   async getLogsForTenant(
-    tenantId: string, 
-    skip = 0, 
+    tenantId: string,
+    skip = 0,
     take = 50,
-    filters?: { action?: string; status?: string; startDate?: string; endDate?: string }
+    filters?: {
+      action?: string;
+      status?: string;
+      startDate?: string;
+      endDate?: string;
+    },
   ) {
     const where: Prisma.AuditLogWhereInput = { tenantId };
 
@@ -92,15 +97,17 @@ export class AuditService {
       }),
     ]);
 
-    const userIds = Array.from(new Set(rawLogs.map(l => l.userId).filter(Boolean))) as string[];
+    const userIds = Array.from(
+      new Set(rawLogs.map((l) => l.userId).filter(Boolean)),
+    ) as string[];
     const users = await this.prisma.user.findMany({
       where: { id: { in: userIds } },
       select: { id: true, email: true, role: true },
     });
-    
-    const userMap = new Map(users.map(u => [u.id, u]));
 
-    const data = rawLogs.map(log => ({
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    const data = rawLogs.map((log) => ({
       ...log,
       user: log.userId ? userMap.get(log.userId) : null,
     }));

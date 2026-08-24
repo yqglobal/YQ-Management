@@ -24,7 +24,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<Request>();
-    
+
     let httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let stack = undefined;
@@ -32,7 +32,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       httpStatus = exception.getStatus();
       const res = exception.getResponse();
-      message = typeof res === 'string' ? res : (res as any).message || JSON.stringify(res);
+      message =
+        typeof res === 'string'
+          ? res
+          : (res as any).message || JSON.stringify(res);
       stack = exception.stack;
     } else if (exception instanceof Error) {
       message = exception.message;
@@ -73,7 +76,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
           stackTrace: stack,
           context: contextPayload,
           tenantId,
-        }
+        },
       });
     } catch (dbError) {
       this.logger.error('Failed to write to SystemLog table', dbError);

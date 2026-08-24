@@ -17,7 +17,10 @@ export class EnterpriseInquiryService {
     private readonly systemLogService: SystemLogService,
   ) {}
 
-  async createInquiry(tenantId: string | undefined, dto: CreateEnterpriseInquiryDto) {
+  async createInquiry(
+    tenantId: string | undefined,
+    dto: CreateEnterpriseInquiryDto,
+  ) {
     try {
       const inquiry = await this.prisma.enterpriseInquiry.create({
         data: {
@@ -32,11 +35,18 @@ export class EnterpriseInquiryService {
       });
 
       // Optionally log this event
-      await this.systemLogService.log('INFO', `New enterprise inquiry from ${dto.companyName} (${dto.email})`);
+      await this.systemLogService.log(
+        'INFO',
+        `New enterprise inquiry from ${dto.companyName} (${dto.email})`,
+      );
 
       return inquiry;
     } catch (error) {
-      await this.systemLogService.log('ERROR', 'Failed to create enterprise inquiry', { error: (error as any).message });
+      await this.systemLogService.log(
+        'ERROR',
+        'Failed to create enterprise inquiry',
+        { error: error.message },
+      );
       throw new InternalServerErrorException('Failed to submit inquiry');
     }
   }

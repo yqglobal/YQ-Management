@@ -67,7 +67,7 @@ export class WebhookProcessService {
       data: {
         tenantId: body.tenantId || body.tenantId || 'unknown',
         eventType: this.mapEventType(body.Status),
-        
+
         transactionId: body.TransactionReference || undefined,
         payload: body,
         processingStatus: WebhookProcessingStatus.PROCESSING,
@@ -167,9 +167,13 @@ export class WebhookProcessService {
             });
 
             if (subscription && transaction.planId) {
-              const billingInterval = transaction.billingInterval || subscription.billingInterval || 'monthly';
-              const periodDays = billingInterval.toLowerCase() === 'yearly' ? 365 : 30;
-              
+              const billingInterval =
+                transaction.billingInterval ||
+                subscription.billingInterval ||
+                'monthly';
+              const periodDays =
+                billingInterval.toLowerCase() === 'yearly' ? 365 : 30;
+
               await tx.subscription.update({
                 where: { id: subscription.id },
                 data: {
@@ -188,16 +192,24 @@ export class WebhookProcessService {
               });
 
               // Fetch the plan name and user email to send the email
-              const newPlan = await tx.plan.findUnique({ where: { id: transaction.planId } });
-              const owner = await tx.user.findFirst({
-                where: { tenantId: transaction.tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+              const newPlan = await tx.plan.findUnique({
+                where: { id: transaction.planId },
               });
-              
+              const owner = await tx.user.findFirst({
+                where: {
+                  tenantId: transaction.tenantId,
+                  role: { in: ['TENANT_ADMIN', 'ADMIN'] },
+                },
+              });
+
               if (owner && owner.email && newPlan) {
                 this.emailService
                   .sendSubscriptionActivatedEmail(owner.email, newPlan.name)
                   .catch((err) =>
-                    this.logger.error(`Failed to send subscription activated email to ${owner.email}`, err),
+                    this.logger.error(
+                      `Failed to send subscription activated email to ${owner.email}`,
+                      err,
+                    ),
                   );
               }
             }

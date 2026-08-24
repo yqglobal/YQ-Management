@@ -9,12 +9,20 @@ export class LocationService {
     private readonly subscriptionService: SubscriptionService,
   ) {}
 
-  async create(tenantId: string, data: { name: string; address?: string; city?: string }) {
-    const currentLocationsCount = await this.prisma.extendedClient.location.count({
-      where: { tenantId },
-    });
+  async create(
+    tenantId: string,
+    data: { name: string; address?: string; city?: string },
+  ) {
+    const currentLocationsCount =
+      await this.prisma.extendedClient.location.count({
+        where: { tenantId },
+      });
 
-    await this.subscriptionService.checkLimit(tenantId, 'locations', currentLocationsCount);
+    await this.subscriptionService.checkLimit(
+      tenantId,
+      'locations',
+      currentLocationsCount,
+    );
 
     return this.prisma.extendedClient.location.create({
       data: {

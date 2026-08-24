@@ -32,7 +32,7 @@ export class QueueService {
     formConfig?: any,
     tokenDisplayConfig?: any,
     locationId?: string,
-    serviceIds?: string[]
+    serviceIds?: string[],
   ) {
     let resolvedWorkspaceId = workspaceId;
     if (workspaceId) {
@@ -49,7 +49,9 @@ export class QueueService {
     }
 
     if (!serviceIds || serviceIds.length === 0) {
-      throw new BadRequestException('A queue must be linked to at least one service.');
+      throw new BadRequestException(
+        'A queue must be linked to at least one service.',
+      );
     }
 
     // SECURITY: Enforce plan limits
@@ -57,7 +59,11 @@ export class QueueService {
       where: { tenantId },
     });
 
-    await this.subscriptionService.checkLimit(tenantId, 'queues', currentQueuesCount);
+    await this.subscriptionService.checkLimit(
+      tenantId,
+      'queues',
+      currentQueuesCount,
+    );
 
     const queue = await this.prisma.queue.create({
       data: {
@@ -68,7 +74,10 @@ export class QueueService {
         formConfig,
         tokenDisplayConfig,
         locationId,
-        services: serviceIds && serviceIds.length > 0 ? { connect: serviceIds.map(id => ({ id })) } : undefined,
+        services:
+          serviceIds && serviceIds.length > 0
+            ? { connect: serviceIds.map((id) => ({ id })) }
+            : undefined,
       },
     });
 
@@ -95,7 +104,9 @@ export class QueueService {
       where: { id: queueId },
       data: {
         ...rest,
-        services: serviceIds ? { set: serviceIds.map(id => ({ id })) } : undefined,
+        services: serviceIds
+          ? { set: serviceIds.map((id) => ({ id })) }
+          : undefined,
       },
     });
   }
@@ -125,7 +136,9 @@ export class QueueService {
       where: { id: queueId },
       data: {
         ...rest,
-        services: serviceIds ? { set: serviceIds.map(id => ({ id })) } : undefined,
+        services: serviceIds
+          ? { set: serviceIds.map((id) => ({ id })) }
+          : undefined,
       },
     });
   }
@@ -141,10 +154,19 @@ export class QueueService {
 
   async getQueuesForTenant(userTokenPayload: any) {
     const where: any = { tenantId: userTokenPayload.tenantId };
-    
-    if (userTokenPayload.role === 'OPERATOR' || userTokenPayload.role === 'MANAGER') {
-      const user = await this.prisma.user.findUnique({ where: { id: userTokenPayload.userId } });
-      if (user && user.allowedLocationIds && user.allowedLocationIds.length > 0) {
+
+    if (
+      userTokenPayload.role === 'OPERATOR' ||
+      userTokenPayload.role === 'MANAGER'
+    ) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userTokenPayload.userId },
+      });
+      if (
+        user &&
+        user.allowedLocationIds &&
+        user.allowedLocationIds.length > 0
+      ) {
         where.locationId = { in: user.allowedLocationIds };
       }
     }
@@ -158,10 +180,7 @@ export class QueueService {
           where: {
             currentState: { in: ['WAITING', 'CHECKED_IN'] },
           },
-          orderBy: [
-            { priority: 'desc' },
-            { createdAt: 'asc' },
-          ],
+          orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
         },
         _count: {
           select: {
@@ -181,7 +200,12 @@ export class QueueService {
       where: { tenantId, status: QueueStatus.ACTIVE },
       include: {
         services: {
-          select: { id: true, name: true, description: true, expectedDuration: true },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            expectedDuration: true,
+          },
         },
       },
     });
@@ -192,17 +216,21 @@ export class QueueService {
       where: { id },
       include: {
         services: {
-          select: { id: true, name: true, description: true, expectedDuration: true },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            expectedDuration: true,
+          },
         },
       },
     });
   }
 
-
   async getQueueByIdForTenant(id: string, tenantId: string) {
     const queue = await this.prisma.queue.findFirst({
       where: { id, tenantId },
-      include: { location: true, services: true }
+      include: { location: true, services: true },
     });
 
     if (!queue) {
@@ -219,12 +247,9 @@ export class QueueService {
         currentState: { in: ['WAITING', 'CHECKED_IN', 'IN_SERVICE'] },
       },
       include: {
-        customer: { select: { name: true } }
+        customer: { select: { name: true } },
       },
-      orderBy: [
-        { priority: 'desc' },
-        { createdAt: 'asc' },
-      ],
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
     });
   }
 

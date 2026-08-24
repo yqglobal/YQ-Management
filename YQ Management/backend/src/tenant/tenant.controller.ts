@@ -58,7 +58,13 @@ export class TenantController {
   async updateTenant(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { name?: string; subdomain?: string; branding?: any; customerExperience?: any },
+    @Body()
+    body: {
+      name?: string;
+      subdomain?: string;
+      branding?: any;
+      customerExperience?: any;
+    },
   ) {
     // SECURITY: TENANT_ADMIN can only update their own tenant.
     // SUPER_ADMIN can update any tenant.

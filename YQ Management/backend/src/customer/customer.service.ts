@@ -24,22 +24,27 @@ export class CustomerService {
       where: { tenantId },
       include: {
         visits: {
-          select: { id: true, createdAt: true, completedAt: true, currentState: true }
-        }
-      }
+          select: {
+            id: true,
+            createdAt: true,
+            completedAt: true,
+            currentState: true,
+          },
+        },
+      },
     });
 
     return customers.map((c: any) => {
       const visits = c.visits || [];
-      
+
       let totalWaitMs = 0;
       let completedCount = 0;
       let maxCreatedAt = 0;
-      
+
       visits.forEach((v: any) => {
         const createdMs = v.createdAt.getTime();
         if (createdMs > maxCreatedAt) maxCreatedAt = createdMs;
-        
+
         if (v.completedAt) {
           totalWaitMs += v.completedAt.getTime() - createdMs;
           completedCount++;
@@ -48,7 +53,7 @@ export class CustomerService {
 
       let avgWaitMinutesStr = '—';
       if (completedCount > 0) {
-        const mins = Math.round((totalWaitMs / completedCount) / 60000);
+        const mins = Math.round(totalWaitMs / completedCount / 60000);
         avgWaitMinutesStr = mins < 1 ? '<1 min' : `${mins} min`;
       }
 
@@ -58,7 +63,11 @@ export class CustomerService {
         if (diffDays === 0) lastVisitLabelStr = 'Today';
         else if (diffDays === 1) lastVisitLabelStr = 'Yesterday';
         else if (diffDays < 30) lastVisitLabelStr = `${diffDays}d ago`;
-        else lastVisitLabelStr = new Date(maxCreatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        else
+          lastVisitLabelStr = new Date(maxCreatedAt).toLocaleDateString(
+            'en-US',
+            { month: 'short', day: 'numeric', year: 'numeric' },
+          );
       }
 
       return {
@@ -69,7 +78,7 @@ export class CustomerService {
         totalVisits: visits.length,
         avgWaitMinutes: avgWaitMinutesStr,
         lastVisitLabel: lastVisitLabelStr,
-        lastVisitMs: maxCreatedAt
+        lastVisitMs: maxCreatedAt,
       };
     });
   }

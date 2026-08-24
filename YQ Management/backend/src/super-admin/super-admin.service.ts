@@ -122,8 +122,8 @@ export class SuperAdminService {
           },
         },
         workspaces: {
-          select: { id: true, name: true }
-        }
+          select: { id: true, name: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -139,7 +139,7 @@ export class SuperAdminService {
             id: true,
             name: true,
             subdomain: true,
-            
+
             ownerId: true,
             _count: { select: { queues: true, transactions: true } },
           },
@@ -301,7 +301,7 @@ export class SuperAdminService {
       planCounts[planName] = (planCounts[planName] || 0) + 1;
     });
     const trialCount = await this.prisma.tenant.count({
-      where: { subscriptions: { some: { status: 'TRIAL' } } }
+      where: { subscriptions: { some: { status: 'TRIAL' } } },
     });
     const realARR = realMRR * 12;
     const arpu = totalTenants > 0 ? realMRR / totalTenants : 0;
@@ -594,15 +594,15 @@ export class SuperAdminService {
     return this.prisma.enterpriseInquiry.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        tenant: { select: { name: true, subdomain: true } }
-      }
+        tenant: { select: { name: true, subdomain: true } },
+      },
     });
   }
 
   async updateEnterpriseInquiryStatus(id: string, status: string) {
     return this.prisma.enterpriseInquiry.update({
       where: { id },
-      data: { status }
+      data: { status },
     });
   }
 }

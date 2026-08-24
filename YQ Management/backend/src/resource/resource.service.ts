@@ -13,7 +13,10 @@ export class ResourceService {
       data: {
         ...rest,
         tenantId,
-        services: serviceIds && serviceIds.length > 0 ? { connect: serviceIds.map(id => ({ id })) } : undefined,
+        services:
+          serviceIds && serviceIds.length > 0
+            ? { connect: serviceIds.map((id) => ({ id })) }
+            : undefined,
       },
       include: { services: true },
     });
@@ -41,14 +44,21 @@ export class ResourceService {
     return resource;
   }
 
-  async update(id: string, tenantId: string, updateResourceDto: UpdateResourceDto) {
+  async update(
+    id: string,
+    tenantId: string,
+    updateResourceDto: UpdateResourceDto,
+  ) {
     await this.findOne(id, tenantId); // verify exists
     const { serviceIds, ...rest } = updateResourceDto;
     return this.prisma.resource.update({
       where: { id },
       data: {
         ...rest,
-        services: serviceIds !== undefined ? { set: serviceIds.map(id => ({ id })) } : undefined,
+        services:
+          serviceIds !== undefined
+            ? { set: serviceIds.map((id) => ({ id })) }
+            : undefined,
       },
       include: { services: true },
     });

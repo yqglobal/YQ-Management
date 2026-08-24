@@ -53,7 +53,11 @@ export class ResourceController {
     @Param('id') id: string,
     @Body() updateResourceDto: UpdateResourceDto,
   ) {
-    return this.resourceService.update(id, req.user.tenantId, updateResourceDto);
+    return this.resourceService.update(
+      id,
+      req.user.tenantId,
+      updateResourceDto,
+    );
   }
 
   @Delete(':id')

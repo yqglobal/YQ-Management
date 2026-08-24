@@ -142,9 +142,9 @@ export class UsersService {
 
   async createUser(
     tenantId: string,
-    data: { 
-      email: string; 
-      role: any; 
+    data: {
+      email: string;
+      role: any;
       password?: string;
       allowedLocationIds?: string[];
       allowedServiceIds?: string[];
@@ -374,7 +374,12 @@ export class UsersService {
   async updatePermissions(
     tenantId: string,
     id: string,
-    data: { role: Role; allowedLocationIds?: string[]; allowedServiceIds?: string[]; allowedPages?: string[] },
+    data: {
+      role: Role;
+      allowedLocationIds?: string[];
+      allowedServiceIds?: string[];
+      allowedPages?: string[];
+    },
     currentUserId: string,
     currentUserEmail: string,
   ) {
@@ -403,7 +408,7 @@ export class UsersService {
           'Cannot demote the workspace owner. Transfer ownership first.',
         );
       }
-      
+
       const adminCount = await this.prisma.user.count({
         where: { tenantId, role: 'TENANT_ADMIN' },
       });
@@ -417,11 +422,11 @@ export class UsersService {
 
     const updatedUser = await this.prisma.user.update({
       where: { id },
-      data: { 
+      data: {
         role: newRole,
         allowedLocationIds: data.allowedLocationIds || [],
         allowedServiceIds: data.allowedServiceIds || [],
-        allowedPages: data.allowedPages || []
+        allowedPages: data.allowedPages || [],
       },
       select: { id: true, email: true, role: true, workspaceId: true },
     });
@@ -464,7 +469,9 @@ export class UsersService {
     }
 
     if (workspace.ownerId !== currentOwnerId) {
-      throw new BadRequestException('Only the current owner can transfer ownership.');
+      throw new BadRequestException(
+        'Only the current owner can transfer ownership.',
+      );
     }
 
     const targetUser = await this.prisma.user.findUnique({
@@ -506,8 +513,15 @@ export class UsersService {
       include: {
         policyAcceptances: { include: { policy: true } },
         cookiePreferences: true,
-        sessions: { select: { ipAddress: true, userAgent: true, lastActiveAt: true, deviceInfo: true } },
-      }
+        sessions: {
+          select: {
+            ipAddress: true,
+            userAgent: true,
+            lastActiveAt: true,
+            deviceInfo: true,
+          },
+        },
+      },
     });
     return user;
   }
@@ -516,8 +530,8 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId, tenantId },
       include: {
-        workspace: true
-      }
+        workspace: true,
+      },
     });
 
     if (!user) throw new NotFoundException('User not found');
@@ -525,15 +539,18 @@ export class UsersService {
     // If the user is the owner of a workspace, delete the entire tenant to ensure data cleanup.
     // In a real app we might prompt them to transfer ownership instead, but for compliance we delete.
     const isOwner = user.workspace?.ownerId === userId;
-    
+
     if (isOwner) {
       await this.prisma.tenant.delete({
-        where: { id: tenantId }
+        where: { id: tenantId },
       });
-      return { success: true, message: 'Account and associated Workspace deleted completely.' };
+      return {
+        success: true,
+        message: 'Account and associated Workspace deleted completely.',
+      };
     } else {
       await this.prisma.user.delete({
-        where: { id: userId }
+        where: { id: userId },
       });
       return { success: true, message: 'Account deleted.' };
     }

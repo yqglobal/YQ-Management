@@ -34,14 +34,21 @@ async function bootstrap() {
     process.env.APP_URL,
     'http://localhost:3000',
     'http://localhost:3001',
-    ...(process.env.EXTRA_ALLOWED_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean),
+    ...(process.env.EXTRA_ALLOWED_ORIGINS || '')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean),
   ].filter(Boolean) as string[];
 
   app.enableCors({
-    origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
-      if (origin.match(/^https?:\/\/[a-z0-9-]+\.localhost:(3000|3001)$/i)) return callback(null, true);
+      if (origin.match(/^https?:\/\/[a-z0-9-]+\.localhost:(3000|3001)$/i))
+        return callback(null, true);
       callback(null, false);
     },
     credentials: true,

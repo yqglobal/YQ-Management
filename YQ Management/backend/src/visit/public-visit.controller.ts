@@ -8,7 +8,10 @@ export class PublicVisitController {
   @Get('status-multiple')
   async statusMultiple(@Query('tokens') tokens: string) {
     if (!tokens) return [];
-    const tokenArray = tokens.split(',').map(t => t.trim()).filter(Boolean);
+    const tokenArray = tokens
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
     return this.visitService.findMultiplePublic(tokenArray);
   }
 

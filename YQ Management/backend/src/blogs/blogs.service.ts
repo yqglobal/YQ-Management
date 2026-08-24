@@ -19,7 +19,7 @@ export class BlogsService {
         published: true,
         publishedAt: true,
         createdAt: true,
-      } // Exclude heavy content for listing
+      }, // Exclude heavy content for listing
     });
   }
 
@@ -37,7 +37,12 @@ export class BlogsService {
 
   async create(data: any) {
     // Generate slug from title if not provided
-    const slug = data.slug || data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    const slug =
+      data.slug ||
+      data.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '');
     return this.prisma.blog.create({
       data: {
         ...data,
@@ -52,7 +57,7 @@ export class BlogsService {
       const existing = await this.findOneById(id);
       if (!existing.published) data.publishedAt = new Date();
     }
-    
+
     return this.prisma.blog.update({
       where: { id },
       data,

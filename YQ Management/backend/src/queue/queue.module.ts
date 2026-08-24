@@ -8,7 +8,12 @@ import { SubscriptionModule } from '../subscription/subscription.module';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-  imports: [WebhooksModule, forwardRef(() => VisitModule), SubscriptionModule, PrismaModule],
+  imports: [
+    WebhooksModule,
+    forwardRef(() => VisitModule),
+    SubscriptionModule,
+    PrismaModule,
+  ],
   providers: [QueueService, QueueGateway],
   controllers: [QueueController],
   exports: [QueueService, QueueGateway],

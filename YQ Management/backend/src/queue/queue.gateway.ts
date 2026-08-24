@@ -18,7 +18,9 @@ import { PrismaService } from '../prisma/prisma.service';
     credentials: true,
   },
 })
-export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit {
+export class QueueGateway
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
+{
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger(QueueGateway.name);
 
@@ -30,14 +32,14 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   private sanitizePayload(data: any): any {
     if (!data) return data;
     const sanitized = { ...data };
-    
+
     // Explicitly delete PII fields that might be embedded
     if (sanitized.customer) delete sanitized.customer;
     if (sanitized.customerName) delete sanitized.customerName;
     if (sanitized.phone) delete sanitized.phone;
     if (sanitized.email) delete sanitized.email;
     if (sanitized.operatorUser) delete sanitized.operatorUser;
-    
+
     // Also scrub nested objects if they contain these fields
     for (const key in sanitized) {
       if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
@@ -62,7 +64,7 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect, O
           const payload = JSON.parse(message);
           const { type, queueId, tenantId, ...data } = payload;
           const sanitizedData = this.sanitizePayload(data);
-          
+
           if (queueId) {
             this.broadcastQueueUpdate(queueId, type, sanitizedData);
           }
@@ -140,8 +142,12 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect, O
       });
 
       if (!visit) {
-        client.emit('error', { message: 'Unauthorized: invalid accessToken for this visit' });
-        this.logger.warn(`Rejected unauthorized subscribeToVisit for visitId=${visitId}`);
+        client.emit('error', {
+          message: 'Unauthorized: invalid accessToken for this visit',
+        });
+        this.logger.warn(
+          `Rejected unauthorized subscribeToVisit for visitId=${visitId}`,
+        );
         return { event: 'error', data: 'Unauthorized' };
       }
     }

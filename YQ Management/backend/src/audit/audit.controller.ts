@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Body, Req, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Req,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { AuditService } from './audit.service';
 import { Request } from 'express';
 import { AuthGuard } from '@nestjs/passport';
@@ -66,7 +74,7 @@ export class AuditController {
       tenantId,
       skip ? parseInt(skip, 10) : 0,
       take ? parseInt(take, 10) : 50,
-      { action, status, startDate, endDate }
+      { action, status, startDate, endDate },
     );
   }
 }

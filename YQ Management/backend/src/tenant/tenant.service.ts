@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException, ConflictException, Logger, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Logger,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -8,7 +15,8 @@ export class TenantService {
   private readonly logger = new Logger(TenantService.name);
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(forwardRef(() => RedisService)) private readonly redisService: RedisService,
+    @Inject(forwardRef(() => RedisService))
+    private readonly redisService: RedisService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -51,7 +59,9 @@ export class TenantService {
     const tenant = await this.prisma.tenant.findUnique({
       where: { subdomain },
       include: {
-        locations: { select: { id: true, name: true, address: true, city: true } },
+        locations: {
+          select: { id: true, name: true, address: true, city: true },
+        },
         subscriptions: {
           take: 1,
           orderBy: { createdAt: 'desc' },
@@ -77,7 +87,12 @@ export class TenantService {
     }
 
     try {
-      await this.redisService.client.set(cacheKey, JSON.stringify(tenant), 'EX', 60);
+      await this.redisService.client.set(
+        cacheKey,
+        JSON.stringify(tenant),
+        'EX',
+        60,
+      );
     } catch (e) {
       this.logger.warn(`Failed to set tenant cache for ${subdomain}`);
     }
@@ -91,7 +106,9 @@ export class TenantService {
       include: {
         locations: { select: { id: true, name: true } },
         services: { select: { id: true, name: true } },
-        queues: { select: { id: true, name: true, services: { select: { id: true } } } },
+        queues: {
+          select: { id: true, name: true, services: { select: { id: true } } },
+        },
         subscriptions: {
           take: 1,
           orderBy: { createdAt: 'desc' },
@@ -131,18 +148,31 @@ export class TenantService {
     return this.prisma.tenant.findMany();
   }
 
-  async updateTenant(id: string, data: { name?: string; branding?: any; customerExperience?: any; subdomain?: string }) {
+  async updateTenant(
+    id: string,
+    data: {
+      name?: string;
+      branding?: any;
+      customerExperience?: any;
+      subdomain?: string;
+    },
+  ) {
     const tenant = await this.prisma.tenant.findUnique({ where: { id } });
     if (!tenant) throw new NotFoundException('Tenant not found');
 
     // Validate subdomain uniqueness if being changed
     if (data.subdomain && data.subdomain !== tenant.subdomain) {
-      const normalized = data.subdomain.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-');
+      const normalized = data.subdomain
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9-]/g, '-');
       const existing = await this.prisma.tenant.findFirst({
         where: { subdomain: normalized, NOT: { id } },
       });
       if (existing) {
-        throw new ConflictException(`The subdomain "${normalized}" is already taken. Please choose another.`);
+        throw new ConflictException(
+          `The subdomain "${normalized}" is already taken. Please choose another.`,
+        );
       }
       data.subdomain = normalized;
     }
@@ -153,25 +183,41 @@ export class TenantService {
         name: data.name !== undefined ? data.name : undefined,
         subdomain: data.subdomain !== undefined ? data.subdomain : undefined,
         branding: data.branding !== undefined ? data.branding : undefined,
-        customerExperience: data.customerExperience !== undefined ? data.customerExperience : undefined,
+        customerExperience:
+          data.customerExperience !== undefined
+            ? data.customerExperience
+            : undefined,
       },
     });
   }
 
   async exportData(tenantId: string) {
     this.logger.log(`Exporting data for tenant ${tenantId}`);
-    
+
     // Fetch all relevant data for the tenant
-    const [tenant, workspaces, users, locations, staff, services, queues, customers, visits] = await Promise.all([
+    const [
+      tenant,
+      workspaces,
+      users,
+      locations,
+      staff,
+      services,
+      queues,
+      customers,
+      visits,
+    ] = await Promise.all([
       this.prisma.tenant.findUnique({ where: { id: tenantId } }),
       this.prisma.workspace.findMany({ where: { tenantId } }),
-      this.prisma.user.findMany({ where: { tenantId }, select: { id: true, email: true, role: true } }), // Omit password/googleId
+      this.prisma.user.findMany({
+        where: { tenantId },
+        select: { id: true, email: true, role: true },
+      }), // Omit password/googleId
       this.prisma.location.findMany({ where: { tenantId } }),
       this.prisma.staff.findMany({ where: { tenantId } }),
       this.prisma.service.findMany({ where: { tenantId } }),
       this.prisma.queue.findMany({ where: { tenantId } }),
       this.prisma.customer.findMany({ where: { tenantId } }),
-      this.prisma.visit.findMany({ where: { tenantId } })
+      this.prisma.visit.findMany({ where: { tenantId } }),
     ]);
 
     return {
@@ -184,7 +230,7 @@ export class TenantService {
       services,
       queues,
       customers,
-      visits
+      visits,
     };
   }
 }

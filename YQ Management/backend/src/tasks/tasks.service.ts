@@ -81,16 +81,16 @@ export class TasksService {
       // FIX (1D): Previously both deleteMany calls targeted prisma.visit (copy-paste bug).
       // The second call now correctly targets prisma.token for legacy Token record cleanup.
       const visitResult = await this.prisma.visit.deleteMany({
-        where: { createdAt: { lt: twoYearsAgo } }
+        where: { createdAt: { lt: twoYearsAgo } },
       });
 
       // Legacy Token model cleanup (model deprecated but still exists in schema)
       const tokenResult = await this.prisma.token.deleteMany({
-        where: { joinedAt: { lt: twoYearsAgo } }
+        where: { joinedAt: { lt: twoYearsAgo } },
       });
 
       this.logger.log(
-        `Data Retention: Cleaned up ${visitResult.count} old visits and ${tokenResult.count} legacy tokens.`
+        `Data Retention: Cleaned up ${visitResult.count} old visits and ${tokenResult.count} legacy tokens.`,
       );
     } catch (err) {
       this.logger.error('Failed to run data retention cleanup', err);

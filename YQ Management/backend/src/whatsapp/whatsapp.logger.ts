@@ -17,7 +17,12 @@ export class WhatsappLogger {
     this.logFilePath = path.join(logDir, 'whatsapp-evo.log');
   }
 
-  private async writeLog(level: string, source: string, message: string, data?: any) {
+  private async writeLog(
+    level: string,
+    source: string,
+    message: string,
+    data?: any,
+  ) {
     try {
       const timestamp = new Date().toISOString();
       const logEntry = {
@@ -29,17 +34,19 @@ export class WhatsappLogger {
       };
 
       fs.appendFileSync(this.logFilePath, JSON.stringify(logEntry) + '\n');
-      
+
       // Also write to global SystemLog table
       await this.prisma.systemLog.create({
         data: {
           level,
           message,
           context: { source, data: data || null },
-        }
+        },
       });
     } catch (e) {
-      this.logger.error(`Failed to write to whatsapp log file or SystemLog: ${e}`);
+      this.logger.error(
+        `Failed to write to whatsapp log file or SystemLog: ${e}`,
+      );
     }
   }
 

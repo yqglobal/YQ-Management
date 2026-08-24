@@ -19,8 +19,10 @@ export class SubscriptionService {
     private readonly emailService: EmailService,
   ) {}
 
-  async getSubscription(tenantId: string): Promise<(Subscription & { plan: Plan }) | null> {
-    let sub = await this.prisma.subscription.findUnique({
+  async getSubscription(
+    tenantId: string,
+  ): Promise<(Subscription & { plan: Plan }) | null> {
+    const sub = await this.prisma.subscription.findUnique({
       where: { tenantId },
       include: {
         plan: true,
@@ -42,7 +44,9 @@ export class SubscriptionService {
       sub.status !== SubscriptionStatus.ACTIVE &&
       sub.status !== SubscriptionStatus.TRIAL
     ) {
-      throw new BillingException('Active subscription required to add resources');
+      throw new BillingException(
+        'Active subscription required to add resources',
+      );
     }
 
     if (resource === 'queues' && sub.plan.maxQueues !== null) {
@@ -69,7 +73,7 @@ export class SubscriptionService {
     if (resource === 'visits') {
       const limits = (sub.plan.limits as any) || {};
       const maxVisits = (sub.plan as any).maxVisits ?? limits.maxTokens;
-      
+
       if (maxVisits !== undefined && maxVisits !== null) {
         if (currentCount >= maxVisits) {
           throw new BillingException(
@@ -150,8 +154,6 @@ export class SubscriptionService {
       },
       include: { plan: true },
     });
-
-    
 
     this.logger.log(
       `Subscription created for workspace ${tenantId}, plan ${dto.planId}, status ${status}`,
@@ -265,7 +267,8 @@ export class SubscriptionService {
     }
 
     const now = new Date();
-    const isImmediate = dto.immediate || subscription.status === SubscriptionStatus.TRIAL;
+    const isImmediate =
+      dto.immediate || subscription.status === SubscriptionStatus.TRIAL;
 
     const dataToUpdate: any = {
       cancellationDate: now,
@@ -304,10 +307,16 @@ export class SubscriptionService {
         select: { email: true },
       });
       if (owner?.email && updated.plan?.name) {
-        await this.emailService.sendSubscriptionCancelledEmail(owner.email, updated.plan.name);
+        await this.emailService.sendSubscriptionCancelledEmail(
+          owner.email,
+          updated.plan.name,
+        );
       }
     } catch (e) {
-      this.logger.error(`Failed to send cancellation email to workspace ${tenantId}`, e);
+      this.logger.error(
+        `Failed to send cancellation email to workspace ${tenantId}`,
+        e,
+      );
     }
 
     return updated;
@@ -358,8 +367,6 @@ export class SubscriptionService {
       },
       include: { plan: true },
     });
-
-    
 
     this.logger.log(`Subscription resumed for workspace ${tenantId}`);
     return updated;
@@ -427,7 +434,10 @@ export class SubscriptionService {
         );
       }
     } catch (e) {
-      this.logger.error(`Failed to send trial started email for ${tenantId}`, e);
+      this.logger.error(
+        `Failed to send trial started email for ${tenantId}`,
+        e,
+      );
     }
 
     return subscription;
@@ -494,8 +504,6 @@ export class SubscriptionService {
       },
       include: { plan: true },
     });
-
-    
 
     this.logger.log(`Subscription renewed for workspace ${tenantId}`);
     return updated;

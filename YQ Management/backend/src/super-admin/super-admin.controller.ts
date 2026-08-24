@@ -415,6 +415,9 @@ export class SuperAdminController {
     @Body() body: { status: string },
   ) {
     this.checkSuperAdmin(req);
-    return this.superAdminService.updateEnterpriseInquiryStatus(id, body.status);
+    return this.superAdminService.updateEnterpriseInquiryStatus(
+      id,
+      body.status,
+    );
   }
 }

@@ -25,7 +25,9 @@ describe('VisitService', () => {
       create: jest.fn(),
     },
   };
-  mockPrismaService.$transaction = jest.fn(async (cb: (tx: any) => Promise<any>) => cb(mockPrismaService));
+  mockPrismaService.$transaction = jest.fn(
+    async (cb: (tx: any) => Promise<any>) => cb(mockPrismaService),
+  );
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

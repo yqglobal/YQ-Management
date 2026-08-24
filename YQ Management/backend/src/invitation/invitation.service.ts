@@ -89,9 +89,13 @@ export class InvitationService {
     });
   }
 
-  async validateAndUseInvitation(
-    code: string,
-  ): Promise<{ workspaceId: string; role: string; allowedLocationIds: string[]; allowedServiceIds: string[]; allowedPages: string[] }> {
+  async validateAndUseInvitation(code: string): Promise<{
+    workspaceId: string;
+    role: string;
+    allowedLocationIds: string[];
+    allowedServiceIds: string[];
+    allowedPages: string[];
+  }> {
     const invitation = await this.prisma.invitation.findFirst({
       where: { code: code.toUpperCase(), used: false },
     });

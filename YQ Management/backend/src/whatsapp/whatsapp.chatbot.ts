@@ -6,7 +6,12 @@ export class WhatsappChatbot {
     private sendMsg: (jid: string, text: string) => Promise<void>,
   ) {}
 
-  async process(tenant: any, phone: string, jid: string, rawText: string): Promise<{ handled: boolean, isHumanPaused: boolean }> {
+  async process(
+    tenant: any,
+    phone: string,
+    jid: string,
+    rawText: string,
+  ): Promise<{ handled: boolean; isHumanPaused: boolean }> {
     const text = rawText.trim();
     const upperText = text.toUpperCase();
     const tenantId = tenant.id;
@@ -28,8 +33,16 @@ export class WhatsappChatbot {
       });
     }
 
-    const isGreeting = ['HI', 'HELLO', 'HEY', 'START', 'MENU', '0'].includes(upperText);
-    const isTransactionalReply = ['OK', 'OKAY', 'THANKS', 'THANK YOU', '👍'].includes(upperText);
+    const isGreeting = ['HI', 'HELLO', 'HEY', 'START', 'MENU', '0'].includes(
+      upperText,
+    );
+    const isTransactionalReply = [
+      'OK',
+      'OKAY',
+      'THANKS',
+      'THANK YOU',
+      '👍',
+    ].includes(upperText);
 
     // If human mode is active, block the bot from auto-replying unless they say MENU
     if (session.context && (session.context as any).isHumanPaused) {
@@ -64,7 +77,9 @@ export class WhatsappChatbot {
     if (session.step === 0) {
       if (
         config.quickReplies?.status &&
-        (upperText === '1' || upperText.includes('STATUS') || upperText.includes('WHERE'))
+        (upperText === '1' ||
+          upperText.includes('STATUS') ||
+          upperText.includes('WHERE'))
       ) {
         await this.handleStatusCheck(tenantId, phone, jid);
         return { handled: true, isHumanPaused: false };
@@ -72,7 +87,9 @@ export class WhatsappChatbot {
 
       if (
         config.quickReplies?.cancel &&
-        (upperText === '2' || upperText.includes('CANCEL') || upperText.includes('STOP'))
+        (upperText === '2' ||
+          upperText.includes('CANCEL') ||
+          upperText.includes('STOP'))
       ) {
         await this.handleCancel(tenantId, phone, jid);
         return { handled: true, isHumanPaused: false };
@@ -80,9 +97,15 @@ export class WhatsappChatbot {
 
       if (
         config.quickReplies?.human &&
-        (upperText === '3' || upperText.includes('HUMAN') || upperText.includes('AGENT') || upperText.includes('SUPPORT'))
+        (upperText === '3' ||
+          upperText.includes('HUMAN') ||
+          upperText.includes('AGENT') ||
+          upperText.includes('SUPPORT'))
       ) {
-        await this.sendMsg(jid, 'I have paused automated replies. A human agent will respond to you shortly.');
+        await this.sendMsg(
+          jid,
+          'I have paused automated replies. A human agent will respond to you shortly.',
+        );
         await this.prisma.chatSession.update({
           where: { id: session.id },
           data: { context: { isHumanPaused: true } },
@@ -90,7 +113,10 @@ export class WhatsappChatbot {
         return { handled: true, isHumanPaused: true }; // Trigger inbox saving
       }
 
-      await this.sendMsg(jid, "I didn't understand that. Please reply '0' to see the menu again.");
+      await this.sendMsg(
+        jid,
+        "I didn't understand that. Please reply '0' to see the menu again.",
+      );
       return { handled: true, isHumanPaused: false };
     }
 
@@ -125,7 +151,11 @@ export class WhatsappChatbot {
    * We find an active Visit by matching the customer's phone number against
    * the Customer record linked to the Visit.
    */
-  private async handleStatusCheck(tenantId: string, phone: string, jid: string) {
+  private async handleStatusCheck(
+    tenantId: string,
+    phone: string,
+    jid: string,
+  ) {
     const visit = await this.prisma.visit.findFirst({
       where: {
         tenantId,

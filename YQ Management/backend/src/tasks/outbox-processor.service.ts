@@ -1,4 +1,10 @@
-import { Injectable, OnModuleInit, Logger, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  Logger,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { QueueGateway } from '../queue/queue.gateway';
@@ -41,7 +47,9 @@ export class OutboxProcessorService implements OnModuleInit {
       });
 
       if (recovered.count > 0) {
-        this.logger.warn(`Recovered ${recovered.count} stuck outbox events from PROCESSING back to PENDING`);
+        this.logger.warn(
+          `Recovered ${recovered.count} stuck outbox events from PROCESSING back to PENDING`,
+        );
       }
     } catch (err) {
       this.logger.error('Failed to recover stuck outbox events', err);
@@ -78,7 +86,10 @@ export class OutboxProcessorService implements OnModuleInit {
               data: { status: 'COMPLETED', processedAt: new Date() },
             });
           } catch (err: any) {
-            this.logger.error(`Failed to process outbox event ${event.id}`, err.stack);
+            this.logger.error(
+              `Failed to process outbox event ${event.id}`,
+              err.stack,
+            );
             await this.prisma.outboxEvent.update({
               where: { id: event.id },
               data: { status: 'FAILED', error: err.message || 'Unknown error' },
@@ -105,41 +116,65 @@ export class OutboxProcessorService implements OnModuleInit {
       case 'VISIT_CHECKED_IN':
         // 1. Broadcast via WebSocket Gateway
         if (payload.queueId) {
-          this.queueGateway.broadcastQueueUpdate(payload.queueId, type.toLowerCase(), payload);
+          this.queueGateway.broadcastQueueUpdate(
+            payload.queueId,
+            type.toLowerCase(),
+            payload,
+          );
         }
         // Also broadcast to visit-specific room so customer wait screen updates
         if (payload.visitId) {
-          this.queueGateway.broadcastQueueUpdate(`visit_${payload.visitId}`, type.toLowerCase(), payload);
+          this.queueGateway.broadcastQueueUpdate(
+            `visit_${payload.visitId}`,
+            type.toLowerCase(),
+            payload,
+          );
         }
 
         // 2. Fire webhooks
         if (payload.tenantId) {
-          await this.webhooksService.triggerWebhooks(payload.tenantId, type, payload);
+          await this.webhooksService.triggerWebhooks(
+            payload.tenantId,
+            type,
+            payload,
+          );
         }
 
         // 3. FIX (6A): Send WhatsApp notifications for key lifecycle events
         if (type === 'VISIT_CREATED') {
           await this.sendVisitCreatedNotification(payload).catch((e) =>
-            this.logger.warn(`WhatsApp VISIT_CREATED notification failed: ${e.message}`)
+            this.logger.warn(
+              `WhatsApp VISIT_CREATED notification failed: ${e.message}`,
+            ),
           );
         } else if (type === 'VISIT_CALLED') {
           await this.sendVisitCalledNotification(payload).catch((e) =>
-            this.logger.warn(`WhatsApp VISIT_CALLED notification failed: ${e.message}`)
+            this.logger.warn(
+              `WhatsApp VISIT_CALLED notification failed: ${e.message}`,
+            ),
           );
         } else if (type === 'VISIT_CANCELLED') {
           await this.sendVisitCancelledNotification(payload).catch((e) =>
-            this.logger.warn(`WhatsApp VISIT_CANCELLED notification failed: ${e.message}`)
+            this.logger.warn(
+              `WhatsApp VISIT_CANCELLED notification failed: ${e.message}`,
+            ),
           );
         } else if (type === 'VISIT_MISSED') {
           await this.sendVisitMissedNotification(payload).catch((e) =>
-            this.logger.warn(`WhatsApp VISIT_MISSED notification failed: ${e.message}`)
+            this.logger.warn(
+              `WhatsApp VISIT_MISSED notification failed: ${e.message}`,
+            ),
           );
         }
         break;
 
       case 'QUEUE_STATE_CHANGED':
         if (payload.queueId) {
-          this.queueGateway.broadcastQueueUpdate(payload.queueId, 'queue_status_changed', payload);
+          this.queueGateway.broadcastQueueUpdate(
+            payload.queueId,
+            'queue_status_changed',
+            payload,
+          );
         }
         break;
 
@@ -153,7 +188,11 @@ export class OutboxProcessorService implements OnModuleInit {
    * Fetches full visit+customer+tenant details to build a personalised message.
    * Fires asynchronously AFTER the DB transaction has committed.
    */
-  private async sendVisitCreatedNotification(payload: { visitId: string; tenantId: string; displayId?: string }) {
+  private async sendVisitCreatedNotification(payload: {
+    visitId: string;
+    tenantId: string;
+    displayId?: string;
+  }) {
     if (!payload.visitId || !payload.tenantId) return;
 
     const visit = await this.prisma.visit.findUnique({
@@ -162,15 +201,20 @@ export class OutboxProcessorService implements OnModuleInit {
         customer: { select: { name: true, phone: true } },
         service: { select: { name: true } },
         location: { select: { name: true } },
-        tenant: { select: { whatsappConnected: true, whatsappInstanceId: true } },
+        tenant: {
+          select: { whatsappConnected: true, whatsappInstanceId: true },
+        },
       },
     });
 
     if (!visit) return;
-    if (!visit.tenant?.whatsappConnected || !visit.tenant?.whatsappInstanceId) return;
+    if (!visit.tenant?.whatsappConnected || !visit.tenant?.whatsappInstanceId)
+      return;
     if (!visit.customer?.phone) return;
 
-    const locationText = visit.location?.name ? ` at ${visit.location.name}` : '';
+    const locationText = visit.location?.name
+      ? ` at ${visit.location.name}`
+      : '';
     const serviceName = visit.service?.name || 'the service';
     const displayId = visit.displayId || payload.displayId || 'Unknown';
 
@@ -192,11 +236,13 @@ export class OutboxProcessorService implements OnModuleInit {
           visit.customer.phone,
           qrBase64,
           'image',
-          message
+          message,
         );
         return;
       } catch (err) {
-        this.logger.warn('Failed to generate/send QR code, falling back to text message');
+        this.logger.warn(
+          'Failed to generate/send QR code, falling back to text message',
+        );
       }
     }
 
@@ -210,7 +256,11 @@ export class OutboxProcessorService implements OnModuleInit {
   /**
    * FIX (6A): Sends a "it's your turn" WhatsApp message when a visit is called to be served.
    */
-  private async sendVisitCalledNotification(payload: { visitId: string; tenantId: string; displayId?: string }) {
+  private async sendVisitCalledNotification(payload: {
+    visitId: string;
+    tenantId: string;
+    displayId?: string;
+  }) {
     if (!payload.visitId || !payload.tenantId) return;
 
     const visit = await this.prisma.visit.findUnique({
@@ -219,19 +269,21 @@ export class OutboxProcessorService implements OnModuleInit {
         customer: { select: { name: true, phone: true } },
         service: { select: { name: true } },
         location: { select: { name: true } },
-        tenant: { select: { whatsappConnected: true, whatsappInstanceId: true } },
+        tenant: {
+          select: { whatsappConnected: true, whatsappInstanceId: true },
+        },
       },
     });
 
     if (!visit) return;
-    if (!visit.tenant?.whatsappConnected || !visit.tenant?.whatsappInstanceId) return;
+    if (!visit.tenant?.whatsappConnected || !visit.tenant?.whatsappInstanceId)
+      return;
     if (!visit.customer?.phone) return;
 
     const serviceName = visit.service?.name || 'the service';
     const displayId = visit.displayId || payload.displayId || 'Unknown';
 
-    const message =
-      `🔔 *It\'s Your Turn!* \n\nHello ${visit.customer.name}, ticket *${displayId}* for *${serviceName}* is now being called.\n\nPlease proceed to the counter immediately.`;
+    const message = `🔔 *It\'s Your Turn!* \n\nHello ${visit.customer.name}, ticket *${displayId}* for *${serviceName}* is now being called.\n\nPlease proceed to the counter immediately.`;
 
     await this.whatsappService.sendMessage(
       visit.tenant.whatsappInstanceId,
@@ -240,7 +292,11 @@ export class OutboxProcessorService implements OnModuleInit {
     );
   }
 
-  private async sendVisitCancelledNotification(payload: { visitId: string; tenantId: string; displayId?: string }) {
+  private async sendVisitCancelledNotification(payload: {
+    visitId: string;
+    tenantId: string;
+    displayId?: string;
+  }) {
     if (!payload.visitId || !payload.tenantId) return;
 
     const visit = await this.prisma.visit.findUnique({
@@ -248,18 +304,34 @@ export class OutboxProcessorService implements OnModuleInit {
       include: {
         customer: { select: { name: true, phone: true } },
         service: { select: { name: true } },
-        tenant: { select: { whatsappConnected: true, whatsappInstanceId: true } },
+        tenant: {
+          select: { whatsappConnected: true, whatsappInstanceId: true },
+        },
       },
     });
 
-    if (!visit || !visit.tenant?.whatsappConnected || !visit.tenant?.whatsappInstanceId || !visit.customer?.phone) return;
+    if (
+      !visit ||
+      !visit.tenant?.whatsappConnected ||
+      !visit.tenant?.whatsappInstanceId ||
+      !visit.customer?.phone
+    )
+      return;
 
     const message = `❌ *Booking Cancelled*\n\nHello ${visit.customer.name}, your booking for *${visit.service?.name || 'the service'}* (Ticket: ${visit.displayId || payload.displayId || 'Unknown'}) has been cancelled.`;
 
-    await this.whatsappService.sendMessage(visit.tenant.whatsappInstanceId, visit.customer.phone, message);
+    await this.whatsappService.sendMessage(
+      visit.tenant.whatsappInstanceId,
+      visit.customer.phone,
+      message,
+    );
   }
 
-  private async sendVisitMissedNotification(payload: { visitId: string; tenantId: string; displayId?: string }) {
+  private async sendVisitMissedNotification(payload: {
+    visitId: string;
+    tenantId: string;
+    displayId?: string;
+  }) {
     if (!payload.visitId || !payload.tenantId) return;
 
     const visit = await this.prisma.visit.findUnique({
@@ -267,14 +339,26 @@ export class OutboxProcessorService implements OnModuleInit {
       include: {
         customer: { select: { name: true, phone: true } },
         service: { select: { name: true } },
-        tenant: { select: { whatsappConnected: true, whatsappInstanceId: true } },
+        tenant: {
+          select: { whatsappConnected: true, whatsappInstanceId: true },
+        },
       },
     });
 
-    if (!visit || !visit.tenant?.whatsappConnected || !visit.tenant?.whatsappInstanceId || !visit.customer?.phone) return;
+    if (
+      !visit ||
+      !visit.tenant?.whatsappConnected ||
+      !visit.tenant?.whatsappInstanceId ||
+      !visit.customer?.phone
+    )
+      return;
 
     const message = `⚠️ *Missed Turn*\n\nHello ${visit.customer.name}, we called your ticket *${visit.displayId || payload.displayId || 'Unknown'}* for *${visit.service?.name || 'the service'}* but you were not present. Please speak to the receptionist.`;
 
-    await this.whatsappService.sendMessage(visit.tenant.whatsappInstanceId, visit.customer.phone, message);
+    await this.whatsappService.sendMessage(
+      visit.tenant.whatsappInstanceId,
+      visit.customer.phone,
+      message,
+    );
   }
 }

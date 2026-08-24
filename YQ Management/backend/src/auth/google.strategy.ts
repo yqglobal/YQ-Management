@@ -29,10 +29,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientSecret: clientSecret || 'missing-client-secret',
       callbackURL,
       scope: [
-        'email', 
-        'profile', 
+        'email',
+        'profile',
         'https://www.googleapis.com/auth/calendar.events',
-        'https://www.googleapis.com/auth/business.manage'
+        'https://www.googleapis.com/auth/business.manage',
       ],
       passReqToCallback: true,
     });
@@ -47,7 +47,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   ): Promise<any> {
     const email = profile.emails?.[0]?.value;
     const googleId = profile.sub || profile.id;
-    const fullName = profile.displayName || `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim() || undefined;
+    const fullName =
+      profile.displayName ||
+      `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim() ||
+      undefined;
 
     if (!email) {
       return done(new Error('No email found in Google profile'));
@@ -55,7 +58,14 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
     const intent = req.query.state || 'login';
     // Passing accessToken and refreshToken to be handled in validateOAuthLogin
-    const user = await this.authService.validateOAuthLogin(email, googleId, fullName, intent, accessToken, refreshToken);
+    const user = await this.authService.validateOAuthLogin(
+      email,
+      googleId,
+      fullName,
+      intent,
+      accessToken,
+      refreshToken,
+    );
     done(null, user);
   }
 }

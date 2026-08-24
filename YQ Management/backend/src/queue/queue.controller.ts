@@ -27,7 +27,14 @@ export class QueueController {
   @Post()
   async createQueue(
     @Req() req: AuthenticatedRequest,
-    @Body() body: { name: string; formConfig?: any; tokenDisplayConfig?: any; locationId?: string; serviceIds?: string[] },
+    @Body()
+    body: {
+      name: string;
+      formConfig?: any;
+      tokenDisplayConfig?: any;
+      locationId?: string;
+      serviceIds?: string[];
+    },
   ) {
     return this.queueService.createQueue(
       req.user.tenantId,
@@ -111,7 +118,10 @@ export class QueueController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN)
   @Post(':id/advance')
-  async advanceQueueTurn(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+  async advanceQueueTurn(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
     // Only verify queue belongs to tenant first (ideally in service)
     await this.queueService.getQueueByIdForTenant(id, req.user.tenantId);
     return this.queueService.advanceTurn(id);
@@ -120,14 +130,20 @@ export class QueueController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN)
   @Post('tokens/:tokenId/complete')
-  async completeQueueToken(@Req() req: AuthenticatedRequest, @Param('tokenId') tokenId: string) {
+  async completeQueueToken(
+    @Req() req: AuthenticatedRequest,
+    @Param('tokenId') tokenId: string,
+  ) {
     return this.queueService.completeToken(tokenId, req.user.tenantId);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN)
   @Post('tokens/:tokenId/skip')
-  async skipQueueToken(@Req() req: AuthenticatedRequest, @Param('tokenId') tokenId: string) {
+  async skipQueueToken(
+    @Req() req: AuthenticatedRequest,
+    @Param('tokenId') tokenId: string,
+  ) {
     return this.queueService.skipToken(tokenId);
   }
 
@@ -148,6 +164,4 @@ export class QueueController {
   async getPublicQueueTokens(@Param('id') id: string) {
     return this.queueService.getQueueTokens(id);
   }
-
-
 }

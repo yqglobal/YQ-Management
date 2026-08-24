@@ -1,15 +1,28 @@
-import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
-import { addMinutes, isAfter, isBefore, parseISO, startOfDay, endOfDay } from 'date-fns';
+import {
+  addMinutes,
+  isAfter,
+  isBefore,
+  parseISO,
+  startOfDay,
+  endOfDay,
+} from 'date-fns';
 
 @Injectable()
 export class ServiceService {
   constructor(
     private prisma: PrismaService,
     @Inject(forwardRef(() => QueueService))
-    private queueService: QueueService
+    private queueService: QueueService,
   ) {}
 
   async create(
@@ -26,15 +39,15 @@ export class ServiceService {
     },
   ) {
     const servicesCount = await this.prisma.extendedClient.service.count({
-      where: { 
-        tenantId, 
-        locationId: data.locationId || null 
+      where: {
+        tenantId,
+        locationId: data.locationId || null,
       },
     });
 
     if (servicesCount >= 20) {
       throw new BadRequestException(
-        `Maximum number of services (20) reached for this ${data.locationId ? 'location' : 'tenant'}.`
+        `Maximum number of services (20) reached for this ${data.locationId ? 'location' : 'tenant'}.`,
       );
     }
 
@@ -61,7 +74,7 @@ export class ServiceService {
         undefined,
         undefined,
         data.locationId,
-        [service.id]
+        [service.id],
       );
     } catch (error) {
       console.error('Failed to auto-create queue for service:', error);
@@ -181,7 +194,9 @@ export class ServiceService {
 
     if (!service) throw new NotFoundException('Service not found');
     if (!service.allowAppointments)
-      throw new BadRequestException('Appointments are not enabled for this service');
+      throw new BadRequestException(
+        'Appointments are not enabled for this service',
+      );
 
     const granularityMins = service.appointmentGranularityMins || 15;
     const durationMins = service.expectedDuration || granularityMins;
@@ -209,7 +224,15 @@ export class ServiceService {
     if (service.location?.businessHours) {
       const bh = service.location.businessHours as any;
       const dayOfWeek = localDayDate.getDay(); // 0 = Sunday
-      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const days = [
+        'sunday',
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+      ];
       const dayName = days[dayOfWeek];
 
       if (bh[dayName]) {
@@ -239,20 +262,24 @@ export class ServiceService {
     const existingVisits = await this.prisma.visit.findMany({
       where: {
         serviceId,
-        currentState: { notIn: ['CANCELLED', 'NO_SHOW', 'MISSED', 'COMPLETED'] },
+        currentState: {
+          notIn: ['CANCELLED', 'NO_SHOW', 'MISSED', 'COMPLETED'],
+        },
         scheduledTime: { gte: startOfDayUTC, lt: endOfDayUTC },
       },
       select: { scheduledTime: true },
     });
 
-    const existingAppointments = await (this.prisma as any).appointment?.findMany?.({
-      where: {
-        serviceId,
-        status: { notIn: ['CANCELLED', 'NO_SHOW', 'REJECTED'] },
-        scheduledStart: { gte: startOfDayUTC, lt: endOfDayUTC },
-      },
-      select: { scheduledStart: true, scheduledEnd: true },
-    }).catch(() => []); // Fallback if Appointment model doesn't exist
+    const existingAppointments = await (this.prisma as any).appointment
+      ?.findMany?.({
+        where: {
+          serviceId,
+          status: { notIn: ['CANCELLED', 'NO_SHOW', 'REJECTED'] },
+          scheduledStart: { gte: startOfDayUTC, lt: endOfDayUTC },
+        },
+        select: { scheduledStart: true, scheduledEnd: true },
+      })
+      .catch(() => []); // Fallback if Appointment model doesn't exist
 
     // Build a set of blocked millisecond timestamps.
     const blockedRanges: Array<{ start: number; end: number }> = [];

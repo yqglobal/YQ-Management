@@ -17,7 +17,13 @@ export class MarketingController {
   }
 
   @Post('send')
-  async sendCampaign(@Body() body: { audience: string; subject: string; htmlContent: string }) {
-    return this.marketingService.sendCampaign(body.audience, body.subject, body.htmlContent);
+  async sendCampaign(
+    @Body() body: { audience: string; subject: string; htmlContent: string },
+  ) {
+    return this.marketingService.sendCampaign(
+      body.audience,
+      body.subject,
+      body.htmlContent,
+    );
   }
 }

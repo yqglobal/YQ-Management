@@ -26,7 +26,11 @@ export class PublicPlansController {
           trialDays: 14,
           status: 'ACTIVE',
           sortOrder: 1,
-          features: { whatsappNotifications: false, whatsappChat: false, whatsappChatbot: false },
+          features: {
+            whatsappNotifications: false,
+            whatsappChat: false,
+            whatsappChatbot: false,
+          },
           limits: { maxQueues: 1, maxTokens: 100 },
         });
         await this.plansService.createPlan({
@@ -40,7 +44,11 @@ export class PublicPlansController {
           trialDays: 0,
           status: 'ACTIVE',
           sortOrder: 2,
-          features: { whatsappNotifications: true, whatsappChat: true, whatsappChatbot: true },
+          features: {
+            whatsappNotifications: true,
+            whatsappChat: true,
+            whatsappChatbot: true,
+          },
           limits: { maxQueues: 5, maxTokens: 1000 },
         });
         await this.plansService.createPlan({
@@ -54,7 +62,11 @@ export class PublicPlansController {
           trialDays: 0,
           status: 'ACTIVE',
           sortOrder: 3,
-          features: { whatsappNotifications: true, whatsappChat: true, whatsappChatbot: true },
+          features: {
+            whatsappNotifications: true,
+            whatsappChat: true,
+            whatsappChatbot: true,
+          },
           limits: { maxQueues: 20, maxTokens: 10000 },
         });
         plans = await this.plansService.listPlans('ACTIVE', 0, 50);

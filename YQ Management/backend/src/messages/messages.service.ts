@@ -88,7 +88,12 @@ export class MessagesService {
     const conversation = await this.prisma.customerConversation.upsert({
       where: { tenantId_customerPhone: { tenantId, customerPhone: phone } },
       update: { lastMessageAt: new Date(), status: 'OPEN' },
-      create: { tenantId, customerPhone: phone, status: 'OPEN', unreadCount: 0 },
+      create: {
+        tenantId,
+        customerPhone: phone,
+        status: 'OPEN',
+        unreadCount: 0,
+      },
     });
 
     const message = await this.prisma.message.create({
@@ -101,15 +106,11 @@ export class MessagesService {
       },
     });
 
-    await this.notificationsService.sendWhatsAppMessage(
-      phone,
-      text,
-      tenantId,
-    );
+    await this.notificationsService.sendWhatsAppMessage(phone, text, tenantId);
 
     this.redisService.client.publish(
       'queue_events',
-      JSON.stringify({ type: 'NEW_INBOX_MESSAGE', tenantId, phone })
+      JSON.stringify({ type: 'NEW_INBOX_MESSAGE', tenantId, phone }),
     );
 
     return message;

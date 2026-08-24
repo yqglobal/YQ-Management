@@ -156,15 +156,23 @@ export class WhatsappService implements OnModuleInit {
             readMessages: false,
           });
 
-          if (!createResult.error || createResult.status === 409 || createResult.status === 400) {
+          if (
+            !createResult.error ||
+            createResult.status === 409 ||
+            createResult.status === 400
+          ) {
             // Instance was created or already existed — set webhook and let it reconnect on its own
             await this.setWebhook(instanceName).catch(() => {});
             this.logger.log(
               `Auto-recovery: Created instance ${instanceName} (session will restore from DB). Webhook set.`,
             );
-            await this.logTenantEvent(tenant.id, 'AUTO_RECOVERY_INSTANCE_CREATED', {
-              instanceName,
-            });
+            await this.logTenantEvent(
+              tenant.id,
+              'AUTO_RECOVERY_INSTANCE_CREATED',
+              {
+                instanceName,
+              },
+            );
           } else {
             this.logger.error(
               `Auto-recovery failed for ${instanceName}: ${createResult.error?.message}`,
@@ -184,10 +192,13 @@ export class WhatsappService implements OnModuleInit {
           if (state === 'open') {
             if (!tenant.whatsappConnected) {
               this.logger.warn(
-                `Zombie socket detected for ${instanceName}! DB says disconnected, but Evolution API says open. Attempting soft restart...`
+                `Zombie socket detected for ${instanceName}! DB says disconnected, but Evolution API says open. Attempting soft restart...`,
               );
               // Ping connect to see if Evolution API can force a socket refresh
-              await this.fetchEvo(`/instance/connect/${instanceName}`, 'GET').catch(() => {});
+              await this.fetchEvo(
+                `/instance/connect/${instanceName}`,
+                'GET',
+              ).catch(() => {});
             }
             // Connected — just ensure webhook is configured
             await this.setWebhook(instanceName).catch(() => {});
@@ -219,7 +230,6 @@ export class WhatsappService implements OnModuleInit {
       );
     }
   }
-
 
   private buildEvolutionError(status: number, raw: string): EvolutionError {
     let message = 'Evolution API request failed';
@@ -860,7 +870,10 @@ export class WhatsappService implements OnModuleInit {
     };
   }
 
-  async checkNumberExists(tenantId: string, phoneNumber: string): Promise<boolean> {
+  async checkNumberExists(
+    tenantId: string,
+    phoneNumber: string,
+  ): Promise<boolean> {
     if (!phoneNumber) return false;
     const tenant = await this.resolveTenant(tenantId);
     if (!tenant || !tenant.whatsappInstanceId) return false;
@@ -873,21 +886,25 @@ export class WhatsappService implements OnModuleInit {
         `/chat/whatsappNumbers/${tenant.whatsappInstanceId}`,
         'POST',
         { numbers: [normalizedPhone] },
-        5000 // 5 seconds timeout
+        5000, // 5 seconds timeout
       );
 
       if (res.error) {
-        this.logger.warn(`Failed to check if number ${normalizedPhone} exists: ${res.error.message}`);
+        this.logger.warn(
+          `Failed to check if number ${normalizedPhone} exists: ${res.error.message}`,
+        );
         // If the Evolution API errors out, assume the number is NOT valid or WhatsApp is unreachable
-        return false; 
+        return false;
       }
 
       const data = Array.isArray(res.data) ? res.data : [res.data];
       const match = data.find((item: any) => item?.exists === true);
-      
+
       return !!match;
     } catch (e) {
-      this.logger.warn(`Exception checking number ${normalizedPhone}: ${e instanceof Error ? e.message : String(e)}`);
+      this.logger.warn(
+        `Exception checking number ${normalizedPhone}: ${e instanceof Error ? e.message : String(e)}`,
+      );
       return false;
     }
   }
@@ -1318,13 +1335,17 @@ export class WhatsappService implements OnModuleInit {
                 },
               );
             }
-            
+
             // Delete the instance in Evolution to free up RAM since the user logged out permanently
             try {
               await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
-              this.logger.log(`Instance ${instanceName} deleted from Evolution API due to hard logout.`);
+              this.logger.log(
+                `Instance ${instanceName} deleted from Evolution API due to hard logout.`,
+              );
             } catch (e) {
-              this.logger.warn(`Failed to delete instance ${instanceName} after hard logout: ${e}`);
+              this.logger.warn(
+                `Failed to delete instance ${instanceName} after hard logout: ${e}`,
+              );
             }
           } else {
             this.logger.warn(
@@ -1472,18 +1493,35 @@ export class WhatsappService implements OnModuleInit {
       }
 
       // Delegate to chatbot state machine
-      const bot = new WhatsappChatbot(this.prisma, async (jidToSend, textToSend) => {
-        await this.sendMessage(instanceName, jidToSend, textToSend);
-      });
+      const bot = new WhatsappChatbot(
+        this.prisma,
+        async (jidToSend, textToSend) => {
+          await this.sendMessage(instanceName, jidToSend, textToSend);
+        },
+      );
       const botResult = await bot.process(tenant, phone, jid, rawText);
-      
+
       // If the bot says human is handling it (or they just requested a human), log the message!
       if (botResult.isHumanPaused) {
         // Upsert CustomerConversation
         const conversation = await this.prisma.customerConversation.upsert({
-          where: { tenantId_customerPhone: { tenantId: tenant.id, customerPhone: phone } },
-          update: { lastMessageAt: new Date(), unreadCount: { increment: 1 }, status: 'OPEN' },
-          create: { tenantId: tenant.id, customerPhone: phone, status: 'OPEN', unreadCount: 1 },
+          where: {
+            tenantId_customerPhone: {
+              tenantId: tenant.id,
+              customerPhone: phone,
+            },
+          },
+          update: {
+            lastMessageAt: new Date(),
+            unreadCount: { increment: 1 },
+            status: 'OPEN',
+          },
+          create: {
+            tenantId: tenant.id,
+            customerPhone: phone,
+            status: 'OPEN',
+            unreadCount: 1,
+          },
         });
 
         // Store the incoming message for the Inbox UI
@@ -1497,16 +1535,19 @@ export class WhatsappService implements OnModuleInit {
             isRead: false,
           },
         });
-        
+
         // Notify any open dashboard websockets about a new inbox message
         this.redisService.client.publish(
           'queue_events',
-          JSON.stringify({ type: 'NEW_INBOX_MESSAGE', tenantId: tenant.id, phone })
+          JSON.stringify({
+            type: 'NEW_INBOX_MESSAGE',
+            tenantId: tenant.id,
+            phone,
+          }),
         );
       }
 
       return { handled: true, action: 'chatbot' };
-
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       this.logger.error(
@@ -1535,7 +1576,7 @@ export class WhatsappService implements OnModuleInit {
       'POST',
       {
         number: normalizedNumber,
-        options: { delay: 0, presence: "composing" },
+        options: { delay: 0, presence: 'composing' },
         text,
       },
       25000,
@@ -1578,8 +1619,13 @@ export class WhatsappService implements OnModuleInit {
         }
       }
       let errorMsg = result.error.message;
-      if (result.status === 408 || result.status === 502 || result.status === 503) {
-        errorMsg = "WhatsApp connection is temporarily unsynchronized. The system is auto-recovering the connection in the background. Please try again in 10-20 seconds.";
+      if (
+        result.status === 408 ||
+        result.status === 502 ||
+        result.status === 503
+      ) {
+        errorMsg =
+          'WhatsApp connection is temporarily unsynchronized. The system is auto-recovering the connection in the background. Please try again in 10-20 seconds.';
       }
       return { success: false, error: errorMsg };
     }
@@ -1615,7 +1661,13 @@ export class WhatsappService implements OnModuleInit {
     return this.sendMessage(tenant.whatsappInstanceId, number, text);
   }
 
-  async sendMediaMessage(instanceName: string, number: string, base64: string, mediaType: string = 'image', caption: string = '') {
+  async sendMediaMessage(
+    instanceName: string,
+    number: string,
+    base64: string,
+    mediaType: string = 'image',
+    caption: string = '',
+  ) {
     if (!instanceName || !number || !base64) {
       return { success: false, error: 'Invalid parameters' };
     }
@@ -1627,33 +1679,53 @@ export class WhatsappService implements OnModuleInit {
         number: normalizedNumber,
         mediatype: mediaType,
         media: base64,
-        caption: caption
-      }
+        caption: caption,
+      },
     );
     if (result.error) {
       let errorMsg = result.error.message;
-      if (result.status === 408 || result.status === 502 || result.status === 503) {
+      if (
+        result.status === 408 ||
+        result.status === 502 ||
+        result.status === 503
+      ) {
         // Demote connection state so auto-healer can pick it up
         await this.prisma.tenant.updateMany({
           where: { whatsappInstanceId: instanceName },
-          data: { whatsappConnected: false }
+          data: { whatsappConnected: false },
         });
-        errorMsg = "WhatsApp connection is temporarily unsynchronized. The system is auto-recovering the connection in the background. Please try again in 10-20 seconds.";
+        errorMsg =
+          'WhatsApp connection is temporarily unsynchronized. The system is auto-recovering the connection in the background. Please try again in 10-20 seconds.';
       }
       return { success: false, error: errorMsg };
     }
     return { success: true, providerId: result.data?.key?.id };
   }
 
-  async sendMediaToTenant(tenantId: string, number: string, base64: string, mediaType: string = 'image', caption: string = '') {
+  async sendMediaToTenant(
+    tenantId: string,
+    number: string,
+    base64: string,
+    mediaType: string = 'image',
+    caption: string = '',
+  ) {
     if (!tenantId) return { success: false, error: 'Missing tenantId' };
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
     });
     if (!tenant || !tenant.whatsappInstanceId || !tenant.whatsappConnected) {
-      return { success: false, error: 'Tenant WhatsApp not configured or connected' };
+      return {
+        success: false,
+        error: 'Tenant WhatsApp not configured or connected',
+      };
     }
-    return this.sendMediaMessage(tenant.whatsappInstanceId, number, base64, mediaType, caption);
+    return this.sendMediaMessage(
+      tenant.whatsappInstanceId,
+      number,
+      base64,
+      mediaType,
+      caption,
+    );
   }
 
   async sendButtons(
@@ -1694,13 +1766,18 @@ export class WhatsappService implements OnModuleInit {
         `Failed to send WhatsApp buttons to ${normalizedNumber} on ${instanceName}: ${result.error.message}`,
       );
       let errorMsg = result.error.message;
-      if (result.status === 408 || result.status === 502 || result.status === 503) {
+      if (
+        result.status === 408 ||
+        result.status === 502 ||
+        result.status === 503
+      ) {
         // Demote connection state so auto-healer can pick it up
         await this.prisma.tenant.updateMany({
           where: { whatsappInstanceId: instanceName },
-          data: { whatsappConnected: false }
+          data: { whatsappConnected: false },
         });
-        errorMsg = "WhatsApp connection is temporarily unsynchronized. The system is auto-recovering the connection in the background. Please try again in 10-20 seconds.";
+        errorMsg =
+          'WhatsApp connection is temporarily unsynchronized. The system is auto-recovering the connection in the background. Please try again in 10-20 seconds.';
       }
       return { success: false, error: errorMsg };
     }
@@ -1974,8 +2051,13 @@ export class WhatsappService implements OnModuleInit {
         `Failed to send WhatsApp List to ${normalizedNumber}: ${result.error.message}`,
       );
       let errorMsg = result.error.message;
-      if (result.status === 408 || result.status === 502 || result.status === 503) {
-        errorMsg = "WhatsApp phone appears to be offline or unreachable. Please ensure it has an active internet connection.";
+      if (
+        result.status === 408 ||
+        result.status === 502 ||
+        result.status === 503
+      ) {
+        errorMsg =
+          'WhatsApp phone appears to be offline or unreachable. Please ensure it has an active internet connection.';
       }
       return { success: false, error: errorMsg };
     }
