@@ -13,10 +13,14 @@ import Confetti from 'react-confetti';
 
 import { countryCodes as allCountryCodes } from '../../lib/country-codes';
 
-const COUNTRY_CODES = allCountryCodes.map(c => ({
-  code: c.code,
-  label: `${c.country} ${c.code} (${c.name})`
-}));
+const COUNTRY_CODES = allCountryCodes
+  .map(c => ({
+    country: c.country,
+    code: c.code,
+    name: c.name,
+    label: `${c.name} (${c.code})`
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 const BUSINESS_TEMPLATES = [
   {
@@ -169,22 +173,43 @@ export default function Onboarding() {
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
+  const [selectedCountryIso, setSelectedCountryIso] = useState('ZA');
   const [countryCode, setCountryCode] = useState('+27');
   
   useEffect(() => {
     import('../../lib/country-codes').then(({ detectCountryByTimezone, getCountryByAbbr }) => {
-      const abbr = detectCountryByTimezone();
-      const country = getCountryByAbbr(abbr);
-      if (country) {
-        setCountryCode(country.code);
-      }
+      // 1. Primary robust detection via free IP geolocation
+      fetch('https://get.geojs.io/v1/ip/country.json')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.country) {
+            const country = getCountryByAbbr(data.country);
+            if (country) {
+              setSelectedCountryIso(country.country);
+              setCountryCode(country.code);
+              return;
+            }
+          }
+          throw new Error('GeoJS failed or country not found');
+        })
+        .catch(() => {
+          // 2. Fallback to Timezone detection
+          const abbr = detectCountryByTimezone();
+          const country = getCountryByAbbr(abbr);
+          if (country) {
+            setSelectedCountryIso(country.country);
+            setCountryCode(country.code);
+          }
+        });
     }).catch(() => {});
   }, []);
   
   // New Step 2 State
   const [locationName, setLocationName] = useState('Main Branch');
+  const [locationAddress, setLocationAddress] = useState('');
   const [enableWaitlist, setEnableWaitlist] = useState(true);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
   // Invitation State
   const [inviteCode, setInviteCode] = useState<string | null>(null);
@@ -198,6 +223,7 @@ export default function Onboarding() {
   const [pairingPhoneNumber, setPairingPhoneNumber] = useState('');
   const [pairingCopied, setPairingCopied] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [trialAgreed, setTrialAgreed] = useState(false);
 
   const updateStep = (newStep: 1 | 2 | 3 | 4 | 5) => {
     setStep(newStep);
@@ -236,6 +262,8 @@ export default function Onboarding() {
           if (parsed.phone) setPhone(parsed.phone);
           if (parsed.selectedType) setSelectedType(parsed.selectedType);
           if (parsed.locationName) setLocationName(parsed.locationName);
+          if (parsed.locationAddress) setLocationAddress(parsed.locationAddress);
+          if (parsed.timezone) setTimezone(parsed.timezone);
           if (parsed.enableWaitlist !== undefined) setEnableWaitlist(parsed.enableWaitlist);
         } catch (e) { }
       }
@@ -258,9 +286,9 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('onboarding_form_data', JSON.stringify({ fullName, companyName, phone, selectedType, locationName, enableWaitlist }));
+      localStorage.setItem('onboarding_form_data', JSON.stringify({ fullName, companyName, phone, selectedType, locationName, locationAddress, timezone, enableWaitlist }));
     }
-  }, [fullName, companyName, phone, selectedType, locationName, enableWaitlist]);
+  }, [fullName, companyName, phone, selectedType, locationName, locationAddress, timezone, enableWaitlist]);
 
   const savePersonalInfoMutation = useMutation({
     mutationFn: () => {
@@ -273,6 +301,7 @@ export default function Onboarding() {
           fullName,
           phone: formattedPhone,
           companyName: inviteCode ? (inviteInfo?.workspaceName || 'Team Workspace') : companyName,
+          timezone,
           ...(subdomainStr ? { subdomain: subdomainStr } : {})
         }),
       });
@@ -316,7 +345,7 @@ export default function Onboarding() {
       // 1. Create Location
       const location = await fetchApi('/location', {
         method: 'POST',
-        body: JSON.stringify({ name: locationName }),
+        body: JSON.stringify({ name: locationName, address: locationAddress }),
       });
       // 2. Create Services and Queues under that location
       const servicesToCreate = template.services.filter(s => selectedServices.includes(s.name));
@@ -524,12 +553,17 @@ const totalSteps = inviteCode ? 2 : 4;
                   <label className="font-body-md font-medium text-on-surface dark:text-white block">Phone Number</label>
                   <div className="flex h-[56px] rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 overflow-hidden focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-shadow">
                     <select
-                      value={countryCode}
-                      onChange={(e) => setCountryCode(e.target.value)}
+                      value={selectedCountryIso}
+                      onChange={(e) => {
+                        const iso = e.target.value;
+                        setSelectedCountryIso(iso);
+                        const c = COUNTRY_CODES.find(x => x.country === iso);
+                        if (c) setCountryCode(c.code);
+                      }}
                       className="bg-surface-container-lowest dark:bg-black/20 text-on-surface dark:text-white font-medium px-4 border-r border-border dark:border-dark-border focus:outline-none cursor-pointer text-sm"
                     >
-                      {COUNTRY_CODES.map((c) => (
-                        <option key={c.code} value={c.code}>
+                      {COUNTRY_CODES.map((c, i) => (
+                        <option key={`${c.country}-${c.code}-${i}`} value={c.country}>
                           {c.label}
                         </option>
                       ))}
@@ -542,6 +576,19 @@ const totalSteps = inviteCode ? 2 : 4;
                       placeholder="71 234 5678"
                     />
                   </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="font-body-md font-medium text-on-surface dark:text-white block">Timezone</label>
+                  <select
+                    value={timezone}
+                    onChange={(e) => setTimezone(e.target.value)}
+                    className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white"
+                  >
+                    {Intl.supportedValuesOf('timeZone').map((tz) => (
+                      <option key={tz} value={tz}>{tz}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -619,15 +666,27 @@ const totalSteps = inviteCode ? 2 : 4;
               </div>
               
               <div className="space-y-6 pt-6 border-t border-border dark:border-dark-border">
-                <div className="space-y-2">
-                  <label className="font-body-md font-medium text-on-surface dark:text-white block">Primary Location Name</label>
-                  <input
-                    type="text"
-                    value={locationName}
-                    onChange={(e) => setLocationName(e.target.value)}
-                    className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant"
-                    placeholder="e.g. Downtown Clinic or Main Branch"
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="font-body-md font-medium text-on-surface dark:text-white block">Your Primary Location Name</label>
+                    <input
+                      type="text"
+                      value={locationName}
+                      onChange={(e) => setLocationName(e.target.value)}
+                      className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white"
+                      placeholder="e.g., Downtown Clinic, Main Branch"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="font-body-md font-medium text-on-surface dark:text-white block">Location Address (Optional)</label>
+                    <input
+                      type="text"
+                      value={locationAddress}
+                      onChange={(e) => setLocationAddress(e.target.value)}
+                      className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant"
+                      placeholder="e.g., 123 Main St, Cityville"
+                    />
+                  </div>
                 </div>
                 
                 <label className="flex items-center gap-4 p-4 rounded-xl border border-border dark:border-dark-border bg-surface-bright dark:bg-zinc-900 cursor-pointer">

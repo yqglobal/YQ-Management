@@ -75,8 +75,11 @@ async function fetchWithRetry(
   } catch (error) {
     if (
       attempt < MAX_RETRIES &&
-      error instanceof DOMException &&
-      error.name === 'AbortError'
+      (
+        (error instanceof DOMException && error.name === 'AbortError') ||
+        error.message === 'Failed to fetch' ||
+        error.name === 'TypeError'
+      )
     ) {
       await new Promise((resolve) =>
         setTimeout(resolve, RETRY_DELAY_MS * Math.pow(2, attempt)),

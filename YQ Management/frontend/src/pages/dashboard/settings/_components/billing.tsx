@@ -5,6 +5,7 @@ import { fetchApi } from '../../../../lib/api';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { usePlan } from '../../../../hooks/usePlan';
 
 interface OzowPaymentData {
   paymentUrl?: string;
@@ -109,7 +110,15 @@ export default function BillingSettings() {
     return null;
   }, [paymentStatus]);
 
+  const { usage } = usePlan();
+
   const handleUpgradeClick = (plan: any) => {
+    if (currentSub?.plan?.price > plan.price) {
+      if (plan.limits?.maxQueues && usage.queues > plan.limits.maxQueues) {
+        toast.error(`Cannot downgrade: You have ${usage.queues} queues but the ${plan.name} plan only allows ${plan.limits.maxQueues}. Please delete some queues first.`);
+        return;
+      }
+    }
     setCheckoutPlan(plan);
   };
 
@@ -145,7 +154,10 @@ export default function BillingSettings() {
 
   const handleCancelSubscription = async (immediate: boolean) => {
     try {
-      await api.post('/subscription/cancel', { immediate, reason: 'User requested cancellation from dashboard' });
+      await fetchApi('/billing/subscriptions/cancel', {
+        method: 'POST',
+        body: JSON.stringify({ immediate, reason: 'User requested cancellation from dashboard' }),
+      });
       toast.success(immediate ? 'Trial cancelled successfully.' : 'Plan cancellation requested. You will retain access until the end of the billing period.');
       // Refresh page data
       window.location.reload();

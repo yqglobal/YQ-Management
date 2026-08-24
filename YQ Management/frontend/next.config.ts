@@ -12,6 +12,7 @@ const withPWA = withPWAInit({
 const nextConfig: NextConfig = {
   /* config options */
   reactStrictMode: true,
+  output: 'standalone',
   turbopack: {},
 
   typescript: {
@@ -25,4 +26,4 @@ const nextConfig: NextConfig = {
   }
 };
 
-export default nextConfig;
+export default withPWA(nextConfig);

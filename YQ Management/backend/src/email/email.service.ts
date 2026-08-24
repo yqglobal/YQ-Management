@@ -407,11 +407,49 @@ export class EmailService {
     }
   }
 
-  // --- Phase 1: Compliance & Production Email Placeholders ---
+  private async sendEmail(to: string, subject: string, title: string, preheader: string, content: string) {
+    if (!this.apiKey) {
+      this.logger.warn(`[MOCK EMAIL] To: ${to} | Subject: ${subject}`);
+      return;
+    }
+    try {
+      const htmlContent = createBrandEmailLayout({ 
+        title, 
+        preheader, 
+        content,
+        logoUrl: 'https://yq.com/logo.png',
+      });
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'api-key': this.apiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: this.senderName, email: this.senderEmail },
+          to: [{ email: to }],
+          subject,
+          htmlContent,
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        this.logger.error(`Brevo API error: ${err}`);
+      }
+    } catch (e) {
+      this.logger.error(`Failed to send email to ${to}`, e);
+    }
+  }
 
   async sendWelcomeEmail(email: string, name: string) {
-    this.logger.log(`Placeholder: Sent Welcome email to ${email}`);
-    // TODO: Implement Brevo call with createBrandEmailLayout
+    const subject = 'Welcome to Qmova!';
+    const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Welcome aboard, ${name || 'there'}!</h2>
+    <p style="color: #4b5563; line-height: 1.6;">Your Qmova account has been successfully created. We're thrilled to have you join us.</p>
+    <p style="color: #4b5563; line-height: 1.6;">You can now log in and start configuring your workspace to manage queues and services effortlessly.</p>
+    ${generateButtonHtml('Go to Dashboard', 'https://yq-qmova.vercel.app/dashboard')}`;
+    await this.sendEmail(email, subject, 'Welcome to Qmova', 'Your account is ready!', content);
   }
 
   async sendPolicyUpdateEmail(email: string, policyName: string, version: string) {
@@ -423,14 +461,118 @@ export class EmailService {
   }
 
   async sendSubscriptionActivatedEmail(email: string, planName: string) {
-    this.logger.log(`Placeholder: Sent Subscription Activated email to ${email}`);
+    const subject = 'Subscription Activated';
+    const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Thank You for Your Purchase!</h2>
+    <p style="color: #4b5563; line-height: 1.6;">Your payment was successful and your subscription to the <strong>${planName}</strong> plan is now active.</p>
+    <p style="color: #4b5563; line-height: 1.6;">Enjoy the premium features of Qmova. You can review your billing details in the dashboard settings.</p>
+    ${generateButtonHtml('View Billing', 'https://yq-qmova.vercel.app/dashboard/settings/billing')}`;
+    await this.sendEmail(email, subject, 'Subscription Activated', `Your ${planName} plan is now active`, content);
   }
 
   async sendSubscriptionCancelledEmail(email: string, planName: string) {
-    this.logger.log(`Placeholder: Sent Subscription Cancelled email to ${email}`);
+    const subject = 'Subscription Cancelled';
+    const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Subscription Cancelled</h2>
+    <p style="color: #4b5563; line-height: 1.6;">Your subscription to the <strong>${planName}</strong> plan has been cancelled.</p>
+    <p style="color: #4b5563; line-height: 1.6;">You will continue to have access until the end of your current billing period. If this was a mistake, you can always renew your plan from the billing settings.</p>
+    ${generateButtonHtml('Manage Billing', 'https://yq-qmova.vercel.app/dashboard/settings/billing')}`;
+    await this.sendEmail(email, subject, 'Subscription Cancelled', `Your ${planName} plan has been cancelled`, content);
+  }
+  
+  async sendPlanExpiringEmail(email: string, planName: string, daysRemaining: number) {
+    const subject = 'Action Required: Plan Renewing Soon';
+    const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Plan Renewal Reminder</h2>
+    <p style="color: #4b5563; line-height: 1.6;">Your subscription to the <strong>${planName}</strong> plan is renewing in <strong>${daysRemaining}</strong> days.</p>
+    <p style="color: #4b5563; line-height: 1.6;">Please ensure your payment method is up to date to avoid any service interruptions.</p>
+    ${generateButtonHtml('Manage Billing', 'https://yq-qmova.vercel.app/dashboard/settings/billing')}`;
+    await this.sendEmail(email, subject, 'Plan Renewing Soon', `Your ${planName} plan renews in ${daysRemaining} days`, content);
+  }
+  
+  async sendPlanExpiredEmail(email: string, planName: string) {
+    const subject = 'Subscription Expired';
+    const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Subscription Expired</h2>
+    <p style="color: #4b5563; line-height: 1.6;">Your subscription to the <strong>${planName}</strong> plan has officially expired.</p>
+    <p style="color: #4b5563; line-height: 1.6;">To regain access to premium features, please renew your plan through your billing dashboard.</p>
+    ${generateButtonHtml('Renew Plan', 'https://yq-qmova.vercel.app/dashboard/settings/billing')}`;
+    await this.sendEmail(email, subject, 'Subscription Expired', `Your ${planName} plan has expired`, content);
   }
 
   async sendDemoRequestReceivedEmail(email: string) {
     this.logger.log(`Placeholder: Sent Demo Request Received email to ${email}`);
+  }
+
+  async sendTrialStartedEmail(email: string, planName: string, trialDays: number) {
+    const subject = 'Your Qmova Trial Has Started';
+    const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Welcome to Qmova!</h2>
+    <p style="color: #4b5563; line-height: 1.6;">Your ${trialDays}-day free trial for the <strong>${planName}</strong> plan has officially started.</p>
+    <p style="color: #4b5563; line-height: 1.6;">We are excited for you to explore all the premium features. If you have any questions, our support team is here to help.</p>
+    ${generateButtonHtml('Go to Dashboard', 'https://yq-qmova.vercel.app/dashboard')}`;
+    await this.sendEmail(email, subject, 'Trial Started', `Enjoy your ${trialDays}-day free trial of Qmova.`, content);
+  }
+
+  async sendTrialExpiringEmail(email: string, daysLeft: number) {
+    const subject = 'Your Qmova Trial is Expiring Soon';
+    const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Trial Expiring Soon</h2>
+    <p style="color: #4b5563; line-height: 1.6;">Your free trial is coming to an end in <strong>${daysLeft} days</strong>.</p>
+    <p style="color: #4b5563; line-height: 1.6;">To continue using Qmova without interruption, please add a payment method to your billing settings.</p>
+    ${generateButtonHtml('Update Billing', 'https://yq-qmova.vercel.app/dashboard/settings/billing')}`;
+    await this.sendEmail(email, subject, 'Trial Expiring Soon', `You have ${daysLeft} days left on your free trial.`, content);
+  }
+  async sendMarketingEmail(toEmails: string[], subject: string, customHtml: string) {
+    try {
+      if (!this.apiKey) {
+        this.logger.warn(`[MOCK EMAIL] Marketing Email to ${toEmails.length} recipients. Subject: ${subject}`);
+        return { success: true, mocked: true };
+      }
+
+      // We chunk the emails in case there are thousands, Brevo supports multiple `to` or `bcc`
+      // For proper marketing without seeing each other's emails, we should send to `bcc` or use batch sending.
+      // A simple way is to use `bcc` for up to 99 recipients per call.
+      const batchSize = 90;
+      let sentCount = 0;
+
+      for (let i = 0; i < toEmails.length; i += batchSize) {
+        const batch = toEmails.slice(i, i + batchSize);
+        
+        // Wrap the custom HTML in our brand layout for consistency, or just send raw
+        const htmlContent = createBrandEmailLayout({
+          title: subject,
+          preheader: 'Qmova Update',
+          content: customHtml,
+        });
+
+        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            accept: 'application/json',
+            'api-key': this.apiKey,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            sender: {
+              name: this.senderName,
+              email: this.senderEmail,
+            },
+            to: [{ email: this.senderEmail, name: "Qmova Subscribers" }],
+            bcc: batch.map(e => ({ email: e })),
+            subject: subject,
+            htmlContent,
+          }),
+          signal: AbortSignal.timeout(15000),
+        });
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          this.logger.error(`Brevo API error in sendMarketingEmail batch: ${errorText}`);
+          continue; // keep trying other batches
+        }
+        sentCount += batch.length;
+      }
+
+      this.logger.log(`Sent marketing email to ${sentCount} recipients`);
+      return { success: true, count: sentCount };
+    } catch (error: any) {
+      this.logger.error(`Failed to send marketing email`, error);
+      return { success: false, error: error?.message };
+    }
   }
 }

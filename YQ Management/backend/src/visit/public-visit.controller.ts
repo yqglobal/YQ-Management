@@ -12,6 +12,12 @@ export class PublicVisitController {
     return this.visitService.findMultiplePublic(tokenArray);
   }
 
+  @Get('by-phone')
+  async statusByPhone(@Query('phone') phone: string) {
+    if (!phone) return [];
+    return this.visitService.findByPhonePublic(phone);
+  }
+
   @Get(':accessToken')
   async getPublicVisit(@Param('accessToken') accessToken: string) {
     // In a real scenario, this would only return non-sensitive data

@@ -64,7 +64,7 @@ export class AuthService {
     }
   }
 
-  async verifyOTP(email: string, otp: string) {
+  async verifyOTP(email: string, otp: string, intent: 'login' | 'signup' | 'reset' = 'login') {
     const user = await this.usersService.findOneByEmail(email);
     if (
       !user ||
@@ -84,17 +84,27 @@ export class AuthService {
       },
     });
 
-    // Fire and forget login notification
-    this.emailService
-      .sendLoginNotification(email)
-      .catch((err) =>
-        this.logger.error(`Failed to send login notification to ${email}`, err),
-      );
+    if (intent === 'signup') {
+      const personalSettings = user.personalSettings as Record<string, any> || {};
+      const fullName = personalSettings.fullName || '';
+      this.emailService
+        .sendWelcomeEmail(email, fullName)
+        .catch((err) =>
+          this.logger.error(`Failed to send welcome email to ${email}`, err),
+        );
+    } else if (intent === 'login') {
+      // Fire and forget login notification
+      this.emailService
+        .sendLoginNotification(email)
+        .catch((err) =>
+          this.logger.error(`Failed to send login notification to ${email}`, err),
+        );
+    }
 
     return user;
   }
 
-  async validateOAuthLogin(email: string, googleId: string, fullName?: string, intent: string = 'login') {
+  async validateOAuthLogin(email: string, googleId: string, fullName?: string, intent: string = 'login', accessToken?: string, refreshToken?: string) {
     try {
       let user = await this.usersService.findOneByEmail(email);
       let isNewUser = false;
@@ -158,6 +168,17 @@ export class AuthService {
         });
 
         isNewUser = true;
+      }
+
+      // If tokens are provided and user is TENANT_ADMIN, update the tenant
+      if (user && user.role === 'TENANT_ADMIN' && (accessToken || refreshToken)) {
+        await this.usersService['prisma'].tenant.update({
+          where: { id: user.tenantId },
+          data: {
+            ...(accessToken ? { googleAccessToken: accessToken } : {}),
+            ...(refreshToken ? { googleRefreshToken: refreshToken } : {}),
+          },
+        });
       }
 
       return { ...user, isNewUser };

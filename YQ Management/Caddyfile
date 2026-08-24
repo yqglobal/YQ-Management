@@ -1,0 +1,10 @@
+# Caddyfile for automatic HTTPS and routing
+
+{$DOMAIN_APP} {
+    reverse_proxy frontend:3000
+}
+
+{$DOMAIN_API} {
+    # WebSocket support is automatic in Caddy v2
+    reverse_proxy backend:3000
+}

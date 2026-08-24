@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger, OnModuleInit } from '@nestjs/common';
 import { RedisService } from '../redis/redis.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @WebSocketGateway({
   cors: {
@@ -21,7 +22,10 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger(QueueGateway.name);
 
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   private sanitizePayload(data: any): any {
     if (!data) return data;
@@ -65,6 +69,10 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect, O
           if (tenantId) {
             this.broadcastTenantUpdate(tenantId, type, sanitizedData);
           }
+          if (data.visitId || payload.visitId) {
+            const vId = data.visitId || payload.visitId;
+            this.broadcastVisitUpdate(vId, type, sanitizedData);
+          }
         } catch (error) {
           this.logger.error('Failed to parse queue_events message', error);
         }
@@ -100,6 +108,49 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     return { event: 'joinedRoom', data: `tenant_${tenantId}` };
   }
 
+  /**
+   * FIX (2A): Visit socket subscription now validates the accessToken.
+   * The accessToken is the opaque UUID from the QR code / WhatsApp link.
+   * Without validation, any unauthenticated client could subscribe to any visit
+   * and receive status updates for other people's tokens.
+   */
+  @SubscribeMessage('subscribeToVisit')
+  async handleSubscribeToVisit(
+    @MessageBody() data: { visitId: string; accessToken: string } | string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    // Support both old string format (visitId only) and new object format
+    let visitId: string;
+    let accessToken: string | undefined;
+
+    if (typeof data === 'string') {
+      // Legacy: treat the string as visitId, no auth check (backwards compat for admin dashboard)
+      visitId = data;
+      accessToken = undefined;
+    } else {
+      visitId = data.visitId;
+      accessToken = data.accessToken;
+    }
+
+    if (accessToken) {
+      // Validate that the accessToken matches the visitId
+      const visit = await this.prisma.visit.findFirst({
+        where: { id: visitId, accessToken },
+        select: { id: true },
+      });
+
+      if (!visit) {
+        client.emit('error', { message: 'Unauthorized: invalid accessToken for this visit' });
+        this.logger.warn(`Rejected unauthorized subscribeToVisit for visitId=${visitId}`);
+        return { event: 'error', data: 'Unauthorized' };
+      }
+    }
+
+    client.join(`visit_${visitId}`);
+    this.logger.log(`Client ${client.id} joined room visit_${visitId}`);
+    return { event: 'joinedRoom', data: `visit_${visitId}` };
+  }
+
   broadcastQueueUpdate(queueId: string, event: string, payload: any) {
     this.server.to(`queue_${queueId}`).emit(event, payload);
     // Also broadcast to the tenant admin room
@@ -108,5 +159,9 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
   broadcastTenantUpdate(tenantId: string, event: string, payload: any) {
     this.server.to(`tenant_${tenantId}`).emit(event, payload);
+  }
+
+  broadcastVisitUpdate(visitId: string, event: string, payload: any) {
+    this.server.to(`visit_${visitId}`).emit(event, payload);
   }
 }

@@ -71,33 +71,30 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [defaultCountry, setDefaultCountry] = useState<any>('US');
-
-  useEffect(() => {
-    fetch('https://ipapi.co/json/')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.country_code) {
-          setDefaultCountry(data.country_code);
-        }
-      })
-      .catch(() => {
-        // Fallback or ignore error
-      });
-  }, []);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-  
   const [regionBlocked, setRegionBlocked] = useState(false);
 
   useEffect(() => {
-    const detected = ipCountry || detectCountryByTimezone();
-    setDefaultCountry(detected);
-    
-    // Check operating countries
-    if (tenant?.operatingCountries && tenant.operatingCountries.length > 0) {
-      if (!tenant.operatingCountries.includes(detected)) {
-        setRegionBlocked(true);
-      }
-    }
+    import('../../../../lib/country-codes').then(({ detectCountryCode }) => {
+      detectCountryCode().then((country) => {
+        if (country) {
+          const detected = ipCountry || country.country;
+          setDefaultCountry(detected);
+          
+          // Check operating countries
+          if (tenant?.operatingCountries && tenant.operatingCountries.length > 0) {
+            if (!tenant.operatingCountries.includes(detected)) {
+              setRegionBlocked(true);
+            }
+          }
+        }
+      });
+    });
+  }, [ipCountry, tenant]);
+
+  // Auto-select location/service/queue based on URL query params
+  useEffect(() => {
+    if (!tenant || !router.isReady) return;
 
     const { locationId, serviceId, queueId } = router.query;
     
@@ -114,7 +111,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
 
     // Auto-select service & queue
     if (serviceId && typeof serviceId === 'string') {
-      const s = services.find(x => x.id === serviceId);
+      const s = services.find((x: any) => x.id === serviceId);
       if (s) {
         if (s.locationId) setSelectedLocationId(s.locationId);
         setSelectedServiceIds([serviceId]);
@@ -134,7 +131,8 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         setStep(3); // Jump straight to service details
       }
     }
-  }, [tenant, router.query]);
+  }, [tenant, router.query, router.isReady]);
+
   
   // State for the per-service dynamic flow
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
@@ -210,7 +208,6 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
 
   const handleNextStep1 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return setErrorMsg('Please enter your name.');
     if (selectedServiceIds.length === 0) return setErrorMsg('Please select at least one service.');
     
     setErrorMsg('');
@@ -275,11 +272,11 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
       }
     }
     
-    // Proceed to next service or OTP
+    // Proceed to next service or Contact Details
     if (currentServiceIndex < selectedServiceIds.length - 1) {
       setCurrentServiceIndex(idx => idx + 1);
     } else {
-      setStep(4); // Show confirmation
+      setStep(3.5); // Show Contact Details
     }
   };
 
@@ -353,17 +350,28 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
       }
       const data = await res.json();
       const accessTokens = data.map((d: any) => d.accessToken).filter(Boolean).join(',');
-      let targetUrl = `/booking/status?tokens=${accessTokens}`;
+      
+      let queryObj: any = { subdomain: router.query.subdomain };
+      let queryStr = '';
+      if (phone) {
+        queryObj.phone = phone;
+        queryStr = `?phone=${encodeURIComponent(phone)}`;
+      } else {
+        queryObj.tokens = accessTokens;
+        queryStr = `?tokens=${accessTokens}`;
+      }
+
+      let targetUrl = `/booking/status${queryStr}`;
       if (window.location.pathname.startsWith('/t/')) {
         const parts = window.location.pathname.split('/');
         if (parts.length >= 3) {
-          targetUrl = `/t/${parts[2]}/booking/status?tokens=${accessTokens}`;
+          targetUrl = `/t/${parts[2]}/booking/status${queryStr}`;
         }
       }
       router.push(
         {
           pathname: '/_tenant/[subdomain]/booking/status',
-          query: { subdomain: router.query.subdomain, tokens: accessTokens },
+          query: queryObj,
         },
         targetUrl
       );
@@ -521,29 +529,12 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                 </div>
               ) : (
                 <form onSubmit={handleNextStep1} className="space-y-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wider">Your Name <span className="text-red-500">*</span></label>
-                      <input 
-                        type="text" value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" required
-                        className="w-full p-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 transition-shadow focus:border-transparent"
-                        style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">WhatsApp Number</label>
-                      <PhoneInput international defaultCountry={defaultCountry} value={phone} onChange={(v: any) => setPhone(v)} className="PhoneInput" />
-                      <p className="text-xs text-gray-500 mt-2">Optional. Enter a valid WhatsApp number for live updates.</p>
-                    </div>
-                  </div>
-
                   <div className="space-y-3">
                     <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wider">Select Services <span className="text-red-500">*</span></label>
-                    {services.filter(s => !s.locationId || s.locationId === selectedLocationId).length === 0 ? (
+                    {services.filter(s => !tenant?.locations?.length || s.locationId === selectedLocationId).length === 0 ? (
                       <p className="text-sm text-gray-500">No services available at this location.</p>
                     ) : (
-                      services.filter(s => !s.locationId || s.locationId === selectedLocationId).map(service => (
+                      services.filter(s => !tenant?.locations?.length || s.locationId === selectedLocationId).map(service => (
                         <label key={service.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedServiceIds.includes(service.id) ? 'border-transparent shadow-md' : 'border-gray-200 dark:border-zinc-800'}`} style={selectedServiceIds.includes(service.id) ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}>
                           <input 
                             type="checkbox" checked={selectedServiceIds.includes(service.id)} onChange={() => toggleService(service.id)}
@@ -632,11 +623,23 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                         <input type="date" value={currentDetails.selectedDate} onChange={e => updateCurrentDetails({ selectedDate: e.target.value })} min={new Date().toISOString().split('T')[0]} className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent" style={{ '--tw-ring-color': primaryColor } as React.CSSProperties} />
                         {currentDetails.selectedDate && (
                           <div className="grid grid-cols-3 gap-2 mt-2 max-h-48 overflow-y-auto pr-1">
-                            {loadingSlots[currentServiceId] ? <p className="col-span-3 text-sm text-center text-gray-500">Loading...</p> : availableSlots[currentServiceId]?.length === 0 ? <p className="col-span-3 text-sm text-center text-red-500">No slots available.</p> : availableSlots[currentServiceId]?.map(slot => (
-                              <button key={slot} type="button" onClick={() => updateCurrentDetails({ selectedSlot: slot })} className={`p-2 rounded-lg text-sm font-bold transition-colors ${currentDetails.selectedSlot === slot ? 'text-white shadow-md' : 'bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800'}`} style={currentDetails.selectedSlot === slot ? { backgroundColor: primaryColor } : {}}>
-                                {new Date(slot).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </button>
-                            ))}
+                            {loadingSlots[currentServiceId] ? <p className="col-span-3 text-sm text-center text-gray-500">Loading...</p> : availableSlots[currentServiceId]?.length === 0 ? <p className="col-span-3 text-sm text-center text-red-500">No slots available.</p> : availableSlots[currentServiceId]?.map((slotData: any) => {
+                              const slotTime = typeof slotData === 'string' ? slotData : slotData.time;
+                              const isAvailable = typeof slotData === 'string' ? true : slotData.available;
+                              const isSelected = currentDetails.selectedSlot === slotTime;
+                              
+                              return (
+                                <button 
+                                  key={slotTime} 
+                                  type="button" 
+                                  disabled={!isAvailable}
+                                  onClick={() => isAvailable && updateCurrentDetails({ selectedSlot: slotTime })} 
+                                  className={`p-2 rounded-lg text-sm font-bold transition-colors ${!isAvailable ? 'bg-gray-100 dark:bg-zinc-800/50 text-gray-400 dark:text-zinc-600 cursor-not-allowed border border-gray-200 dark:border-zinc-800/50' : isSelected ? 'text-white shadow-md border-transparent' : 'bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-gray-300'}`} 
+                                  style={isSelected && isAvailable ? { backgroundColor: primaryColor } : {}}>
+                                  {new Date(slotTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </button>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -649,6 +652,46 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                 <button type="submit" className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95" style={{ backgroundColor: primaryColor }}>
                   {currentServiceIndex < selectedServiceIds.length - 1 ? 'Next Service' : 'Complete Booking'}
                 </button>
+              </form>
+            </motion.div>
+          )}
+
+          {/* STEP 3.5: Contact Details */}
+          {step === 3.5 && (
+            <motion.div key="step35" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6 flex-1">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-extrabold tracking-tight mb-2">Your Details</h2>
+                <p className="text-gray-500 dark:text-gray-400">Who is this booking for?</p>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); if(!name.trim()) setErrorMsg('Please enter your name.'); else { setErrorMsg(''); setStep(4); } }} className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wider">Your Name <span className="text-red-500">*</span></label>
+                    <input 
+                      type="text" value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" required
+                      className="w-full p-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 transition-shadow focus:border-transparent"
+                      style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">WhatsApp Number <span className="text-red-500">*</span></label>
+                    <PhoneInput international defaultCountry={defaultCountry} value={phone} onChange={(v: any) => setPhone(v)} className="PhoneInput" />
+                    <p className="text-xs text-gray-500 mt-2">Required for your tickets and live updates.</p>
+                  </div>
+                </div>
+
+                {errorMsg && <p className="text-red-500 text-sm font-medium text-center bg-red-50 dark:bg-red-950/30 p-3 rounded-lg">{errorMsg}</p>}
+
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setStep(3)} className="px-6 py-4 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
+                    Back
+                  </button>
+                  <button type="submit" disabled={!name || !phone} className="flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50" style={{ backgroundColor: primaryColor }}>
+                    Review Booking
+                  </button>
+                </div>
               </form>
             </motion.div>
           )}

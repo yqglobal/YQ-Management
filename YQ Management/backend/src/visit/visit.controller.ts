@@ -70,6 +70,11 @@ export class VisitController {
 
   @Post(':id/complete')
   completeService(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.visitService.completeService(id, req.user.tenantId);
+    return this.visitService.completeService(id, req.user.tenantId, req.user.userId);
+  }
+
+  @Post(':id/cancel')
+  cancelVisit(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.visitService.cancelVisit(id, req.user.tenantId, req.user.userId);
   }
 }

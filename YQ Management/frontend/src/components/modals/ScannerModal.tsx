@@ -62,8 +62,11 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
       if (saved) {
         setDefaultCountry(saved);
       } else {
-        const detected = detectCountryByTimezone();
-        setDefaultCountry(detected || 'US');
+        import('../../lib/country-codes').then(({ detectCountryCode }) => {
+          detectCountryCode().then(country => {
+             if (country) setDefaultCountry(country.country);
+          });
+        });
       }
     }
   }, []);

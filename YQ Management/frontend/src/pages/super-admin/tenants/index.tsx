@@ -153,7 +153,19 @@ export default function SuperAdminTenants() {
                   </tr>
                 ) : filteredAndSortedTenants.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 dark:text-zinc-500">No businesses match the current filter and search criteria.</td>
+                    <td colSpan={7} className="px-6 py-20 text-center">
+                      <div className="flex flex-col items-center justify-center space-y-4">
+                        <div className="w-16 h-16 bg-gray-50 dark:bg-zinc-900 rounded-full flex items-center justify-center">
+                          <Building2 className="w-8 h-8 text-gray-400 dark:text-zinc-500" />
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No businesses found</h3>
+                          <p className="text-sm text-gray-500 dark:text-zinc-400 max-w-sm mx-auto">
+                            We couldn't find any businesses matching your search or filter criteria. Try adjusting your filters.
+                          </p>
+                        </div>
+                      </div>
+                    </td>
                   </tr>
                 ) : (
                   filteredAndSortedTenants.map((tenant: any) => {
@@ -226,10 +238,11 @@ export default function SuperAdminTenants() {
                                 </button>
                                 <hr className="my-1 border-gray-100 dark:border-white/5" />
                                 <button
-                                  className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 w-full text-left"
+                                  className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 w-full text-left disabled:opacity-50"
+                                  disabled={deleteTenantMutation.isPending}
                                   onClick={() => { handleDelete(tenant.id); setShowActions(null); }}
                                 >
-                                  <Trash2 className="w-4 h-4" /> Remove
+                                  <Trash2 className="w-4 h-4" /> {deleteTenantMutation.isPending ? 'Removing...' : 'Remove Business'}
                                 </button>
                               </div>
                             )}

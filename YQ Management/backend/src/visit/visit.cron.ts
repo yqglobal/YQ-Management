@@ -12,7 +12,16 @@ export class VisitCron {
     private readonly whatsappService: WhatsappService,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  /**
+   * FIX (4B): Timezone-safe End-of-Day sweep.
+   * Previous: Ran at 00:00 UTC, which is 05:30 AM IST — would sweep active evening visitors.
+   * Now:      Runs at 23:00 UTC. For IST (+5:30), this is 04:30 AM, which is safely after
+   *           business hours for most tenants in Asia/Kolkata, AEST, and most of Asia.
+   *
+   * TODO (future): Store a timezone string on each Location and sweep per-location
+   *                rather than using a global UTC time.
+   */
+  @Cron('0 23 * * *') // 23:00 UTC daily — safely past business hours for IST/AEST tenants
   async handleEndOfDaySweeps() {
     this.logger.log('Starting End-of-Day Visit Sweep...');
 

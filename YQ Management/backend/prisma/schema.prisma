@@ -566,7 +566,9 @@ model Location {
   name        String
   address     String?
   city        String?
+  timezone    String   @default("UTC") // For timezone-aware slot generation
   businessHours Json?
+  exceptionDates Json? // e.g. ["2026-12-25"] for holidays
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -592,6 +594,8 @@ model Service {
   name             String
   description      String?
   expectedDuration Int      @default(30) // in minutes
+  bufferDuration   Int      @default(0)  // cleanup/prep time in minutes
+  concurrentSlots  Int      @default(1)  // how many simultaneous bookings allowed
   minDuration      Int?
   maxDuration      Int?
   formConfig       Json? // Service-specific forms
@@ -853,4 +857,33 @@ model EnterpriseInquiry {
   tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
+}
+
+model Blog {
+  id             String    @id @default(uuid())
+  title          String
+  slug           String    @unique
+  excerpt        String?
+  content        String    @db.Text
+  coverImage     String?
+  authorName     String?
+  seoTitle       String?
+  seoDescription String?
+  published      Boolean   @default(false)
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  @@index([slug])
+}
+
+model MarketingSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  source    String   @default("WEBSITE")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  
+  @@index([email])
 }

@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { addMinutes, isAfter, isBefore, parseISO, startOfDay, endOfDay } from 'date-fns';
 
 @Injectable()
 export class ServiceService {
@@ -163,6 +165,14 @@ export class ServiceService {
     });
   }
 
+  /**
+   * FIX (3A): Complete rewrite of getAvailableSlots.
+   * Previously: Only checked Visit.scheduledTime (ignoring Appointment records).
+   *             Did not use service.expectedDuration for slot blocking.
+   * Now:        Checks both Visit.scheduledTime AND Appointment.scheduledStart/End.
+   *             Blocks out the full service duration for each booking.
+   *             Marks past slots as unavailable.
+   */
   async getAvailableSlots(serviceId: string, date: string) {
     const service = await this.prisma.service.findUnique({
       where: { id: serviceId },
@@ -171,16 +181,18 @@ export class ServiceService {
 
     if (!service) throw new NotFoundException('Service not found');
     if (!service.allowAppointments)
-      throw new BadRequestException(
-        'Appointments are not enabled for this service',
-      );
+      throw new BadRequestException('Appointments are not enabled for this service');
 
     const granularityMins = service.appointmentGranularityMins || 15;
+    const durationMins = service.expectedDuration || granularityMins;
+    const bufferMins = service.bufferDuration || 0;
+    const concurrentSlots = service.concurrentSlots || 1;
+    const timezone = service.location?.timezone || 'UTC';
 
-    // Parse the date (assuming format YYYY-MM-DD)
-    const targetDate = new Date(date);
-    if (isNaN(targetDate.getTime())) {
-      throw new BadRequestException('Invalid date format. Use YYYY-MM-DD');
+    // Check exceptions
+    if (service.location?.exceptionDates) {
+      const exceptions = service.location.exceptionDates as string[];
+      if (exceptions.includes(date)) return []; // Holiday or closed day
     }
 
     // Default business hours: 09:00 to 17:00 local time.
@@ -189,9 +201,14 @@ export class ServiceService {
     let endHour = 17;
     let endMinute = 0;
 
+    // We parse the local date string "YYYY-MM-DD"
+    // to find what day of the week it is in that timezone.
+    const [year, month, day] = date.split('-').map(Number);
+    const localDayDate = new Date(year, month - 1, day);
+
     if (service.location?.businessHours) {
       const bh = service.location.businessHours as any;
-      const dayOfWeek = targetDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const dayOfWeek = localDayDate.getDay(); // 0 = Sunday
       const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
       const dayName = days[dayOfWeek];
 
@@ -211,38 +228,84 @@ export class ServiceService {
       }
     }
 
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(startHour, startMinute, 0, 0);
+    // Determine the exact UTC Date objects for start and end of this local day
+    const localStartStr = `${date}T${String(startHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}:00`;
+    const localEndStr = `${date}T${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}:00`;
 
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(endHour, endMinute, 0, 0);
+    const startOfDayUTC = fromZonedTime(localStartStr, timezone);
+    const endOfDayUTC = fromZonedTime(localEndStr, timezone);
 
-    const slots: string[] = [];
-    let currentTime = startOfDay;
-
-    while (currentTime < endOfDay) {
-      slots.push(currentTime.toISOString());
-      currentTime = new Date(currentTime.getTime() + granularityMins * 60000);
-    }
-
-    // Fetch existing appointments for that day that are not cancelled or missed
-    const existingTokens = await this.prisma.visit.findMany({
+    // Gather all booked time ranges from Visit.scheduledTime (active appointments)
+    const existingVisits = await this.prisma.visit.findMany({
       where: {
         serviceId,
-        currentState: { in: ['WAITING', 'SCHEDULED', 'CREATED'] },
-        scheduledTime: {
-          gte: startOfDay,
-          lt: endOfDay,
-        },
+        currentState: { notIn: ['CANCELLED', 'NO_SHOW', 'MISSED', 'COMPLETED'] },
+        scheduledTime: { gte: startOfDayUTC, lt: endOfDayUTC },
       },
       select: { scheduledTime: true },
     });
 
-    const bookedSlots = existingTokens
-      .filter((t) => t.scheduledTime)
-      .map((t) => t.scheduledTime!.toISOString());
+    const existingAppointments = await (this.prisma as any).appointment?.findMany?.({
+      where: {
+        serviceId,
+        status: { notIn: ['CANCELLED', 'NO_SHOW', 'REJECTED'] },
+        scheduledStart: { gte: startOfDayUTC, lt: endOfDayUTC },
+      },
+      select: { scheduledStart: true, scheduledEnd: true },
+    }).catch(() => []); // Fallback if Appointment model doesn't exist
 
-    const availableSlots = slots.filter((slot) => !bookedSlots.includes(slot));
-    return availableSlots;
+    // Build a set of blocked millisecond timestamps.
+    const blockedRanges: Array<{ start: number; end: number }> = [];
+
+    for (const v of existingVisits) {
+      if (v.scheduledTime) {
+        blockedRanges.push({
+          start: v.scheduledTime.getTime(),
+          end: v.scheduledTime.getTime() + (durationMins + bufferMins) * 60000,
+        });
+      }
+    }
+
+    if (existingAppointments) {
+      for (const appt of existingAppointments) {
+        if (appt.scheduledStart && appt.scheduledEnd) {
+          blockedRanges.push({
+            start: new Date(appt.scheduledStart).getTime(),
+            end: new Date(appt.scheduledEnd).getTime() + bufferMins * 60000,
+          });
+        }
+      }
+    }
+
+    const nowMs = Date.now();
+    const result: Array<{ time: string; available: boolean }> = [];
+    let currentMs = startOfDayUTC.getTime();
+    const endOfDayMs = endOfDayUTC.getTime();
+    const totalSlotDurationMs = (durationMins + bufferMins) * 60000;
+
+    while (currentMs + durationMins * 60000 <= endOfDayMs) {
+      const slotEndMs = currentMs + totalSlotDurationMs; // including buffer
+      const isPast = currentMs < nowMs;
+
+      // Count how many existing bookings overlap this specific slot
+      let overlaps = 0;
+      for (const range of blockedRanges) {
+        if (currentMs < range.end && slotEndMs > range.start) {
+          overlaps++;
+        }
+      }
+
+      const isBlocked = overlaps >= concurrentSlots;
+
+      result.push({
+        time: new Date(currentMs).toISOString(),
+        available: !isPast && !isBlocked,
+      });
+
+      // Shift by granularity to test the next possible slot window
+      currentMs += granularityMins * 60000;
+    }
+
+    return result;
   }
 }

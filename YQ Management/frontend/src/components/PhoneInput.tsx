@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { countryCodes, getCountryByCode, getCountryByAbbr, detectCountryByTimezone } from '../lib/country-codes';
+import { countryCodes, getCountryByCode, getCountryByAbbr, detectCountryByTimezone, detectCountryCode } from '../lib/country-codes';
 
 interface PhoneInputProps {
   value: string;
@@ -10,6 +10,7 @@ interface PhoneInputProps {
   placeholder?: string;
   required?: boolean;
   className?: string;
+  autoDetect?: boolean;
 }
 
 export default function PhoneInput({
@@ -20,18 +21,21 @@ export default function PhoneInput({
   placeholder = '+1 234 567 8900',
   required = false,
   className = '',
+  autoDetect = false,
 }: PhoneInputProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const selectedCountry = getCountryByCode(countryCode) || countryCodes[0];
 
   useEffect(() => {
-    const detected = detectCountryByTimezone();
-    const country = getCountryByCode(countryCode) || getCountryByAbbr(detected) || countryCodes[0];
-    if (country.code !== countryCode) {
-      onCountryCodeChange(country.code);
+    if (autoDetect) {
+      detectCountryCode().then(country => {
+        if (country && country.code !== countryCode) {
+          onCountryCodeChange(country.code);
+        }
+      });
     }
-  }, []);
+  }, [autoDetect]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

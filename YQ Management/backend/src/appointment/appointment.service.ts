@@ -8,6 +8,7 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { RedisService } from '../redis/redis.service';
+import { GoogleService } from '../integrations/google/google.service';
 
 @Injectable()
 export class AppointmentService {
@@ -15,6 +16,7 @@ export class AppointmentService {
     private readonly prisma: PrismaService,
     private readonly whatsappService: WhatsappService,
     private readonly redisService: RedisService,
+    private readonly googleService: GoogleService,
   ) {}
 
   async create(createAppointmentDto: CreateAppointmentDto) {
@@ -57,6 +59,11 @@ export class AppointmentService {
       'queue_events',
       JSON.stringify({ type: 'APPOINTMENT_CREATED', tenantId: appointment.tenantId, appointment }),
     );
+
+    // Sync to Google Calendar
+    this.googleService.syncAppointmentToCalendar(appointment.tenantId, appointment).catch(err => {
+      console.error('Failed to sync appointment to Google Calendar', err);
+    });
 
     return appointment;
   }

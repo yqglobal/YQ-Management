@@ -1,28 +1,44 @@
-# Build stage
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
-COPY prisma ./prisma/
 
+# Install all dependencies (including dev for build)
 RUN npm ci
 
+# Copy Prisma schema and generate client
+COPY prisma ./prisma
+RUN npx prisma generate
+
+# Copy the rest of the application
 COPY . .
 
-RUN npx prisma generate
+# Build the NestJS application
 RUN npm run build
 
-# Production stage
-FROM node:18-alpine
+# Production Stage
+FROM node:20-alpine AS runner
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/dist ./dist
-COPY --from=builder /usr/src/app/package*.json ./
-COPY --from=builder /usr/src/app/prisma ./prisma
+ENV NODE_ENV production
+
+# Install production dependencies
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy generated Prisma client
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+# Copy built application and prisma folder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/scripts ./scripts
 
 EXPOSE 3000
 
-CMD [ "npm", "run", "start:prod" ]
+# Start script: Runs migrations and starts the app
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main"]

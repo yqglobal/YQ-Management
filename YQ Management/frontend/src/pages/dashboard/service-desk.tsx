@@ -88,7 +88,14 @@ export default function ServiceDeskToday() {
   });
 
   const filteredVisits = selectedLocationId === 'all' ? visits : visits.filter((v: any) => v.locationId === selectedLocationId);
-  const filteredQueues = selectedLocationId === 'all' ? queues : queues.filter((q: any) => !q.locationId || q.locationId === selectedLocationId);
+  const filteredQueues = selectedLocationId === 'all' ? queues : queues.filter((q: any) => q.locationId === selectedLocationId);
+
+  useEffect(() => {
+    // Clear selected visit when location changes to prevent cross-contamination
+    if (selectedVisit && selectedLocationId !== 'all' && selectedVisit.locationId !== selectedLocationId) {
+      setSelectedVisit(null);
+    }
+  }, [selectedLocationId, selectedVisit]);
 
   const queueTokens = filteredQueues.flatMap((q: any) => 
     (q.tokens || []).map((t: any) => ({
@@ -294,23 +301,23 @@ export default function ServiceDeskToday() {
               const loc = tenant?.locations?.find((l: any) => l.id === q.locationId);
               return (
               <div key={q.id} className="flex flex-col gap-2 p-3 border border-border dark:border-dark-border rounded-xl bg-surface-container-low dark:bg-inverse-surface shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-body-md text-on-surface dark:text-white flex items-center gap-2">
-                      {q.name}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <div className="font-semibold text-body-md text-on-surface dark:text-white flex items-start sm:items-center gap-2 flex-wrap">
+                      <span className="break-words">{q.name}</span>
                       {selectedLocationId === 'all' && loc && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-medium border border-zinc-200 dark:border-zinc-700">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-medium border border-zinc-200 dark:border-zinc-700 shrink-0">
                           {loc.name}
                         </span>
                       )}
-                    </span>
-                    <span className="text-xs text-outline">{q._count?.tokens || 0} Waiting</span>
+                    </div>
+                    <span className="text-xs text-outline mt-1">{q._count?.tokens || 0} Waiting</span>
                   </div>
                   <button 
                     onClick={() => handleCallNextQueue(q.id)}
-                    className="bg-primary hover:bg-primary-container text-on-primary px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-1"
+                    className="bg-primary hover:bg-primary-container text-on-primary px-3 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm flex items-center gap-1 shrink-0"
                   >
-                    <span className="material-symbols-outlined text-[16px]">campaign</span>
+                    <span className="material-symbols-outlined text-[18px]">campaign</span>
                     Call Next
                   </button>
                 </div>

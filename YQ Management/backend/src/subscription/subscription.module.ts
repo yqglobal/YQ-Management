@@ -7,12 +7,15 @@ import { BillingModule } from '../billing/billing.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { CommunicationModule } from '../communication/communication.module';
 
+import { EmailModule } from '../email/email.module';
+
 @Module({
   imports: [
     PrismaModule,
     BillingModule,
     PermissionsModule,
     CommunicationModule,
+    EmailModule,
   ],
   controllers: [SubscriptionController],
   providers: [SubscriptionService, SubscriptionCron],

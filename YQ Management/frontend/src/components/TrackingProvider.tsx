@@ -26,8 +26,7 @@ export const TrackingProvider = ({ children }: { children: React.ReactNode }) =>
         })
       });
     } catch (e: any) {
-      // Silently fail so tracing doesn't block the UI
-      console.warn(`Tracking failed: ${e?.message || 'Unknown error'}`);
+      // Silently fail so tracing doesn't block the UI or spam console on network errors
     }
   }, [router.pathname]);
 

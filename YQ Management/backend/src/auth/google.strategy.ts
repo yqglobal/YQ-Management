@@ -28,7 +28,12 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientID: clientID || 'missing-client-id',
       clientSecret: clientSecret || 'missing-client-secret',
       callbackURL,
-      scope: ['email', 'profile'],
+      scope: [
+        'email', 
+        'profile', 
+        'https://www.googleapis.com/auth/calendar.events',
+        'https://www.googleapis.com/auth/business.manage'
+      ],
       passReqToCallback: true,
     });
   }
@@ -49,7 +54,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     }
 
     const intent = req.query.state || 'login';
-    const user = await this.authService.validateOAuthLogin(email, googleId, fullName, intent);
+    // Passing accessToken and refreshToken to be handled in validateOAuthLogin
+    const user = await this.authService.validateOAuthLogin(email, googleId, fullName, intent, accessToken, refreshToken);
     done(null, user);
   }
 }

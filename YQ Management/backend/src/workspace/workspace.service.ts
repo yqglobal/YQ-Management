@@ -100,6 +100,26 @@ export class WorkspaceService {
       include: { workspace: true },
     });
 
+    if (workspace && (user.role === 'OPERATOR' || user.role === 'MANAGER')) {
+      const personalSettings = user.personalSettings as any;
+      const fullName = personalSettings?.fullName || user.email.split('@')[0];
+      const primaryLocationId = invitation.allowedLocationIds[0] || null;
+
+      try {
+        await this.prisma.staff.create({
+          data: {
+            tenantId: workspace.tenantId,
+            locationId: primaryLocationId,
+            userId: user.id,
+            name: fullName,
+            status: 'ACTIVE',
+          },
+        });
+      } catch (e) {
+        console.error('Failed to auto-provision Staff record for new user', e);
+      }
+    }
+
     return {
       success: true,
       workspace: user.workspace,

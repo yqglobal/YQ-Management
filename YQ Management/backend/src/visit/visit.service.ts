@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class VisitService {
@@ -16,7 +17,8 @@ export class VisitService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly whatsappService: WhatsappService
+    private readonly whatsappService: WhatsappService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   // Basic CRUD for controllers
@@ -28,7 +30,7 @@ export class VisitService {
 
   async findAll(userTokenPayload: any, scope?: 'today' | 'history') {
     const where: any = { tenantId: userTokenPayload.tenantId };
-    if (userTokenPayload.role === 'OPERATOR') {
+    if (userTokenPayload.role === 'OPERATOR' || userTokenPayload.role === 'MANAGER') {
       const user = await this.prisma.user.findUnique({ where: { id: userTokenPayload.userId } });
       if (user && user.allowedLocationIds && user.allowedLocationIds.length > 0) {
         where.locationId = { in: user.allowedLocationIds };
@@ -69,6 +71,7 @@ export class VisitService {
       select: {
         id: true,
         queueId: true,
+        serviceId: true,
         displayId: true,
         accessToken: true,
         currentState: true,
@@ -81,7 +84,23 @@ export class VisitService {
       },
     });
     if (!visit) throw new NotFoundException(`Visit with accessToken ${accessToken} not found`);
-    return visit;
+
+    let position = 0;
+    let ewt = 0;
+
+    if (visit.currentState === 'WAITING' || visit.currentState === 'CHECKED_IN') {
+      const waitingAhead = await this.prisma.visit.count({
+        where: {
+          queueId: visit.queueId,
+          currentState: { in: ['WAITING', 'CHECKED_IN'] },
+          createdAt: { lt: visit.createdAt }
+        }
+      });
+      position = waitingAhead + 1;
+      ewt = waitingAhead * (visit.service?.expectedDuration || 5);
+    }
+
+    return { ...visit, position, ewt };
   }
 
   async findMultiplePublic(accessTokens: string[]) {
@@ -103,6 +122,31 @@ export class VisitService {
     });
   }
 
+  async findByPhonePublic(phone: string) {
+    if (!phone) return [];
+    return this.prisma.visit.findMany({
+      where: { 
+        customer: { phone }, 
+        currentState: { notIn: ['COMPLETED', 'NO_SHOW', 'CANCELLED'] } 
+      },
+      select: {
+        id: true,
+        queueId: true,
+        displayId: true,
+        accessToken: true,
+        currentState: true,
+        waitingStart: true,
+        scheduledTime: true,
+        createdAt: true,
+        customer: { select: { name: true, phone: true } },
+        service: { select: { name: true, expectedDuration: true } },
+        location: { select: { name: true, address: true } },
+        tenant: { select: { name: true } },
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
   async update(id: string, tenantId: string, updateVisitDto: UpdateVisitDto) {
     await this.findOne(id, tenantId);
     return this.prisma.visit.update({ where: { id }, data: updateVisitDto });
@@ -115,7 +159,7 @@ export class VisitService {
 
   // --- STATE MACHINE METHODS ---
 
-  async joinQueue(queueId: string, customerData: { name: string; phone?: string | null }) {
+  async joinQueue(queueId: string, customerData: { name: string; phone?: string | null; serviceId?: string }) {
     const queue = await this.prisma.queue.findUnique({
       where: { id: queueId },
       include: { services: true }
@@ -126,11 +170,27 @@ export class VisitService {
       throw new BadRequestException('Queue has no linked services');
     }
 
-    const serviceId = queue.services[0].id;
+    let serviceId = queue.services[0].id;
+    if (customerData.serviceId) {
+      const validService = queue.services.find(s => s.id === customerData.serviceId);
+      if (!validService) {
+         throw new BadRequestException('Invalid service ID for this queue');
+      }
+      serviceId = validService.id;
+    }
+
     const locationId = queue.locationId;
     if (!locationId) throw new BadRequestException('Queue is not assigned to a Location');
 
     return this.prisma.$transaction(async (tx) => {
+      // FIX (2C): Check subscription visit quota before creating a new visit
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayVisitCount = await tx.visit.count({
+        where: { tenantId: queue.tenantId, createdAt: { gte: todayStart } }
+      });
+      await this.subscriptionService.checkLimit(queue.tenantId, 'visits', todayVisitCount);
+
       let customer = await tx.customer.findFirst({
         where: { phone: customerData.phone || undefined, tenantId: queue.tenantId }
       });
@@ -257,6 +317,29 @@ export class VisitService {
         if (booking.scheduledFor && service.allowAppointments) {
            scheduledTime = new Date(booking.scheduledFor);
            currentState = service.requireManualCheckIn ? 'CREATED' : 'SCHEDULED';
+           
+           // Pessimistic slot check
+           const durationMins = service.expectedDuration || service.appointmentGranularityMins || 15;
+           const bufferMins = service.bufferDuration || 0;
+           const totalMins = durationMins + bufferMins;
+           const concurrentSlots = service.concurrentSlots || 1;
+           const slotEnd = new Date(scheduledTime.getTime() + totalMins * 60000);
+           const searchStart = new Date(scheduledTime.getTime() - totalMins * 60000);
+
+           const overlappingCount = await tx.visit.count({
+             where: {
+               serviceId: service.id,
+               currentState: { notIn: ['CANCELLED', 'NO_SHOW', 'MISSED', 'COMPLETED'] },
+               scheduledTime: {
+                 lt: slotEnd,
+                 gt: searchStart
+               }
+             }
+           });
+
+           if (overlappingCount >= concurrentSlots) {
+             throw new ConflictException(`The selected time slot is no longer available for service ${service.name}`);
+           }
         }
 
         const visit = await tx.visit.create({
@@ -269,6 +352,7 @@ export class VisitService {
             displayId,
             currentState: currentState as any,
             scheduledTime,
+            priority: scheduledTime ? 10 : 0,
             waitingStart: currentState === 'WAITING' ? new Date() : null,
             language: data.language || 'en',
             formResponses: booking.formResponses || {},
@@ -286,11 +370,11 @@ export class VisitService {
           }
         });
 
-        if (customer.phone && (currentState === 'WAITING' || currentState === 'CREATED')) {
-          const locationName = firstService.location?.name ? ` at ${firstService.location.name}` : '';
-          const message = `Hello ${customer.name}, you have been successfully checked in${locationName} for ${service.name}. Your token is ${displayId}. We will be with you shortly.`;
-          await this.whatsappService.sendToTenant(tenantId, customer.phone, message).catch(e => this.logger.error('Failed to send walkin checkin whatsapp', e));
-        }
+        // FIX (6B): Removed inline WhatsApp call from joinMultiple.
+        // WhatsApp confirmation is now handled by OutboxProcessorService when it processes
+        // the VISIT_CREATED outbox event above. This ensures atomicity: the visit is committed
+        // to the DB first, and then notification fires asynchronously — a WhatsApp failure
+        // cannot cause the DB transaction to roll back or retry.
 
         visits.push(visit);
       }
@@ -302,8 +386,11 @@ export class VisitService {
   async advanceTurn(queueId: string, operatorId?: string) {
     return this.prisma.$transaction(async (tx) => {
       const oldestWaiting = await tx.visit.findFirst({
-        where: { queueId, currentState: 'WAITING' },
-        orderBy: { createdAt: 'asc' }
+        where: { queueId, currentState: { in: ['WAITING', 'CHECKED_IN'] } },
+        orderBy: [
+          { priority: 'desc' },
+          { createdAt: 'asc' }
+        ]
       });
 
       if (!oldestWaiting) return null; // Queue is empty
@@ -337,7 +424,11 @@ export class VisitService {
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.visit.update({
         where: { id },
-        data: { currentState: 'CHECKED_IN', waitingStart: new Date() },
+        data: { 
+          currentState: 'CHECKED_IN', 
+          waitingStart: new Date(),
+          priority: 10 
+        },
       });
 
       await tx.outboxEvent.create({
@@ -383,8 +474,8 @@ export class VisitService {
         throw new NotFoundException('Visit not found');
       }
 
-      if (visit.currentState === 'COMPLETED' || visit.currentState === 'MISSED') {
-        throw new BadRequestException('Visit is already completed or missed');
+      if (visit.currentState === 'COMPLETED' || visit.currentState === 'MISSED' || visit.currentState === 'CANCELLED') {
+        throw new BadRequestException(`Visit is already ${visit.currentState.toLowerCase()}`);
       }
 
       const updated = await tx.visit.update({
@@ -424,6 +515,39 @@ export class VisitService {
       await tx.outboxEvent.create({
         data: {
           type: 'VISIT_MISSED',
+          payload: { visitId: updated.id, queueId: updated.queueId, tenantId: updated.tenantId }
+        }
+      });
+
+      return updated;
+    });
+  }
+
+  async cancelVisit(visitId: string, tenantId?: string, operatorId?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const visit = await tx.visit.findUnique({ where: { id: visitId } });
+      if (!visit) throw new NotFoundException('Visit not found');
+      
+      if (tenantId && visit.tenantId !== tenantId) {
+        throw new NotFoundException('Visit not found in this tenant');
+      }
+
+      if (visit.currentState === 'COMPLETED' || visit.currentState === 'MISSED' || visit.currentState === 'CANCELLED') {
+        throw new BadRequestException(`Visit is already ${visit.currentState.toLowerCase()}`);
+      }
+
+      const updated = await tx.visit.update({
+        where: { id: visitId },
+        data: {
+          currentState: 'CANCELLED',
+          completedAt: new Date(),
+          operatorId: operatorId || visit.operatorId,
+        }
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          type: 'VISIT_CANCELLED',
           payload: { visitId: updated.id, queueId: updated.queueId, tenantId: updated.tenantId }
         }
       });

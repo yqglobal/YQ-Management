@@ -18,6 +18,8 @@ import {
   Sliders,
   Inbox,
   Layers,
+  FileText,
+  Megaphone,
 } from 'lucide-react';
 
 import { useTheme } from './ThemeProvider';
@@ -54,6 +56,8 @@ export default function SuperAdminLayout({
     { label: 'Analytics', href: '/super-admin/analytics', icon: TrendingUp },
     { label: 'Users', href: '/super-admin/users', icon: Users },
     { label: 'Notifications', href: '/super-admin/communication', icon: Mail },
+    { label: 'Marketing', href: '/super-admin/marketing', icon: Megaphone },
+    { label: 'Blogs', href: '/super-admin/blogs', icon: FileText },
     { label: 'Tenant Dashboard', href: '/dashboard', icon: Activity },
   ];
 

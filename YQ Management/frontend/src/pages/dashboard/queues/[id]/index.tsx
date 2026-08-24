@@ -1,12 +1,13 @@
 import { getTenantUrl } from "../../../../lib/utils";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../../../components/AdminLayout';
 import { Settings, ArrowLeft, Loader2, ListOrdered, Save, Calendar, CheckSquare, Settings2, ShieldAlert, MonitorPlay, Check, X as XIcon, User, Copy, Monitor, ExternalLink, Link2, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi, getBackendUrl } from '../../../../lib/api';
+import { io } from 'socket.io-client';
 import { toast } from 'sonner';
 import { WhatsAppChatPanel } from '../../../../components/WhatsAppChatPanel';
 import { useAuth } from '../../../../components/AuthContext';
@@ -22,37 +23,30 @@ export default function QueueDetails() {
 
   const [formData, setFormData] = useState<any>({});
 
+  // FIX (1B): Use fetchApi (credentials: include) instead of raw fetch with localStorage token
   const { data: queue = null, isLoading } = useQuery({
     queryKey: ['queue', id],
-    queryFn: async () => {
+    queryFn: () => {
       if (!id) return null;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/queue/${id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch queue');
-      return res.json();
+      return fetchApi(`/queue/${id}`);
     },
-    enabled: !!id
+    enabled: !!id,
   });
 
   const { data: tenant = null } = useQuery({
     queryKey: ['tenant', user?.tenantId],
-    queryFn: async () => {
+    queryFn: () => {
       if (!user?.tenantId) return null;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/tenant/me`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch tenant');
-      return res.json();
+      return fetchApi(`/tenant/me`);
     },
-    enabled: !!user?.tenantId
+    enabled: !!user?.tenantId,
   });
 
+  // FIX (1B): Removed refetchInterval: 5000 polling — replaced by WebSocket below
   const { data: tokens = [] } = useQuery({
     queryKey: ['queue', id, 'tokens'],
     queryFn: () => fetchApi(`/queue/${id}/tokens`),
     enabled: !!id && activeTab === 'board',
-    refetchInterval: 5000,
   });
 
   useEffect(() => {
@@ -65,6 +59,44 @@ export default function QueueDetails() {
       });
     }
   }, [queue]);
+
+  // FIX (1B): Real-time WebSocket subscription replaces 5s polling
+  // Subscribes to the queue room and tenant room to receive live updates
+  useEffect(() => {
+    if (!id || !user?.tenantId) return;
+
+    const baseUrl = typeof window !== 'undefined'
+      ? (process.env.NEXT_PUBLIC_API_URL || getBackendUrl())
+      : getBackendUrl();
+
+    const socket = io(baseUrl, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+    });
+
+    socket.on('connect', () => {
+      socket.emit('joinQueueRoom', id);
+      socket.emit('joinTenantRoom', user.tenantId);
+    });
+
+    const invalidateTokens = () => {
+      queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] });
+    };
+
+    // Outbox event names (lowercase) from OutboxProcessorService
+    socket.on('visit_created', invalidateTokens);
+    socket.on('visit_called', invalidateTokens);
+    socket.on('visit_completed', invalidateTokens);
+    socket.on('visit_missed', invalidateTokens);
+    socket.on('visit_checked_in', invalidateTokens);
+    socket.on('queue_status_changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['queue', id] });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [id, user?.tenantId, queryClient]);
 
   const updateQueueMutation = useMutation({
     mutationFn: (data: any) => fetchApi(`/queue/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
@@ -112,6 +144,15 @@ export default function QueueDetails() {
     mutationFn: (tokenId: string) => fetchApi(`/queue/tokens/${tokenId}/skip`, { method: 'POST' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] }),
     onError: () => toast.error('Failed to skip token')
+  });
+
+  const cancelTokenMutation = useMutation({
+    mutationFn: (tokenId: string) => fetchApi(`/visits/${tokenId}/cancel`, { method: 'POST' }),
+    onSuccess: () => {
+      toast.success('Booking cancelled');
+      queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] });
+    },
+    onError: () => toast.error('Failed to cancel booking')
   });
 
   const transferTokenMutation = useMutation({
@@ -344,6 +385,42 @@ export default function QueueDetails() {
                             Transfer Queue
                           </button>
                         )}
+                      </div>
+                    )}
+                    {(token.currentState === 'CREATED' || token.currentState === 'SCHEDULED' || token.currentState === 'WAITING' || token.currentState === 'CHECKED_IN') && (
+                      <div className="flex gap-3 pt-6 border-t border-border dark:border-dark-border mt-3">
+                        {token.currentState !== 'WAITING' && token.currentState !== 'CHECKED_IN' && (
+                          <button 
+                            onClick={() => checkInTokenMutation.mutate(token.id)}
+                            disabled={checkInTokenMutation.isPending}
+                            className="flex-1 flex justify-center items-center gap-2 h-[40px] bg-primary text-white rounded-xl font-body-md font-semibold transition-colors hover:bg-primary/90"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">login</span>
+                            Check In
+                          </button>
+                        )}
+                        {(token.currentState === 'WAITING' || token.currentState === 'CHECKED_IN') && (
+                          <button 
+                            onClick={() => startTokenMutation.mutate(token.id)}
+                            disabled={startTokenMutation.isPending}
+                            className="flex-1 flex justify-center items-center gap-2 h-[40px] bg-primary text-white rounded-xl font-body-md font-semibold transition-colors hover:bg-primary/90 shadow-md shadow-primary/20"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                            Call Next
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to cancel this booking? The customer will be notified.')) {
+                              cancelTokenMutation.mutate(token.id);
+                            }
+                          }}
+                          disabled={cancelTokenMutation.isPending}
+                          className="flex-[0.5] flex justify-center items-center gap-2 h-[40px] bg-alert/10 hover:bg-alert/20 text-alert dark:bg-alert/10 dark:hover:bg-alert/20 dark:text-red-400 rounded-xl font-body-md font-semibold transition-colors"
+                          title="Cancel Booking"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">cancel</span>
+                        </button>
                       </div>
                     )}
                   </div>

@@ -73,20 +73,25 @@ export class TasksService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleDataRetentionLifecycle() {
     this.logger.log('Running data retention lifecycle check...');
-    // Section 20: Wipe Visits and Tokens older than 2 years
+    // GDPR / data retention: Wipe Visits and legacy Tokens older than 2 years
     const twoYearsAgo = new Date();
     twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
 
     try {
+      // FIX (1D): Previously both deleteMany calls targeted prisma.visit (copy-paste bug).
+      // The second call now correctly targets prisma.token for legacy Token record cleanup.
       const visitResult = await this.prisma.visit.deleteMany({
         where: { createdAt: { lt: twoYearsAgo } }
       });
-      
-      const tokenResult = await this.prisma.visit.deleteMany({
-        where: { createdAt: { lt: twoYearsAgo } }
+
+      // Legacy Token model cleanup (model deprecated but still exists in schema)
+      const tokenResult = await this.prisma.token.deleteMany({
+        where: { joinedAt: { lt: twoYearsAgo } }
       });
 
-      this.logger.log(`Data Retention: Cleaned up ${visitResult.count} old visits and ${tokenResult.count} old tokens.`);
+      this.logger.log(
+        `Data Retention: Cleaned up ${visitResult.count} old visits and ${tokenResult.count} legacy tokens.`
+      );
     } catch (err) {
       this.logger.error('Failed to run data retention cleanup', err);
     }

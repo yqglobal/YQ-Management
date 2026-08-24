@@ -17,4 +17,18 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
+  webServer: [
+    {
+      command: 'npm run start:dev --prefix ../backend',
+      url: 'http://localhost:3000/health',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:3001',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    }
+  ],
 });

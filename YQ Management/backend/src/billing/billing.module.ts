@@ -13,10 +13,11 @@ import { BillingConfigService } from './config/billing-config.service';
 import { WebhookProcessService } from '../webhooks/webhook-process.service';
 import { EnterpriseInquiryController } from './enterprise-inquiry.controller';
 import { EnterpriseInquiryService } from './enterprise-inquiry.service';
+import { EmailModule } from '../email/email.module';
 import { SystemLogModule } from '../system-log/system-log.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, PermissionsModule, SystemLogModule],
+  imports: [PrismaModule, AuthModule, PermissionsModule, SystemLogModule, EmailModule],
   controllers: [BillingController, EnterpriseInquiryController],
   providers: [
     PlansService,

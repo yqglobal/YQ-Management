@@ -10,6 +10,7 @@ import { SubscriptionService } from '../subscription/subscription.service';
 import { PaymentsService } from '../payments/payments.service';
 import { BillingException } from '../billing/errors/billing-exceptions';
 import { RedisService } from '../redis/redis.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class WebhookProcessService {
@@ -22,6 +23,7 @@ export class WebhookProcessService {
     private readonly subscriptionService: SubscriptionService,
     private readonly paymentsService: PaymentsService,
     private readonly redisService: RedisService,
+    private readonly emailService: EmailService,
   ) {}
 
   async processPaymentWebhook(
@@ -159,22 +161,21 @@ export class WebhookProcessService {
           });
 
           if (Status === 'Complete' && transaction.tenantId) {
-            await tx.workspace.update({
-              where: { id: transaction.tenantId },
-              data: {},
-            });
-
             const subscription = await tx.subscription.findUnique({
               where: { tenantId: transaction.tenantId },
+              include: { plan: true },
             });
 
-            if (subscription) {
-              const periodDays =
-                subscription.billingInterval === 'YEARLY' ? 365 : 30;
+            if (subscription && transaction.planId) {
+              const billingInterval = transaction.billingInterval || subscription.billingInterval || 'monthly';
+              const periodDays = billingInterval.toLowerCase() === 'yearly' ? 365 : 30;
+              
               await tx.subscription.update({
                 where: { id: subscription.id },
                 data: {
                   status: 'ACTIVE',
+                  planId: transaction.planId,
+                  billingInterval: billingInterval,
                   currentPeriodStart: new Date(),
                   currentPeriodEnd: new Date(
                     Date.now() + periodDays * 24 * 60 * 60 * 1000,
@@ -185,6 +186,20 @@ export class WebhookProcessService {
                   renewalDate: new Date(),
                 },
               });
+
+              // Fetch the plan name and user email to send the email
+              const newPlan = await tx.plan.findUnique({ where: { id: transaction.planId } });
+              const owner = await tx.user.findFirst({
+                where: { tenantId: transaction.tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+              });
+              
+              if (owner && owner.email && newPlan) {
+                this.emailService
+                  .sendSubscriptionActivatedEmail(owner.email, newPlan.name)
+                  .catch((err) =>
+                    this.logger.error(`Failed to send subscription activated email to ${owner.email}`, err),
+                  );
+              }
             }
           }
         }

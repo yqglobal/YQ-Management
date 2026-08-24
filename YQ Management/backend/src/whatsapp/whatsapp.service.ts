@@ -201,13 +201,14 @@ export class WhatsappService implements OnModuleInit {
             );
           } else {
             // state === 'close' — instance is registered but not reconnecting
-            // This can happen if the session expired or the phone was logged out.
-            // Do NOT call /connect here — that would generate a QR and disrupt the user.
-            // The webhook will notify us via 'connection.update' when state changes.
-            this.logger.warn(
-              `Instance ${instanceName} is in 'close' state. Attempting to wake it up by calling /connect.`,
+            // This can happen if the session expired, phone is offline, or Evolution is waiting for backoff.
+            // Do NOT call /connect here! Calling /connect while Evolution is naturally backing off
+            // can corrupt the session or force a new QR code.
+            // Evolution API natively handles reconnection with its own exponential backoff.
+            // We just wait for the webhook to notify us of 'connection.update'.
+            this.logger.debug(
+              `Instance ${instanceName} is in 'close' state. Trusting Evolution API native auto-reconnect. No action taken.`,
             );
-            await this.fetchEvo(`/instance/connect/${instanceName}`, 'GET');
           }
         }
       }
@@ -1289,10 +1290,9 @@ export class WhatsappService implements OnModuleInit {
         if (state === 'close' || state === 'refused') {
           if (
             statusCode === 401 ||
-            statusCode === 428 ||
             statusCode === 403 ||
             statusCode === '401' ||
-            statusCode === '428'
+            statusCode === '403'
           ) {
             await this.prisma.tenant.updateMany({
               where: { whatsappInstanceId: instanceName },
@@ -1317,6 +1317,14 @@ export class WhatsappService implements OnModuleInit {
                   state: 'close',
                 },
               );
+            }
+            
+            // Delete the instance in Evolution to free up RAM since the user logged out permanently
+            try {
+              await this.fetchEvo(`/instance/delete/${instanceName}`, 'DELETE');
+              this.logger.log(`Instance ${instanceName} deleted from Evolution API due to hard logout.`);
+            } catch (e) {
+              this.logger.warn(`Failed to delete instance ${instanceName} after hard logout: ${e}`);
             }
           } else {
             this.logger.warn(
@@ -1443,9 +1451,10 @@ export class WhatsappService implements OnModuleInit {
         return { ignored: true };
       }
 
-      text = text.trim().toUpperCase();
+      // Preserve original casing for the chatbot's fuzzy matching
+      const rawText = text.trim();
       this.logger.log(
-        `Received message from ${phone} on instance ${instanceName}: ${text}`,
+        `Received message from ${phone} on instance ${instanceName}: ${rawText}`,
       );
 
       const tenant = await this.prisma.tenant.findFirst({
@@ -1466,7 +1475,7 @@ export class WhatsappService implements OnModuleInit {
       const bot = new WhatsappChatbot(this.prisma, async (jidToSend, textToSend) => {
         await this.sendMessage(instanceName, jidToSend, textToSend);
       });
-      await bot.process(tenant.id, phone, jid, text);
+      await bot.process(tenant, phone, jid, rawText);
       return { handled: true, action: 'chatbot' };
 
     } catch (e) {

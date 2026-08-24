@@ -7,6 +7,8 @@ export class GoogleAuthGuard extends AuthGuard('google') {
     const req = context.switchToHttp().getRequest();
     return {
       state: req.query.intent || 'login',
+      accessType: 'offline',
+      prompt: 'consent',
     };
   }
 }

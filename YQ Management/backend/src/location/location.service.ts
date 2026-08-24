@@ -1,11 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class LocationService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly subscriptionService: SubscriptionService,
+  ) {}
 
   async create(tenantId: string, data: { name: string; address?: string; city?: string }) {
+    const currentLocationsCount = await this.prisma.extendedClient.location.count({
+      where: { tenantId },
+    });
+
+    await this.subscriptionService.checkLimit(tenantId, 'locations', currentLocationsCount);
+
     return this.prisma.extendedClient.location.create({
       data: {
         tenantId,

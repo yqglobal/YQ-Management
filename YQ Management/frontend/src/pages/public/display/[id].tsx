@@ -11,7 +11,7 @@ import QRCode from 'react-qr-code';
 export default function QueueDisplay() {
   const router = useRouter();
   const { id } = router.query;
-  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
   const [previousServingId, setPreviousServingId] = useState<string | null>(null);
 
   const { data: queue } = useQuery({
@@ -33,8 +33,8 @@ export default function QueueDisplay() {
     enabled: !!id,
   });
 
-  const serving = tokens.find((t: any) => t.status === 'SERVING');
-  const waiting = tokens.filter((t: any) => t.status === 'WAITING');
+  const serving = tokens.find((t: any) => t.currentState === 'IN_SERVICE');
+  const waiting = tokens.filter((t: any) => t.currentState === 'WAITING' || t.currentState === 'CHECKED_IN');
 
   const speak = (text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -50,7 +50,7 @@ export default function QueueDisplay() {
     if (serving && serving.id !== previousServingId) {
       if (audioEnabled) {
         const displayCode = serving.displayId || serving.id.split('-')[0].toUpperCase();
-        const namePart = showName ? serving.customerName : '';
+        const namePart = showName ? (serving.customer?.name || serving.customerName || '') : '';
         
         let announcement = '';
         if (displayConfig.ttsTemplate) {

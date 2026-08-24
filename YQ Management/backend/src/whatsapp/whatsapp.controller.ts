@@ -17,18 +17,31 @@ import { Roles } from '../auth/roles.decorator';
 import { Role } from '@prisma/client';
 import { WorkspaceGuard } from '../auth/workspace.guard';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
+import { SubscriptionService } from '../subscription/subscription.service';
+import { BillingException } from '../billing/errors/billing-exceptions';
 
 @Controller('whatsapp')
 export class WhatsappController {
   constructor(
     private readonly whatsappService: WhatsappService,
     private readonly whatsappLogger: WhatsappLogger,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
+
+  private async checkWhatsappFeature(tenantId: string) {
+    const sub = await this.subscriptionService.getSubscription(tenantId);
+    if (!sub || !sub.plan) return;
+    
+    const features = (sub.plan.features as any) || {};
+    if (features.whatsapp === false || features.hasWhatsapp === false) {
+      throw new BillingException('WhatsApp integration is not available on your current plan. Please upgrade.');
+    }
+  }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
   @Post('connect')
-  connect(
+  async connect(
     @Req() req: AuthenticatedRequest,
     @Body() body?: { forceRefresh?: boolean },
   ) {
@@ -36,6 +49,8 @@ export class WhatsappController {
       req.user.tenantId ||
       (req.user as any).workspaceId ||
       (req.user as any).userId;
+      
+    await this.checkWhatsappFeature(req.user.tenantId);
     return this.whatsappService.connect(targetId, body?.forceRefresh);
   }
 
@@ -47,6 +62,7 @@ export class WhatsappController {
       req.user.tenantId ||
       (req.user as any).workspaceId ||
       (req.user as any).userId;
+    await this.checkWhatsappFeature(req.user.tenantId);
     return this.whatsappService.generateValidationCode(targetId);
   }
 
@@ -61,6 +77,7 @@ export class WhatsappController {
       req.user.tenantId ||
       (req.user as any).workspaceId ||
       (req.user as any).userId;
+    await this.checkWhatsappFeature(req.user.tenantId);
     return this.whatsappService.generatePairingCode(targetId, body.phoneNumber);
   }
 
@@ -146,18 +163,15 @@ export class WhatsappController {
     @Req() req: any,
     @Body() body: any,
   ) {
-    const secret = req.query.secret;
+    // FIX (2B): Re-enable webhook secret validation.
+    // WEBHOOK_SECRET must be set in production. In local dev, the check is skipped if the env var is absent.
     const expectedSecret = process.env.WEBHOOK_SECRET;
-
-    // if (!expectedSecret) {
-    //   throw new UnauthorizedException(
-    //     'Webhook secret is not configured on the server',
-    //   );
-    // }
-
-    // if (secret !== expectedSecret) {
-    //   throw new UnauthorizedException('Invalid webhook secret');
-    // }
+    if (expectedSecret) {
+      const secret = req.query.secret as string;
+      if (!secret || secret !== expectedSecret) {
+        throw new UnauthorizedException('Invalid webhook secret');
+      }
+    }
 
     return this.whatsappService.handleWebhook(instanceName, body);
   }

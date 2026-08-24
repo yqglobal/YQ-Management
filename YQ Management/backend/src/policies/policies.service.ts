@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class PoliciesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private subscriptionService: SubscriptionService
+  ) {}
 
   async getAcceptedPolicies(userId: string) {
     return this.prisma.extendedClient.policyAcceptance.findMany({
@@ -31,7 +35,7 @@ export class PoliciesService {
     }
 
     // Record acceptance
-    return this.prisma.extendedClient.policyAcceptance.create({
+    const result = await this.prisma.extendedClient.policyAcceptance.create({
       data: {
         userId,
         policyId: policy.id,
@@ -39,6 +43,28 @@ export class PoliciesService {
         userAgent,
       }
     });
+
+    // Check if both required policies are accepted
+    const accepted = await this.getAcceptedPolicies(userId);
+    const hasTos = accepted.some((a: any) => a.policy.type === 'TERMS_OF_SERVICE');
+    const hasPrivacy = accepted.some((a: any) => a.policy.type === 'PRIVACY_POLICY');
+
+    if (hasTos && hasPrivacy) {
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (user?.tenantId && user.role === 'TENANT_ADMIN') {
+        const sub = await this.prisma.subscription.findUnique({ where: { tenantId: user.tenantId } });
+        if (!sub) {
+           const starterPlan = await this.prisma.plan.findFirst({
+             where: { name: { contains: 'Starter' } },
+           });
+           if (starterPlan) {
+             await this.subscriptionService.startFreeTrial(user.tenantId, starterPlan.id, starterPlan.trialDays || 14);
+           }
+        }
+      }
+    }
+
+    return result;
   }
 
   async saveCookiePreferences(userId: string | undefined, anonymousId: string | undefined, preferences: any, ipAddress?: string, userAgent?: string) {

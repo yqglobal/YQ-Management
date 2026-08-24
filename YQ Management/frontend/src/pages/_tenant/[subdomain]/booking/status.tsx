@@ -10,7 +10,7 @@ const baseUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL
 
 export default function StatusPage() {
   const router = useRouter();
-  const { subdomain, tokens } = router.query;
+  const { subdomain, tokens, phone } = router.query;
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
@@ -48,14 +48,20 @@ export default function StatusPage() {
   });
 
   const { data: visits = [], isLoading } = useQuery({
-    queryKey: ['public-status', tokens],
+    queryKey: ['public-status', tokens, phone],
     queryFn: async () => {
-      if (!tokens) return [];
-      const res = await fetch(`${baseUrl}/public-visit/status-multiple?tokens=${tokens}`);
-      if (!res.ok) throw new Error('Failed to fetch status');
-      return res.json();
+      if (phone) {
+        const res = await fetch(`${baseUrl}/public-visit/by-phone?phone=${encodeURIComponent(phone as string)}`);
+        if (!res.ok) throw new Error('Failed to fetch status');
+        return res.json();
+      } else if (tokens) {
+        const res = await fetch(`${baseUrl}/public-visit/status-multiple?tokens=${tokens}`);
+        if (!res.ok) throw new Error('Failed to fetch status');
+        return res.json();
+      }
+      return [];
     },
-    enabled: !!tokens,
+    enabled: !!tokens || !!phone,
     refetchInterval: 10000, // Refresh every 10 seconds to get queue updates
   });
 

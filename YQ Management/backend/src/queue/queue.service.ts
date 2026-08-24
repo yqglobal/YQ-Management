@@ -11,6 +11,7 @@ import { QueueStatus, VisitState } from '@prisma/client';
 import { QueueGateway } from './queue.gateway';
 import { WebhooksService } from '../webhooks/webhooks.service';
 import { VisitService } from '../visit/visit.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class QueueService {
@@ -21,6 +22,7 @@ export class QueueService {
     private readonly queueGateway: QueueGateway,
     private readonly webhooksService: WebhooksService,
     private readonly visitService: VisitService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async createQueue(
@@ -51,20 +53,11 @@ export class QueueService {
     }
 
     // SECURITY: Enforce plan limits
-    const subscription = await this.prisma.subscription.findFirst({
-      where: { tenantId },
-      include: { plan: true },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    const maxQueues = subscription?.plan?.limits ? (subscription.plan.limits as any).maxQueues : 1;
     const currentQueuesCount = await this.prisma.queue.count({
       where: { tenantId },
     });
 
-    if (currentQueuesCount >= maxQueues) {
-      throw new BadRequestException(`Queue limit reached (${maxQueues}). Please upgrade your plan to create more queues.`);
-    }
+    await this.subscriptionService.checkLimit(tenantId, 'queues', currentQueuesCount);
 
     const queue = await this.prisma.queue.create({
       data: {
@@ -149,7 +142,7 @@ export class QueueService {
   async getQueuesForTenant(userTokenPayload: any) {
     const where: any = { tenantId: userTokenPayload.tenantId };
     
-    if (userTokenPayload.role === 'OPERATOR') {
+    if (userTokenPayload.role === 'OPERATOR' || userTokenPayload.role === 'MANAGER') {
       const user = await this.prisma.user.findUnique({ where: { id: userTokenPayload.userId } });
       if (user && user.allowedLocationIds && user.allowedLocationIds.length > 0) {
         where.locationId = { in: user.allowedLocationIds };
@@ -163,17 +156,18 @@ export class QueueService {
         services: true,
         visits: {
           where: {
-            currentState: 'WAITING',
+            currentState: { in: ['WAITING', 'CHECKED_IN'] },
           },
-          orderBy: {
-            createdAt: 'asc',
-          },
+          orderBy: [
+            { priority: 'desc' },
+            { createdAt: 'asc' },
+          ],
         },
         _count: {
           select: {
             visits: {
               where: {
-                currentState: 'WAITING',
+                currentState: { in: ['WAITING', 'CHECKED_IN'] },
               },
             },
           },
@@ -222,9 +216,15 @@ export class QueueService {
     return this.prisma.visit.findMany({
       where: {
         queueId,
-        currentState: { in: ['WAITING', 'IN_SERVICE'] },
+        currentState: { in: ['WAITING', 'CHECKED_IN', 'IN_SERVICE'] },
       },
-      orderBy: { createdAt: 'asc' },
+      include: {
+        customer: { select: { name: true } }
+      },
+      orderBy: [
+        { priority: 'desc' },
+        { createdAt: 'asc' },
+      ],
     });
   }
 
@@ -246,15 +246,22 @@ export class QueueService {
   }
 
   async updateQueueStatus(queueId: string, status: QueueStatus) {
-    const queue = await this.prisma.queue.update({
-      where: { id: queueId },
-      data: { status },
+    const queue = await this.prisma.$transaction(async (tx) => {
+      return tx.queue.update({
+        where: { id: queueId },
+        data: { status },
+      });
     });
-    await this.redisService.client.hset(
-      `queue:${queue.id}:state`,
-      'status',
-      status,
-    );
+
+    try {
+      await this.redisService.client.hset(
+        `queue:${queue.id}:state`,
+        'status',
+        status,
+      );
+    } catch (err) {
+      console.error('Failed to sync queue status to Redis', err);
+    }
 
     this.queueGateway.broadcastQueueUpdate(queueId, 'queue_status_changed', {
       status,

@@ -10,26 +10,6 @@ import { Search, Users, Phone, Mail, Clock, BarChart2 } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function avgWaitMinutes(visits: any[]): string {
-  const completed = visits.filter((v: any) => v.completedAt && v.createdAt);
-  if (!completed.length) return '—';
-  const avg = completed.reduce((s: number, v: any) =>
-    s + (new Date(v.completedAt).getTime() - new Date(v.createdAt).getTime()), 0) / completed.length;
-  const mins = Math.round(avg / 60000);
-  return mins < 1 ? '<1 min' : `${mins} min`;
-}
-
-function lastVisitLabel(visits: any[]): string {
-  if (!visits.length) return '—';
-  const sorted = [...visits].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const d = new Date(sorted[0].createdAt);
-  const diffDays = Math.floor((Date.now() - d.getTime()) / 86400000);
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 30) return `${diffDays}d ago`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
 const SLA_THRESHOLD_MINS = 15;
 
 export default function Analytics() {
@@ -50,25 +30,21 @@ export default function Analytics() {
     queryFn: () => fetchApi('/customer').catch(() => []),
   });
 
-  const { kpis, chartData: rawChartData, servicePerformance } = analytics || { 
-    kpis: { totalVisits: 0, averageWaitTimeMins: 0, slaViolations: 0, dropOffRate: 0 }, 
-    chartData: [], 
-    servicePerformance: [] 
+  const { kpis, chartData: rawChartData, servicePerformance } = analytics || {
+    kpis: { totalVisits: 0, averageWaitTimeMins: 0, slaViolations: 0, dropOffRate: 0 },
+    chartData: [],
+    servicePerformance: []
   };
 
   const chartData = useMemo(() => {
     return (rawChartData || []).map((d: any) => ({ time: d.timeLabel, visits: d.volume }));
   }, [rawChartData]);
 
-  // ── Customer map (absorbing Records page) ──────────────────────────────
   // ── Customer map ──────────────────────────────
   const { people, totalVisits } = useMemo(() => {
-    let list = [...customers].map(c => ({
-      ...c,
-      visits: c.visits || []
-    }));
-    
-    let totalVisitsCount = list.reduce((sum, p) => sum + p.visits.length, 0);
+    let list = [...customers];
+
+    let totalVisitsCount = list.reduce((sum, p) => sum + (p.totalVisits || 0), 0);
 
     if (customerSearch) {
       const q = customerSearch.toLowerCase();
@@ -78,12 +54,8 @@ export default function Analytics() {
         p.email?.toLowerCase().includes(q)
       );
     }
-    if (customerSort === 'visits') list.sort((a, b) => b.visits.length - a.visits.length);
-    else if (customerSort === 'recent') list.sort((a, b) => {
-      const la = a.visits.reduce((m: number, v: any) => Math.max(m, new Date(v.createdAt).getTime()), 0);
-      const lb = b.visits.reduce((m: number, v: any) => Math.max(m, new Date(v.createdAt).getTime()), 0);
-      return lb - la;
-    });
+    if (customerSort === 'visits') list.sort((a, b) => (b.totalVisits || 0) - (a.totalVisits || 0));
+    else if (customerSort === 'recent') list.sort((a, b) => (b.lastVisitMs || 0) - (a.lastVisitMs || 0));
     else list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     return { people: list, totalVisits: totalVisitsCount };
@@ -112,11 +84,10 @@ export default function Analytics() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
-                  activeTab === tab
+                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${activeTab === tab
                     ? 'bg-white dark:bg-zinc-800 text-on-surface dark:text-white shadow-sm'
                     : 'text-on-surface-variant hover:text-on-surface dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {tab === 'insights' ? '📊 Insights' : '👥 Customers'}
               </button>
@@ -174,11 +145,10 @@ export default function Analytics() {
                       <button
                         key={r}
                         onClick={() => setTimeRange(r)}
-                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
-                          timeRange === r
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${timeRange === r
                             ? 'bg-primary text-white'
                             : 'bg-surface-container-low dark:bg-zinc-800 text-on-surface-variant hover:text-on-surface dark:hover:text-white border border-border dark:border-dark-border'
-                        }`}
+                          }`}
                       >
                         {r}
                       </button>
@@ -197,11 +167,11 @@ export default function Analytics() {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" opacity={0.4} />
                       <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#707881' }} dy={8} />
                       <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#707881' }} />
-                      <Tooltip 
-                        isAnimationActive={false} 
-                        contentStyle={{ background: '#09090b', border: '1px solid #27272a', borderRadius: '10px' }} 
-                        itemStyle={{ color: '#fff', fontWeight: 'bold' }} 
-                        labelStyle={{ color: '#a1a1aa' }} 
+                      <Tooltip
+                        isAnimationActive={false}
+                        contentStyle={{ background: '#09090b', border: '1px solid #27272a', borderRadius: '10px' }}
+                        itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                        labelStyle={{ color: '#a1a1aa' }}
                         cursor={{ stroke: '#3f3f46', strokeWidth: 1, strokeDasharray: '4 4' }}
                       />
                       <Area type="monotone" dataKey="visits" stroke="#1571ff" strokeWidth={2.5} fill="url(#colorVisits)" />
@@ -233,7 +203,7 @@ export default function Analytics() {
                             <p className="font-mono text-2xl font-bold text-primary">{svc.avgMins !== null ? `${svc.avgMins}m` : '—'}</p>
                           </div>
                         </div>
-                        
+
                         <h5 className="font-semibold text-sm text-on-surface dark:text-white mb-3">Queue Breakdown</h5>
                         {svc.queues.length === 0 ? (
                           <p className="text-sm text-on-surface-variant">No queue data for this service yet.</p>
@@ -243,22 +213,19 @@ export default function Analytics() {
                               const isViolating = q.avgMins !== null && q.avgMins > SLA_THRESHOLD_MINS;
                               const hasData = q.avgMins !== null;
                               return (
-                                <div key={j} className={`rounded-xl p-4 border flex flex-col justify-between ${
-                                  !hasData ? 'bg-surface-container-low dark:bg-zinc-900 border-border dark:border-dark-border' 
-                                  : isViolating ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800' 
-                                  : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
-                                }`}>
-                                  <p className={`font-semibold text-sm truncate ${
-                                    !hasData ? 'text-on-surface-variant' 
-                                    : isViolating ? 'text-rose-900 dark:text-rose-300' 
-                                    : 'text-emerald-900 dark:text-emerald-300'
-                                  }`}>{q.name}</p>
+                                <div key={j} className={`rounded-xl p-4 border flex flex-col justify-between ${!hasData ? 'bg-surface-container-low dark:bg-zinc-900 border-border dark:border-dark-border'
+                                    : isViolating ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800'
+                                      : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
+                                  }`}>
+                                  <p className={`font-semibold text-sm truncate ${!hasData ? 'text-on-surface-variant'
+                                      : isViolating ? 'text-rose-900 dark:text-rose-300'
+                                        : 'text-emerald-900 dark:text-emerald-300'
+                                    }`}>{q.name}</p>
                                   <div className="flex items-end justify-between mt-3">
-                                    <span className={`font-mono text-xl font-bold ${
-                                      !hasData ? 'text-on-surface-variant' 
-                                      : isViolating ? 'text-rose-600 dark:text-rose-400' 
-                                      : 'text-emerald-600 dark:text-emerald-400'
-                                    }`}>
+                                    <span className={`font-mono text-xl font-bold ${!hasData ? 'text-on-surface-variant'
+                                        : isViolating ? 'text-rose-600 dark:text-rose-400'
+                                          : 'text-emerald-600 dark:text-emerald-400'
+                                      }`}>
                                       {hasData ? `${q.avgMins}m` : '—'}
                                     </span>
                                   </div>
@@ -316,11 +283,10 @@ export default function Analytics() {
                     <button
                       key={s}
                       onClick={() => setCustomerSort(s)}
-                      className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-all capitalize ${
-                        customerSort === s
+                      className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-all capitalize ${customerSort === s
                           ? 'bg-primary text-white'
                           : 'bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border text-on-surface-variant hover:text-on-surface dark:hover:text-white'
-                      }`}
+                        }`}
                     >
                       {s}
                     </button>
@@ -376,14 +342,14 @@ export default function Analytics() {
                             </td>
                             <td className="p-4 text-center">
                               <span className="inline-flex items-center justify-center px-2.5 py-1 text-xs font-semibold bg-primary/10 dark:bg-primary/20 text-primary rounded-full">
-                                {person.visits.length}
+                                {person.totalVisits}
                               </span>
                             </td>
                             <td className="p-4 text-center">
-                              <span className="text-sm text-on-surface-variant font-medium">{avgWaitMinutes(person.visits)}</span>
+                              <span className="text-sm text-on-surface-variant font-medium">{person.avgWaitMinutes}</span>
                             </td>
                             <td className="p-4">
-                              <span className="text-sm text-on-surface-variant">{lastVisitLabel(person.visits)}</span>
+                              <span className="text-sm text-on-surface-variant">{person.lastVisitLabel}</span>
                             </td>
                           </tr>
                         ))}

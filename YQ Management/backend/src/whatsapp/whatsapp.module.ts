@@ -7,8 +7,10 @@ import { WhatsappLogger } from './whatsapp.logger';
 
 import { QueueModule } from '../queue/queue.module';
 
+import { SubscriptionModule } from '../subscription/subscription.module';
+
 @Module({
-  imports: [PrismaModule, RedisModule, forwardRef(() => QueueModule)],
+  imports: [PrismaModule, RedisModule, forwardRef(() => QueueModule), forwardRef(() => SubscriptionModule)],
   controllers: [WhatsappController],
   providers: [WhatsappService, WhatsappLogger],
   exports: [WhatsappService, WhatsappLogger],

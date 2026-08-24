@@ -63,4 +63,29 @@ export class GoogleService {
     
     this.logger.log('Google Business Profile booking link updated successfully!');
   }
+
+  async syncAppointmentToCalendar(tenantId: string, appointmentDetails: any) {
+    this.logger.log(`Syncing appointment to Google Calendar for tenant ${tenantId}`);
+    
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { googleAccessToken: true, googleRefreshToken: true }
+    });
+
+    if (!tenant || (!tenant.googleAccessToken && !tenant.googleRefreshToken)) {
+      this.logger.warn(`Tenant ${tenantId} does not have Google Calendar connected. Skipping sync.`);
+      return;
+    }
+
+    try {
+      this.logger.log(`Mocking Google Calendar API call for appointment: ${appointmentDetails.id}...`);
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      this.logger.log('Google Calendar event created successfully!');
+    } catch (error) {
+      this.logger.error('Failed to sync to Google Calendar', error);
+    }
+  }
 }

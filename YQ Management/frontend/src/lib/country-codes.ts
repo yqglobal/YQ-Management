@@ -1,58 +1,20 @@
-export const countryCodes = [
-  { code: '+1', country: 'US', name: 'United States' },
-  { code: '+1', country: 'CA', name: 'Canada' },
-  { code: '+44', country: 'GB', name: 'United Kingdom' },
-  { code: '+27', country: 'ZA', name: 'South Africa' },
-  { code: '+91', country: 'IN', name: 'India' },
-  { code: '+61', country: 'AU', name: 'Australia' },
-  { code: '+49', country: 'DE', name: 'Germany' },
-  { code: '+33', country: 'FR', name: 'France' },
-  { code: '+39', country: 'IT', name: 'Italy' },
-  { code: '+34', country: 'ES', name: 'Spain' },
-  { code: '+31', country: 'NL', name: 'Netherlands' },
-  { code: '+41', country: 'CH', name: 'Switzerland' },
-  { code: '+46', country: 'SE', name: 'Sweden' },
-  { code: '+47', country: 'NO', name: 'Norway' },
-  { code: '+45', country: 'DK', name: 'Denmark' },
-  { code: '+358', country: 'FI', name: 'Finland' },
-  { code: '+351', country: 'PT', name: 'Portugal' },
-  { code: '+30', country: 'GR', name: 'Greece' },
-  { code: '+48', country: 'PL', name: 'Poland' },
-  { code: '+420', country: 'CZ', name: 'Czech Republic' },
-  { code: '+36', country: 'HU', name: 'Hungary' },
-  { code: '+40', country: 'RO', name: 'Romania' },
-  { code: '+66', country: 'TH', name: 'Thailand' },
-  { code: '+84', country: 'VN', name: 'Vietnam' },
-  { code: '+62', country: 'ID', name: 'Indonesia' },
-  { code: '+60', country: 'MY', name: 'Malaysia' },
-  { code: '+63', country: 'PH', name: 'Philippines' },
-  { code: '+65', country: 'SG', name: 'Singapore' },
-  { code: '+81', country: 'JP', name: 'Japan' },
-  { code: '+82', country: 'KR', name: 'South Korea' },
-  { code: '+86', country: 'CN', name: 'China' },
-  { code: '+852', country: 'HK', name: 'Hong Kong' },
-  { code: '+886', country: 'TW', name: 'Taiwan' },
-  { code: '+971', country: 'AE', name: 'United Arab Emirates' },
-  { code: '+966', country: 'SA', name: 'Saudi Arabia' },
-  { code: '+972', country: 'IL', name: 'Israel' },
-  { code: '+90', country: 'TR', name: 'Turkey' },
-  { code: '+55', country: 'BR', name: 'Brazil' },
-  { code: '+52', country: 'MX', name: 'Mexico' },
-  { code: '+54', country: 'AR', name: 'Argentina' },
-  { code: '+56', country: 'CL', name: 'Chile' },
-  { code: '+57', country: 'CO', name: 'Colombia' },
-  { code: '+51', country: 'PE', name: 'Peru' },
-  { code: '+58', country: 'VE', name: 'Venezuela' },
-  { code: '+254', country: 'KE', name: 'Kenya' },
-  { code: '+234', country: 'NG', name: 'Nigeria' },
-  { code: '+20', country: 'EG', name: 'Egypt' },
-  { code: '+212', country: 'MA', name: 'Morocco' },
-  { code: '+263', country: 'ZW', name: 'Zimbabwe' },
-  { code: '+260', country: 'ZM', name: 'Zambia' },
-  { code: '+256', country: 'UG', name: 'Uganda' },
-  { code: '+255', country: 'TZ', name: 'Tanzania' },
-  { code: '+254', country: 'KE', name: 'Kenya' },
-];
+import { getCountries, getCountryCallingCode } from 'react-phone-number-input/input';
+
+const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+
+export const countryCodes = getCountries().map(country => {
+  let name = country;
+  try {
+    name = regionNames.of(country) || country;
+  } catch (e) {
+    // Ignore invalid region codes
+  }
+  return {
+    code: `+${getCountryCallingCode(country)}`,
+    country,
+    name
+  };
+});
 
 export const getCountryByCode = (code: string) => {
   return countryCodes.find(c => c.code === code);
@@ -90,6 +52,7 @@ export const detectCountryByTimezone = (): string => {
       'Europe/Budapest': 'HU',
       'Europe/Bucharest': 'RO',
       'Asia/Kolkata': 'IN',
+      'Asia/Calcutta': 'IN',
       'Asia/Dubai': 'AE',
       'Asia/Riyadh': 'SA',
       'Asia/Tel_Aviv': 'IL',
@@ -115,9 +78,31 @@ export const detectCountryByTimezone = (): string => {
       'America/Santiago': 'CL',
       'America/Bogota': 'CO',
       'America/Lima': 'PE',
+      'Asia/Calcutta': 'IN',
     };
-    return tzMap[timezone] || 'US';
+    
+    // First try the custom map for common ones
+    if (tzMap[timezone]) return tzMap[timezone];
+    
+    // Attempt to extract country from timezone (e.g. 'Europe/Paris')
+    return 'US';
   } catch {
     return 'US';
   }
+};
+
+export const detectCountryCode = async () => {
+  try {
+    const res = await fetch('https://get.geojs.io/v1/ip/country.json');
+    const data = await res.json();
+    if (data && data.country) {
+      const countryObj = getCountryByAbbr(data.country);
+      if (countryObj) return countryObj;
+    }
+  } catch (e) {
+    // Ignore geojs failure
+  }
+  const abbr = detectCountryByTimezone();
+  const countryObj = getCountryByAbbr(abbr);
+  return countryObj || countryCodes[0];
 };

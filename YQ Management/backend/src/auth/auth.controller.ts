@@ -91,7 +91,7 @@ export class AuthController {
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
   ) {
-    const user = await this.authService.verifyOTP(body.email, body.otp);
+    const user = await this.authService.verifyOTP(body.email, body.otp, 'login');
 
     const { access_token } = await this.authService.login(user, ip, userAgent);
 
@@ -147,7 +147,7 @@ export class AuthController {
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
   ) {
-    const user = await this.authService.verifyOTP(body.email, body.otp);
+    const user = await this.authService.verifyOTP(body.email, body.otp, 'signup');
 
     this.emailService
       .addContactToMarketingList(user.email)
@@ -289,6 +289,8 @@ export class AuthController {
       location?: string;
       companyName?: string;
       subdomain?: string;
+      timezone?: string;
+      address?: string;
     },
   ) {
     let currentSettings = req.user.personalSettings || {};
@@ -308,6 +310,10 @@ export class AuthController {
       currentSettings = { ...currentSettings, phone: body.phone };
     if (body.location !== undefined)
       currentSettings = { ...currentSettings, location: body.location };
+    if (body.timezone !== undefined)
+      currentSettings = { ...currentSettings, timezone: body.timezone };
+    if (body.address !== undefined)
+      currentSettings = { ...currentSettings, address: body.address };
 
     const updates = { personalSettings: currentSettings };
 
@@ -415,7 +421,7 @@ export class AuthController {
     @Body() body: { email: string; otp: string; password: string },
   ) {
     // This will throw if OTP is invalid/expired
-    await this.authService.verifyOTP(body.email, body.otp);
+    await this.authService.verifyOTP(body.email, body.otp, 'reset');
 
     // Once verified, we can update the password
     const user = await this.usersService.findOneByEmail(body.email);

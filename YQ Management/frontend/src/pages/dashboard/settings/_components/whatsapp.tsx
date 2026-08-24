@@ -240,6 +240,7 @@ export default function WhatsAppSettingsPage() {
                           onCountryCodeChange={setPairingCountryCode}
                           placeholder="234 567 8900"
                           className="w-full h-full !border-none !bg-transparent px-3 text-on-surface dark:text-white font-body-md"
+                          autoDetect={true}
                         />
                       </div>
                     </div>
@@ -372,7 +373,8 @@ export default function WhatsAppSettingsPage() {
                       countryCode={testCountryCode}
                       onCountryCodeChange={setTestCountryCode}
                       placeholder="234 567 8900"
-                      className="w-full h-full !border-none !bg-transparent px-3 text-on-surface dark:text-white font-body-md" 
+                      className="w-full h-full !border-none !bg-transparent px-3 text-on-surface dark:text-white font-body-md"
+                      autoDetect={true}
                     />
                   </div>
                 </div>

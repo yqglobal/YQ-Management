@@ -46,6 +46,8 @@ import { TasksModule } from './tasks/tasks.module';
 import { SystemLogModule } from './system-log/system-log.module';
 import { PoliciesModule } from './policies/policies.module';
 import { GoogleModule } from './integrations/google/google.module';
+import { MarketingModule } from './marketing/marketing.module';
+import { BlogsModule } from './blogs/blogs.module';
 
 @Module({
   imports: [
@@ -128,6 +130,8 @@ import { GoogleModule } from './integrations/google/google.module';
     SystemLogModule,
     PoliciesModule,
     GoogleModule,
+    MarketingModule,
+    BlogsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

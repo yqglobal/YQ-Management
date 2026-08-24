@@ -1,23 +1,44 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
+
 WORKDIR /app
+
+# Enable Next.js telemetry disable
+ENV NEXT_TELEMETRY_DISABLED 1
+
 COPY package*.json ./
 RUN npm ci
+
 COPY . .
+
+# Build Next.js application (standalone output enabled in next.config.ts)
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
+
 WORKDIR /app
 
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
-COPY --from=builder /app/next.config.ts ./
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown node:node .next
+
+# Automatically leverage output traces to reduce image size
+COPY --from=builder --chown=node:node /app/.next/standalone ./
+COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+
+USER node
 
 EXPOSE 3000
 
+ENV PORT 3000
+
+# server.js is created by next build from the standalone output
 CMD ["node", "server.js"]

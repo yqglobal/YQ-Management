@@ -47,10 +47,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       })
       .catch(() => {
         setUser(null);
+        setLoading(false);
         if (router.pathname.startsWith('/dashboard') || router.pathname.startsWith('/onboarding')) {
           router.push('/login');
-        } else {
-          setLoading(false);
         }
       })
       .finally(() => {

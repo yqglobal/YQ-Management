@@ -45,6 +45,8 @@
     "class-validator": "^0.15.1",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
+    "date-fns": "^4.4.0",
+    "date-fns-tz": "^3.2.0",
     "helmet": "^8.2.0",
     "ioredis": "^5.11.1",
     "nestjs-pino": "^4.6.1",

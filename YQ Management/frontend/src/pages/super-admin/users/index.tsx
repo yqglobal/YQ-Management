@@ -125,8 +125,18 @@ export default function SuperAdminUsers() {
                   </tr>
                 ) : !users || users.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400 dark:text-zinc-500">
-                      No users found.
+                    <td colSpan={6} className="px-6 py-20 text-center">
+                      <div className="flex flex-col items-center justify-center space-y-4">
+                        <div className="w-16 h-16 bg-gray-50 dark:bg-zinc-900 rounded-full flex items-center justify-center">
+                          <Users className="w-8 h-8 text-gray-400 dark:text-zinc-500" />
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No users found</h3>
+                          <p className="text-sm text-gray-500 dark:text-zinc-400 max-w-sm mx-auto">
+                            No users match the current search or role filter. Try adjusting your filters or add a new user.
+                          </p>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -189,8 +199,8 @@ export default function SuperAdminUsers() {
                                 <button className="flex items-center gap-2 px-4 py-2 text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 w-full text-left" onClick={() => { toast.success('User banned'); setShowActions(null); }}>
                                   <Ban className="w-4 h-4" /> Ban
                                 </button>
-                                <button className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 w-full text-left" onClick={() => { if (confirm('Delete this user?')) deleteUserMutation.mutate(user.id); setShowActions(null); }}>
-                                  <Trash2 className="w-4 h-4" /> Delete
+                                <button className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 w-full text-left disabled:opacity-50" disabled={deleteUserMutation.isPending} onClick={() => { if (confirm('Delete this user?')) deleteUserMutation.mutate(user.id); setShowActions(null); }}>
+                                  <Trash2 className="w-4 h-4" /> {deleteUserMutation.isPending ? 'Deleting...' : 'Delete'}
                                 </button>
                               </div>
                             )}
@@ -240,14 +250,63 @@ export default function SuperAdminUsers() {
                 Cancel
               </button>
               <button
+                disabled={updateUserMutation.isPending}
                 onClick={() => {
                   updateUserMutation.mutate({ id: editingUser.id, data: { email: editingUser.email, role: editingUser.role } });
                   setEditingUser(null);
                   toast.success('User updated');
                 }}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-medium transition-colors"
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Save Changes
+                {updateUserMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-md shadow-xl border border-zinc-200 dark:border-zinc-800">
+            <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-50">Add User</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+                  placeholder="Enter user email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Role</label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  className="w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+                >
+                  <option value="SUPER_ADMIN">Super Admin</option>
+                  <option value="TENANT_ADMIN">Tenant Admin</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="OPERATOR">Operator</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6 justify-end">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={createUserMutation.isPending || !newUser.email}
+                onClick={handleCreateUser}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {createUserMutation.isPending ? 'Creating...' : 'Create User'}
               </button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from '../prisma/prisma.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
@@ -14,7 +14,7 @@ import { WhatsAppTemplateService } from './templates/whatsapp-template.service';
 @Module({
   imports: [
     PrismaModule,
-    WhatsappModule,
+    forwardRef(() => WhatsappModule),
     BullModule.registerQueue({
       name: 'communication',
     }),

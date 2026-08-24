@@ -8,12 +8,16 @@ import { ResumeSubscriptionDto } from './dto/subscription.dto';
 import { Subscription, Plan } from '@prisma/client';
 import { SubscriptionStatus } from '@prisma/client';
 import { BillingException } from '../billing/errors/billing-exceptions';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class SubscriptionService {
   private readonly logger = new Logger(SubscriptionService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async getSubscription(tenantId: string): Promise<(Subscription & { plan: Plan }) | null> {
     let sub = await this.prisma.subscription.findUnique({
@@ -23,20 +27,56 @@ export class SubscriptionService {
       },
     });
 
-    if (!sub) {
-      const starterPlan = await this.prisma.plan.findFirst({
-        where: { name: { contains: 'Starter' } },
-      });
-      if (starterPlan) {
-        sub = await this.startFreeTrial(
-          tenantId,
-          starterPlan.id,
-          starterPlan.trialDays || 14,
+    return sub;
+  }
+
+  async checkLimit(
+    tenantId: string,
+    resource: 'queues' | 'locations' | 'visits',
+    currentCount: number,
+  ): Promise<void> {
+    const sub = await this.getSubscription(tenantId);
+    if (!sub || !sub.plan) return;
+
+    if (
+      sub.status !== SubscriptionStatus.ACTIVE &&
+      sub.status !== SubscriptionStatus.TRIAL
+    ) {
+      throw new BillingException('Active subscription required to add resources');
+    }
+
+    if (resource === 'queues' && sub.plan.maxQueues !== null) {
+      if (currentCount >= sub.plan.maxQueues) {
+        throw new BillingException(
+          `Queue limit reached (${sub.plan.maxQueues}) for your current plan. Please upgrade to add more queues.`,
         );
       }
     }
 
-    return sub;
+    if (resource === 'locations') {
+      const limits = (sub.plan.limits as any) || {};
+      const maxLocations = limits.maxLocations;
+      if (maxLocations !== undefined && maxLocations !== null) {
+        if (currentCount >= maxLocations) {
+          throw new BillingException(
+            `Location limit reached (${maxLocations}) for your current plan. Please upgrade to add more locations.`,
+          );
+        }
+      }
+    }
+
+    // FIX (2C): Enforce visit/token quota against the plan's maxVisits limit.
+    // maxVisits = null means unlimited (Enterprise). Otherwise enforced per billing period.
+    if (resource === 'visits') {
+      const maxVisits = (sub.plan as any).maxVisits;
+      if (maxVisits !== undefined && maxVisits !== null) {
+        if (currentCount >= maxVisits) {
+          throw new BillingException(
+            `Visit limit reached (${maxVisits}) for your current plan. Please upgrade to allow more visits.`,
+          );
+        }
+      }
+    }
   }
 
   async createSubscription(
@@ -256,6 +296,19 @@ export class SubscriptionService {
     this.logger.log(
       `Subscription cancelled for workspace ${tenantId}, immediate=${dto.immediate}`,
     );
+
+    try {
+      const owner = await this.prisma.user.findFirst({
+        where: { tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+        select: { email: true },
+      });
+      if (owner?.email && updated.plan?.name) {
+        await this.emailService.sendSubscriptionCancelledEmail(owner.email, updated.plan.name);
+      }
+    } catch (e) {
+      this.logger.error(`Failed to send cancellation email to workspace ${tenantId}`, e);
+    }
+
     return updated;
   }
 
@@ -359,6 +412,23 @@ export class SubscriptionService {
     this.logger.log(
       `Free trial started for workspace ${tenantId}, plan ${planId}, ${trialDays} days`,
     );
+
+    try {
+      const workspaceOwner = await this.prisma.user.findFirst({
+        where: { tenantId, role: 'TENANT_ADMIN' },
+        select: { email: true },
+      });
+      if (workspaceOwner?.email) {
+        await this.emailService.sendTrialStartedEmail(
+          workspaceOwner.email,
+          plan.name,
+          trialDays,
+        );
+      }
+    } catch (e) {
+      this.logger.error(`Failed to send trial started email for ${tenantId}`, e);
+    }
+
     return subscription;
   }
 
