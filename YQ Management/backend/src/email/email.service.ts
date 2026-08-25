@@ -423,7 +423,7 @@ export class EmailService {
         title,
         preheader,
         content,
-        logoUrl: 'https://yq.com/logo.png',
+        logoUrl: 'https://qmova.yqbuddy.com/qmova-light-logo.png',
       });
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',

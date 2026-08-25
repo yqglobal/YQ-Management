@@ -14,7 +14,7 @@ export function createBrandEmailLayout(options: {
     brandColor = '#0ea5e9', // Primary brand color (sky-500)
   } = options;
   const frontendUrl = process.env.FRONTEND_URL || 'https://qmova.yqbuddy.com';
-  const logoUrl = options.logoUrl || `${frontendUrl}/qmova-dark-logo.png`;
+  const logoUrl = options.logoUrl || `${frontendUrl}/qmova-light-logo.png`;
   const year = new Date().getFullYear();
 
   const logoHtml = logoUrl
