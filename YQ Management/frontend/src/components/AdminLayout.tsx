@@ -178,7 +178,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   return (
     <div className="bg-canvas dark:bg-dark-canvas text-on-surface dark:text-white font-body-md min-h-screen flex flex-col antialiased">
-      {!hasAcceptedPolicies && <AdvancedPoliciesModal />}
+      {!hasAcceptedPolicies && !!user?.workspaceId && <AdvancedPoliciesModal />}
       <DashboardTour />
 
       {/* Mobile overlay */}

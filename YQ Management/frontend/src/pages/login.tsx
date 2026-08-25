@@ -75,7 +75,7 @@ export default function Login() {
         }
         const isSuper = data?.user?.role === 'SUPER_ADMIN' || email.trim().toLowerCase() === 'yqbuddysa@gmail.com';
         const pendingInvite = typeof window !== 'undefined' ? localStorage.getItem('qmova_invite_code') : null;
-        if (pendingInvite && !isSuper) {
+        if (!isSuper && (!data?.user?.workspaceId || pendingInvite)) {
           router.push('/onboarding');
         } else {
           router.push(isSuper ? '/super-admin' : '/dashboard');
@@ -122,7 +122,7 @@ export default function Login() {
       }
       const isSuper = data?.user?.role === 'SUPER_ADMIN' || email.trim().toLowerCase() === 'yqbuddysa@gmail.com';
       const pendingInvite = typeof window !== 'undefined' ? localStorage.getItem('qmova_invite_code') : null;
-      if (pendingInvite && !isSuper) {
+      if (!isSuper && (!data?.user?.workspaceId || pendingInvite)) {
         router.push('/onboarding');
       } else {
         router.push(isSuper ? '/super-admin' : '/dashboard');
