@@ -489,13 +489,13 @@ export default function BillingSettings() {
 
                   <button
                     onClick={() => handleUpgradeClick(plan)}
-                    disabled={subscribeMutation.isPending || plan.price === 0 || isPendingPayment}
+                    disabled={subscribeMutation.isPending || (currentSub?.planId === plan.id) || isPendingPayment}
                     className={`w-full h-[44px] rounded-lg font-body-md font-semibold flex items-center justify-center gap-2 transition-colors mb-8 ${isPopular ? 'bg-primary hover:bg-primary-container text-white' : 'bg-surface-container-high dark:bg-white/10 hover:bg-surface-container-highest dark:hover:bg-white/20 text-on-surface dark:text-white'} disabled:opacity-50`}
                   >
                     {subscribeMutation.isPending && subscribeMutation.variables?.planId === plan.id ? (
                       <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" />
                     ) : null}
-                    {plan.price === 0 ? 'Current Plan' : isPendingPayment ? 'Payment Pending' : 'Select Plan'}
+                    {currentSub?.planId === plan.id ? 'Current Plan' : isPendingPayment ? 'Payment Pending' : 'Select Plan'}
                   </button>
 
                   <div className="space-y-4 flex-1">

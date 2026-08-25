@@ -5,8 +5,6 @@ import { useRouter } from 'next/router';
 import { format } from 'date-fns';
 import { ArrowLeft, User, Calendar, Loader2 } from 'lucide-react';
 
-import DOMPurify from 'isomorphic-dompurify';
-
 export default function BlogPost({ blog }: { blog: any }) {
   const router = useRouter();
 
@@ -74,7 +72,7 @@ export default function BlogPost({ blog }: { blog: any }) {
             className="prose prose-lg prose-blue max-w-none text-gray-700 leading-relaxed
                        prose-headings:font-bold prose-headings:text-gray-900 prose-headings:tracking-tight
                        prose-a:text-blue-600 hover:prose-a:text-blue-500"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.content) }}
+            dangerouslySetInnerHTML={{ __html: blog.content }}
           />
         </article>
       </main>

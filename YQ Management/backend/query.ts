@@ -1,11 +1,7 @@
-import { config } from 'dotenv';
-config();
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
-
 async function main() {
-  const subs = await prisma.subscription.findMany();
-  console.log(JSON.stringify(subs, null, 2));
+  const sub = await prisma.subscription.findFirst({ orderBy: { createdAt: 'desc' } });
+  console.log(JSON.stringify(sub, null, 2));
 }
-
 main().catch(console.error).finally(() => prisma.$disconnect());

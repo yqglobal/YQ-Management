@@ -17,23 +17,29 @@ export function getTenantUrl(subdomain: string, path: string = '') {
   
   let baseDomain = process.env.NEXT_PUBLIC_APP_URL;
   if (!baseDomain) {
-      const hostParts = window.location.hostname.split('.');
-      const isVercel = window.location.hostname.includes('vercel.app');
+      // Fallback if NEXT_PUBLIC_APP_URL is not provided
+      const hostname = window.location.hostname;
       
-      let baseHost = window.location.hostname;
-      if (isVercel) {
-          if (hostParts.length > 3) {
-             baseHost = hostParts.slice(-3).join('.');
-          }
-          return `${window.location.protocol}//${baseHost}/t/${subdomain}${path}`;
+      // If we are already on a tenant subdomain, strip it to get the base domain
+      // e.g., demo.qmova.yqbuddy.com -> qmova.yqbuddy.com
+      const parts = hostname.split('.');
+      if (parts.length > 2 && !hostname.includes('vercel.app')) {
+        // We assume the base domain is the main app domain (e.g., qmova.yqbuddy.com)
+        // If they are on the main domain (e.g. qmova.yqbuddy.com), it will stay as is.
+        // But if they are somehow on a subdomain, we should use the main app domain.
+        // Actually, since this runs in the browser on the *main dashboard* to generate links,
+        // window.location.hostname IS the base domain!
+        baseDomain = `${window.location.protocol}//${hostname}`;
+      } else if (hostname.includes('vercel.app')) {
+        const isVercel = true;
+        let baseHost = hostname;
+        if (parts.length > 3) {
+            baseHost = parts.slice(-3).join('.');
+        }
+        return `${window.location.protocol}//${baseHost}/t/${subdomain}${path}`;
       } else {
-          // If it's something like hq.qmova.app (3 parts), base is qmova.app (2 parts)
-          // If it's qmova.app (2 parts), base is qmova.app
-          if (hostParts.length > 2) {
-             baseHost = hostParts.slice(1).join('.');
-          }
+        baseDomain = `${window.location.protocol}//${hostname}`;
       }
-      baseDomain = `${window.location.protocol}//${baseHost}`;
   }
   
   try {

@@ -133,6 +133,7 @@ services:
         - NEXT_PUBLIC_API_URL=https://api.${DOMAIN_BASE}
         - NEXT_PUBLIC_BACKEND_URL=https://api.${DOMAIN_BASE}
         - NEXT_PUBLIC_WS_URL=https://api.${DOMAIN_BASE}
+        - NEXT_PUBLIC_APP_URL=https://${DOMAIN_BASE}
     container_name: yq-frontend
     restart: always
     environment:
@@ -141,6 +142,7 @@ services:
       - NEXT_PUBLIC_API_URL=https://api.${DOMAIN_BASE}
       - NEXT_PUBLIC_BACKEND_URL=https://api.${DOMAIN_BASE}
       - NEXT_PUBLIC_WS_URL=https://api.${DOMAIN_BASE}
+      - NEXT_PUBLIC_APP_URL=https://${DOMAIN_BASE}
       - NEXT_PUBLIC_SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL}
     depends_on:
       - backend

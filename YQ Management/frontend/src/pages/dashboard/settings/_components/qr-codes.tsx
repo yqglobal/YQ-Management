@@ -37,13 +37,16 @@ export default function QRCodesSettings() {
           <title>Print QR Code - ${tenant?.name || 'Qmova'}</title>
           <style>
             body { font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #fff; color: #000; }
-            .container { text-align: center; max-width: 500px; padding: 40px; border: 2px solid #e5e7eb; border-radius: 24px; }
-            h1 { font-size: 24px; margin-bottom: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; }
-            p { color: #6b7280; margin-bottom: 32px; font-size: 16px; }
-            .qr-wrapper { margin: 0 auto 32px; display: flex; justify-content: center; }
-            .url { background: #f3f4f6; padding: 12px 24px; border-radius: 12px; font-family: monospace; font-size: 14px; word-break: break-all; }
+            .container { text-align: center; max-width: 800px; width: 100%; padding: 60px; border: 2px solid #e5e7eb; border-radius: 32px; }
+            h1 { font-size: 48px; margin-bottom: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; }
+            p { color: #4b5563; margin-bottom: 48px; font-size: 24px; font-weight: 500; }
+            .qr-wrapper { margin: 0 auto 48px; display: flex; justify-content: center; }
+            /* Force the injected SVG to scale up */
+            .qr-wrapper svg { width: 450px !important; height: 450px !important; }
+            .url { background: #f3f4f6; padding: 16px 32px; border-radius: 16px; font-family: monospace; font-size: 20px; word-break: break-all; font-weight: 600; color: #111827; }
             @media print {
-              .container { border: none; }
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              .container { border: none; padding: 0; margin-top: 10vh; }
             }
           </style>
         </head>

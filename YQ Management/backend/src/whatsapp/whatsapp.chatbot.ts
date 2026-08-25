@@ -112,15 +112,14 @@ export class WhatsappChatbot {
         });
         return { handled: true, isHumanPaused: true }; // Trigger inbox saving
       }
-
-      await this.sendMsg(
-        jid,
-        "I didn't understand that. Please reply '0' to see the menu again.",
-      );
-      return { handled: true, isHumanPaused: false };
     }
 
-    return { handled: false, isHumanPaused: false };
+    // Fallback: If they typed something we didn't understand, prompt them
+    await this.sendMsg(
+      jid,
+      "I didn't understand that. Please reply '0' or 'Hi' to see the main menu.",
+    );
+    return { handled: true, isHumanPaused: false };
   }
 
   private async sendMenu(jid: string, config: any) {

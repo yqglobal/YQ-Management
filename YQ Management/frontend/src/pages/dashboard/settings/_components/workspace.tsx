@@ -195,8 +195,8 @@ export default function WorkspaceSettingsPage() {
             icon="monitor"
             title="TV Lobby Display"
             description="Paste into a browser on your lobby TV or screen share to show a live calling board."
-            url={`${baseUrl}/tv/${currentTenantId}`}
-            onCopy={() => copyLink(`${baseUrl}/tv/${currentTenantId}`, 'TV display link')}
+            url={tenantSubdomain ? `${portalUrl}/tv/${currentTenantId}` : `${baseUrl}/tv/${currentTenantId}`}
+            onCopy={() => copyLink(tenantSubdomain ? `${portalUrl}/tv/${currentTenantId}` : `${baseUrl}/tv/${currentTenantId}`, 'TV display link')}
           />
 
           {/* Customer portal */}

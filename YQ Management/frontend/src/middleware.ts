@@ -33,11 +33,16 @@ export async function middleware(req: NextRequest) {
     }
   } else {
     // Production domain matching
-    // Assumes base domain is qmova.vercel.app or yq-qmova.vercel.app
-    let baseDomain = '';
-    if (hostname.includes('yq-qmova.vercel.app')) baseDomain = 'yq-qmova.vercel.app';
-    else if (hostname.includes('qmova.vercel.app')) baseDomain = 'qmova.vercel.app';
-    else if (hostname.includes('qmova-app.vercel.app')) baseDomain = 'qmova-app.vercel.app';
+    // Use NEXT_PUBLIC_APP_URL if available, otherwise try to extract from hostname
+    let baseDomain = process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : '';
+    
+    // Fallbacks for known deployments if env var isn't set
+    if (!baseDomain) {
+      if (hostname.includes('yq-qmova.vercel.app')) baseDomain = 'yq-qmova.vercel.app';
+      else if (hostname.includes('qmova.vercel.app')) baseDomain = 'qmova.vercel.app';
+      else if (hostname.includes('qmova-app.vercel.app')) baseDomain = 'qmova-app.vercel.app';
+      else if (hostname.includes('qmova.yqbuddy.com')) baseDomain = 'qmova.yqbuddy.com';
+    }
 
     if (baseDomain && hostname.endsWith(`.${baseDomain}`)) {
       subdomain = hostname.replace(`.${baseDomain}`, '');

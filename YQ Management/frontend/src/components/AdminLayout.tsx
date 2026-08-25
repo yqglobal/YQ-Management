@@ -508,7 +508,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
             if (plan.isLoading || !allDone) return null;
             return (
               <div className="px-2 pb-2 mt-4">
-                {(plan.status === 'TRIAL' || !plan.status) && (
+                {(plan.status === 'TRIAL') && (
                   <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl text-white shadow-lg shadow-indigo-500/20 relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                     <div className="relative z-10">
@@ -519,6 +519,21 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                       <h4 className="font-bold text-sm mb-1">Upgrade to Pro</h4>
                       <p className="text-xs text-white/80 mb-3">{plan.trialDaysLeft > 0 ? `${plan.trialDaysLeft} days left in trial` : 'Trial expired'}</p>
                       <Link href="/dashboard/settings/billing" className="block w-full text-center bg-white text-indigo-600 font-bold text-xs py-2 rounded-lg hover:bg-indigo-50 transition-colors">
+                        View Plans
+                      </Link>
+                    </div>
+                  </div>
+                )}
+                {!plan.status && user?.role !== 'SUPER_ADMIN' && (
+                  <div className="bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5 hover:border-primary">
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="material-symbols-outlined text-[20px] text-primary">rocket_launch</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full">No Plan</span>
+                      </div>
+                      <h4 className="font-bold text-sm text-on-surface dark:text-white mb-1">Choose a Plan</h4>
+                      <p className="text-xs text-on-surface-variant dark:text-zinc-400 mb-3">Subscribe to access features.</p>
+                      <Link href="/dashboard/settings/billing" className="block w-full text-center bg-primary text-on-primary font-bold text-xs py-2 rounded-lg hover:bg-primary-container transition-colors">
                         View Plans
                       </Link>
                     </div>
