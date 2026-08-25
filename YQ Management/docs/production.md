@@ -1,143 +1,176 @@
-# Qmova / YQ Management - Production Architecture & Operations Report
+# Qmova / YQ Management - Production Architecture & Operations Guide
 
-This document provides an exhaustive reference for the production infrastructure, deployment pipelines, secret management, and operational workflows of the **Qmova (YQ Management)** software ecosystem.
+This document provides a comprehensive reference for the self-hosted production infrastructure, deployment pipelines, container orchestration, and operational workflows of the **Qmova (YQ Management)** software ecosystem.
 
 ---
 
 ## 1. Executive Summary & Architecture Overview
 
-Qmova is a multi-tenant queue management and customer interaction platform designed for businesses, healthcare facilities, restaurants, and government services. The architecture operates as a globally distributed, decoupled modern web application:
+Qmova is a multi-tenant queue management and customer interaction platform designed for businesses, healthcare facilities, restaurants, and government services. The architecture operates as a self-hosted, containerized stack running on a single VPS using Docker Compose.
 
 ```
-+-------------------+       +-----------------------+       +------------------------+
-|                   |       |                       |       |                        |
-|  Next.js Frontend | <---> | NestJS REST Backend   | <---> | PostgreSQL Database    |
-|  (Vercel CDN)     |       | (Render / AWS)        |       | (Managed DB & Prisma)  |
-|                   |       |                       |       |                        |
-+-------------------+       +-----------------------+       +------------------------+
-         ^                              ^
-         |                              |
-         |                              v
-         |                  +-----------------------+
-         |                  | External APIs:        |
-         +----------------> | - Brevo (OTP Emails)  |
-   (Google OAuth SSO        | - Evolution API (WA)  |
-     Redirect Flow)         | - Google OAuth Cloud  |
-                            +-----------------------+
+                                +-----------------------------------+
+                                |            VPS Server             |
+                                |                                   |
++-------------------+           |  +-----------------------------+  |
+|                   | HTTP/443  |  |                             |  |
+|  Public Internet  | <=======> |  |      Caddy (yq-caddy)       |  |
+|                   |           |  |      Reverse Proxy & TLS    |  |
++-------------------+           |  |                             |  |
+                                |  +--------------+--------------+  |
+                                |                 |                 |
+                                |   qmova.        |  api.qmova.     |
+                                |   yqbuddy.com   |  yqbuddy.com    |
+                                |                 |                 |
+                                |  +--------------v--------------+  |
+                                |  |                             |  |
+                                |  |    Next.js Frontend         |  |
+                                |  |    (yq-frontend:3001)       |  |
+                                |  |                             |  |
+                                |  +-----------------------------+  |
+                                |                                   |
+                                |  +-----------------------------+  |
+                                |  |                             |  |
+                                |  |    NestJS REST Backend      |  |
+                                |  |    (yq-backend:3000)        |  |
+                                |  |                             |  |
+                                |  +--+-------+--------+------+--+  |
+                                |     |       |        |      |     |
+                                | +---v---+ +-v-----+ +-v---++-v--+ |
+                                | |       | |       | |      ||   | |
+                                | | pg    | | redis | | evo  ||   | |
+                                | |(5432) | |(6379) | |(8080)||   | |
+                                | +-------+ +-------+ +------++---+ |
+                                +-----------------------------------+
 ```
 
 ---
 
-## 2. Service Hosting Breakdown
+## 2. Infrastructure & Hosting Breakdown
 
-### A. Frontend Application (Vercel)
-* **Production URL:** `https://yq-qmova.vercel.app`
-* **Framework:** Next.js (Pages router), React, Tailwind CSS, `@tanstack/react-query`, Lucide UI icons, Sonner notifications.
-* **Hosting Provider:** **Vercel** (Global Edge CDN).
-* **Role:** Delivers responsive web interfaces for public user enrollment, administrative dashboards, tenant onboarding, and super-admin platform management.
-* **Build Command:** `npm run build` (Standard Next.js optimized bundle).
+The entire stack is hosted on a single **8GB VPS** (IP: `168.231.79.175`) running Ubuntu Linux. The stack is defined in `docker-compose.production.yml`.
 
-### B. Backend REST API (Render)
-* **Production URL:** `https://qmova-backend.onrender.com`
+### A. Reverse Proxy (Caddy)
+* **Image:** `caddy:2-alpine`
+* **Role:** Acts as the edge proxy, terminating SSL/TLS automatically via Let's Encrypt, and routing traffic based on hostnames.
+* **Routing:**
+  * `qmova.yqbuddy.com` -> Routes to `yq-frontend` on port 3001.
+  * `api.qmova.yqbuddy.com` -> Routes to `yq-backend` on port 3000.
+* **Volume:** `caddy_data` for storing TLS certificates persistently.
+
+### B. Frontend Application (Next.js)
+* **Production URL:** `https://qmova.yqbuddy.com`
+* **Container:** `yq-frontend`
+* **Framework:** Next.js (Pages router), React, Tailwind CSS, `@tanstack/react-query`, Lucide UI icons.
+* **Build Architecture:** The frontend is built inside a multi-stage Dockerfile (`frontend/Dockerfile`) using Next.js Standalone mode for a minimized footprint. Build-time environment variables (`NEXT_PUBLIC_API_URL`) are injected via Docker `ARG` instructions during the image build phase.
+
+### C. Backend REST API (NestJS)
+* **Production URL:** `https://api.qmova.yqbuddy.com`
+* **Container:** `yq-backend`
 * **Framework:** NestJS (Node.js / TypeScript), Prisma ORM, Passport Auth (JWT & Google OAuth 2.0).
-* **Hosting Provider:** **Render** (Hosted on AWS US-West infrastructure).
-* **Role:** Handles core business logic, user authentication, multi-tenant queue processing, webhooks, rate limiting (Throttler), and external vendor orchestrations.
-* **Health & Keep-Alive:** Implements an automated self-ping / keep-alive worker (`KeepAliveService`) targeting `/health` every 5 minutes to prevent container idle freeze in serverless/free hosting tiers.
+* **Role:** Handles core business logic, user authentication, multi-tenant queue processing, webhooks, and rate limiting.
 
-### C. Primary Database (PostgreSQL / Prisma)
-* **Database Type:** Managed PostgreSQL relational database.
-* **Schema & ORM:** Powered by Prisma ORM (`backend/prisma/schema.prisma`).
-* **Migrations:** Executed automatically during CI/CD deploy processes via `prisma migrate deploy` or `prisma db push`.
+### D. Primary Database (PostgreSQL / Prisma)
+* **Container:** `yq-postgres`
+* **Image:** `postgres:15-alpine`
 * **Role:** Persistent encrypted storage for workspaces, users, queue configurations, live queue tokens, audit logs, and communication templates.
+* **Volume:** `pgdata` (CRITICAL: Never delete this volume to avoid data loss).
+* **Migrations:** Executed automatically during the deployment script via a dedicated short-lived container running `npx prisma migrate deploy`.
 
-### D. Email Notification Gateway (Brevo / Sendinblue)
-* **Provider:** Brevo (formerly Sendinblue).
-* **Role:** Outbound transactional SMTP/REST API email gateway for sending One-Time Passwords (OTPs) for registration, sign-in, and password recovery.
-* **IP Authorization Protocol:** Brevo enforces IP whitelisting for outgoing calls. Render uses AWS dynamic pools; outbound IPs (`216.24.57.x`, `216.198.79.x`, etc.) are authorized directly within the Brevo Developer Portal via the *Unauthorized IP Addresses* tracker tab.
+### E. Cache & Message Broker (Redis)
+* **Container:** `yq-redis`
+* **Image:** `redis:7-alpine`
+* **Role:** Serves as the caching layer, rate-limiting store (Throttler), and BullMQ message queue broker for background job processing.
+* **Volume:** `redisdata` (Optional persistence, but mounted to survive container restarts).
 
-### E. WhatsApp Automation Engine (Evolution API)
-* **Provider:** Evolution API (Self-hosted or cloud managed instance).
-* **Version:** Pinned to `2.3.7` in all environments (local Docker, Render).
-* **Architecture:** Per-tenant instance model (`tenant_{id}`) with auto-recovery cron (every 10 minutes).
-* **Role:** Establishes linked WhatsApp Web connections per tenant via real-time QR code generation or mobile pairing codes. Automates out-of-the-box customer alerts (e.g., ticket issuance, turn approaching, service completion).
-* **Webhook Security:** Optional `WEBHOOK_SECRET` query parameter validation. In production, `BACKEND_PUBLIC_URL` must point to the backend public URL (not the Vercel frontend) so Evolution webhooks target the NestJS backend.
-
-### F. Single Sign-On (Google Cloud Identity)
-* **Provider:** Google Cloud Console OAuth 2.0 Application.
-* **Role:** Enables one-click onboarding and login for both existing users and seamless automated signup flows for brand-new users.
+### F. WhatsApp Automation Engine (Evolution API)
+* **Container:** `yq-evolution`
+* **Image:** `atendai/evolution-api:v2.2.1`
+* **Role:** Establishes linked WhatsApp Web connections per tenant via real-time QR codes. Automates out-of-the-box customer alerts (e.g., ticket issuance, turn approaching).
+* **Volume:** `evolution_instances` and `evolution_store` for persisting WhatsApp session state.
 
 ---
 
 ## 3. Secret & API Key Management
 
-To maintain institutional-grade security, API keys and database credentials are **never** hardcoded in the source repository. They are injected as runtime environment variables through secure hosting dashboards.
+API keys and database credentials are injected as runtime environment variables. On the VPS, these are stored in the `.env` file at the root of the project directory (`/var/www/yq/YQ Management/.env`).
 
-### A. Backend Environment Variables (Render Dashboard)
-Configure these inside the Render Web Service settings under the **Environment** tab:
+### Core Environment Variables
 
-| Variable Name | Description | Example / Location |
+| Variable Name | Description | Example |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | PostgreSQL direct connection string | `postgresql://user:password@hostname:5432/qmova?sslmode=require` |
-| `JWT_SECRET` | 256-bit secret key used to sign session JWTs | High-entropy cryptographic random string |
-| `FRONTEND_URL` | Canonical root domain of the Vercel frontend | `https://yq-qmova.vercel.app` |
-| `BREVO_API_KEY` | REST API Key for transactional OTP emails | Generated via Brevo Dashboard -> Settings -> SMTP & API -> API Keys |
-| `EVOLUTION_API_URL` | Base endpoint URL for WhatsApp service | `https://evo-api.domain.com` |
-| `EVOLUTION_API_KEY` | Global/Instance API token for WhatsApp setup | Configured during Evolution API provisioning |
-| `BACKEND_PUBLIC_URL` | Public URL where backend receives webhooks | `https://qmova-backend.onrender.com` |
-| `WEBHOOK_SECRET` | Optional secret for Evolution webhook auth | Random string |
-| `GOOGLE_CLIENT_ID` | Google OAuth Client ID for SSO | Obtained from Google Cloud Console -> Credentials |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret for SSO | Obtained from Google Cloud Console -> Credentials |
-| `SUPER_ADMIN_EMAIL` | Root administrative system email | `yqbuddysa@gmail.com` |
-| `NODE_ENV` | Application execution state | `production` |
-
-### B. Frontend Environment Variables (Vercel Dashboard)
-Configure these inside the Vercel Project settings under **Settings -> Environment Variables**:
-
-| Variable Name | Description | Default Value |
-| :--- | :--- | :--- |
-| `NEXT_PUBLIC_API_URL` | Canonical root target for API interactions | `https://qmova-backend.onrender.com` |
+| `POSTGRES_USER` | DB root username | `postgres` |
+| `POSTGRES_PASSWORD` | DB root password | *Secure string* |
+| `POSTGRES_DB` | Database name | `yq_queue` |
+| `DATABASE_URL` | PostgreSQL connection string used by Prisma | `postgresql://user:password@db:5432/yq_queue?schema=public` |
+| `REDIS_HOST` | Internal Docker host for Redis | `redis` |
+| `JWT_SECRET` | 256-bit secret key used to sign session JWTs | *High-entropy string* |
+| `FRONTEND_URL` | Canonical root domain of the frontend | `https://qmova.yqbuddy.com` |
+| `NEXT_PUBLIC_API_URL` | Canonical root domain of the backend | `https://api.qmova.yqbuddy.com` |
+| `BREVO_API_KEY` | REST API Key for transactional OTP emails | Generated via Brevo Dashboard |
+| `EVOLUTION_API_URL` | Internal/External endpoint for WhatsApp service | `http://evolution:8080` |
+| `EVOLUTION_API_KEY` | Global/Instance API token for WhatsApp setup | Configured during Evolution setup |
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID for SSO | Obtained from Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret for SSO | Obtained from Google Cloud Console |
 
 ---
 
-## 4. Git Workflows & Production Updates
+## 4. Deployment Workflow
 
-Deployment is fully CI/CD-enabled via automated GitHub branch integration and manual Vercel command-line triggers when instant deployment acceleration is required.
+Deployment is automated using a Bash script (`scripts/deploy.sh`) that safely pulls the latest code, builds the Docker images, applies database migrations, and restarts the containers with zero/minimal downtime.
 
-### A. Standard Git Update Workflow (Recommended)
+### Executing a Deployment
 
-1. **Local Development & Stage Changes:**
-   Make codebase alterations, test locally, and bundle modifications cleanly.
+1. **Commit and Push Changes:**
+   Push your changes to the `main` branch on GitHub.
    ```bash
    git add .
-   git commit -m "feat(auth): describe exact feature or fix here"
-   ```
-
-2. **Push to Central Git Repository:**
-   Pushing to the `main` branch acts as the universal production release trigger.
-   ```bash
+   git commit -m "feat: your description"
    git push origin main
    ```
 
-3. **Automated Server Deployments:**
-   * **Backend (Render):** Render listens to webhook events from the GitHub `main` branch. Upon receiving a push event, Render clones the repo, installs dependencies (`npm ci`), runs database migrations (`npx prisma generate & push`), and spins up the new application container smoothly without downtime.
-   * **Frontend (Vercel):** Vercel captures the Git commit immediately, builds the production Next.js application across its edge CDN network, and applies atomic URL promotion once build checks succeed.
+2. **Run the Deployment Script:**
+   SSH into the VPS and run the deployment script. The script can be executed securely using `sshpass` from a local machine or CI/CD runner:
+   ```bash
+   sshpass -p '<VPS_PASSWORD>' ssh -o StrictHostKeyChecking=no root@168.231.79.175 '/var/www/yq/YQ\ Management/scripts/deploy.sh'
+   ```
 
-### B. Immediate Manual Vercel Edge Promotion
-When hot-fixing frontend code (such as UI placeholder updates or polling optimizations), you can directly trigger an immediate production release from the terminal using the Vercel CLI:
-```bash
-cd "/home/abhimanyu/Projects/YQ/YQ Management/frontend"
-npx -y vercel --prod --yes
-```
-This deploys directly to the canonical production domain (`yq-qmova.vercel.app`) in approximately 45–60 seconds.
+### What `deploy.sh` Does:
+1. **Pulls Code:** Runs `git pull origin main` to fetch the latest changes.
+2. **Builds Images:** Rebuilds the frontend and backend Docker images locally on the server using `docker compose -f docker-compose.production.yml build`.
+3. **Applies Migrations:** Spins up an ephemeral container to run `npx prisma migrate deploy` safely without affecting running traffic.
+4. **Restarts Containers:** Issues `docker compose up -d` to restart any containers whose image or configuration has changed. Intact containers are left untouched.
+5. **Prunes Resources:** Runs `docker image prune -f` to clean up dangling/old images and save disk space.
 
 ---
 
-## 5. Recent Resiliency & Usability Improvements
+## 5. Security & Networking Considerations
 
-1. **Onboarding Session Persistence & Navigation:**
-   * Implemented localized persistence (`localStorage.setItem('onboarding_step', ...)`) to guarantee that accidental browser refreshes never reset user onboarding progress or lose entered forms.
-   * Installed explicit **Back** buttons across all onboarding steps (Personal Info, Queues Configuration, and WhatsApp Setup) allowing fluid bidirectional traversal.
-2. **Instantaneous WhatsApp State Reconciliation:**
-   * Optimized React Query status polling (`/whatsapp/status`) during connection attempts to fire every **1500ms** (down from 3000ms+ or dead state cessation). Once a user scans the QR code on a mobile handset, the UI catches the `'open'` state transition almost instantly and reveals the successful confirmation dashboard.
-3. **Cross-Domain SSO Token Synchronization:**
-   * Hardened the Google OAuth callback redirect to attach the authentication token directly to URL query parameters upon return (`?token=...`). The frontend `AuthContext` natively intercepts, extracts, saves to local storage, and strips the token from the visible URL bar, completely overriding third-party cookie drop restrictions imposed by Safari and Chrome Incognito during multi-hop cloud SSO redirects.
+1. **Internal Networking:** The backend, database, redis, and evolution API communicate over an internal isolated Docker network (`yq_network`). The database and redis ports are **NOT** exposed to the public internet, drastically reducing the attack surface.
+2. **Reverse Proxy & HTTPS:** Caddy sits at the edge, exposing only HTTP (80) and HTTPS (443) ports. It handles automatic SSL certificate provisioning and renewal via Let's Encrypt.
+3. **SSO Redirection:** Google OAuth is configured to redirect to `https://api.qmova.yqbuddy.com/auth/google/callback`, which then issues a token and redirects the browser safely back to the frontend (`https://qmova.yqbuddy.com/login?token=...`).
+
+---
+
+## 6. Maintenance & Troubleshooting
+
+### Viewing Logs
+To view live logs for any specific service, SSH into the VPS and use Docker Compose:
+```bash
+cd "/var/www/yq/YQ Management"
+docker compose -f docker-compose.production.yml logs -f yq-backend
+docker compose -f docker-compose.production.yml logs -f yq-frontend
+docker compose -f docker-compose.production.yml logs -f yq-caddy
+```
+
+### Database Administration
+If you need to run queries against the production database:
+```bash
+docker exec -it yq-postgres psql -U postgres -d yq_queue
+```
+
+### Restarting Services
+To cleanly restart a specific service without affecting others:
+```bash
+docker compose -f docker-compose.production.yml restart yq-backend
+```

@@ -63,3 +63,4 @@ fix_dead_code.js
 login.html
 render.yaml
 playwright-report/
+deploy-to-prod.sh
