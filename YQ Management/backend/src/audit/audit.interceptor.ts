@@ -31,14 +31,31 @@ export class AuditInterceptor implements NestInterceptor {
       resource: string;
     }>(AUDIT_KEY, [context.getHandler(), context.getClass()]);
 
+    // Skip GET requests unless explicitly decorated with @Audit()
+    if (request.method === 'GET' && !audit) {
+      return next.handle();
+    }
+
+    // Skip auth and audit/log endpoints to avoid noise and loops
+    if (request.url.startsWith('/auth') || request.url.startsWith('/audit/log')) {
+      return next.handle();
+    }
+
     const user = request.user;
     const userId = user?.id || user?.userId || null;
-    const tenantId = user?.tenantId || request.body?.tenantId || null;
+    let tenantId = user?.tenantId || request.body?.tenantId || null;
+    if (!tenantId && request.headers['x-tenant-id']) {
+      tenantId = request.headers['x-tenant-id'];
+    }
     const customerId = request.body?.customerId || null;
 
     const safeBody = { ...request.body };
-    if (safeBody.password) delete safeBody.password;
-    if (safeBody.newPassword) delete safeBody.newPassword;
+    const sensitiveKeys = ['password', 'newpassword', 'token', 'secret'];
+    for (const key of Object.keys(safeBody)) {
+      if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
+        safeBody[key] = '[REDACTED]';
+      }
+    }
 
     return next.handle().pipe(
       tap({

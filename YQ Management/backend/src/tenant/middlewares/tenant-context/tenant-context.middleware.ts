@@ -31,7 +31,12 @@ export class TenantContextMiddleware implements NestMiddleware {
       ) {
         const parts = host.split('.');
         if (parts.length > 1) {
-          subdomain = parts[0];
+          const potentialSubdomain = parts[0];
+          // Reserved subdomains that are not tenants
+          const reservedSubdomains = ['api', 'app', 'www', 'qmova'];
+          if (!reservedSubdomains.includes(potentialSubdomain.toLowerCase())) {
+            subdomain = potentialSubdomain;
+          }
         }
       }
     }
