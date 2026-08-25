@@ -4,11 +4,14 @@
 
 set -e
 
-APP_DIR="/var/www/yq"
-cd $APP_DIR
+GIT_DIR="/var/www/yq"
+APP_DIR="/var/www/yq/YQ Management"
 
 echo "====> Pulling latest code..."
+cd "$GIT_DIR"
 git pull origin main
+
+cd "$APP_DIR"
 
 echo "====> Validating .env file..."
 if [ ! -f .env ]; then
