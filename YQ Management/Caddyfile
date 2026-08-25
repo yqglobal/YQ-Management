@@ -1,6 +1,8 @@
 {
     on_demand_tls {
         ask http://backend:3000/health
+        interval 2m
+        burst    5
     }
 }
 
