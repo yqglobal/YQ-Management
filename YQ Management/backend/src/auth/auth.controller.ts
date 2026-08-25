@@ -311,6 +311,7 @@ export class AuthController {
       subdomain?: string;
       timezone?: string;
       address?: string;
+      onboardingCompleted?: boolean;
     },
   ) {
     let currentSettings = req.user.personalSettings || {};
@@ -324,6 +325,8 @@ export class AuthController {
         ...currentSettings,
         notificationsEnabled: body.notificationsEnabled,
       };
+    if (body.onboardingCompleted !== undefined)
+      currentSettings = { ...currentSettings, onboardingCompleted: body.onboardingCompleted };
     if (body.fullName !== undefined)
       currentSettings = { ...currentSettings, fullName: body.fullName };
     if (body.phone !== undefined)

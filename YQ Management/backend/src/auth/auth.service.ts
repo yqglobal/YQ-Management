@@ -175,6 +175,7 @@ export class AuthService {
               theme: 'light',
               language: 'en',
               notificationsEnabled: true,
+              onboardingCompleted: false,
               ...(fullName ? { fullName } : {}),
             },
           },
@@ -267,6 +268,7 @@ export class AuthService {
         theme: 'light',
         language: 'en',
         notificationsEnabled: true,
+        onboardingCompleted: false,
         ...(fullName ? { fullName } : {}),
       },
     });

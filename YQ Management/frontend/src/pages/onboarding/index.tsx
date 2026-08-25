@@ -450,7 +450,15 @@ export default function Onboarding() {
     connectWhatsAppMutation.mutate(false);
   };
 
-  const finishOnboarding = () => {
+  const finishOnboarding = async () => {
+    try {
+      await fetchApi('/auth/personal-settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ onboardingCompleted: true })
+      });
+    } catch (e) {
+      console.error('Failed to complete onboarding flag', e);
+    }
     setShowConfetti(true);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('onboarding_step');
