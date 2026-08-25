@@ -10,6 +10,7 @@ RUN npm ci
 
 # Copy Prisma schema and generate client
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN npx prisma generate
 
 # Copy the rest of the application
@@ -36,6 +37,7 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 # Copy built application and prisma folder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/scripts ./scripts
 
 EXPOSE 3000
