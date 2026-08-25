@@ -93,9 +93,15 @@ async function fetchWithRetry(
 export function getBackendUrl() {
   let baseUrl = 'https://qmova-backend.onrender.com';
   try {
-    if (typeof window !== 'undefined' && (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1'))) {
-      baseUrl = `${window.location.protocol}//localhost:3000`;
-    } else if (process.env.NEXT_PUBLIC_API_URL) {
+    if (typeof window !== 'undefined') {
+      if (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {
+        baseUrl = `${window.location.protocol}//localhost:3000`;
+      } else {
+        baseUrl = `${window.location.protocol}//api.${window.location.hostname}`;
+      }
+    }
+    
+    if (process.env.NEXT_PUBLIC_API_URL) {
       baseUrl = process.env.NEXT_PUBLIC_API_URL;
     }
   } catch (e) {
