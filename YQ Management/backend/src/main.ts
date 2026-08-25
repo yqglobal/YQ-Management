@@ -7,6 +7,7 @@ import compression from 'compression';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './redis/redis-io.adapter';
+import { json, urlencoded } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -15,6 +16,9 @@ async function bootstrap() {
   // instead of the reverse-proxy's internal IP
   const expressApp = app.getHttpAdapter().getInstance();
   expressApp.set('trust proxy', 1);
+
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ extended: true, limit: '50mb' }));
 
   const redisIoAdapter = new RedisIoAdapter(app);
   await redisIoAdapter.connectToRedis();
