@@ -108,7 +108,9 @@ export function usePlan(): UsePlanResult {
     const queueUsagePct = limits.maxQueues > 0 ? Math.min(100, (queueCount / limits.maxQueues) * 100) : 0;
     const tokenUsagePct = limits.maxTokens > 0 ? Math.min(100, (tokensThisMonth / limits.maxTokens) * 100) : 0;
 
-    const canAccess = status === 'TRIAL' || status === 'ACTIVE' || status === 'PAST_DUE' || status === 'PENDING_PAYMENT';
+    // If status is null (no subscription found — e.g. SUPER_ADMIN or API error), grant access by default.
+    // Only block access when we explicitly know the subscription is EXPIRED or CANCELLED.
+    const canAccess = status === null || status === 'TRIAL' || status === 'ACTIVE' || status === 'PAST_DUE' || status === 'PENDING_PAYMENT';
 
     return {
       status,

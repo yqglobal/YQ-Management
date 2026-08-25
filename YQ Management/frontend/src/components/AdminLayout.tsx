@@ -164,10 +164,14 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   // Strict enforcement: redirect to billing if plan is expired/pending payment
   useEffect(() => {
-    if (!plan.isLoading && !plan.canAccess && !router.pathname.startsWith('/dashboard/settings/billing')) {
+    if (!user) return; // Let AuthContext handle unauthenticated users
+    // Super admins have no tenant subscription — never redirect them to billing
+    const isSuperAdminUser = user?.role === 'SUPER_ADMIN' || user?.email?.toLowerCase() === 'yqbuddysa@gmail.com';
+    if (isSuperAdminUser) return;
+    if (!plan.isLoading && plan.status !== null && !plan.canAccess && !router.pathname.startsWith('/dashboard/settings/billing')) {
       router.replace('/dashboard/settings/billing');
     }
-  }, [plan.isLoading, plan.canAccess, router.pathname]);
+  }, [plan.isLoading, plan.status, plan.canAccess, router.pathname, user]);
 
   const [showQueueMigration, setShowQueueMigration] = useState(true);
 
@@ -178,7 +182,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   return (
     <div className="bg-canvas dark:bg-dark-canvas text-on-surface dark:text-white font-body-md min-h-screen flex flex-col antialiased">
-      {!hasAcceptedPolicies && !!user?.workspaceId && <AdvancedPoliciesModal />}
+      {!hasAcceptedPolicies && !!user?.workspaceId && user?.personalSettings?.onboardingCompleted !== false && user?.role !== 'SUPER_ADMIN' && <AdvancedPoliciesModal />}
       <DashboardTour />
 
       {/* Mobile overlay */}

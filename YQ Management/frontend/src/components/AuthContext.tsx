@@ -41,7 +41,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .then((data) => {
         setUser(data);
         setLoading(false);
-        if (!data?.workspaceId && router.pathname.startsWith('/dashboard')) {
+        if (data?.role === 'SUPER_ADMIN' && router.pathname === '/dashboard') {
+          // Only auto-redirect from the root dashboard index, not from sub-pages
+          // (Super admin may intentionally browse /dashboard/* as a tenant operator)
+          router.push('/super-admin');
+        } else if ((!data?.workspaceId || data?.personalSettings?.onboardingCompleted === false) && router.pathname.startsWith('/dashboard')) {
           router.push('/onboarding');
         }
       })
