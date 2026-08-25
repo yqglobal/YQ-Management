@@ -117,8 +117,8 @@ export default function SuperAdminBlogs() {
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Blog Manager</h1>
-            <p className="text-gray-500">Manage SEO blogs for the Qmova platform</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Blog Manager</h1>
+            <p className="text-gray-500 dark:text-gray-400">Manage SEO blogs for the Qmova platform</p>
           </div>
           <button
             onClick={openCreateModal}
@@ -130,10 +130,10 @@ export default function SuperAdminBlogs() {
         </div>
 
         {/* Blogs List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-sm font-medium text-gray-500">
+              <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400">
                 <th className="p-4">Title</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Author</th>
@@ -148,11 +148,11 @@ export default function SuperAdminBlogs() {
                 <tr>
                   <td colSpan={5} className="p-12 text-center">
                     <div className="flex flex-col items-center">
-                      <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 text-blue-500">
+                      <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4 text-blue-500 dark:text-blue-400">
                         <FileText className="w-8 h-8" />
                       </div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-1">No blogs created</h3>
-                      <p className="text-gray-500 mb-4">Create your first blog post to attract more traffic.</p>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No blogs created</h3>
+                      <p className="text-gray-500 dark:text-gray-400 mb-4">Create your first blog post to attract more traffic.</p>
                       <button onClick={openCreateModal} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                         Write a Blog
                       </button>
@@ -161,10 +161,10 @@ export default function SuperAdminBlogs() {
                 </tr>
               ) : (
                 blogs?.map((blog: any) => (
-                  <tr key={blog.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <tr key={blog.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="p-4">
-                      <div className="font-medium text-gray-900">{blog.title}</div>
-                      <div className="text-sm text-gray-500">/{blog.slug}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">{blog.title}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">/{blog.slug}</div>
                     </td>
                     <td className="p-4">
                       {blog.published ? (
@@ -179,8 +179,8 @@ export default function SuperAdminBlogs() {
                         </span>
                       )}
                     </td>
-                    <td className="p-4 text-gray-600">{blog.authorName || 'Anonymous'}</td>
-                    <td className="p-4 text-gray-500 text-sm">
+                    <td className="p-4 text-gray-600 dark:text-gray-300">{blog.authorName || 'Anonymous'}</td>
+                    <td className="p-4 text-gray-500 dark:text-gray-400 text-sm">
                       {blog.publishedAt ? format(new Date(blog.publishedAt), 'MMM d, yyyy') : '-'}
                     </td>
                     <td className="p-4 text-right">
@@ -205,10 +205,10 @@ export default function SuperAdminBlogs() {
         {/* Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
-                <h2 className="text-xl font-semibold">{editingBlog ? 'Edit Blog Post' : 'Create Blog Post'}</h2>
-                <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
+            <div className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+              <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800 z-10">
+                <h2 className="text-xl font-semibold dark:text-white">{editingBlog ? 'Edit Blog Post' : 'Create Blog Post'}</h2>
+                <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                   <XCircle className="w-6 h-6" />
                 </button>
               </div>
@@ -216,43 +216,43 @@ export default function SuperAdminBlogs() {
                 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Title</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
                     <input
                       type="text"
                       value={formData.title}
                       onChange={e => setFormData({...formData, title: e.target.value})}
-                      className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Slug (optional)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Slug (optional)</label>
                     <input
                       type="text"
                       value={formData.slug}
                       onChange={e => setFormData({...formData, slug: e.target.value})}
-                      className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="auto-generated-from-title"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Excerpt</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Excerpt</label>
                   <textarea
                     value={formData.excerpt}
                     onChange={e => setFormData({...formData, excerpt: e.target.value})}
-                    className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
                     rows={2}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Content (HTML/Markdown)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Content (HTML/Markdown)</label>
                   <textarea
                     value={formData.content}
                     onChange={e => setFormData({...formData, content: e.target.value})}
-                    className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                     rows={12}
                     required
                   />
@@ -260,44 +260,44 @@ export default function SuperAdminBlogs() {
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Author Name</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Author Name</label>
                     <input
                       type="text"
                       value={formData.authorName}
                       onChange={e => setFormData({...formData, authorName: e.target.value})}
-                      className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Cover Image URL</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cover Image URL</label>
                     <input
                       type="url"
                       value={formData.coverImage}
                       onChange={e => setFormData({...formData, coverImage: e.target.value})}
-                      className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-lg space-y-4 border border-gray-100">
-                  <h3 className="text-sm font-semibold text-gray-900">SEO Settings</h3>
+                <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg space-y-4 border border-gray-100 dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">SEO Settings</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="block text-xs font-medium text-gray-500">SEO Meta Title</label>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">SEO Meta Title</label>
                       <input
                         type="text"
                         value={formData.seoTitle}
                         onChange={e => setFormData({...formData, seoTitle: e.target.value})}
-                        className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                        className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-xs font-medium text-gray-500">SEO Meta Description</label>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">SEO Meta Description</label>
                       <input
                         type="text"
                         value={formData.seoDescription}
                         onChange={e => setFormData({...formData, seoDescription: e.target.value})}
-                        className="w-full border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                        className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                       />
                     </div>
                   </div>
@@ -311,13 +311,13 @@ export default function SuperAdminBlogs() {
                     onChange={e => setFormData({...formData, published: e.target.checked})}
                     className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
-                  <label htmlFor="published" className="text-sm font-medium text-gray-900">
+                  <label htmlFor="published" className="text-sm font-medium text-gray-900 dark:text-gray-300">
                     Publish this blog immediately
                   </label>
                 </div>
 
-                <div className="flex justify-end space-x-4 border-t border-gray-100 pt-6 sticky bottom-0 bg-white">
-                  <button type="button" onClick={closeModal} className="px-6 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50">
+                <div className="flex justify-end space-x-4 border-t border-gray-100 dark:border-gray-700 pt-6 sticky bottom-0 bg-white dark:bg-gray-800">
+                  <button type="button" onClick={closeModal} className="px-6 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
                     Cancel
                   </button>
                   <button 
