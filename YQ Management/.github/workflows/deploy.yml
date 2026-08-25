@@ -65,4 +65,4 @@ jobs:
           key: ${{ secrets.VPS_PRIVATE_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
-            bash /var/www/yq/scripts/deploy.sh
+            bash "/var/www/yq/YQ Management/scripts/deploy.sh"
