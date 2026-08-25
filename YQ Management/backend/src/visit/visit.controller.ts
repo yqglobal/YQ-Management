@@ -85,4 +85,17 @@ export class VisitController {
       req.user.userId,
     );
   }
+  @Post('validate')
+  async validateToken(@Req() req: AuthenticatedRequest, @Body() body: { tokenId: string }) {
+    return this.visitService.validateToken(body.tokenId, req.user.tenantId);
+  }
+
+  @Post(':id/transfer')
+  async transferVisit(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { nextQueueId: string }
+  ) {
+    return this.visitService.transferVisit(id, body.nextQueueId, req.user.tenantId, req.user.userId);
+  }
 }

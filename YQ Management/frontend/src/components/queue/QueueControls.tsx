@@ -18,7 +18,7 @@ export function QueueControls({ queueId, servingToken }: QueueControlsProps) {
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
   const nextCustomerMutation = useMutation({
-    mutationFn: () => fetchApi(`/token/advance/${queueId}`, { method: 'POST' }),
+    mutationFn: () => fetchApi(`/queue/${queueId}/advance`, { method: 'POST' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queueTokens', queueId] });
       setShowNextConfirm(false);
@@ -27,7 +27,7 @@ export function QueueControls({ queueId, servingToken }: QueueControlsProps) {
   });
 
   const skipTokenMutation = useMutation({
-    mutationFn: (tokenId: string) => fetchApi(`/token/${tokenId}/cancel`, { method: 'POST' }),
+    mutationFn: (tokenId: string) => fetchApi(`/queue/tokens/${tokenId}/skip`, { method: 'POST' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queueTokens', queueId] });
       setShowSkipConfirm(false);

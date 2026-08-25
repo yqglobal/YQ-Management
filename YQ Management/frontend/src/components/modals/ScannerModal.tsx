@@ -194,7 +194,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
             throw new Error('Invalid QR code format');
           }
 
-          const result = await fetchApi('/token/validate', {
+          const result = await fetchApi('/visits/validate', {
             method: 'POST',
             body: JSON.stringify({ tokenId: decodedText })
           });
@@ -347,7 +347,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
     setScannerStatus('processing');
 
     try {
-      const result = await fetchApi('/token/validate', {
+      const result = await fetchApi('/visits/validate', {
         method: 'POST',
         body: JSON.stringify({ tokenId: manualTokenId.trim() }),
       });
@@ -396,7 +396,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
   const handleCheckIn = useCallback(async () => {
     if (!validationResult?.tokenId) return;
     try {
-      await fetchApi(`/token/${validationResult.tokenId}/checkin`, { method: 'POST' });
+      await fetchApi(`/visits/${validationResult.tokenId}/checkin`, { method: 'POST' });
       setValidationResult((prev) => prev ? { ...prev, checkedIn: true, status: 'WAITING' } : prev);
       onScanSuccess({ ...validationResult, checkedIn: true, status: 'WAITING' });
     } catch (e: any) {

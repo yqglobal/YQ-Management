@@ -30,12 +30,12 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: any, tok
 
   const { data: statusData, isLoading, error } = useQuery<any, any>({
     queryKey: ['token-status', tokenId],
-    queryFn: () => fetchApi(`/token/${tokenId}/status`),
+    queryFn: () => fetchApi(`/public-visit/${tokenId}`),
     enabled: !!tokenId,
   });
 
   const cancelMutation = useMutation({
-    mutationFn: () => fetchApi(`/token/${tokenId}/cancel`, { method: 'POST' }),
+    mutationFn: () => fetchApi(`/visits/${tokenId}/cancel`, { method: 'POST' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['token-status', tokenId] });
     }
@@ -43,7 +43,7 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: any, tok
 
   const checkInMutation = useMutation({
     // Using the new public check-in endpoint
-    mutationFn: () => fetchApi(`/token/${tokenId}/customer-checkin`, { method: 'POST' }),
+    mutationFn: () => fetchApi(`/visits/${tokenId}/checkin`, { method: 'POST' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['token-status', tokenId] });
     }

@@ -3,7 +3,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { Home, Sun, Maximize, Scan, Volume2, VolumeX } from 'lucide-react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '@/lib/api';
 import { io } from 'socket.io-client';
 import QRCode from 'react-qr-code';
@@ -13,6 +13,7 @@ export default function QueueDisplay() {
   const { id } = router.query;
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [previousServingId, setPreviousServingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: queue } = useQuery({
     queryKey: ['queue', id],
@@ -78,15 +79,15 @@ export default function QueueDisplay() {
     });
     socket.emit('joinQueueRoom', id);
 
-    socket.on('token_joined', () => refetch());
-    socket.on('token_serving', () => refetch());
-    socket.on('token_completed', () => refetch());
-    socket.on('token_missed', () => refetch());
+    socket.on('token_joined', () => queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }));
+    socket.on('token_serving', () => queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }));
+    socket.on('token_completed', () => queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }));
+    socket.on('token_missed', () => queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }));
 
     return () => {
       socket.disconnect();
     };
-  }, [id, refetch]);
+  }, [id, queryClient]);
 
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {

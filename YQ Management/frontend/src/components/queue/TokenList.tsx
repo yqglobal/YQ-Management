@@ -17,14 +17,14 @@ export function TokenList({ tokens, queueId, nextQueueId }: TokenListProps) {
   const queryClient = useQueryClient();
 
   const completeTokenMutation = useMutation({
-    mutationFn: (tokenId: string) => fetchApi(`/token/${tokenId}/complete`, { method: 'POST' }),
+    mutationFn: (tokenId: string) => fetchApi(`/queue/tokens/${tokenId}/complete`, { method: 'POST' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queueTokens', queueId] }),
     onError: () => toast.error('Error completing token'),
   });
 
   const transferTokenMutation = useMutation({
     mutationFn: ({ tokenId, targetQueueId }: { tokenId: string; targetQueueId: string }) =>
-      fetchApi(`/token/${tokenId}/transfer`, { method: 'POST', body: JSON.stringify({ nextQueueId: targetQueueId }) }),
+      fetchApi(`/visits/${tokenId}/transfer`, { method: 'POST', body: JSON.stringify({ nextQueueId: targetQueueId }) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queueTokens', queueId] }),
     onError: () => toast.error('Error transferring token'),
   });

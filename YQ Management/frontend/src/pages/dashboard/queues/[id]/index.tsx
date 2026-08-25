@@ -154,7 +154,7 @@ export default function QueueDetails() {
 
   const transferTokenMutation = useMutation({
     mutationFn: ({ tokenId, nextQueueId }: { tokenId: string, nextQueueId: string }) => 
-      fetchApi(`/token/${tokenId}/transfer`, { 
+      fetchApi(`/visits/${tokenId}/transfer`, { 
         method: 'POST',
         body: JSON.stringify({ nextQueueId })
       }),

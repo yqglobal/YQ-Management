@@ -244,7 +244,7 @@ export default function AdminScanner() {
             throw new Error('Invalid QR code format');
           }
 
-          const result = await fetchApi('/token/validate', {
+          const result = await fetchApi('/visits/validate', {
             method: 'POST',
             body: JSON.stringify({ tokenId: decodedText })
           });
@@ -397,7 +397,7 @@ export default function AdminScanner() {
     setScannerStatus('processing');
 
     try {
-      const result = await fetchApi('/token/validate', {
+      const result = await fetchApi('/visits/validate', {
         method: 'POST',
         body: JSON.stringify({ tokenId: manualTokenId.trim() }),
       });
@@ -446,7 +446,7 @@ export default function AdminScanner() {
   const handleCheckIn = useCallback(async () => {
     if (!validationResult?.tokenId) return;
     try {
-      await fetchApi(`/token/${validationResult.tokenId}/checkin`, { method: 'POST' });
+      await fetchApi(`/visits/${validationResult.tokenId}/checkin`, { method: 'POST' });
       setValidationResult((prev) => prev ? { ...prev, checkedIn: true, status: 'WAITING' } : prev);
       alert('Checked in successfully!');
     } catch (e: any) {

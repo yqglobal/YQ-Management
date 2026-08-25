@@ -13,7 +13,7 @@ export default function QueueConfirmation() {
 
   const { data: statusData, isLoading } = useQuery({
     queryKey: ['token', tokenId],
-    queryFn: () => fetchApi(`/token/${tokenId}/status`),
+    queryFn: () => fetchApi(`/public-visit/${tokenId}`),
     enabled: !!tokenId,
   });
 
@@ -24,9 +24,17 @@ export default function QueueConfirmation() {
   if (!statusData) {
     return <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white flex items-center justify-center">Token not found</div>;
   }
-
   const { token, position, estimatedWaitTime } = statusData;
-  const trackingUrl = typeof window !== 'undefined' ? `${window.location.origin}/customer/status/${token.id}` : '';
+  let trackingUrl = '';
+  if (typeof window !== 'undefined') {
+    if (window.location.pathname.startsWith('/t/')) {
+      const parts = window.location.pathname.split('/');
+      const tenantId = parts[2];
+      trackingUrl = `${window.location.origin}/t/${tenantId}/status/${token.accessToken || token.id}`;
+    } else {
+      trackingUrl = `${window.location.origin}/status/${token.accessToken || token.id}`;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors">
@@ -76,7 +84,7 @@ export default function QueueConfirmation() {
         </div>
 
         <Link 
-          href={`/customer/status/${token.id}`}
+          href={trackingUrl.replace(typeof window !== 'undefined' ? window.location.origin : '', '') || `/status/${token.accessToken || token.id}`}
           className="w-full inline-flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(79,70,229,0.3)]"
         >
           Track Live Status <ArrowRight className="w-5 h-5" />

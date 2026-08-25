@@ -88,7 +88,10 @@ export class VisitService {
         createdAt: true,
         customer: { select: { name: true } },
         service: { select: { name: true, expectedDuration: true } },
+        queue: { select: { requireManualCheckIn: true } },
         location: { select: { name: true, address: true } },
+        scheduledTime: true,
+        language: true,
         tenant: { select: { name: true } },
       },
     });
@@ -115,7 +118,18 @@ export class VisitService {
       ewt = waitingAhead * (visit.service?.expectedDuration || 5);
     }
 
-    return { ...visit, position, ewt };
+    return { 
+      token: {
+        ...visit,
+        status: visit.currentState,
+        customerName: visit.customer?.name,
+        scheduledFor: visit.scheduledTime,
+        checkedIn: visit.currentState !== 'SCHEDULED',
+      },
+      position, 
+      estimatedWaitTime: ewt,
+      isScheduled: !!visit.scheduledTime
+    };
   }
 
   async findMultiplePublic(accessTokens: string[]) {
@@ -360,6 +374,9 @@ export class VisitService {
         if (booking.scheduledFor && service.allowAppointments) {
           scheduledTime = new Date(booking.scheduledFor);
           currentState = service.requireManualCheckIn ? 'CREATED' : 'SCHEDULED';
+
+          // Lock the service record to serialize concurrent bookings for this service
+          await tx.$executeRaw`SELECT 1 FROM "Service" WHERE id = ${service.id} FOR UPDATE`;
 
           // Pessimistic slot check
           const durationMins =
@@ -649,6 +666,89 @@ export class VisitService {
         },
       });
 
+      return updated;
+    });
+  }
+
+  async validateToken(tokenString: string, tenantId: string) {
+    let tokenValue = tokenString;
+    try {
+      if (tokenString.includes('http')) {
+        const url = new URL(tokenString);
+        const parts = url.pathname.split('/');
+        tokenValue = parts[parts.length - 1];
+      }
+    } catch (e) {
+      // Ignore
+    }
+
+    const visit = await this.prisma.visit.findFirst({
+      where: {
+        OR: [
+          { id: tokenValue },
+          { accessToken: tokenValue }
+        ],
+        tenantId: tenantId
+      },
+      include: {
+        customer: true,
+        queue: {
+          include: { location: true }
+        },
+        services: {
+          include: { service: true }
+        }
+      }
+    });
+
+    if (!visit) {
+      return { valid: false, reason: 'Invalid token or not found for this workspace' };
+    }
+
+    if (visit.currentState === 'COMPLETED' || visit.currentState === 'CANCELLED' || visit.currentState === 'MISSED') {
+      return { valid: false, reason: `Visit is already ${visit.currentState.toLowerCase()}` };
+    }
+
+    return {
+      valid: true,
+      status: visit.currentState,
+      tokenId: visit.id,
+      customerName: visit.customer?.name || 'Unknown',
+      queueName: visit.queue?.name || 'Unknown Queue',
+      locationName: visit.queue?.location?.name || 'Unknown Location',
+      serviceBooked: visit.services.map(s => s.service.name).join(', '),
+      scheduledFor: visit.scheduledFor,
+      checkedIn: visit.currentState !== 'SCHEDULED'
+    };
+  }
+
+  async transferVisit(visitId: string, nextQueueId: string, tenantId: string, operatorId?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const visit = await tx.visit.findUnique({ where: { id: visitId, tenantId } });
+      if (!visit) throw new NotFoundException('Visit not found');
+
+      const nextQueue = await tx.queue.findUnique({ where: { id: nextQueueId, tenantId } });
+      if (!nextQueue) throw new NotFoundException('Target queue not found');
+
+      const updated = await tx.visit.update({
+        where: { id: visitId },
+        data: {
+          queueId: nextQueueId,
+          currentState: 'WAITING',
+        }
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          type: 'TOKEN_TRANSFERRED',
+          payload: {
+            visitId: updated.id,
+            previousQueueId: visit.queueId,
+            queueId: updated.queueId,
+            tenantId: updated.tenantId,
+          }
+        }
+      });
       return updated;
     });
   }
