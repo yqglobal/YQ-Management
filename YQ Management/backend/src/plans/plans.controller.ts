@@ -82,7 +82,7 @@ export class PlansController {
   @Delete(':id')
   @UseGuards(RolesGuard, WorkspaceGuard)
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
-  async archivePlan(@Param('id', UuidPipe) id: string) {
-    return this.plansService.archivePlan(id);
+  deletePlan(@Param('id') id: string) {
+    return this.plansService.deletePlan(id);
   }
 }

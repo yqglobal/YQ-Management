@@ -205,13 +205,24 @@ export class PlansService {
     return duplicated;
   }
 
-  async archivePlan(id: string): Promise<Plan> {
+  async deletePlan(id: string): Promise<Plan> {
     const existing = await this.getPlan(id);
-    const archived = await this.prisma.plan.update({
-      where: { id },
-      data: { active: false },
+
+    // Check if any subscriptions are using this plan
+    const subCount = await this.prisma.subscription.count({
+      where: { planId: id },
     });
-    this.logger.log(`Plan archived: ${archived.name} (${archived.id})`);
-    return archived;
+
+    if (subCount > 0) {
+      throw new Error(
+        `Cannot delete plan because it is currently assigned to ${subCount} subscriptions. Please reassign them first or archive the plan instead.`,
+      );
+    }
+
+    const deleted = await this.prisma.plan.delete({
+      where: { id },
+    });
+    this.logger.log(`Plan permanently deleted: ${deleted.name} (${deleted.id})`);
+    return deleted;
   }
 }
