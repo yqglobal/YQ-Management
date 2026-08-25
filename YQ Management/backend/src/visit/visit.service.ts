@@ -87,8 +87,8 @@ export class VisitService {
         waitingStart: true,
         createdAt: true,
         customer: { select: { name: true } },
-        service: { select: { name: true, expectedDuration: true } },
-        queue: { select: { requireManualCheckIn: true } },
+        service: { select: { name: true, expectedDuration: true, requireManualCheckIn: true } },
+        queue: { select: { name: true } },
         location: { select: { name: true, address: true } },
         scheduledTime: true,
         language: true,
@@ -125,6 +125,9 @@ export class VisitService {
         customerName: visit.customer?.name,
         scheduledFor: visit.scheduledTime,
         checkedIn: visit.currentState !== 'SCHEDULED',
+        queue: {
+          requireManualCheckIn: visit.service?.requireManualCheckIn || false
+        }
       },
       position, 
       estimatedWaitTime: ewt,
@@ -695,9 +698,7 @@ export class VisitService {
         queue: {
           include: { location: true }
         },
-        services: {
-          include: { service: true }
-        }
+        service: true
       }
     });
 
@@ -716,8 +717,8 @@ export class VisitService {
       customerName: visit.customer?.name || 'Unknown',
       queueName: visit.queue?.name || 'Unknown Queue',
       locationName: visit.queue?.location?.name || 'Unknown Location',
-      serviceBooked: visit.services.map(s => s.service.name).join(', '),
-      scheduledFor: visit.scheduledFor,
+      serviceBooked: visit.service?.name || 'Unknown Service',
+      scheduledFor: visit.scheduledTime,
       checkedIn: visit.currentState !== 'SCHEDULED'
     };
   }
