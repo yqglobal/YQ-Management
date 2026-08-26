@@ -236,7 +236,7 @@ export default function AppointmentsPage() {
       <div className="max-w-7xl mx-auto space-y-5 p-4 sm:p-6 lg:p-8">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-on-surface dark:text-white tracking-tight">Appointments</h1>
             <p className="text-sm text-on-surface-variant dark:text-zinc-400 mt-0.5">View and manage upcoming bookings.</p>
@@ -251,7 +251,7 @@ export default function AppointmentsPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between flex-wrap">
           {/* View toggle */}
           <div className="flex items-center gap-1 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl p-1">
             {(['day', 'week', 'month'] as CalendarView[]).map(v => (

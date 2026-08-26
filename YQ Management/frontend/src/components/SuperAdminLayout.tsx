@@ -87,7 +87,7 @@ export default function SuperAdminLayout({
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-black text-white text-base shadow-[0_0_12px_rgba(99,102,241,0.4)] tracking-tighter">
               Q
             </div>
-            <span className="font-extrabold text-xl tracking-tight text-zinc-900 dark:text-white">Qmova <span className="text-xs uppercase px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold ml-1">God Mode</span></span>
+            <span className="font-extrabold text-xl tracking-tight text-zinc-900 dark:text-white">Qmova</span>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -118,7 +118,7 @@ export default function SuperAdminLayout({
           })}
         </div>
 
-        <div className="p-4 border-t border-gray-200 dark:border-white/10">
+        <div className="p-4 border-t border-gray-200 dark:border-white/10 space-y-4">
           <div className="flex items-center gap-3 px-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white text-xs shadow-[0_0_8px_rgba(99,102,241,0.3)]">
               {(user?.email || 'SA')[0].toUpperCase()}
@@ -127,6 +127,12 @@ export default function SuperAdminLayout({
               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">Super Admin</p>
               <p className="text-xs text-gray-400 dark:text-zinc-500 truncate">{user?.email || 'admin'}</p>
             </div>
+          </div>
+          
+          <div className="px-2 pt-3 border-t border-gray-100 dark:border-white/5">
+            <p className="text-[10px] text-gray-400 dark:text-zinc-500 uppercase tracking-wider font-semibold">Build Info</p>
+            <p className="text-[10px] text-gray-500 dark:text-zinc-400 mt-1 font-mono">Commit: {process.env.NEXT_PUBLIC_BUILD_COMMIT || 'development'}</p>
+            <p className="text-[10px] text-gray-500 dark:text-zinc-400 font-mono">Date: {process.env.NEXT_PUBLIC_BUILD_TIMESTAMP ? new Date(process.env.NEXT_PUBLIC_BUILD_TIMESTAMP).toLocaleString() : 'N/A'}</p>
           </div>
         </div>
       </aside>

@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy to Hostinger VPS
 
 on:
   push:
@@ -26,11 +26,12 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: https://qmova-backend.onrender.com
-          NEXT_PUBLIC_BACKEND_URL: https://qmova-backend.onrender.com
-          NEXT_PUBLIC_WS_URL: https://qmova-backend.onrender.com
+          NEXT_PUBLIC_API_URL: https://api.qmova.yqbuddy.com
+          NEXT_PUBLIC_BACKEND_URL: https://api.qmova.yqbuddy.com
+          NEXT_PUBLIC_WS_URL: https://api.qmova.yqbuddy.com
           NEXT_PUBLIC_SUPER_ADMIN_EMAIL: yqbuddysa@gmail.com
 
+  # ─── 2. Build & Type-check Backend ─────────────────────────────────────────
   build-backend:
     name: Build Backend
     runs-on: ubuntu-latest
@@ -49,46 +50,21 @@ jobs:
         run: npx prisma generate
       - run: npm run build
 
-  # ─── 3. Deploy Frontend to Vercel ──────────────────────────────────────────
-  deploy-frontend:
-    name: Deploy Frontend (Vercel)
-    needs: build-frontend
+  # ─── 3. Deploy to Hostinger VPS via SSH ─────────────────────────────────────
+  deploy-vps:
+    name: Deploy to VPS
+    needs: [build-frontend, build-backend]
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: "YQ Management/frontend"
     environment:
       name: Production
-      url: https://yq-qmova.vercel.app
+      url: https://qmova.yqbuddy.com
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Trigger VPS Deploy Script
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: "YQ Management/frontend/package-lock.json"
-      - run: npm ci
-      - name: Deploy to Vercel Production
-        run: npx vercel --prod --yes
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: team_acxidrsTp5kixziMsxFV8BEs
-          VERCEL_PROJECT_ID: prj_mQSw7aO5jy5MXpY8wJcK8lJS5NOa
-
-  # ─── 4. Deploy Backend to Render ───────────────────────────────────────────
-  deploy-backend:
-    name: Deploy Backend (Render)
-    needs: build-backend
-    runs-on: ubuntu-latest
-    environment:
-      name: Production
-      url: https://qmova-backend.onrender.com
-    steps:
-      - name: Trigger Render Deploy
-        run: |
-          curl -s -X POST \
-            "https://api.render.com/v1/services/srv-d9o8p4m417fc73epko80/deploys" \
-            -H "Authorization: Bearer ${{ secrets.RENDER_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{"clearCache":"do_not_clear"}'
-          echo "Render backend deploy triggered"
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            bash "/var/www/yq/YQ Management/scripts/deploy.sh"

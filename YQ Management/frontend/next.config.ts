@@ -22,7 +22,15 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
     NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000',
     NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000',
-    NEXT_PUBLIC_SUPER_ADMIN_EMAIL: process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || 'yqbuddysa@gmail.com'
+    NEXT_PUBLIC_SUPER_ADMIN_EMAIL: process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || 'yqbuddysa@gmail.com',
+    NEXT_PUBLIC_BUILD_TIMESTAMP: new Date().toISOString(),
+    NEXT_PUBLIC_BUILD_COMMIT: (function() {
+      try {
+        return require('child_process').execSync('git rev-parse --short HEAD').toString().trim();
+      } catch (e) {
+        return 'unknown';
+      }
+    })(),
   }
 };
 

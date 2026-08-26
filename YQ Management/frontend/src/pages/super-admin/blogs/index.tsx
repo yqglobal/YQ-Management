@@ -221,7 +221,7 @@ export default function SuperAdminBlogs() {
                       type="text"
                       value={formData.title}
                       onChange={e => setFormData({...formData, title: e.target.value})}
-                      className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
@@ -231,7 +231,7 @@ export default function SuperAdminBlogs() {
                       type="text"
                       value={formData.slug}
                       onChange={e => setFormData({...formData, slug: e.target.value})}
-                      className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                       placeholder="auto-generated-from-title"
                     />
                   </div>
@@ -242,7 +242,7 @@ export default function SuperAdminBlogs() {
                   <textarea
                     value={formData.excerpt}
                     onChange={e => setFormData({...formData, excerpt: e.target.value})}
-                    className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                     rows={2}
                   />
                 </div>
@@ -252,7 +252,7 @@ export default function SuperAdminBlogs() {
                   <textarea
                     value={formData.content}
                     onChange={e => setFormData({...formData, content: e.target.value})}
-                    className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                     rows={12}
                     required
                   />
@@ -265,7 +265,7 @@ export default function SuperAdminBlogs() {
                       type="text"
                       value={formData.authorName}
                       onChange={e => setFormData({...formData, authorName: e.target.value})}
-                      className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div className="space-y-2">
@@ -274,7 +274,7 @@ export default function SuperAdminBlogs() {
                       type="url"
                       value={formData.coverImage}
                       onChange={e => setFormData({...formData, coverImage: e.target.value})}
-                      className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -288,7 +288,7 @@ export default function SuperAdminBlogs() {
                         type="text"
                         value={formData.seoTitle}
                         onChange={e => setFormData({...formData, seoTitle: e.target.value})}
-                        className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                        className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 text-sm"
                       />
                     </div>
                     <div className="space-y-2">
@@ -297,7 +297,7 @@ export default function SuperAdminBlogs() {
                         type="text"
                         value={formData.seoDescription}
                         onChange={e => setFormData({...formData, seoDescription: e.target.value})}
-                        className="w-full border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                        className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 text-sm"
                       />
                     </div>
                   </div>
