@@ -24,16 +24,20 @@ export default function WorkspaceSettingsPage() {
     enabled: isAdmin,
   });
 
+  const [hasCustomBranding, setHasCustomBranding] = useState(true);
+
   useEffect(() => {
     if (user?.tenantId && isAdmin) {
-      fetchApi('/tenant').then((res) => {
-        if (res && res.length > 0) {
-          const currentTenant = res.find((t: any) => t.id === user.tenantId) || res[0];
+      // Use /tenant/me to get planFeatures correctly
+      fetchApi('/tenant/me').then((currentTenant: any) => {
+        if (currentTenant) {
           setTenantName(currentTenant.name || '');
           setTenantSubdomain(currentTenant.subdomain || '');
+          // If custom branding is false, tenant.branding might be null from API
           setTenantPrimaryColor(currentTenant.branding?.primaryColor || '#4f46e5');
           setTenantLogo(currentTenant.branding?.logoUrl || '');
           setTenantId(currentTenant.id);
+          setHasCustomBranding(currentTenant.planFeatures?.customBranding !== false);
         }
       }).catch(err => console.warn("Failed to fetch tenant details:", err));
     }
@@ -156,13 +160,17 @@ export default function WorkspaceSettingsPage() {
 
           <div className="space-y-6">
             <div>
-              <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Logo URL</label>
+              <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide flex items-center justify-between">
+                <span>Logo URL</span>
+                {!hasCustomBranding && <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded">Premium Plan Required</span>}
+              </label>
               <input
                 type="url"
                 value={tenantLogo}
                 onChange={(e) => setTenantLogo(e.target.value)}
-                className="w-full h-[44px] bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow text-on-surface dark:text-white"
-                placeholder="https://example.com/logo.png"
+                disabled={!hasCustomBranding}
+                className="w-full h-[44px] bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow text-on-surface dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                placeholder={hasCustomBranding ? "https://example.com/logo.png" : "Upgrade to add custom logo"}
               />
             </div>
           </div>

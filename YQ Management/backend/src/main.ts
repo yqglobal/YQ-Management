@@ -53,6 +53,21 @@ async function bootstrap() {
       if (allowedOrigins.includes(origin)) return callback(null, true);
       if (origin.match(/^https?:\/\/[a-z0-9-]+\.localhost:(3000|3001)$/i))
         return callback(null, true);
+        
+      // Allow dynamic subdomains of allowed origins (e.g. test.qmova.yqbuddy.com)
+      const isSubdomain = allowedOrigins.some((allowed) => {
+        try {
+          const allowedHost = new URL(allowed).hostname;
+          // Only allow subdomains if allowedHost is a valid domain (has a dot)
+          if (!allowedHost.includes('.')) return false;
+          const originHost = new URL(origin).hostname;
+          return originHost.endsWith(`.${allowedHost}`);
+        } catch (e) {
+          return false;
+        }
+      });
+      if (isSubdomain) return callback(null, true);
+
       callback(null, false);
     },
     credentials: true,

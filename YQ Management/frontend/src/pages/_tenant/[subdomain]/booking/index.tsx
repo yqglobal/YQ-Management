@@ -448,8 +448,10 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               ←
             </button>
           )}
-          {logoUrl ? (
-            <img src={logoUrl} alt={tenant.name} className="h-8 object-contain" />
+          {tenant?.planFeatures?.customBranding === false ? (
+            <img src="/logo-light.png" alt="Qmova" className="h-8 max-w-[140px] object-contain" />
+          ) : logoUrl ? (
+            <img src={logoUrl} alt={tenant.name} className="h-8 max-w-[140px] object-contain" />
           ) : (
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: primaryColor }}>
               {tenant.name.substring(0, 2).toUpperCase()}
@@ -880,7 +882,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         )}
 
         {/* Branding Fallback (Powered by Qmova) */}
-        {!tenant?.branding && (
+        {(!tenant?.branding || !tenant?.planFeatures?.customBranding) && (
           <div className="mt-8 pb-4 text-center">
             <a href="https://qmova.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
               <span>Powered by</span>

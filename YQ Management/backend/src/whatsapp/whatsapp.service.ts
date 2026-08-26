@@ -1480,6 +1480,13 @@ export class WhatsappService implements OnModuleInit {
 
       const tenant = await this.prisma.tenant.findFirst({
         where: { whatsappInstanceId: instanceName },
+        include: {
+          subscriptions: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            include: { plan: true },
+          },
+        },
       });
 
       if (!tenant) {
@@ -1489,6 +1496,12 @@ export class WhatsappService implements OnModuleInit {
 
       if (!tenant.chatbotEnabled) {
         this.logger.debug(`Chatbot disabled for tenant ${tenant.id}`);
+        return { ignored: true };
+      }
+
+      const planFeatures = tenant.subscriptions?.[0]?.plan?.features as any;
+      if (!planFeatures?.whatsappChatbot) {
+        this.logger.debug(`Chatbot blocked by subscription plan for tenant ${tenant.id}`);
         return { ignored: true };
       }
 

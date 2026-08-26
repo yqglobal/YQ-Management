@@ -258,6 +258,15 @@ export default function QueueDisplay() {
         </div>
 
       </div>
+      
+      {queue?.tenant && (!queue.tenant.branding || !queue.tenant.planFeatures?.customBranding) && (
+        <div className="absolute bottom-6 right-6 z-50">
+          <a href="https://qmova.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/5">
+            <span>Powered by</span>
+            <span className="font-bold text-white text-sm">Qmova</span>
+          </a>
+        </div>
+      )}
     </div>
   );
 }

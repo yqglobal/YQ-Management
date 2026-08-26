@@ -98,6 +98,7 @@ export class ServiceService {
         name: true,
         description: true,
         expectedDuration: true,
+        locationId: true,
         formConfig: true,
         allowAppointments: true,
         appointmentGranularityMins: true,

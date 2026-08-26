@@ -33,7 +33,7 @@ export class WhatsappController {
     if (!sub || !sub.plan) return;
 
     const features = (sub.plan.features as any) || {};
-    if (features.whatsapp === false || features.hasWhatsapp === false) {
+    if (features.whatsappNotifications === false && features.whatsappChat === false && features.whatsappChatbot === false) {
       throw new BillingException(
         'WhatsApp integration is not available on your current plan. Please upgrade.',
       );

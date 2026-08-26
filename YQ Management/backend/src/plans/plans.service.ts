@@ -35,7 +35,7 @@ export class PlansService {
           name: 'Starter (14 Days Trial)',
           description:
             'Perfect for small retail or single service point environments.',
-          type: 'STANDARD',
+          type: 'TRIAL',
           price: 0,
           currency: 'ZAR',
           billingInterval: 'monthly' as any,
@@ -43,9 +43,10 @@ export class PlansService {
           status: 'ACTIVE',
           sortOrder: 1,
           features: {
-            whatsappNotifications: false,
-            whatsappChat: false,
-            whatsappChatbot: false,
+            whatsappNotifications: true,
+            whatsappChat: true,
+            whatsappChatbot: true,
+            customBranding: true,
           },
           limits: { maxQueues: 1, maxTokens: 100 },
         });
@@ -64,6 +65,7 @@ export class PlansService {
             whatsappNotifications: true,
             whatsappChat: false,
             whatsappChatbot: false,
+            customBranding: false,
           },
           limits: { maxQueues: 5, maxTokens: 1000 },
         });
@@ -82,6 +84,7 @@ export class PlansService {
             whatsappNotifications: true,
             whatsappChat: true,
             whatsappChatbot: true,
+            customBranding: true,
           },
           limits: { maxQueues: 20, maxTokens: 10000 },
         });

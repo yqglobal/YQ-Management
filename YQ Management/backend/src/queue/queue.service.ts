@@ -212,9 +212,18 @@ export class QueueService {
   }
 
   async getQueueById(id: string) {
-    return this.prisma.queue.findUnique({
+    const queue = await this.prisma.queue.findUnique({
       where: { id },
       include: {
+        tenant: {
+          include: {
+            subscriptions: {
+              take: 1,
+              orderBy: { createdAt: 'desc' },
+              include: { plan: true },
+            },
+          },
+        },
         services: {
           select: {
             id: true,
@@ -225,6 +234,19 @@ export class QueueService {
         },
       },
     });
+
+    if (queue && queue.tenant) {
+      const tenant = queue.tenant as any;
+      const planFeatures = tenant.subscriptions?.[0]?.plan?.features as any;
+      const hasCustomBranding = planFeatures?.customBranding === true;
+      if (!hasCustomBranding) {
+        tenant.branding = null;
+      }
+      tenant.planFeatures = { customBranding: hasCustomBranding };
+      delete tenant.subscriptions; // Don't expose billing details publicly
+    }
+
+    return queue;
   }
 
   async getQueueByIdForTenant(id: string, tenantId: string) {

@@ -91,6 +91,7 @@ export class TenantController {
       branding: tenant?.branding,
       subdomain: tenant?.subdomain,
       customerExperience: tenant?.customerExperience,
+      planFeatures: (tenant as any)?.planFeatures,
     };
   }
 }

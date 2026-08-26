@@ -85,6 +85,8 @@ export class TenantService {
     if (!hasCustomBranding) {
       tenant.branding = null;
     }
+    
+    (tenant as any).planFeatures = { customBranding: hasCustomBranding };
 
     try {
       await this.redisService.client.set(
@@ -130,6 +132,8 @@ export class TenantService {
     if (!hasCustomBranding) {
       tenant.branding = null;
     }
+
+    (tenant as any).planFeatures = { customBranding: hasCustomBranding };
 
     return tenant;
   }
