@@ -8,8 +8,9 @@ import {
 import { AppointmentStatus, VisitSource } from '@prisma/client';
 
 export class CreateAppointmentDto {
+  @IsOptional()
   @IsString()
-  tenantId: string;
+  tenantId?: string;
 
   @IsString()
   customerId: string;

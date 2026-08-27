@@ -8,6 +8,9 @@ import { toast } from 'sonner';
 import { CreateCustomerModal } from './CreateCustomerModal';
 import { usePlan } from '../../hooks/usePlan';
 import { QuotaExhaustedModal } from '../QuotaExhaustedModal';
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
+import { detectCountryCode } from '../../lib/country-codes';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -27,6 +30,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [notes, setNotes] = useState('');
+  const [defaultCountry, setDefaultCountry] = useState<any>('US');
   
   const queryClient = useQueryClient();
   const plan = usePlan();
@@ -40,6 +44,25 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
     queryFn: () => fetchApi('/location'),
     enabled: isOpen,
   });
+
+  React.useEffect(() => {
+    if (isOpen) {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('qmova_scanner_country');
+        if (saved) {
+          setDefaultCountry(saved);
+        } else {
+          detectCountryCode().then(country => {
+            if (country) setDefaultCountry(country.country);
+          });
+        }
+      }
+      
+      if (locations.length === 1 && !locationId) {
+        setLocationId(locations[0].id);
+      }
+    }
+  }, [isOpen, locations, locationId]);
 
   const { data: services = [] } = useQuery({
     queryKey: ['services'],
@@ -123,7 +146,8 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
         scheduledEnd: scheduledEnd.toISOString(),
         bookingSource: 'APPOINTMENT',
         status: 'CONFIRMED',
-        metadata: age ? { age } : undefined
+        tenantId: '',
+        formData: age ? { age } : undefined
       });
     } catch (error) {
       toast.error('Failed to create appointment');
@@ -199,11 +223,18 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Phone <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(Optional)</span></label>
-                  <input
-                    type="tel"
+                  <PhoneInput
+                    international
+                    defaultCountry={defaultCountry}
+                    onCountryChange={(country) => {
+                      if (country) {
+                        setDefaultCountry(country);
+                        localStorage.setItem('qmova_scanner_country', country);
+                      }
+                    }}
                     value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                    onChange={(value) => setPhone(value || '')}
+                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-indigo-500 transition-all text-sm h-11"
                     placeholder="+1 234 567 8900"
                   />
                 </div>
@@ -239,27 +270,13 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Queue (Optional)</label>
-                <select 
-                  value={queueId}
-                  onChange={(e) => setQueueId(e.target.value)}
-                  className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
-                  disabled={!locationId}
-                >
-                  <option value="">No specific queue</option>
-                  {queues
-                    .filter((q: any) => q.allowAppointments && (!q.locationId || q.locationId === locationId))
-                    .map((q: any) => (
-                    <option key={q.id} value={q.id}>{q.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Service <span className="text-red-500">*</span></label>
                 <select 
                   value={serviceId}
-                  onChange={(e) => setServiceId(e.target.value)}
+                  onChange={(e) => {
+                    setServiceId(e.target.value);
+                    setQueueId('');
+                  }}
                   className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
                   required
                   disabled={!locationId}
@@ -270,6 +287,27 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                     .map((s: any) => (
                     <option key={s.id} value={s.id}>{s.name} ({s.expectedDuration} min)</option>
                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Queue (Optional)</label>
+                <select 
+                  value={queueId}
+                  onChange={(e) => setQueueId(e.target.value)}
+                  className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+                  disabled={!serviceId}
+                >
+                  <option value="">No specific queue</option>
+                  {(() => {
+                    const selectedService = services.find((s: any) => s.id === serviceId);
+                    if (!selectedService || !selectedService.queues) return null;
+                    return selectedService.queues
+                      .filter((q: any) => q.allowAppointments && (!q.locationId || q.locationId === locationId) && q.status === 'ACTIVE')
+                      .map((q: any) => (
+                      <option key={q.id} value={q.id}>{q.name}</option>
+                    ));
+                  })()}
                 </select>
               </div>
               
@@ -287,26 +325,30 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Time <span className="text-red-500">*</span></label>
                   {queueId && scheduledDate ? (
-                    <select
-                      value={scheduledTime}
-                      onChange={(e) => setScheduledTime(e.target.value)}
-                      className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
-                      required
-                      disabled={isLoadingSlots}
-                    >
-                      <option value="">{isLoadingSlots ? 'Loading slots...' : 'Select time'}</option>
-                      {availableSlots.map((slot: string) => (
-                        <option key={slot} value={slot}>
-                          {new Date(slot).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
+                      {isLoadingSlots ? (
+                        <p className="col-span-3 text-sm text-center text-gray-500">Loading slots...</p>
+                      ) : availableSlots.length === 0 ? (
+                        <p className="col-span-3 text-sm text-center text-red-500">No slots available.</p>
+                      ) : (
+                        availableSlots.map((slot: string) => (
+                          <button
+                            key={slot}
+                            type="button"
+                            onClick={() => setScheduledTime(slot)}
+                            className={`p-2 rounded-lg text-sm font-bold transition-colors ${scheduledTime === slot ? 'bg-indigo-600 text-white shadow-md border-transparent' : 'bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 text-gray-900 dark:text-white'}`}
+                          >
+                            {new Date(slot).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </button>
+                        ))
+                      )}
+                    </div>
                   ) : (
                     <input 
                       type="time"
                       value={scheduledTime}
                       onChange={(e) => setScheduledTime(e.target.value)}
-                      className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                      className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all h-[46px]"
                       required
                     />
                   )}
