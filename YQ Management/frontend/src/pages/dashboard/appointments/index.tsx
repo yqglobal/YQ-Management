@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import AdminLayout from '../../../components/AdminLayout';
-import { Search, Filter, Plus, ChevronLeft, ChevronRight, Calendar, Download, RefreshCw, Eye, XCircle } from 'lucide-react';
+import { Search, Plus, ChevronLeft, ChevronRight, Calendar, Download, RefreshCw, Eye, PanelRight } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
 import { VisitDrawer } from '../../../components/VisitDrawer';
 import { CreateAppointmentModal } from '../../../components/modals/CreateAppointmentModal';
 import { MatrixCalendar } from '../../../components/MatrixCalendar';
+import { ScheduleSidebar } from '../../../components/ScheduleSidebar';
 import { format } from 'date-fns';
 
 type CalendarView = 'day' | 'week' | 'month';
@@ -41,12 +42,29 @@ export default function AppointmentsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [serviceFilter, setServiceFilter] = useState<string>('ALL');
   
+  // Timeline display controls
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [showEmptySlots, setShowEmptySlots] = useState(true);
+  const [showIdleGaps, setShowIdleGaps] = useState(true);
+  const [showBufferZones, setShowBufferZones] = useState(true);
+  const [showWalkins, setShowWalkins] = useState(true);
+  const [rowDensity, setRowDensity] = useState<'compact' | 'normal' | 'expanded'>('normal');
+  
   // Reschedule Confirmation State
   const [rescheduleData, setRescheduleData] = useState<{apt: any, newTime: Date, serviceId: string | null} | null>(null);
+
+  // Schedule view for Day mode — unified endpoint
+  const dateStr = format(currentDate, 'yyyy-MM-dd');
+  const { data: scheduleViewData, isLoading: scheduleLoading, refetch: refetchSchedule } = useQuery({
+    queryKey: ['schedule-view', dateStr],
+    queryFn: () => fetchApi(`/appointments/schedule-view?date=${dateStr}`).catch(() => null),
+    enabled: view === 'day',
+  });
 
   const { data: visitsData = [], isLoading: visitsLoading, refetch: refetchVisits } = useQuery({
     queryKey: ['visits'],
     queryFn: () => fetchApi('/visits').catch(() => []),
+    enabled: view !== 'day',
   });
 
   const { data: appointmentsData = [], isLoading: appointmentsLoading, refetch: refetchAppointments } = useQuery({
@@ -57,6 +75,7 @@ export default function AppointmentsPage() {
   const { data: queuesData = [], isLoading: queuesLoading, refetch: refetchQueues } = useQuery({
     queryKey: ['queues'],
     queryFn: () => fetchApi('/queue').catch(() => []),
+    enabled: view !== 'day',
   });
 
   const { data: services = [] } = useQuery({
@@ -64,9 +83,10 @@ export default function AppointmentsPage() {
     queryFn: () => fetchApi('/service').catch(() => []),
   });
 
-  const isLoading = visitsLoading || appointmentsLoading || queuesLoading;
+  const isLoading = view === 'day' ? scheduleLoading : (visitsLoading || appointmentsLoading || queuesLoading);
 
   const handleRefresh = () => {
+    refetchSchedule();
     refetchVisits();
     refetchAppointments();
     refetchQueues();
@@ -352,17 +372,51 @@ export default function AppointmentsPage() {
             <span className="font-semibold text-on-surface dark:text-white">{filteredAppointments.length}</span> appointment{filteredAppointments.length !== 1 ? 's' : ''} for this {view}
           </span>
           {isLoading && <span className="text-xs animate-pulse">Loading...</span>}
+          {view === 'day' && (
+            <button
+              onClick={() => setShowSidebar(s => !s)}
+              className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${showSidebar ? 'bg-primary/10 text-primary' : 'hover:bg-surface-container text-on-surface-variant'}`}
+            >
+              <PanelRight className="w-3.5 h-3.5" />
+              Controls
+            </button>
+          )}
         </div>
 
         {/* Calendar */}
         {view === 'day' ? (
-          <div className="mt-2">
-            <MatrixCalendar 
-              appointments={filteredAppointments} 
-              services={services} 
-              currentDate={currentDate} 
-              onReschedule={(apt, newTime, serviceId) => setRescheduleData({ apt, newTime, serviceId })}
-            />
+          <div className="mt-2 flex gap-4">
+            <div className="flex-1 min-w-0">
+              <MatrixCalendar
+                scheduleData={scheduleViewData ?? undefined}
+                appointments={filteredAppointments}
+                services={services}
+                currentDate={currentDate}
+                onReschedule={(apt, newTime, serviceId) => setRescheduleData({ apt, newTime, serviceId })}
+                showEmptySlots={showEmptySlots}
+                showIdleGaps={showIdleGaps}
+                showBufferZones={showBufferZones}
+                showWalkins={showWalkins}
+                rowDensity={rowDensity}
+              />
+            </div>
+            {showSidebar && (
+              <ScheduleSidebar
+                services={scheduleViewData?.services ?? services}
+                appointments={scheduleViewData?.appointments ?? appointmentsData}
+                visits={scheduleViewData?.visits ?? []}
+                showEmptySlots={showEmptySlots}
+                showIdleGaps={showIdleGaps}
+                showBufferZones={showBufferZones}
+                showWalkins={showWalkins}
+                rowDensity={rowDensity}
+                onToggleEmptySlots={() => setShowEmptySlots(v => !v)}
+                onToggleIdleGaps={() => setShowIdleGaps(v => !v)}
+                onToggleBufferZones={() => setShowBufferZones(v => !v)}
+                onToggleWalkins={() => setShowWalkins(v => !v)}
+                onDensityChange={setRowDensity}
+              />
+            )}
           </div>
         ) : (
           /* Week / Month: grouped list view */

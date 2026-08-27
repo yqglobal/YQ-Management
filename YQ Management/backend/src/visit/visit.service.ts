@@ -10,6 +10,7 @@ import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { SubscriptionService } from '../subscription/subscription.service';
+import { AppointmentService } from '../appointment/appointment.service';
 
 @Injectable()
 export class VisitService {
@@ -19,6 +20,7 @@ export class VisitService {
     private readonly prisma: PrismaService,
     private readonly whatsappService: WhatsappService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly appointmentService: AppointmentService,
   ) {}
 
   // Basic CRUD for controllers
@@ -559,7 +561,7 @@ export class VisitService {
   }
 
   async completeService(id: string, tenantId?: string, operatorId?: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const visit = await tx.visit.findUnique({ where: { id } });
       if (!visit) throw new NotFoundException('Visit not found');
 
@@ -600,6 +602,15 @@ export class VisitService {
 
       return updated;
     });
+
+    // Fire-and-forget: update rolling avg actual duration for this service
+    if (result?.serviceId && result?.tenantId) {
+      this.appointmentService
+        .updateAvgActualDuration(result.serviceId, result.tenantId)
+        .catch(() => {}); // Non-critical
+    }
+
+    return result;
   }
 
   async skipVisit(visitId: string) {

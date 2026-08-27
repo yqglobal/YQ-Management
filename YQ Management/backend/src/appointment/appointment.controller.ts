@@ -30,6 +30,16 @@ export class AppointmentController {
     return this.appointmentService.create(createAppointmentDto);
   }
 
+  @Get('schedule-view')
+  getScheduleView(
+    @Req() req: AuthenticatedRequest,
+    @Query('date') date: string,
+    @Query('locationId') locationId?: string,
+  ) {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    return this.appointmentService.getScheduleView(req.user.tenantId, targetDate, locationId);
+  }
+
   @Get()
   findAll(@Req() req: AuthenticatedRequest, @Query('status') status?: string) {
     return this.appointmentService.findAll(req.user, status);

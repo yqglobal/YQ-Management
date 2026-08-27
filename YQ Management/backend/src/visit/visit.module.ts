@@ -5,9 +5,10 @@ import { VisitCron } from './visit.cron';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { PublicVisitController } from './public-visit.controller';
+import { AppointmentModule } from '../appointment/appointment.module';
 
 @Module({
-  imports: [WhatsappModule, forwardRef(() => SubscriptionModule)],
+  imports: [WhatsappModule, forwardRef(() => SubscriptionModule), forwardRef(() => AppointmentModule)],
   providers: [VisitService, VisitCron],
   controllers: [VisitController, PublicVisitController],
   exports: [VisitService],

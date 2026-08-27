@@ -9,5 +9,6 @@ import { GoogleModule } from '../integrations/google/google.module';
   imports: [WhatsappModule, RedisModule, GoogleModule],
   providers: [AppointmentService],
   controllers: [AppointmentController],
+  exports: [AppointmentService],
 })
 export class AppointmentModule {}

@@ -237,4 +237,132 @@ export class AppointmentService {
       where: { id },
     });
   }
+
+  /**
+   * Unified schedule view for the timeline calendar.
+   * Returns appointments, walk-in visits, avg durations, and gap analysis for a given date.
+   */
+  async getScheduleView(tenantId: string, date: string, locationId?: string) {
+    const dayStart = new Date(`${date}T00:00:00.000Z`);
+    const dayEnd = new Date(`${date}T23:59:59.999Z`);
+
+    // Fetch all appointments for the day
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        tenantId,
+        ...(locationId ? { locationId } : {}),
+        scheduledStart: { gte: dayStart, lte: dayEnd },
+      },
+      include: { customer: true, service: true, location: true, staff: true },
+      orderBy: { scheduledStart: 'asc' },
+    });
+
+    // Fetch all visits for the day (walkins + appointment-linked)
+    const visits = await this.prisma.visit.findMany({
+      where: {
+        tenantId,
+        ...(locationId ? { locationId } : {}),
+        createdAt: { gte: dayStart, lte: dayEnd },
+        currentState: { notIn: ['NO_SHOW', 'CANCELLED'] },
+      },
+      include: { customer: true, service: true, staff: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Fetch services to get duration data
+    const services = await this.prisma.service.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        name: true,
+        expectedDuration: true,
+        bufferDuration: true,
+        concurrentSlots: true,
+        allowAppointments: true,
+        appointmentGranularityMins: true,
+        avgActualDurationMins: true,
+        locationId: true,
+      },
+    });
+
+    // Build per-service gap and idle analysis
+    const serviceStats = services.map((svc) => {
+      const svcAppointments = appointments
+        .filter((a) => a.serviceId === svc.id)
+        .sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime());
+
+      const gaps: Array<{ start: string; end: string; durationMins: number }> = [];
+
+      for (let i = 0; i < svcAppointments.length - 1; i++) {
+        const gapStart = new Date(svcAppointments[i].scheduledEnd).getTime();
+        const gapEnd = new Date(svcAppointments[i + 1].scheduledStart).getTime();
+        const durationMins = Math.round((gapEnd - gapStart) / 60000);
+        if (durationMins >= 10) {
+          gaps.push({
+            start: new Date(gapStart).toISOString(),
+            end: new Date(gapEnd).toISOString(),
+            durationMins,
+          });
+        }
+      }
+
+      const effectiveDurationMins =
+        svc.avgActualDurationMins !== null && svc.avgActualDurationMins !== undefined
+          ? svc.avgActualDurationMins
+          : svc.expectedDuration;
+
+      return {
+        serviceId: svc.id,
+        effectiveDurationMins,
+        gaps,
+      };
+    });
+
+    return {
+      date,
+      appointments,
+      visits,
+      services,
+      serviceStats,
+    };
+  }
+
+  /**
+   * Called when a visit is completed. Updates the rolling avg actual duration
+   * for the service (rolling over the last 30 completed visits).
+   */
+  async updateAvgActualDuration(serviceId: string, tenantId: string): Promise<void> {
+    try {
+      const recentCompleted = await this.prisma.visit.findMany({
+        where: {
+          serviceId,
+          tenantId,
+          currentState: 'COMPLETED',
+          serviceStart: { not: null },
+          completedAt: { not: null },
+        },
+        select: { serviceStart: true, completedAt: true },
+        orderBy: { completedAt: 'desc' },
+        take: 30,
+      });
+
+      if (recentCompleted.length < 5) return; // Not enough data
+
+      const totalMs = recentCompleted.reduce((sum, v) => {
+        const dur = v.completedAt!.getTime() - v.serviceStart!.getTime();
+        return sum + Math.max(0, dur);
+      }, 0);
+
+      const avgMins = Math.round(totalMs / recentCompleted.length / 60000);
+      if (avgMins <= 0) return;
+
+      await this.prisma.service.update({
+        where: { id: serviceId },
+        data: { avgActualDurationMins: avgMins },
+      });
+    } catch (e) {
+      // Non-critical — log and continue
+      console.error('Failed to update avgActualDurationMins', e);
+    }
+  }
 }
