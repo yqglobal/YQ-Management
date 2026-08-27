@@ -21,7 +21,7 @@ interface PrintQRModalProps {
 
 export default function PrintQRModal({ open, onClose, queues }: PrintQRModalProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [baseUrl, setBaseUrl] = useState('');
+  const [baseUrl, setBaseUrl] = useState(typeof window !== 'undefined' ? window.location.origin : '');
 
   const { user } = useAuth();
   

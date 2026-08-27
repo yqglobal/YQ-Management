@@ -77,9 +77,13 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
   });
 
   const { data: availableSlots = [], isLoading: isLoadingSlots } = useQuery({
-    queryKey: ['slots', queueId, scheduledDate],
-    queryFn: () => fetchApi(`/queue/${queueId}/slots?date=${scheduledDate}`),
-    enabled: !!queueId && !!scheduledDate,
+    queryKey: ['slots', queueId, serviceId, scheduledDate],
+    queryFn: () => {
+      if (queueId) return fetchApi(`/queue/${queueId}/slots?date=${scheduledDate}`);
+      if (serviceId) return fetchApi(`/service/${serviceId}/slots?date=${scheduledDate}`);
+      return Promise.resolve([]);
+    },
+    enabled: (!!queueId || !!serviceId) && !!scheduledDate,
   });
 
   const createMutation = useMutation({
@@ -119,7 +123,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
       let scheduledStart: Date;
       let scheduledEnd: Date;
 
-      if (queueId) {
+      if (queueId || serviceId) {
         // scheduledTime is a full ISO string from the slots endpoint
         scheduledStart = new Date(scheduledTime);
         scheduledEnd = new Date(scheduledStart.getTime() + duration * 60000);
@@ -139,15 +143,14 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
       await createMutation.mutateAsync({
         customerId: customer.id,
         locationId,
-        queueId: queueId || undefined,
+        ...(queueId ? { queueId } : {}),
         serviceId,
         customerNotes: notes,
         scheduledStart: scheduledStart.toISOString(),
         scheduledEnd: scheduledEnd.toISOString(),
         bookingSource: 'APPOINTMENT',
         status: 'CONFIRMED',
-        tenantId: '',
-        formData: age ? { age } : undefined
+        ...(age ? { formData: { age } } : {})
       });
     } catch (error) {
       toast.error('Failed to create appointment');
@@ -324,7 +327,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Time <span className="text-red-500">*</span></label>
-                  {queueId && scheduledDate ? (
+                  {(queueId || serviceId) && scheduledDate ? (
                     <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
                       {isLoadingSlots ? (
                         <p className="col-span-3 text-sm text-center text-gray-500">Loading slots...</p>
