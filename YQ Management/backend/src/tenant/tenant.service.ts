@@ -181,17 +181,15 @@ export class TenantService {
       data.subdomain = normalized;
     }
 
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.subdomain !== undefined) updateData.subdomain = data.subdomain;
+    if (data.branding !== undefined) updateData.branding = data.branding;
+    if (data.customerExperience !== undefined) updateData.customerExperience = data.customerExperience;
+
     return this.prisma.tenant.update({
       where: { id },
-      data: {
-        name: data.name !== undefined ? data.name : undefined,
-        subdomain: data.subdomain !== undefined ? data.subdomain : undefined,
-        branding: data.branding !== undefined ? data.branding : undefined,
-        customerExperience:
-          data.customerExperience !== undefined
-            ? data.customerExperience
-            : undefined,
-      },
+      data: updateData,
     });
   }
 

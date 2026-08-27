@@ -4,7 +4,8 @@ import Head from 'next/head';
 import AdminLayout from '../../components/AdminLayout';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { fetchApi } from '../../lib/api';
+import { fetchApi, getBackendUrl } from '../../lib/api';
+import { io, Socket } from 'socket.io-client';
 import { WelcomeModal } from '../../components/modals/WelcomeModal';
 import { CreateVisitModal } from '../../components/modals/CreateVisitModal';
 import { ScannerModal } from '../../components/modals/ScannerModal';
@@ -38,7 +39,6 @@ export default function ServiceDeskToday() {
   const { data: visits = [], isLoading } = useQuery({
     queryKey: ['visits', 'today'],
     queryFn: () => fetchApi('/visits?scope=today').catch(() => []),
-    refetchInterval: 15000, // poll every 15s
   });
 
   const { data: tenant } = useQuery({
@@ -73,13 +73,47 @@ export default function ServiceDeskToday() {
   const { data: pendingAppointments = [] } = useQuery({
     queryKey: ['appointments', 'pending'],
     queryFn: () => fetchApi('/appointments?status=PENDING_APPROVAL').catch(() => []),
-    refetchInterval: 15000,
   });
 
   const { data: resources = [] } = useQuery({
     queryKey: ['resources'],
     queryFn: () => fetchApi('/resource').catch(() => []),
   });
+
+  // Connect to Socket.io for real-time updates
+  useEffect(() => {
+    if (!tenant?.id) return;
+
+    const socket: Socket = io(getBackendUrl(), {
+      transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
+      autoConnect: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 10,
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to real-time service desk stream');
+      socket.emit('joinTenantRoom', tenant.id);
+    });
+
+    socket.on('queueUpdated', (data) => {
+      console.log('Real-time update: queueUpdated', data);
+      queryClient.invalidateQueries({ queryKey: ['visits', 'today'] });
+      queryClient.invalidateQueries({ queryKey: ['queues'] });
+    });
+
+    socket.on('visitUpdated', (data) => {
+      console.log('Real-time update: visitUpdated', data);
+      queryClient.invalidateQueries({ queryKey: ['visits', 'today'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments', 'pending'] });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [tenant?.id, queryClient]);
 
   const updateVisitMutation = useMutation({
     mutationFn: (data: { id: string, resourceId: string }) => 

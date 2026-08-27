@@ -116,10 +116,11 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         if (s.locationId) setSelectedLocationId(s.locationId);
         setSelectedServiceIds([serviceId]);
         if (queueId && typeof queueId === 'string') {
+          const hasQueues = s && s.queues && s.queues.filter(q => q.status === 'ACTIVE').length > 0;
           setServiceDetails(prev => ({
             ...prev,
             [serviceId]: { 
-              joinMode: 'immediate',
+              joinMode: hasQueues ? 'immediate' : 'appointment',
               selectedDate: '',
               selectedSlot: '',
               responses: {},
@@ -219,8 +220,9 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const currentService = services.find(s => s.id === currentServiceId);
   const currentQueue = currentService ? getQueueForService(currentService.id) : null;
   
+  const hasQueues = currentService && currentService.queues && currentService.queues.filter(q => q.status === 'ACTIVE').length > 0;
   const currentDetails = serviceDetails[currentServiceId] || {
-    joinMode: 'immediate', selectedDate: '', selectedSlot: '', responses: {}
+    joinMode: hasQueues ? 'immediate' : 'appointment', selectedDate: '', selectedSlot: '', responses: {}
   };
 
   const updateCurrentDetails = (updates: Partial<typeof currentDetails>) => {
@@ -533,10 +535,16 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                 <form onSubmit={handleNextStep1} className="space-y-6">
                   <div className="space-y-3">
                     <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wider">Select Services <span className="text-red-500">*</span></label>
-                    {services.filter(s => !tenant?.locations?.length || s.locationId === selectedLocationId).length === 0 ? (
-                      <p className="text-sm text-gray-500">No services available at this location.</p>
+                    {services.filter(s => 
+                      (!tenant?.locations?.length || s.locationId === selectedLocationId || !s.locationId) &&
+                      (s.queues.length > 0 || s.allowAppointments)
+                    ).length === 0 ? (
+                      <p className="text-sm text-gray-500">No services available at this location right now.</p>
                     ) : (
-                      services.filter(s => !tenant?.locations?.length || s.locationId === selectedLocationId).map(service => (
+                      services.filter(s => 
+                        (!tenant?.locations?.length || s.locationId === selectedLocationId || !s.locationId) &&
+                        (s.queues.length > 0 || s.allowAppointments)
+                      ).map(service => (
                         <label key={service.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedServiceIds.includes(service.id) ? 'border-transparent shadow-md' : 'border-gray-200 dark:border-zinc-800'}`} style={selectedServiceIds.includes(service.id) ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}>
                           <input 
                             type="checkbox" checked={selectedServiceIds.includes(service.id)} onChange={() => toggleService(service.id)}
@@ -616,7 +624,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                   <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-zinc-800">
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">When do you want to visit?</label>
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => updateCurrentDetails({ joinMode: 'immediate' })} className={`flex-1 py-3 rounded-xl font-semibold border-2 transition-all ${currentDetails.joinMode === 'immediate' ? 'border-transparent text-white shadow-md' : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300'}`} style={currentDetails.joinMode === 'immediate' ? { backgroundColor: primaryColor } : {}}>Now</button>
+                      <button type="button" disabled={currentService.queues?.filter(q => q.status === 'ACTIVE').length === 0} onClick={() => updateCurrentDetails({ joinMode: 'immediate' })} className={`flex-1 py-3 rounded-xl font-semibold border-2 transition-all ${currentDetails.joinMode === 'immediate' ? 'border-transparent text-white shadow-md' : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300'} disabled:opacity-50 disabled:cursor-not-allowed`} style={currentDetails.joinMode === 'immediate' ? { backgroundColor: primaryColor } : {}}>Now {currentService.queues?.filter(q => q.status === 'ACTIVE').length === 0 && '(Unavailable)'}</button>
                       <button type="button" onClick={() => updateCurrentDetails({ joinMode: 'appointment' })} className={`flex-1 py-3 rounded-xl font-semibold border-2 transition-all ${currentDetails.joinMode === 'appointment' ? 'border-transparent text-white shadow-md' : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300'}`} style={currentDetails.joinMode === 'appointment' ? { backgroundColor: primaryColor } : {}}>Book Slot</button>
                     </div>
 

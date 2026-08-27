@@ -140,14 +140,13 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
 
           {locations.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Location <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Location</label>
               <select
                 value={selectedLocId}
                 onChange={(e) => setSelectedLocId(e.target.value)}
-                className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                required
+                className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
               >
-                <option value="" disabled>Select a location</option>
+                <option value="">All Locations (Global Service)</option>
                 {locations.map((loc: any) => (
                   <option key={loc.id} value={loc.id}>{loc.name}</option>
                 ))}

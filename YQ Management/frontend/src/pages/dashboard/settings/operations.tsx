@@ -9,6 +9,7 @@ import { ServiceModal } from '../../../components/modals/ServiceModal';
 
 export default function ResourcesSettingsPage() {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'locations' | 'services' | 'resources'>('locations');
 
   // --- Resources state ---
   const [newResourceName, setNewResourceName] = useState('');
@@ -198,7 +199,41 @@ export default function ResourcesSettingsPage() {
         <title>Operations | Settings | Qmova</title>
       </Head>
 
+      <div className="flex space-x-1 border-b border-border dark:border-dark-border mb-6">
+        <button
+          onClick={() => setActiveTab('locations')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'locations'
+              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
+          }`}
+        >
+          Locations
+        </button>
+        <button
+          onClick={() => setActiveTab('services')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'services'
+              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
+          }`}
+        >
+          Services
+        </button>
+        <button
+          onClick={() => setActiveTab('resources')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'resources'
+              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
+          }`}
+        >
+          Resources
+        </button>
+      </div>
+
       {/* ── Locations Section ── */}
+      {activeTab === 'locations' && (
       <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
         <div className="absolute left-0 top-0 bottom-0 w-2 bg-emerald-500" />
 
@@ -335,8 +370,10 @@ export default function ResourcesSettingsPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* ── Services Section ── */}
+      {activeTab === 'services' && (
       <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
         <div className="absolute left-0 top-0 bottom-0 w-2 bg-blue-500" />
 
@@ -442,8 +479,10 @@ export default function ResourcesSettingsPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* ── Resources Section ── */}
+      {activeTab === 'resources' && (
       <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
         <div className="absolute left-0 top-0 bottom-0 w-2 bg-indigo-500" />
         <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
