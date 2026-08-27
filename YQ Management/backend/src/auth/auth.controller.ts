@@ -240,7 +240,14 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('me')
-  getProfile(@Req() req: any) {
+  async getProfile(@Req() req: any) {
+    if (req.user?.userId) {
+      const user = await this.usersService['prisma'].user.findUnique({
+        where: { id: req.user.userId },
+        include: { tenant: true },
+      });
+      return { ...req.user, ...user };
+    }
     return req.user;
   }
 

@@ -28,7 +28,8 @@ export default function PrintQRModal({ open, onClose, queues }: PrintQRModalProp
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const subdomain = user?.tenant?.subdomain || '';
-      setBaseUrl(getTenantUrl(subdomain));
+      const url = getTenantUrl(subdomain);
+      setBaseUrl(url || window.location.origin);
     }
   }, [user?.tenant?.subdomain]);
 
