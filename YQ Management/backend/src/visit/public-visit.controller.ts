@@ -42,6 +42,7 @@ export class PublicVisitController {
     body: {
       customerName: string;
       phone?: string | null;
+      otp?: string;
       language?: string;
       bookings: {
         serviceId: string;

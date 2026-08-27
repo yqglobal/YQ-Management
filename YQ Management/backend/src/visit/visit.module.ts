@@ -6,11 +6,12 @@ import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { PublicVisitController } from './public-visit.controller';
 import { AppointmentModule } from '../appointment/appointment.module';
+import { TokenController } from './token.controller';
 
 @Module({
   imports: [WhatsappModule, forwardRef(() => SubscriptionModule), forwardRef(() => AppointmentModule)],
   providers: [VisitService, VisitCron],
-  controllers: [VisitController, PublicVisitController],
+  controllers: [VisitController, PublicVisitController, TokenController],
   exports: [VisitService],
 })
 export class VisitModule {}

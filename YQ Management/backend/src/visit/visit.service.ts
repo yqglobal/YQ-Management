@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { RedisService } from '../redis/redis.service';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { AppointmentService } from '../appointment/appointment.service';
 
@@ -21,6 +22,7 @@ export class VisitService {
     private readonly whatsappService: WhatsappService,
     private readonly subscriptionService: SubscriptionService,
     private readonly appointmentService: AppointmentService,
+    private readonly redisService: RedisService,
   ) {}
 
   // Basic CRUD for controllers
@@ -293,6 +295,7 @@ export class VisitService {
   async joinMultiple(data: {
     customerName: string;
     phone?: string | null;
+    otp?: string;
     language?: string;
     bookings: {
       serviceId: string;
@@ -315,6 +318,20 @@ export class VisitService {
 
       const tenantId = firstService.tenantId;
       const locationId = firstService.locationId;
+
+      const tenant = await tx.tenant.findUnique({ where: { id: tenantId } });
+      if (tenant?.whatsappConnected && data.phone) {
+        if (!data.otp) {
+          throw new BadRequestException('OTP is required');
+        }
+        const redisKey = `otp:booking:${data.phone}`;
+        const storedOtp = await this.redisService.client.get(redisKey);
+        if (storedOtp !== data.otp) {
+          throw new BadRequestException('Invalid or expired OTP');
+        }
+        await this.redisService.client.del(redisKey);
+      }
+
       if (!locationId)
         throw new BadRequestException('Service is not assigned to a Location');
 
