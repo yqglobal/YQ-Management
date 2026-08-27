@@ -55,20 +55,33 @@ export default function CustomerExperienceSettings() {
     feedback: { enabled: false, questions: [] },
   });
 
+  const [brandingConfig, setBrandingConfig] = useState<any>({
+    enabled: true,
+    logoUrl: '',
+    primaryColor: '#4f46e5'
+  });
+
   useEffect(() => {
-    if (tenant?.customerExperience) {
-      setConfig({
-        portal: tenant.customerExperience.portal || { welcomeTitle: '', welcomeMessage: '', supportContact: '' },
-        globalIntakeForm: tenant.customerExperience.globalIntakeForm || [],
-        feedback: tenant.customerExperience.feedback || { enabled: false, questions: [] },
+    if (tenant) {
+      if (tenant.customerExperience) {
+        setConfig({
+          portal: tenant.customerExperience.portal || { welcomeTitle: '', welcomeMessage: '', supportContact: '' },
+          globalIntakeForm: tenant.customerExperience.globalIntakeForm || [],
+          feedback: tenant.customerExperience.feedback || { enabled: false, questions: [] },
+        });
+      }
+      setBrandingConfig({
+        enabled: tenant.branding?.enabled !== false,
+        logoUrl: tenant.branding?.logoUrl || '',
+        primaryColor: tenant.branding?.primaryColor || '#4f46e5'
       });
     }
   }, [tenant]);
 
   const saveSettingsMutation = useMutation({
-    mutationFn: (newConfig: any) => fetchApi(`/tenant/${tenant.id}`, {
+    mutationFn: (data: { newConfig: any, branding: any }) => fetchApi(`/tenant/${tenant.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ customerExperience: newConfig }),
+      body: JSON.stringify({ customerExperience: data.newConfig, branding: data.branding }),
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant', 'me'] });
@@ -78,7 +91,7 @@ export default function CustomerExperienceSettings() {
   });
 
   const handleSave = () => {
-    saveSettingsMutation.mutate(config);
+    saveSettingsMutation.mutate({ newConfig: config, branding: brandingConfig });
   };
 
   const handleAddField = (path: 'globalIntakeForm' | 'feedback.questions') => {
@@ -282,9 +295,67 @@ export default function CustomerExperienceSettings() {
 
       <div>
         {activeTab === 'portal' && (
-          <div className="bg-surface-bright dark:bg-zinc-900 rounded-2xl border border-border dark:border-dark-border p-6">
-            <h3 className="font-body-lg text-body-lg font-semibold text-on-surface dark:text-white mb-6 border-b border-border dark:border-dark-border pb-4">Portal Branding</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-surface-bright dark:bg-zinc-900 rounded-2xl border border-border dark:border-dark-border p-6 space-y-8">
+            <div>
+              <h3 className="font-body-lg text-body-lg font-semibold text-on-surface dark:text-white mb-6 border-b border-border dark:border-dark-border pb-4">Custom Branding</h3>
+              
+              <div className="space-y-6">
+                <label className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-dark-border rounded-xl cursor-pointer hover:border-outline transition-colors h-[72px]">
+                  <div className="flex flex-col justify-center">
+                    <div className="flex items-center gap-2">
+                      <span className="font-body-md text-on-surface dark:text-white font-medium leading-none">Enable Custom Branding</span>
+                      {tenant?.planFeatures?.customBranding === false && (
+                        <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded font-bold">PREMIUM REQUIRED</span>
+                      )}
+                    </div>
+                    <span className="text-[12px] text-outline mt-1 leading-none">Use your logo and colors on customer pages.</span>
+                  </div>
+                  <div className="relative inline-flex items-center">
+                    <input 
+                      type="checkbox" 
+                      checked={brandingConfig.enabled} 
+                      disabled={tenant?.planFeatures?.customBranding === false}
+                      onChange={e => setBrandingConfig({ ...brandingConfig, enabled: e.target.checked })} 
+                      className="sr-only peer" 
+                    />
+                    <div className={`w-11 h-6 bg-surface-variant rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D97706] ${tenant?.planFeatures?.customBranding === false ? 'opacity-50' : ''}`}></div>
+                  </div>
+                </label>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide flex items-center justify-between">
+                      <span>Logo URL</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={brandingConfig.logoUrl}
+                      onChange={(e) => setBrandingConfig({ ...brandingConfig, logoUrl: e.target.value })}
+                      disabled={!brandingConfig.enabled}
+                      className="w-full h-[44px] bg-white dark:bg-zinc-800 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-[#D97706] focus:border-[#D97706] outline-none transition-shadow text-on-surface dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="https://example.com/logo.png"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Brand Color</label>
+                    <div className={`flex items-center gap-3 p-1.5 h-[44px] bg-white dark:bg-zinc-800 border border-border dark:border-dark-border rounded-lg ${!brandingConfig.enabled ? 'opacity-50' : ''}`}>
+                      <input
+                        type="color"
+                        value={brandingConfig.primaryColor}
+                        onChange={(e) => setBrandingConfig({ ...brandingConfig, primaryColor: e.target.value })}
+                        disabled={!brandingConfig.enabled}
+                        className="w-8 h-8 rounded cursor-pointer border-0 p-0 bg-transparent disabled:cursor-not-allowed"
+                      />
+                      <span className="text-body-md font-data-mono text-on-surface-variant dark:text-outline">{brandingConfig.primaryColor}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-body-lg text-body-lg font-semibold text-on-surface dark:text-white mb-6 border-b border-border dark:border-dark-border pb-4 mt-4">Portal Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Welcome Title</label>
                 <input
@@ -313,6 +384,7 @@ export default function CustomerExperienceSettings() {
                   placeholder="Please enter your details to proceed..."
                   className="w-full min-h-[120px] bg-white dark:bg-zinc-800 border border-border dark:border-dark-border rounded-lg p-4 font-body-md text-body-md focus:ring-1 focus:ring-[#D97706] focus:border-[#D97706] outline-none text-on-surface dark:text-white"
                 />
+              </div>
               </div>
             </div>
           </div>

@@ -129,7 +129,10 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: any, tok
         <header className="flex items-center justify-between py-4 mb-6">
           <div className="flex items-center gap-2">
             {tenant?.planFeatures?.customBranding === false ? (
-              <img src="/logo-light.png" alt="Qmova" className="h-8 max-w-[140px] object-contain" />
+              <>
+                <img src="/qmova-dark-logo.png" alt="Qmova" className="h-8 max-w-[140px] object-contain dark:hidden" />
+                <img src="/qmova-light-logo.png" alt="Qmova" className="h-8 max-w-[140px] object-contain hidden dark:block" />
+              </>
             ) : tenant.branding?.logoUrl ? (
               <img src={tenant.branding.logoUrl} alt={tenant.name} className="h-8 max-w-[140px] object-contain" />
             ) : (

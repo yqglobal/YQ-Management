@@ -12,8 +12,6 @@ export default function WorkspaceSettingsPage() {
   const [tenantName, setTenantName] = useState('');
   const [tenantSubdomain, setTenantSubdomain] = useState('');
   const [subdomainError, setSubdomainError] = useState('');
-  const [tenantPrimaryColor, setTenantPrimaryColor] = useState('#4f46e5');
-  const [tenantLogo, setTenantLogo] = useState('');
   const [tenantId, setTenantId] = useState('');
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN';
@@ -24,7 +22,6 @@ export default function WorkspaceSettingsPage() {
     enabled: isAdmin,
   });
 
-  const [hasCustomBranding, setHasCustomBranding] = useState(true);
 
   useEffect(() => {
     if (user?.tenantId && isAdmin) {
@@ -33,11 +30,7 @@ export default function WorkspaceSettingsPage() {
         if (currentTenant) {
           setTenantName(currentTenant.name || '');
           setTenantSubdomain(currentTenant.subdomain || '');
-          // If custom branding is false, tenant.branding might be null from API
-          setTenantPrimaryColor(currentTenant.branding?.primaryColor || '#4f46e5');
-          setTenantLogo(currentTenant.branding?.logoUrl || '');
           setTenantId(currentTenant.id);
-          setHasCustomBranding(currentTenant.planFeatures?.customBranding !== false);
         }
       }).catch(err => console.warn("Failed to fetch tenant details:", err));
     }
@@ -52,11 +45,7 @@ export default function WorkspaceSettingsPage() {
           method: 'PATCH', 
           body: JSON.stringify({ 
             name: tenantName,
-            subdomain: tenantSubdomain,
-            branding: { 
-              primaryColor: tenantPrimaryColor,
-              logoUrl: tenantLogo
-            } 
+            subdomain: tenantSubdomain
           }) 
         });
         await refetch();
@@ -142,37 +131,6 @@ export default function WorkspaceSettingsPage() {
               ) : (
                 <p className="text-[12px] text-outline mt-2">Used in the customer-facing booking page URL.</p>
               )}
-            </div>
-
-            <div>
-              <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Brand Color</label>
-              <div className="flex items-center gap-3 p-1.5 h-[44px] bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg">
-                <input
-                  type="color"
-                  value={tenantPrimaryColor}
-                  onChange={(e) => setTenantPrimaryColor(e.target.value)}
-                  className="w-8 h-8 rounded cursor-pointer border-0 p-0 bg-transparent"
-                />
-                <span className="text-body-md font-data-mono text-on-surface-variant dark:text-outline">{tenantPrimaryColor}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide flex items-center justify-between">
-                <span>Logo URL</span>
-                {!hasCustomBranding && <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded">Premium Plan Required</span>}
-              </label>
-              <input
-                type="url"
-                value={tenantLogo}
-                onChange={(e) => setTenantLogo(e.target.value)}
-                disabled={!hasCustomBranding}
-                className="w-full h-[44px] bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow text-on-surface dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder={hasCustomBranding ? "https://example.com/logo.png" : "Upgrade to add custom logo"}
-              />
-            </div>
           </div>
         </div>
 

@@ -626,7 +626,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
             );
           })}
         </div>
-        {user?.role === 'SUPER_ADMIN' && (
+        {user?.role === 'SUPER_ADMIN' && router.pathname.startsWith('/super-admin') && (
           <div className="px-4 pb-4 pt-2">
             <p className="text-[10px] text-on-surface-variant/50 dark:text-outline/50 font-mono">
               Build: {process.env.NEXT_PUBLIC_BUILD_COMMIT || 'dev'}
