@@ -16,40 +16,44 @@ export class InvitationService {
   }
 
   async createInvitation(
-    workspaceId: string,
+    tenantId: string,
     data: {
       email?: string;
       role?: string;
       maxUses?: number;
       expiresInDays?: number;
+      allowedLocationIds?: string[];
+      allowedServiceIds?: string[];
+      allowedPages?: string[];
     },
   ) {
     const code = this.generateCode();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + (data.expiresInDays || 7));
 
-    const invitation = await this.prisma.invitation.create({
+    return this.prisma.invitation.create({
       data: {
-        workspaceId,
+        tenantId,
         code,
         email: data.email ?? null,
         role: (data.role as Role) || Role.OPERATOR,
-        maxUses: data.maxUses || 5,
+        maxUses: data.maxUses || 1,
         expiresAt,
+        allowedLocationIds: data.allowedLocationIds ?? [],
+        allowedServiceIds: data.allowedServiceIds ?? [],
+        allowedPages: data.allowedPages ?? [],
       },
     });
-
-    return invitation;
   }
 
-  async createJoinCode(workspaceId: string, role: Role = Role.OPERATOR) {
+  async createJoinCode(tenantId: string, role: Role = Role.OPERATOR) {
     const code = this.generateCode();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
-    const invitation = await this.prisma.invitation.create({
+    return this.prisma.invitation.create({
       data: {
-        workspaceId,
+        tenantId,
         code,
         email: null,
         role,
@@ -57,13 +61,11 @@ export class InvitationService {
         expiresAt,
       },
     });
-
-    return invitation;
   }
 
-  async getInvitations(workspaceId: string) {
+  async getInvitations(tenantId: string) {
     return this.prisma.invitation.findMany({
-      where: { workspaceId },
+      where: { tenantId },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -74,9 +76,9 @@ export class InvitationService {
     });
   }
 
-  async revokeInvitation(id: string, workspaceId: string) {
+  async revokeInvitation(id: string, tenantId: string) {
     const invitation = await this.prisma.invitation.findFirst({
-      where: { id, workspaceId },
+      where: { id, tenantId },
     });
 
     if (!invitation) {
@@ -90,7 +92,7 @@ export class InvitationService {
   }
 
   async validateAndUseInvitation(code: string): Promise<{
-    workspaceId: string;
+    tenantId: string;
     role: string;
     allowedLocationIds: string[];
     allowedServiceIds: string[];
@@ -118,14 +120,12 @@ export class InvitationService {
         usedCount: { increment: 1 },
         used: invitation.usedCount + 1 >= invitation.maxUses,
         usedAt:
-          invitation.usedCount + 1 >= invitation.maxUses
-            ? new Date()
-            : undefined,
+          invitation.usedCount + 1 >= invitation.maxUses ? new Date() : undefined,
       },
     });
 
     return {
-      workspaceId: invitation.workspaceId,
+      tenantId: invitation.tenantId,
       role: invitation.role,
       allowedLocationIds: invitation.allowedLocationIds,
       allowedServiceIds: invitation.allowedServiceIds,
@@ -133,67 +133,44 @@ export class InvitationService {
     };
   }
 
-  async ensureWorkspaceHasAdmin(workspaceId: string) {
-    const adminCount = await this.prisma.user.count({
-      where: {
-        workspaceId,
-        role: { in: ['TENANT_ADMIN', 'SUPER_ADMIN'] },
-      },
+  async getInvitePreview(code: string) {
+    const invitation = await this.prisma.invitation.findFirst({
+      where: { code: code.toUpperCase(), used: false },
+      include: { tenant: { select: { name: true, subdomain: true, branding: true } } },
     });
 
-    if (adminCount === 0) {
-      const workspace = await this.prisma.workspace.findUnique({
-        where: { id: workspaceId },
-        include: { tenant: true },
-      });
-
-      if (!workspace) {
-        throw new NotFoundException('Workspace not found');
-      }
-
-      const tenantAdmin = await this.prisma.user.findFirst({
-        where: {
-          tenantId: workspace.tenantId,
-          role: 'TENANT_ADMIN',
-        },
-        orderBy: { id: 'asc' },
-      });
-
-      if (tenantAdmin) {
-        await this.prisma.user.update({
-          where: { id: tenantAdmin.id },
-          data: { workspaceId },
-        });
-      }
+    if (!invitation) {
+      throw new BadRequestException('Invalid or already used invitation code.');
     }
+
+    if (invitation.expiresAt && invitation.expiresAt < new Date()) {
+      throw new BadRequestException('This invitation has expired.');
+    }
+
+    return {
+      valid: true,
+      code: invitation.code,
+      role: invitation.role,
+      tenantName: invitation.tenant?.name || 'A Team',
+      tenantId: invitation.tenantId,
+      branding: invitation.tenant?.branding,
+      email: invitation.email,
+    };
   }
 
-  async getUserWorkspaceRole(userId: string, workspaceId: string) {
+  async getUserTenantRole(userId: string, tenantId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { workspaceId: true, role: true, tenantId: true, email: true },
+      select: { tenantId: true, role: true, email: true },
     });
 
-    if (!user) {
-      return null;
-    }
-
-    if (user.workspaceId === workspaceId) {
-      return user.role;
-    }
+    if (!user) return null;
+    if (user.tenantId === tenantId) return user.role;
 
     const invitation = await this.prisma.invitation.findFirst({
-      where: {
-        workspaceId,
-        email: user.email,
-        used: false,
-      },
+      where: { tenantId, email: user.email, used: false },
     });
 
-    if (invitation) {
-      return invitation.role;
-    }
-
-    return null;
+    return invitation?.role ?? null;
   }
 }

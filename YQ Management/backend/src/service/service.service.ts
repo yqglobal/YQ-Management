@@ -69,7 +69,6 @@ export class ServiceService {
     try {
       await this.queueService.createQueue(
         tenantId,
-        undefined,
         `${data.name} Queue`,
         undefined,
         undefined,

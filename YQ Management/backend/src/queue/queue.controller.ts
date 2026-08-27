@@ -38,7 +38,6 @@ export class QueueController {
   ) {
     return this.queueService.createQueue(
       req.user.tenantId,
-      req.user.workspaceId,
       body.name,
       body.formConfig,
       body.tokenDisplayConfig,

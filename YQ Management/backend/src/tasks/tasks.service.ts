@@ -27,7 +27,7 @@ export class TasksService {
           },
         ],
       },
-      include: { workspace: true },
+      include: { tenant: { select: { name: true, id: true } } },
     });
 
     if (expiredInvites.length === 0) {
@@ -49,7 +49,7 @@ export class TasksService {
         if (invite.email) {
           const tenantAdmin = await this.prisma.user.findFirst({
             where: {
-              tenantId: invite.workspace.tenantId,
+              tenantId: invite.tenantId,
               role: 'TENANT_ADMIN',
             },
           });
@@ -58,7 +58,7 @@ export class TasksService {
             this.emailService.sendInvitationExpiredNotification(
               tenantAdmin.email,
               invite.email,
-              invite.workspace.name,
+              invite.tenant?.name || 'Your Team',
             );
           }
         }

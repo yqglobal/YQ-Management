@@ -226,8 +226,8 @@ export class AuthController {
       req.user?.email?.toLowerCase() === 'yqbuddysa@gmail.com' ||
       req.user?.email?.toLowerCase() ===
         process.env.SUPER_ADMIN_EMAIL?.toLowerCase();
-    const isNewUser =
-      req.user.isNewUser || (!req.user.workspaceId && !isSuperAdmin);
+    const personalSettings = (req.user?.personalSettings as Record<string, any>) || {};
+    const isNewUser = req.user.isNewUser || (!personalSettings.onboardingCompleted && !isSuperAdmin);
 
     if (isSuperAdmin) {
       res.redirect(`${frontendUrl}/super-admin?token=${access_token}`);
@@ -380,57 +380,41 @@ export class AuthController {
           );
         }
       }
-      if (body.companyName && req.user.workspaceId) {
-        try {
-          const existingWs = await this.usersService[
-            'prisma'
-          ].workspace.findUnique({
-            where: { id: req.user.workspaceId },
-          });
-          if (existingWs) {
-            await this.usersService['prisma'].workspace.update({
-              where: { id: req.user.workspaceId },
-              data: { name: body.companyName },
-            });
-          } else if (req.user.tenantId) {
-            const tenantWs = await this.usersService[
-              'prisma'
-            ].workspace.findFirst({
-              where: { tenantId: req.user.tenantId },
-            });
-            if (tenantWs) {
-              await this.usersService['prisma'].workspace.update({
-                where: { id: tenantWs.id },
-                data: { name: body.companyName },
-              });
-            } else {
-              const newWs = await this.usersService['prisma'].workspace.create({
-                data: {
-                  id:
-                    req.user.workspaceId !== req.user.tenantId
-                      ? req.user.workspaceId
-                      : undefined,
-                  name: body.companyName,
-                  subdomain: `${body.companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now()}`,
-                  ownerId: req.user.sub,
-                  tenantId: req.user.tenantId,
-                },
-              });
-              await this.usersService['prisma'].user.update({
-                where: { id: req.user.sub },
-                data: { workspaceId: newWs.id },
-              });
-            }
-          }
-        } catch (error) {
-          new Logger(AuthController.name).error(
-            `Error updating or creating workspace: ${error}`,
-          );
-        }
-      }
+      // Workspace creation removed — Tenant is the single root entity
+      // companyName is already updated on the Tenant above
     }
 
     return { success: true, user: updatedUser };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('join-with-invite')
+  async joinWithInvite(
+    @Req() req: any,
+    @Body() body: { inviteCode: string },
+    @Res({ passthrough: true }) res: any,
+  ) {
+    const result = await this.authService.joinWithInvite(
+      req.user.userId || req.user.sub,
+      body.inviteCode,
+    );
+    // Re-issue JWT with correct tenantId and role
+    const user = await this.usersService['prisma'].user.findUnique({
+      where: { id: req.user.userId || req.user.sub },
+    });
+    const { access_token } = await this.authService.login(
+      user,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.cookie('token', access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+    return { success: true, access_token, tenantId: result.tenantId, role: result.role };
   }
 
   @UseGuards(ThrottlerGuard)

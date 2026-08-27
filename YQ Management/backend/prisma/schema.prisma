@@ -146,6 +146,7 @@ model Tenant {
   subscriptions       Subscription[]
   invoices            Invoice[]
   usages              TenantUsage[]
+  invitations         Invitation[]  // Team invitations scoped to this tenant
   autonomousEnabled   Boolean @default(false)
   createdAt DateTime @default(now())
 }
@@ -221,22 +222,19 @@ model AuditLog {
 model Queue {
   id                 String      @id @default(uuid())
   tenantId           String
-  workspaceId        String?
-  locationId         String?
+  workspaceId        String?     // DEPRECATED — kept for legacy compatibility
+  locationId         String?     // Which location this queue belongs to
   name               String
   status             QueueStatus
-  nextQueueId        String? // For multi-step routing (e.g. Registration -> Billing)
-  formConfig         Json? // Dynamic form configuration
-  tokenDisplayConfig Json? // Display settings and token number generation config
+  nextQueueId        String?     // For multi-step routing
+  formConfig         Json?       // Dynamic form configuration
+  tokenDisplayConfig Json?       // Display settings and token number generation config
 
-  // Future Bookings & Hybrid Queuing
-  // Future Bookings & Hybrid Queuing
-  tenant                     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  workspace                  Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  location                   Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  tokens                     Token[]
-  visits                     Visit[]
-  services                   Service[]
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location  Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  tokens    Token[]
+  visits    Visit[]
+  services  Service[]  @relation("QueueToService")
 
   @@index([tenantId])
   @@index([locationId])
@@ -364,11 +362,9 @@ model Workspace {
 
   tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   users             User[]
-  queues            Queue[]
   transactions      Transaction[]
   locations         Location[]
   communicationLogs CommunicationLog[]
-  invitations       Invitation[]
   webhookEvents     WebhookEvent[]
 
   @@index([tenantId])
@@ -524,24 +520,26 @@ model CommunicationLog {
 }
 
 model Invitation {
-  id          String    @id @default(uuid())
-  workspaceId String
-  code        String    @unique
-  email       String?
-  role        Role      @default(OPERATOR)
-  used        Boolean   @default(false)
-  usedCount   Int       @default(0)
-  maxUses     Int       @default(1)
-  usedAt      DateTime?
-  expiresAt   DateTime?
+  id                 String    @id @default(uuid())
+  tenantId           String    // PRIMARY scope — tenant-wide invitations
+  workspaceId        String?   // DEPRECATED — kept nullable for legacy reads only
+  code               String    @unique
+  email              String?
+  role               Role      @default(OPERATOR)
+  used               Boolean   @default(false)
+  usedCount          Int       @default(0)
+  maxUses            Int       @default(1)
+  usedAt             DateTime?
+  expiresAt          DateTime?
   createdAt          DateTime  @default(now())
   allowedLocationIds String[]  @default([])
   allowedServiceIds  String[]  @default([])
   allowedPages       String[]  @default([])
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@index([workspaceId])
+  @@index([tenantId])
+  @@index([code])
 }
 
 model WebhookEvent {
@@ -637,7 +635,7 @@ model Service {
 
   visits       Visit[]
   appointments Appointment[]
-  queues       Queue[]
+  queues       Queue[]  @relation("QueueToService")
   resources    Resource[]
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)

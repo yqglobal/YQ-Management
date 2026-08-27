@@ -141,7 +141,7 @@ export class SuperAdminService {
             subdomain: true,
 
             ownerId: true,
-            _count: { select: { queues: true, transactions: true } },
+            _count: { select: { transactions: true } },
           },
         },
         transactions: {

@@ -27,27 +27,12 @@ export class QueueService {
 
   async createQueue(
     tenantId: string,
-    workspaceId: string | undefined,
     name: string,
     formConfig?: any,
     tokenDisplayConfig?: any,
     locationId?: string,
     serviceIds?: string[],
   ) {
-    let resolvedWorkspaceId = workspaceId;
-    if (workspaceId) {
-      const ws = await this.prisma.workspace.findUnique({
-        where: { id: workspaceId },
-      });
-      if (!ws && tenantId) {
-        const tenantWs = await this.prisma.workspace.findFirst({
-          where: { tenantId },
-        });
-        if (tenantWs) resolvedWorkspaceId = tenantWs.id;
-        else resolvedWorkspaceId = undefined;
-      }
-    }
-
     if (!serviceIds || serviceIds.length === 0) {
       throw new BadRequestException(
         'A queue must be linked to at least one service.',
@@ -68,7 +53,6 @@ export class QueueService {
     const queue = await this.prisma.queue.create({
       data: {
         tenantId,
-        workspaceId: resolvedWorkspaceId,
         name,
         status: QueueStatus.ACTIVE,
         formConfig,

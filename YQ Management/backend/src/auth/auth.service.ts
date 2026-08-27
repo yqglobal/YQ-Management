@@ -3,12 +3,14 @@ import {
   UnauthorizedException,
   Logger,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { EmailService } from '../email/email.service';
-import { WorkspaceService } from '../workspace/workspace.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +19,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private emailService: EmailService,
-    private workspaceService: WorkspaceService,
+    private prisma: PrismaService,
   ) {}
 
   private generateOTP(): string {
@@ -47,14 +49,11 @@ export class AuthService {
     purpose: 'signup' | 'login' | 'reset',
   ) {
     const otp = this.generateOTP();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await this.usersService['prisma'].user.update({
+    await this.prisma.user.update({
       where: { email },
-      data: {
-        otpCode: otp,
-        otpExpiresAt: expiresAt,
-      },
+      data: { otpCode: otp, otpExpiresAt: expiresAt },
     });
 
     try {
@@ -79,33 +78,24 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired OTP');
     }
 
-    // Clear OTP
-    await this.usersService['prisma'].user.update({
+    await this.prisma.user.update({
       where: { email },
-      data: {
-        otpCode: null,
-        otpExpiresAt: null,
-      },
+      data: { otpCode: null, otpExpiresAt: null },
     });
 
     if (intent === 'signup') {
-      const personalSettings =
-        (user.personalSettings as Record<string, any>) || {};
-      const fullName = personalSettings.fullName || '';
+      const settings = (user.personalSettings as Record<string, any>) || {};
+      const fullName = settings.fullName || '';
       this.emailService
         .sendWelcomeEmail(email, fullName)
         .catch((err) =>
           this.logger.error(`Failed to send welcome email to ${email}`, err),
         );
     } else if (intent === 'login') {
-      // Fire and forget login notification
       this.emailService
         .sendLoginNotification(email)
         .catch((err) =>
-          this.logger.error(
-            `Failed to send login notification to ${email}`,
-            err,
-          ),
+          this.logger.error(`Failed to send login notification to ${email}`, err),
         );
     }
 
@@ -126,46 +116,25 @@ export class AuthService {
 
       if (intent === 'login') {
         if (!user) {
-          this.logger.log(
-            `User attempted Google Login but has no account: ${email}`,
-          );
+          this.logger.log(`Google Login attempted but no account: ${email}`);
           return { _oauthError: 'NO_ACCOUNT' };
         }
-
         if (!user.googleId) {
-          this.logger.log(
-            `User attempted Google Login but account is linked to email/pwd: ${email}`,
-          );
           return { _oauthError: 'EMAIL_PWD_ACCOUNT' };
         }
       } else if (intent === 'signup') {
         if (user) {
-          if (user.googleId) {
-            this.logger.log(
-              `User attempted Google Signup but already linked to Google: ${email}`,
-            );
-            return { _oauthError: 'ALREADY_LINKED_GOOGLE' };
-          } else {
-            this.logger.log(
-              `User attempted Google Signup but already has email/pwd account: ${email}`,
-            );
-            return { _oauthError: 'EMAIL_PWD_ACCOUNT' };
-          }
+          return { _oauthError: user.googleId ? 'ALREADY_LINKED_GOOGLE' : 'EMAIL_PWD_ACCOUNT' };
         }
 
-        this.logger.log(
-          `Unknown user attempted Google SSO Signup: ${email}. Creating new tenant and user account.`,
-        );
+        this.logger.log(`Creating tenant + user for Google SSO signup: ${email}`);
         const tenantName = email.split('@')[0] + "'s Workspace";
 
-        const tenant = await this.usersService['prisma'].tenant.create({
-          data: {
-            name: tenantName,
-            subdomain: `tenant-${Date.now()}`,
-          },
+        const tenant = await this.prisma.tenant.create({
+          data: { name: tenantName, subdomain: `tenant-${Date.now()}` },
         });
 
-        user = await this.usersService['prisma'].user.create({
+        user = await this.prisma.user.create({
           data: {
             email,
             googleId,
@@ -181,28 +150,11 @@ export class AuthService {
           },
         });
 
-        const workspace = await this.workspaceService.createWorkspace({
-          name: tenantName,
-          subdomain: `ws-${Date.now()}`,
-          ownerId: user.id,
-          tenantId: tenant.id,
-        });
-
-        user = await this.usersService['prisma'].user.update({
-          where: { id: user.id },
-          data: { workspaceId: workspace.id },
-        });
-
         isNewUser = true;
       }
 
-      // If tokens are provided and user is TENANT_ADMIN, update the tenant
-      if (
-        user &&
-        user.role === 'TENANT_ADMIN' &&
-        (accessToken || refreshToken)
-      ) {
-        await this.usersService['prisma'].tenant.update({
+      if (user && user.role === 'TENANT_ADMIN' && (accessToken || refreshToken)) {
+        await this.prisma.tenant.update({
           where: { id: user.tenantId },
           data: {
             ...(accessToken ? { googleAccessToken: accessToken } : {}),
@@ -225,14 +177,13 @@ export class AuthService {
       sub: user.id,
       role: user.role,
       tenantId: user.tenantId,
-      workspaceId: user.workspaceId || user.tenantId,
       personalSettings: user.personalSettings,
       jti,
     };
     const access_token = this.jwtService.sign(payload);
 
     try {
-      await this.usersService['prisma'].userSession.create({
+      await this.prisma.userSession.create({
         data: {
           userId: user.id,
           token: access_token,
@@ -246,16 +197,15 @@ export class AuthService {
       this.logger.error('Failed to create session record', e);
     }
 
-    return {
-      access_token,
-    };
+    return { access_token };
   }
 
   async registerUser(email: string, password: string, fullName?: string) {
-    const tenant = await this.usersService['prisma'].tenant.create({
+    // Tenant is the single root entity — no Workspace created on registration
+    const tenant = await this.prisma.tenant.create({
       data: {
         name: 'My Company',
-        subdomain: `temp-${Date.now()}`,
+        subdomain: `tenant-${Date.now()}`,
       },
     });
 
@@ -273,22 +223,60 @@ export class AuthService {
       },
     });
 
-    const workspace = await this.workspaceService.createWorkspace({
-      name: 'My Company',
-      subdomain: `mycompany-${Date.now()}`,
-      ownerId: newUser.id,
-      tenantId: tenant.id,
-    });
-
-    const updatedUser = await this.usersService['prisma'].user.findUnique({
-      where: { id: newUser.id },
-    });
-    if (!updatedUser) {
-      throw new InternalServerErrorException(
-        'User not found after workspace assignment',
-      );
+    const user = await this.prisma.user.findUnique({ where: { id: newUser.id } });
+    if (!user) {
+      throw new InternalServerErrorException('User not found after registration');
     }
 
-    return updatedUser;
+    return user;
+  }
+
+  /**
+   * Join an existing tenant via an invitation code.
+   * Called when a new or existing user accepts a team invite.
+   */
+  async joinWithInvite(userId: string, inviteCode: string): Promise<{ tenantId: string; role: string }> {
+    const invitation = await this.prisma.invitation.findFirst({
+      where: { code: inviteCode.toUpperCase(), used: false },
+    });
+
+    if (!invitation) throw new BadRequestException('Invalid or already used invitation code');
+    if (invitation.expiresAt && invitation.expiresAt < new Date()) {
+      throw new BadRequestException('Invitation code has expired');
+    }
+    if (invitation.usedCount >= invitation.maxUses) {
+      throw new BadRequestException('Invitation has reached its maximum uses');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new BadRequestException('User not found');
+
+    if (user.tenantId === invitation.tenantId) {
+      throw new BadRequestException('You are already a member of this team');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        tenantId: invitation.tenantId,
+        role: invitation.role as Role,
+        allowedLocationIds: invitation.allowedLocationIds,
+        allowedServiceIds: invitation.allowedServiceIds,
+        allowedPages: invitation.allowedPages,
+      },
+    });
+
+    const newCount = invitation.usedCount + 1;
+    await this.prisma.invitation.update({
+      where: { id: invitation.id },
+      data: {
+        usedCount: newCount,
+        used: newCount >= invitation.maxUses,
+        usedAt: newCount >= invitation.maxUses ? new Date() : undefined,
+      },
+    });
+
+    this.logger.log(`User ${userId} joined tenant ${invitation.tenantId} via invite ${inviteCode}`);
+    return { tenantId: invitation.tenantId, role: invitation.role };
   }
 }

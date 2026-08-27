@@ -6,9 +6,9 @@ export interface AuthenticatedRequest extends Request {
     sub: string;
     email: string;
     role: string;
-    workspaceId: string;
     tenantId: string;
     personalSettings?: any;
     isNewUser?: boolean;
   };
 }
+

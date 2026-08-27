@@ -75,7 +75,7 @@ export default function Login() {
         }
         const isSuper = data?.user?.role === 'SUPER_ADMIN' || email.trim().toLowerCase() === 'yqbuddysa@gmail.com';
         const pendingInvite = typeof window !== 'undefined' ? localStorage.getItem('qmova_invite_code') : null;
-        if (!isSuper && (!data?.user?.workspaceId || pendingInvite)) {
+        if (!isSuper && (!data?.user?.tenantId || !data?.user?.personalSettings?.onboardingCompleted || pendingInvite)) {
           router.push('/onboarding');
         } else {
           router.push(isSuper ? '/super-admin' : '/dashboard');

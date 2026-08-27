@@ -44,12 +44,9 @@ export class UsersService {
       select: { id: true, email: true, role: true },
     });
 
-    const workspaces = await this.prisma.workspace.findMany({
-      where: { tenantId },
-      select: { id: true, name: true, ownerId: true },
-    });
-
-    const ownerId = workspaces.length > 0 ? workspaces[0].ownerId : null;
+    // Owner is the TENANT_ADMIN with earliest account
+    const owner = activeUsers.find((u) => u.role === 'TENANT_ADMIN') || activeUsers[0];
+    const ownerId = owner?.id ?? null;
 
     const staffList: any[] = activeUsers.map((u) => ({
       id: u.id,
@@ -60,25 +57,21 @@ export class UsersService {
       isOwner: u.id === ownerId,
     }));
 
-    if (workspaces.length === 0) {
-      return staffList;
-    }
-
-    const workspaceIds = workspaces.map((w) => w.id);
     const invites = await this.prisma.invitation.findMany({
-      where: {
-        workspaceId: { in: workspaceIds },
-        email: { not: null },
-      },
+      where: { tenantId, email: { not: null } },
       orderBy: { createdAt: 'desc' },
     });
 
     const now = new Date();
-    const tenantAdmin =
-      activeUsers.find(
-        (u) => u.role === 'TENANT_ADMIN' || u.role === 'SUPER_ADMIN',
-      ) || activeUsers[0];
-    const workspaceName = workspaces[0]?.name || 'Workspace Team';
+    const tenantAdmin = activeUsers.find(
+      (u) => u.role === 'TENANT_ADMIN' || u.role === 'SUPER_ADMIN',
+    ) || activeUsers[0];
+
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true },
+    });
+    const tenantName = tenant?.name || 'Your Team';
 
     for (const inv of invites) {
       if (
@@ -102,38 +95,14 @@ export class UsersService {
           this.emailService.sendInvitationExpiredNotification(
             tenantAdmin.email,
             inv.email,
-            workspaceName,
+            tenantName,
           );
         }
-        staffList.push({
-          id: inv.id,
-          email: inv.email,
-          role: inv.role,
-          status: 'EXPIRED',
-          code: inv.code,
-          expiresAt: inv.expiresAt,
-          isInvite: true,
-        });
+        staffList.push({ id: inv.id, email: inv.email, role: inv.role, status: 'EXPIRED', code: inv.code, expiresAt: inv.expiresAt, isInvite: true });
       } else if (isExpired || inv.used) {
-        staffList.push({
-          id: inv.id,
-          email: inv.email,
-          role: inv.role,
-          status: 'EXPIRED',
-          code: inv.code,
-          expiresAt: inv.expiresAt,
-          isInvite: true,
-        });
+        staffList.push({ id: inv.id, email: inv.email, role: inv.role, status: 'EXPIRED', code: inv.code, expiresAt: inv.expiresAt, isInvite: true });
       } else {
-        staffList.push({
-          id: inv.id,
-          email: inv.email,
-          role: inv.role,
-          status: 'INVITED',
-          code: inv.code,
-          expiresAt: inv.expiresAt,
-          isInvite: true,
-        });
+        staffList.push({ id: inv.id, email: inv.email, role: inv.role, status: 'INVITED', code: inv.code, expiresAt: inv.expiresAt, isInvite: true });
       }
     }
 
@@ -155,23 +124,20 @@ export class UsersService {
       where: { email: data.email },
     });
 
-    const workspace = await this.prisma.workspace.findFirst({
-      where: { tenantId },
-      select: { id: true, name: true },
+    // Get tenant info for display name in invite
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true },
     });
 
-    if (!workspace) {
-      throw new BadRequestException(
-        'No active workspace found for this organization.',
-      );
-    }
+    const tenantName = tenant?.name || 'Your Team';
 
     if (!existingUser) {
       const code = randomBytes(6).toString('hex').toUpperCase().substring(0, 8);
       const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
       const existingInvite = await this.prisma.invitation.findFirst({
-        where: { workspaceId: workspace.id, email: data.email, used: false },
+        where: { tenantId, email: data.email, used: false },
       });
 
       const invite = existingInvite
@@ -190,7 +156,7 @@ export class UsersService {
           })
         : await this.prisma.invitation.create({
             data: {
-              workspaceId: workspace.id,
+              tenantId,
               code,
               email: data.email,
               role: data.role as Role,
@@ -208,19 +174,16 @@ export class UsersService {
         inviteCode: invite.code,
         email: data.email,
         role: data.role,
-        workspaceName: workspace.name,
+        tenantName,
         inviteUrl: `https://yq-qmova.vercel.app/register?inviteCode=${invite.code}`,
         message:
           'No Qmova account found for this email. An invitation join code has been generated.',
       };
     }
 
-    if (
-      existingUser.tenantId === tenantId &&
-      existingUser.workspaceId === workspace.id
-    ) {
+    if (existingUser.tenantId === tenantId) {
       throw new BadRequestException(
-        'This user is already an active member of your team workspace.',
+        'This user is already an active member of your team.',
       );
     }
 
@@ -228,7 +191,6 @@ export class UsersService {
       where: { id: existingUser.id },
       data: {
         tenantId,
-        workspaceId: workspace.id,
         role: data.role as Role,
         allowedLocationIds: data.allowedLocationIds || [],
         allowedServiceIds: data.allowedServiceIds || [],
@@ -238,7 +200,7 @@ export class UsersService {
     });
 
     await this.prisma.invitation.updateMany({
-      where: { workspaceId: workspace.id, email: data.email, used: false },
+      where: { tenantId, email: data.email, used: false },
       data: { used: true, usedAt: new Date() },
     });
 
@@ -253,15 +215,15 @@ export class UsersService {
     tenantId: string,
     data: { email: string; code: string; role: string },
   ) {
-    const workspace = await this.prisma.workspace.findFirst({
-      where: { tenantId },
-      select: { id: true, name: true },
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true },
     });
-    const workspaceName = workspace?.name || 'Workspace Team';
+    const tenantName = tenant?.name || 'Your Team';
     const inviteUrl = `https://yq-qmova.vercel.app/register?inviteCode=${data.code}`;
     const res = await this.emailService.sendStaffInvitation(
       data.email,
-      workspaceName,
+      tenantName,
       data.role,
       inviteUrl,
       data.code,
@@ -271,29 +233,17 @@ export class UsersService {
         res.error || 'Failed to dispatch Brevo invitation email.',
       );
     }
-    return {
-      success: true,
-      message: 'Invitation email successfully sent via Brevo.',
-    };
+    return { success: true, message: 'Invitation email successfully sent via Brevo.' };
   }
 
   async resendInvite(tenantId: string, inviteId: string) {
     const invite = await this.prisma.invitation.findUnique({
       where: { id: inviteId },
+      include: { tenant: { select: { name: true } } },
     });
 
-    if (!invite) {
-      throw new NotFoundException('Invitation record not found.');
-    }
-
-    const workspace = await this.prisma.workspace.findUnique({
-      where: { id: invite.workspaceId },
-      select: { id: true, tenantId: true, name: true },
-    });
-
-    if (workspace?.tenantId !== tenantId) {
-      throw new NotFoundException('Unauthorized invitation renewal.');
-    }
+    if (!invite) throw new NotFoundException('Invitation record not found.');
+    if (invite.tenantId !== tenantId) throw new NotFoundException('Unauthorized invitation renewal.');
 
     const code = randomBytes(6).toString('hex').toUpperCase().substring(0, 8);
     const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
@@ -309,7 +259,7 @@ export class UsersService {
       inviteCode: updated.code,
       email: updated.email || '',
       role: updated.role,
-      workspaceName: workspace?.name || 'Workspace Team',
+      tenantName: invite.tenant?.name || 'Your Team',
       inviteUrl: `https://yq-qmova.vercel.app/register?inviteCode=${updated.code}`,
     };
   }
@@ -321,12 +271,8 @@ export class UsersService {
     });
 
     if (!targetUser) {
-      const workspaces = await this.prisma.workspace.findMany({
-        where: { tenantId },
-        select: { id: true },
-      });
       const targetInvite = await this.prisma.invitation.findFirst({
-        where: { id, workspaceId: { in: workspaces.map((w) => w.id) } },
+        where: { id, tenantId },
       });
       if (targetInvite) {
         await this.prisma.invitation.delete({ where: { id: targetInvite.id } });
@@ -399,20 +345,9 @@ export class UsersService {
 
     // Protect TENANT_ADMIN demotion
     if (targetUser.role === 'TENANT_ADMIN' && newRole !== 'TENANT_ADMIN') {
-      const workspace = await this.prisma.workspace.findFirst({
-        where: { tenantId },
-        select: { ownerId: true },
-      });
-      if (workspace?.ownerId === targetUser.id) {
-        throw new BadRequestException(
-          'Cannot demote the workspace owner. Transfer ownership first.',
-        );
-      }
-
       const adminCount = await this.prisma.user.count({
         where: { tenantId, role: 'TENANT_ADMIN' },
       });
-
       if (adminCount <= 1) {
         throw new BadRequestException(
           'Cannot demote the last admin. Transfer admin role to another user first.',
@@ -428,26 +363,25 @@ export class UsersService {
         allowedServiceIds: data.allowedServiceIds || [],
         allowedPages: data.allowedPages || [],
       },
-      select: { id: true, email: true, role: true, workspaceId: true },
+      select: { id: true, email: true, role: true },
     });
 
-    const workspace = await this.prisma.workspace.findFirst({
-      where: { tenantId },
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
       select: { name: true },
     });
-
-    const workspaceName = workspace?.name || 'Workspace Team';
+    const tenantName = tenant?.name || 'Your Team';
 
     if (newRole === 'TENANT_ADMIN') {
       await this.emailService.sendAdminTransferEmail(
         currentUserEmail,
         updatedUser.email,
-        workspaceName,
+        tenantName,
       );
     } else {
       await this.emailService.sendRoleUpdatedEmail(
         updatedUser.email,
-        workspaceName,
+        tenantName,
         newRole,
       );
     }

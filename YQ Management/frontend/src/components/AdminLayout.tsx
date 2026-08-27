@@ -182,7 +182,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   return (
     <div className="bg-canvas dark:bg-dark-canvas text-on-surface dark:text-white font-body-md min-h-screen flex flex-col antialiased">
-      {!hasAcceptedPolicies && !!user?.workspaceId && user?.personalSettings?.onboardingCompleted !== false && user?.role !== 'SUPER_ADMIN' && <AdvancedPoliciesModal />}
+      {!hasAcceptedPolicies && !!user?.tenantId && user?.personalSettings?.onboardingCompleted !== false && user?.role !== 'SUPER_ADMIN' && <AdvancedPoliciesModal />}
       <DashboardTour />
 
       {/* Mobile overlay */}

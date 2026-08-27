@@ -63,18 +63,19 @@ export class WorkspaceService {
       throw new BadRequestException('This workspace invitation has expired.');
     }
 
-    const workspace = await this.prisma.workspace.findUnique({
-      where: { id: invitation.workspaceId },
-      select: { name: true, subdomain: true, tenantId: true },
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: invitation.tenantId },
+      select: { name: true, subdomain: true, id: true },
     });
 
     return {
       valid: true,
       code: invitation.code,
       role: invitation.role,
-      workspaceName: workspace?.name || 'Workspace Team',
-      subdomain: workspace?.subdomain || '',
-      tenantId: workspace?.tenantId,
+      workspaceName: tenant?.name || 'Your Team',
+      tenantName: tenant?.name || 'Your Team',
+      subdomain: tenant?.subdomain || '',
+      tenantId: invitation.tenantId,
       email: invitation.email,
     };
   }
@@ -83,32 +84,26 @@ export class WorkspaceService {
     const invitation =
       await this.invitationService.validateAndUseInvitation(code);
 
-    const workspace = await this.prisma.workspace.findUnique({
-      where: { id: invitation.workspaceId },
-    });
-
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: {
-        workspaceId: invitation.workspaceId,
-        tenantId: workspace ? workspace.tenantId : undefined,
+        tenantId: invitation.tenantId,
         role: invitation.role as Role,
         allowedLocationIds: invitation.allowedLocationIds,
         allowedServiceIds: invitation.allowedServiceIds,
         allowedPages: invitation.allowedPages,
       },
-      include: { workspace: true },
     });
 
-    if (workspace && (user.role === 'OPERATOR' || user.role === 'MANAGER')) {
+    if (user.role === 'OPERATOR' || user.role === 'MANAGER') {
       const personalSettings = user.personalSettings as any;
-      const fullName = personalSettings?.fullName || user.email.split('@')[0];
+      const fullName = personalSettings?.fullName || user.email?.split('@')[0] || 'Staff';
       const primaryLocationId = invitation.allowedLocationIds[0] || null;
 
       try {
         await this.prisma.staff.create({
           data: {
-            tenantId: workspace.tenantId,
+            tenantId: invitation.tenantId,
             locationId: primaryLocationId,
             userId: user.id,
             name: fullName,
@@ -122,7 +117,6 @@ export class WorkspaceService {
 
     return {
       success: true,
-      workspace: user.workspace,
       role: user.role,
       tenantId: user.tenantId,
     };
