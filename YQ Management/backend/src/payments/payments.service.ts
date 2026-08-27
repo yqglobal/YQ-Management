@@ -217,6 +217,9 @@ export class PaymentsService {
             currentPeriodStart: new Date(),
             currentPeriodEnd: currentPeriodEnd,
             nextBillingDate: currentPeriodEnd,
+            // Clear trial dates when converting to paid subscription
+            trialStartDate: null,
+            trialEndDate: null,
           },
           create: {
             tenantId: transaction.tenantId,
@@ -226,6 +229,8 @@ export class PaymentsService {
             currentPeriodStart: new Date(),
             currentPeriodEnd: currentPeriodEnd,
             nextBillingDate: currentPeriodEnd,
+            trialStartDate: null,
+            trialEndDate: null,
           },
         });
       }

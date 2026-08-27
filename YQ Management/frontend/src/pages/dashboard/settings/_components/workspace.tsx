@@ -133,6 +133,7 @@ export default function WorkspaceSettingsPage() {
               )}
           </div>
         </div>
+        </div>
 
         <div className="mt-8 pt-6 border-t border-border dark:border-dark-border flex justify-end">
           <button

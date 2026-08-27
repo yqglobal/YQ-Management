@@ -20,6 +20,7 @@ export interface PlanFeatures {
   appointmentsModule?: boolean;
   multiLocation?: boolean;
   customDomain?: boolean;
+  webhooks?: boolean;
 }
 
 export interface UsePlanResult {
@@ -86,13 +87,15 @@ export function usePlan(): UsePlanResult {
     const features: PlanFeatures = { ...DEFAULT_FEATURES, ...(parsedFeatures as Partial<PlanFeatures> ?? {}) };
 
     const isTrialActive = status === 'TRIAL';
+    // Use trialEndDate for trial days (not currentPeriodEnd which may be overwritten on activation)
+    const trialEndRaw = sub?.trialEndDate ?? sub?.currentPeriodEnd;
     const subscriptionEndDate: Date | null = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
     
     let trialDaysLeft = 0;
-    if (isTrialActive && subscriptionEndDate) {
+    if (isTrialActive && trialEndRaw) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const end = new Date(subscriptionEndDate);
+      const end = new Date(trialEndRaw);
       end.setHours(0, 0, 0, 0);
       trialDaysLeft = Math.max(0, Math.round((end.getTime() - today.getTime()) / 86400000));
     }

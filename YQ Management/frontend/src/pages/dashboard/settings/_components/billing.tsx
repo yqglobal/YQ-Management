@@ -4,7 +4,7 @@ import { CheckCircle2, AlertCircle, Loader2, Zap, Building2, ArrowRight } from '
 import { fetchApi } from '../../../../lib/api';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePlan } from '../../../../hooks/usePlan';
 
 interface OzowPaymentData {
@@ -40,6 +40,7 @@ function formatBillingDate(value?: string | Date | null) {
 
 export default function BillingSettings() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const paymentFormRef = useRef<HTMLFormElement | null>(null);
   const [paymentData, setPaymentData] = useState<OzowPaymentData | null>(null);
   const [billingInterval, setBillingInterval] = useState('monthly');
@@ -144,8 +145,9 @@ export default function BillingSettings() {
     }
   }, [paymentData]);
 
-  const isPaid = currentSub?.status === 'ACTIVE' && currentSub?.plan?.price > 0;
   const isTrial = currentSub?.status === 'TRIAL';
+  // Trial users AND paying users should see their plan details (not the pricing grid)
+  const isPaid = (currentSub?.status === 'ACTIVE' && currentSub?.plan?.price > 0) || isTrial;
   const isExpired = currentSub?.status === 'EXPIRED' || currentSub?.status === 'CANCELLED';
   const isPastDue = currentSub?.status === 'PAST_DUE';
   const isPendingPayment = currentSub?.status === 'PENDING_PAYMENT';
@@ -204,7 +206,12 @@ export default function BillingSettings() {
               </p>
               
               <button 
-                onClick={() => router.replace('/dashboard/settings/billing')}
+                onClick={async () => {
+                  // Invalidate subscription caches so the page shows the fresh ACTIVE subscription
+                  await queryClient.invalidateQueries({ queryKey: ['billing-subscription'] });
+                  await queryClient.invalidateQueries({ queryKey: ['current-subscription'] });
+                  router.replace('/dashboard/settings/billing');
+                }}
                 className={`w-full h-14 rounded-2xl font-semibold text-[15px] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 group ${
                   statusMessage.type === 'success' 
                     ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/25' 

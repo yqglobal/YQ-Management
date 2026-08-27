@@ -362,9 +362,9 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
           <div className="flex items-start gap-3">
             <div className="flex flex-col">
               <Logo width={140} height={22} />
-              {!plan.isLoading && plan.planName && (
+              {!plan.isLoading && (plan.planName || plan.isTrialActive) && (
                 <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-primary dark:text-primary mt-1 ml-1 opacity-80">
-                  {plan.planName.replace(' (14 Days Trial)', ' Trial').replace(' Plan', '')}
+                  {plan.isTrialActive ? 'Trial' : plan.planName?.replace(' Plan', '')}
                 </span>
               )}
             </div>
@@ -493,6 +493,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
             );
           })()}
           {/* Upgrade Card */}
+          {/* Upgrade / Trial Card */}
           {(() => {
             const bookingShared = typeof window !== 'undefined' && !!localStorage.getItem('bookingPageShared');
             const steps = [
@@ -502,13 +503,14 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
               { done: !!tenant?.whatsappConnected },
               { done: bookingShared }
             ];
-            const doneCount = steps.filter(s => s.done).length;
-            const allDone = doneCount === steps.length;
+            const allDone = steps.filter(s => s.done).length === steps.length;
 
-            if (plan.isLoading || !allDone) return null;
-            return (
-              <div className="px-2 pb-2 mt-4">
-                {(plan.status === 'TRIAL') && (
+            if (plan.isLoading) return null;
+
+            // Trial card: always show regardless of setup progress
+            if (plan.status === 'TRIAL') {
+              return (
+                <div className="px-2 pb-2 mt-4">
                   <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl text-white shadow-lg shadow-indigo-500/20 relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                     <div className="relative z-10">
@@ -516,14 +518,22 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                         <span className="material-symbols-outlined text-[20px]">stars</span>
                         <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full backdrop-blur-md">Trial</span>
                       </div>
-                      <h4 className="font-bold text-sm mb-1">Upgrade to Pro</h4>
-                      <p className="text-xs text-white/80 mb-3">{plan.trialDaysLeft > 0 ? `${plan.trialDaysLeft} days left in trial` : 'Trial expired'}</p>
+                      <h4 className="font-bold text-sm mb-1">Upgrade to Standard</h4>
+                      <p className="text-xs text-white/80 mb-3">{plan.trialDaysLeft > 0 ? `${plan.trialDaysLeft} days left in trial` : 'Trial period ending'}</p>
                       <Link href="/dashboard/settings/billing" className="block w-full text-center bg-white text-indigo-600 font-bold text-xs py-2 rounded-lg hover:bg-indigo-50 transition-colors">
                         View Plans
                       </Link>
                     </div>
                   </div>
-                )}
+                </div>
+              );
+            }
+
+            // All other cards only show after setup is complete
+            if (!allDone) return null;
+
+            return (
+              <div className="px-2 pb-2 mt-4">
                 {!plan.status && user?.role !== 'SUPER_ADMIN' && (
                   <div className="bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5 hover:border-primary">
                     <div className="relative z-10">
