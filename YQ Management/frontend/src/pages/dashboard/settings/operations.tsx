@@ -653,6 +653,7 @@ export default function ResourcesSettingsPage() {
           </div>
         )}
       </div>
+      )}
       
       {isServiceModalOpen && (
         <ServiceModal 
