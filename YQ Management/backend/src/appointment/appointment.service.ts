@@ -54,6 +54,7 @@ export class AppointmentService {
     const appointment = await this.prisma.appointment.create({
       data: {
         ...createAppointmentDto,
+        tenantId: createAppointmentDto.tenantId!,
         status: createAppointmentDto.status || status,
       },
     });
