@@ -8,6 +8,8 @@ import { WhatsappLogger } from './whatsapp.logger';
 import { QueueModule } from '../queue/queue.module';
 
 import { SubscriptionModule } from '../subscription/subscription.module';
+import { ServiceModule } from '../service/service.module';
+import { AppointmentModule } from '../appointment/appointment.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { SubscriptionModule } from '../subscription/subscription.module';
     RedisModule,
     forwardRef(() => QueueModule),
     forwardRef(() => SubscriptionModule),
+    forwardRef(() => ServiceModule),
+    forwardRef(() => AppointmentModule),
   ],
   controllers: [WhatsappController],
   providers: [WhatsappService, WhatsappLogger],

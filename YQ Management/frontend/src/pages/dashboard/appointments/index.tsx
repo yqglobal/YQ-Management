@@ -9,6 +9,8 @@ import { CreateAppointmentModal } from '../../../components/modals/CreateAppoint
 import { MatrixCalendar } from '../../../components/MatrixCalendar';
 import { ScheduleSidebar } from '../../../components/ScheduleSidebar';
 import { format } from 'date-fns';
+import { useLocation } from '../../../components/LocationContext';
+import { useAuth } from '../../../components/AuthContext';
 
 type CalendarView = 'day' | 'week' | 'month';
 
@@ -33,7 +35,9 @@ function getMonthEnd(date: Date) {
 }
 
 export default function AppointmentsPage() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { activeLocationId } = useLocation();
   const [selectedVisit, setSelectedVisit] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -44,37 +48,35 @@ export default function AppointmentsPage() {
   
   // Timeline display controls
   const [showSidebar, setShowSidebar] = useState(true);
-  const [showEmptySlots, setShowEmptySlots] = useState(true);
-  const [showIdleGaps, setShowIdleGaps] = useState(true);
-  const [showBufferZones, setShowBufferZones] = useState(true);
-  const [showWalkins, setShowWalkins] = useState(true);
-  const [rowDensity, setRowDensity] = useState<'compact' | 'normal' | 'expanded'>('normal');
   
   // Reschedule Confirmation State
   const [rescheduleData, setRescheduleData] = useState<{apt: any, newTime: Date, serviceId: string | null} | null>(null);
 
+  const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
+  const locParamPrefix = activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : '';
+
   // Schedule view for Day mode — unified endpoint
   const dateStr = format(currentDate, 'yyyy-MM-dd');
   const { data: scheduleViewData, isLoading: scheduleLoading, refetch: refetchSchedule } = useQuery({
-    queryKey: ['schedule-view', dateStr],
-    queryFn: () => fetchApi(`/appointments/schedule-view?date=${dateStr}`).catch(() => null),
+    queryKey: ['schedule-view', dateStr, activeLocationId],
+    queryFn: () => fetchApi(`/appointments/schedule-view?date=${dateStr}${locParam}`).catch(() => null),
     enabled: view === 'day',
   });
 
   const { data: visitsData = [], isLoading: visitsLoading, refetch: refetchVisits } = useQuery({
-    queryKey: ['visits'],
-    queryFn: () => fetchApi('/visits').catch(() => []),
+    queryKey: ['visits', activeLocationId],
+    queryFn: () => fetchApi(`/visits${locParamPrefix}`).catch(() => []),
     enabled: view !== 'day',
   });
 
   const { data: appointmentsData = [], isLoading: appointmentsLoading, refetch: refetchAppointments } = useQuery({
-    queryKey: ['appointments'],
-    queryFn: () => fetchApi('/appointments').catch(() => []),
+    queryKey: ['appointments', activeLocationId],
+    queryFn: () => fetchApi(`/appointments${locParamPrefix}`).catch(() => []),
   });
 
   const { data: queuesData = [], isLoading: queuesLoading, refetch: refetchQueues } = useQuery({
-    queryKey: ['queues'],
-    queryFn: () => fetchApi('/queue').catch(() => []),
+    queryKey: ['queues', activeLocationId],
+    queryFn: () => fetchApi(`/queue${locParamPrefix}`).catch(() => []),
     enabled: view !== 'day',
   });
 
@@ -151,8 +153,14 @@ export default function AppointmentsPage() {
       }
     });
 
+    if (user && user.role === 'OPERATOR') {
+      if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
+        return items.filter(item => user.allowedServiceIds!.includes(item.serviceId));
+      }
+    }
+
     return items;
-  }, [appointmentsData, visitsData, queuesData]);
+  }, [appointmentsData, visitsData, queuesData, user]);
 
   const filteredAppointments = useMemo(() => {
     return combinedItems.filter((apt: any) => {
@@ -385,19 +393,19 @@ export default function AppointmentsPage() {
 
         {/* Calendar */}
         {view === 'day' ? (
-          <div className="mt-2 flex gap-4">
-            <div className="flex-1 min-w-0">
+          <div className="mt-2 flex gap-4 overflow-x-hidden w-full">
+            <div className="flex-1 min-w-0 overflow-x-auto">
               <MatrixCalendar
                 scheduleData={scheduleViewData ?? undefined}
                 appointments={filteredAppointments}
                 services={services}
                 currentDate={currentDate}
                 onReschedule={(apt, newTime, serviceId) => setRescheduleData({ apt, newTime, serviceId })}
-                showEmptySlots={showEmptySlots}
-                showIdleGaps={showIdleGaps}
-                showBufferZones={showBufferZones}
-                showWalkins={showWalkins}
-                rowDensity={rowDensity}
+                showEmptySlots={false}
+                showIdleGaps={false}
+                showBufferZones={false}
+                showWalkins={true}
+                rowDensity={'normal'}
               />
             </div>
             {showSidebar && (
@@ -405,16 +413,6 @@ export default function AppointmentsPage() {
                 services={scheduleViewData?.services ?? services}
                 appointments={scheduleViewData?.appointments ?? appointmentsData}
                 visits={scheduleViewData?.visits ?? []}
-                showEmptySlots={showEmptySlots}
-                showIdleGaps={showIdleGaps}
-                showBufferZones={showBufferZones}
-                showWalkins={showWalkins}
-                rowDensity={rowDensity}
-                onToggleEmptySlots={() => setShowEmptySlots(v => !v)}
-                onToggleIdleGaps={() => setShowIdleGaps(v => !v)}
-                onToggleBufferZones={() => setShowBufferZones(v => !v)}
-                onToggleWalkins={() => setShowWalkins(v => !v)}
-                onDensityChange={setRowDensity}
               />
             )}
           </div>

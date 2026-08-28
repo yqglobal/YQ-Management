@@ -7,5 +7,6 @@ import { QueueModule } from '../queue/queue.module';
   imports: [forwardRef(() => QueueModule)],
   providers: [ServiceService],
   controllers: [ServiceController],
+  exports: [ServiceService],
 })
 export class ServiceModule {}

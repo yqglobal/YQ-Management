@@ -48,8 +48,11 @@ export class QueueController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get()
-  async getQueues(@Req() req: AuthenticatedRequest) {
-    return this.queueService.getQueuesForTenant(req.user);
+  async getQueues(
+    @Req() req: AuthenticatedRequest,
+    @Query('locationId') locationId?: string,
+  ) {
+    return this.queueService.getQueuesForTenant(req.user, locationId);
   }
 
   @UseGuards(AuthGuard('jwt'))

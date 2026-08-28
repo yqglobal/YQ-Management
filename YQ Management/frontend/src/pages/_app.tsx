@@ -13,6 +13,8 @@ import CookieConsent from '../components/CookieConsent';
 import { GlobalCommandPalette } from '../components/GlobalCommandPalette';
 import { Toaster } from 'sonner';
 
+import { LocationProvider } from '../components/LocationContext';
+
 function AppRouterSetter() {
   const router = useRouter();
   setApiRouter(router);
@@ -26,14 +28,16 @@ export default function App({ Component, pageProps }: AppProps) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <SocketProvider>
-            <TrackingProvider>
-              <AppRouterSetter />
-              <Component {...pageProps} />
-              <CookieConsent />
-              <GlobalCommandPalette />
-            </TrackingProvider>
-          </SocketProvider>
+          <LocationProvider>
+            <SocketProvider>
+              <TrackingProvider>
+                <AppRouterSetter />
+                <Component {...pageProps} />
+                <CookieConsent />
+                <GlobalCommandPalette />
+              </TrackingProvider>
+            </SocketProvider>
+          </LocationProvider>
         </AuthProvider>
         <Toaster position="bottom-right" richColors closeButton />
       </ThemeProvider>

@@ -34,15 +34,28 @@ export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }:
     enabled: isOpen,
   });
 
-  const availablePages = [
+  const corePages = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'inbox', label: 'Inbox (WhatsApp)' },
     { id: 'service-desk', label: 'Service Desk' },
     { id: 'appointments', label: 'Appointments' },
     { id: 'customers', label: 'Customers' },
     { id: 'analytics', label: 'Analytics' },
-    { id: 'settings', label: 'Settings' }
+    { id: 'queues', label: 'Queues' }
   ];
+
+  const settingsPages = [
+    { id: 'settings-workspace', label: 'Workspace & Identity' },
+    { id: 'settings-team', label: 'Team & Security' },
+    { id: 'settings-operations', label: 'Operations' },
+    { id: 'settings-integrations', label: 'Integrations & Comms' },
+    { id: 'settings-billing', label: 'Billing & Usage' }
+  ];
+
+  // Derived state to check if any settings page is enabled
+  const [allowWorkspaceSettings, setAllowWorkspaceSettings] = useState(
+    userToEdit?.allowedPages?.some((p: string) => p.startsWith('settings-')) || false
+  );
 
   const handleClose = () => {
     if (!userToEdit) {
@@ -196,9 +209,9 @@ export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }:
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-3 text-sm mt-6">Allowed Pages</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-3 text-sm mt-6">Core Pages</h3>
                     <div className="grid grid-cols-2 gap-3">
-                      {availablePages.map((page) => (
+                      {corePages.map((page) => (
                         <label key={page.id} className="flex items-center gap-2 p-3 border border-gray-200 dark:border-white/10 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">
                           <input 
                             type="checkbox" 
@@ -210,6 +223,53 @@ export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }:
                         </label>
                       ))}
                     </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-3 mt-6">
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Workspace Settings</h3>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={allowWorkspaceSettings}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            setAllowWorkspaceSettings(isChecked);
+                            if (!isChecked) {
+                              setAllowedPages(allowedPages.filter(p => !p.startsWith('settings-')));
+                            }
+                          }}
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                      </label>
+                    </div>
+                    {allowWorkspaceSettings && (
+                      <div className="grid grid-cols-2 gap-3">
+                        {settingsPages.map((page) => (
+                          <label key={page.id} className="flex items-center gap-2 p-3 border border-gray-200 dark:border-white/10 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">
+                            <input 
+                              type="checkbox" 
+                              checked={allowedPages.includes(page.id)}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked;
+                                if (isChecked) {
+                                  if (window.confirm(`Are you sure you want to allow this user to access and modify ${page.label}?`)) {
+                                    toggleSelection(setAllowedPages, allowedPages, page.id);
+                                  } else {
+                                    e.preventDefault();
+                                  }
+                                } else {
+                                  toggleSelection(setAllowedPages, allowedPages, page.id);
+                                }
+                              }}
+                              className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="text-sm text-gray-700 dark:text-zinc-300">{page.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </>
               )}

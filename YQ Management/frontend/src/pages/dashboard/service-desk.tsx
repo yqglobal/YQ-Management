@@ -13,15 +13,18 @@ import { WhatsAppChatPanel } from '../../components/WhatsAppChatPanel';
 import { MonitorPlay, ScanLine } from 'lucide-react';
 import { usePlan } from '../../hooks/usePlan';
 import Link from 'next/link';
+import { useLocation } from '../../components/LocationContext';
+import { useAuth } from '../../components/AuthContext';
 
 export default function ServiceDeskToday() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { activeLocationId } = useLocation();
   const [selectedVisit, setSelectedVisit] = useState<any | null>(null);
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLocationId, setSelectedLocationId] = useState<string>('all');
   const [mobileTab, setMobileTab] = useState<'pool' | 'pipeline'>('pool');
   
   const plan = usePlan();
@@ -36,9 +39,12 @@ export default function ServiceDeskToday() {
     }
   }, []);
 
+  const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
+  const locParamPrefix = activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : '';
+
   const { data: visits = [], isLoading } = useQuery({
-    queryKey: ['visits', 'today'],
-    queryFn: () => fetchApi('/visits?scope=today').catch(() => []),
+    queryKey: ['visits', 'today', activeLocationId],
+    queryFn: () => fetchApi(`/visits?scope=today${locParam}`).catch(() => []),
   });
 
   const { data: tenant } = useQuery({
@@ -66,13 +72,13 @@ export default function ServiceDeskToday() {
   }, [tenant]);
 
   const { data: queues = [] } = useQuery({
-    queryKey: ['queues'],
-    queryFn: () => fetchApi('/queue').catch(() => []),
+    queryKey: ['queues', activeLocationId],
+    queryFn: () => fetchApi(`/queue${locParamPrefix}`).catch(() => []),
   });
 
   const { data: pendingAppointments = [] } = useQuery({
-    queryKey: ['appointments', 'pending'],
-    queryFn: () => fetchApi('/appointments?status=PENDING_APPROVAL').catch(() => []),
+    queryKey: ['appointments', 'pending', activeLocationId],
+    queryFn: () => fetchApi(`/appointments?status=PENDING_APPROVAL${locParam}`).catch(() => []),
   });
 
   const { data: resources = [] } = useQuery({
@@ -100,20 +106,20 @@ export default function ServiceDeskToday() {
 
     socket.on('queueUpdated', (data) => {
       console.log('Real-time update: queueUpdated', data);
-      queryClient.invalidateQueries({ queryKey: ['visits', 'today'] });
-      queryClient.invalidateQueries({ queryKey: ['queues'] });
+      queryClient.invalidateQueries({ queryKey: ['visits', 'today', activeLocationId] });
+      queryClient.invalidateQueries({ queryKey: ['queues', activeLocationId] });
     });
 
     socket.on('visitUpdated', (data) => {
       console.log('Real-time update: visitUpdated', data);
-      queryClient.invalidateQueries({ queryKey: ['visits', 'today'] });
-      queryClient.invalidateQueries({ queryKey: ['appointments', 'pending'] });
+      queryClient.invalidateQueries({ queryKey: ['visits', 'today', activeLocationId] });
+      queryClient.invalidateQueries({ queryKey: ['appointments', 'pending', activeLocationId] });
     });
 
     return () => {
       socket.disconnect();
     };
-  }, [tenant?.id, queryClient]);
+  }, [tenant?.id, queryClient, activeLocationId]);
 
   const updateVisitMutation = useMutation({
     mutationFn: (data: { id: string, resourceId: string }) => 
@@ -121,15 +127,47 @@ export default function ServiceDeskToday() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['visits'] }),
   });
 
-  const filteredVisits = selectedLocationId === 'all' ? visits : visits.filter((v: any) => v.locationId === selectedLocationId);
-  const filteredQueues = selectedLocationId === 'all' ? queues : queues.filter((q: any) => q.locationId === selectedLocationId);
+  const filteredQueues = React.useMemo(() => {
+    let q = queues;
+    if (user && user.role === 'OPERATOR') {
+      if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
+        q = q.filter((queue: any) => {
+          if (queue.services && queue.services.length > 0) {
+            return queue.services.some((svc: any) => user.allowedServiceIds!.includes(svc.id));
+          }
+          return false;
+        });
+      }
+    }
+    return q;
+  }, [queues, user]);
+
+  const filteredVisits = React.useMemo(() => {
+    let v = visits;
+    if (user && user.role === 'OPERATOR') {
+      if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
+        v = v.filter((visit: any) => user.allowedServiceIds!.includes(visit.serviceId));
+      }
+    }
+    return v;
+  }, [visits, user]);
+
+  const filteredAppointments = React.useMemo(() => {
+    let a = pendingAppointments;
+    if (user && user.role === 'OPERATOR') {
+      if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
+        a = a.filter((appt: any) => user.allowedServiceIds!.includes(appt.serviceId));
+      }
+    }
+    return a;
+  }, [pendingAppointments, user]);
 
   useEffect(() => {
     // Clear selected visit when location changes to prevent cross-contamination
-    if (selectedVisit && selectedLocationId !== 'all' && selectedVisit.locationId !== selectedLocationId) {
+    if (selectedVisit && activeLocationId !== 'all' && selectedVisit.locationId !== activeLocationId) {
       setSelectedVisit(null);
     }
-  }, [selectedLocationId, selectedVisit]);
+  }, [activeLocationId, selectedVisit]);
 
   const queueTokens = filteredQueues.flatMap((q: any) => 
     (q.tokens || []).map((t: any) => ({
@@ -262,32 +300,21 @@ export default function ServiceDeskToday() {
         {/* Column 1: Monitored Pipeline */}
         <section className={`${mobileTab === 'pipeline' ? 'flex' : 'hidden'} md:flex flex-col md:col-span-3 bg-card dark:bg-dark-card border-r border-border dark:border-dark-border p-4 md:p-6 min-h-0 overflow-y-auto`}>
           <div className="flex items-center justify-between mb-6">
-            {tenant?.locations && tenant.locations.length > 1 && (
-              <select
-                value={selectedLocationId}
-                onChange={(e) => setSelectedLocationId(e.target.value)}
-                className="bg-surface-container-low dark:bg-inverse-surface border border-border dark:border-dark-border text-on-surface dark:text-white rounded-lg px-3 py-1.5 text-sm font-medium outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="all">All Locations</option>
-                {tenant.locations.map((loc: any) => (
-                  <option key={loc.id} value={loc.id}>{loc.name}</option>
-                ))}
-              </select>
-            )}
+            <h2 className="text-xl font-bold">Service Pipeline</h2>
           </div>
           
           {/* Pending Appointments Stack */}
-          {pendingAppointments.length > 0 && (
+          {filteredAppointments.length > 0 && (
             <div className="mb-6 relative z-10 space-y-3">
               <h3 className="font-label-caps text-label-caps text-outline uppercase tracking-wider">Pending Approvals</h3>
               <div className="relative">
-                {pendingAppointments.map((apt: any, index: number) => (
+                {filteredAppointments.map((apt: any, index: number) => (
                   <div 
                     key={apt.id} 
                     className="p-4 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-amber-200 dark:border-amber-900/50 flex flex-col gap-3 transition-all"
                     style={{
                       transform: `translateY(${index * 8}px) scale(${1 - index * 0.02})`,
-                      zIndex: pendingAppointments.length - index,
+                      zIndex: filteredAppointments.length - index,
                       position: index === 0 ? 'relative' : 'absolute',
                       top: 0, left: 0, right: 0,
                       opacity: index > 2 ? 0 : 1 - index * 0.1,
@@ -339,7 +366,7 @@ export default function ServiceDeskToday() {
                   <div className="flex flex-col min-w-0 flex-1">
                     <div className="font-semibold text-body-md text-on-surface dark:text-white flex items-start sm:items-center gap-2 flex-wrap">
                       <span className="break-words">{q.name}</span>
-                      {selectedLocationId === 'all' && loc && (
+                      {activeLocationId === 'all' && loc && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-medium border border-zinc-200 dark:border-zinc-700 shrink-0">
                           {loc.name}
                         </span>

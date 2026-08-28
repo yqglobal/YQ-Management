@@ -7,22 +7,25 @@ import { motion } from 'framer-motion';
 import { fetchApi } from '../../lib/api';
 import { FeatureGuard } from '../../components/guards/FeatureGuard';
 import { Search, Users, Phone, Mail, Clock, BarChart2 } from 'lucide-react';
+import { useLocation } from '../../components/LocationContext';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const SLA_THRESHOLD_MINS = 15;
 
 export default function Analytics() {
+  const { activeLocationId } = useLocation();
   const [timeRange, setTimeRange] = useState<'Day' | 'Week' | 'Month'>('Week');
   const [activeTab, setActiveTab] = useState<'insights' | 'customers'>('insights');
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerSort, setCustomerSort] = useState<'visits' | 'recent' | 'name'>('visits');
 
   const timeParam = timeRange === 'Day' ? 'today' : timeRange === 'Week' ? '7d' : '30d';
+  const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
 
   const { data: analytics = null, isLoading: isAnalyticsLoading } = useQuery({
-    queryKey: ['analytics', timeParam],
-    queryFn: () => fetchApi(`/analytics?timeframe=${timeParam}`).catch(() => null),
+    queryKey: ['analytics', timeParam, activeLocationId],
+    queryFn: () => fetchApi(`/analytics?timeframe=${timeParam}${locParam}`).catch(() => null),
   });
 
   const { data: customers = [], isLoading: isCustomersLoading } = useQuery({

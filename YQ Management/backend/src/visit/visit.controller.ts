@@ -35,8 +35,9 @@ export class VisitController {
   findAll(
     @Req() req: AuthenticatedRequest,
     @Query('scope') scope?: 'today' | 'history',
+    @Query('locationId') locationId?: string,
   ) {
-    return this.visitService.findAll(req.user, scope);
+    return this.visitService.findAll(req.user, scope, locationId);
   }
 
   @Get(':id')
@@ -88,9 +89,9 @@ export class VisitController {
   @Post('validate')
   async validateToken(
     @Req() req: AuthenticatedRequest,
-    @Body() body: { tokenId: string },
+    @Body() body: { tokenId: string; locationId?: string },
   ) {
-    return this.visitService.validateToken(body.tokenId, req.user.tenantId);
+    return this.visitService.validateToken(body.tokenId, req.user.tenantId, body.locationId);
   }
 
   @Post(':id/transfer')

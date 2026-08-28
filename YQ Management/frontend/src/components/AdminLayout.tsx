@@ -7,6 +7,7 @@ import { Logo } from './Logo';
 import { DashboardTour } from './DashboardTour';
 import { WhatsAppStatusIndicator } from './WhatsAppStatusIndicator';
 import { useAuth } from './AuthContext';
+import { useLocation } from './LocationContext';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
 import { usePlan } from '../hooks/usePlan';
@@ -14,6 +15,7 @@ import { toast } from 'sonner';
 import { QueueMigrationModal } from './modals/QueueMigrationModal';
 import { ServiceModal } from './modals/ServiceModal';
 import { useSocket } from '../components/SocketProvider';
+import { AccessDeniedOverlay } from './AccessDeniedOverlay';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -29,13 +31,14 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const { activeLocationId, setActiveLocationId, allowedLocations: locations } = useLocation();
   const { socket } = useSocket();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-  const [activeLocationId, setActiveLocationId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [tvModalOpen, setTvModalOpen] = useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const locationDropdownRef = useRef<HTMLDivElement>(null);
   const previewDropdownRef = useRef<HTMLDivElement>(null);
@@ -92,29 +95,14 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   const hasAcceptedPolicies = isLoadingPolicies || !user || (acceptedPolicies.some((p: any) => p.policy.type === 'TERMS_OF_SERVICE') && acceptedPolicies.some((p: any) => p.policy.type === 'PRIVACY_POLICY'));
 
-  const allLocations = tenant?.locations || [];
-  const locations = (user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN')
-    ? allLocations
-    : allLocations.filter((l: any) => user?.allowedLocationIds?.includes(l.id));
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('yq_active_location_id');
-      if (saved) {
-        setActiveLocationId(saved);
-      } else if (locations.length > 0 && !activeLocationId) {
-        setActiveLocationId(locations[0].id);
-      }
-    }
-  }, [locations, activeLocationId]);
-
   const handleLocationSelect = (id: string) => {
     setActiveLocationId(id);
-    localStorage.setItem('yq_active_location_id', id);
     setLocationOpen(false);
   };
 
-  const activeLocation = locations.find((l: any) => l.id === activeLocationId) || locations[0];
+  const activeLocation = activeLocationId === 'all' 
+    ? { id: 'all', name: 'All Locations' }
+    : locations.find((l: any) => l.id === activeLocationId) || locations[0];
 
   const navItems = [
     { label: 'Inbox', href: '/dashboard/inbox', icon: 'chat', pageId: 'inbox' },
@@ -136,8 +124,45 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const hasPageAccess = (pageId?: string) => {
     if (!pageId) return true;
     if (user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN') return true;
-    return user?.allowedPages?.includes(pageId) || user?.allowedPages?.includes('dashboard'); // dashboard access acts as a catch-all basic access if needed
+    
+    if (pageId === 'settings') {
+      return user?.allowedPages?.some((p: string) => p.startsWith('settings-')) || false;
+    }
+    
+    return user?.allowedPages?.includes(pageId);
   };
+
+  const checkCurrentRouteAccess = () => {
+    if (!user) return true; // Auth Context handles unauthenticated
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN') return true;
+
+    const path = router.pathname;
+    
+    if (path === '/dashboard') return true; // Base dashboard always accessible
+    
+    if (path.startsWith('/dashboard/inbox')) return user?.allowedPages?.includes('inbox');
+    if (path.startsWith('/dashboard/service-desk')) return user?.allowedPages?.includes('service-desk');
+    if (path.startsWith('/dashboard/appointments')) return user?.allowedPages?.includes('appointments');
+    if (path.startsWith('/dashboard/customers')) return user?.allowedPages?.includes('customers');
+    if (path.startsWith('/dashboard/analytics')) return user?.allowedPages?.includes('analytics');
+    if (path.startsWith('/dashboard/queues')) return user?.allowedPages?.includes('queues');
+    
+    if (path.startsWith('/dashboard/settings')) {
+      if (path === '/dashboard/settings/profile') return true;
+      if (path.startsWith('/dashboard/settings/workspace')) return user?.allowedPages?.includes('settings-workspace');
+      if (path.startsWith('/dashboard/settings/team')) return user?.allowedPages?.includes('settings-team');
+      if (path.startsWith('/dashboard/settings/operations')) return user?.allowedPages?.includes('settings-operations');
+      if (path.startsWith('/dashboard/settings/integrations')) return user?.allowedPages?.includes('settings-integrations');
+      if (path.startsWith('/dashboard/settings/billing')) return user?.allowedPages?.includes('settings-billing');
+      if (path === '/dashboard/settings') {
+         return user?.allowedPages?.some((p: string) => p.startsWith('settings-')) || false;
+      }
+    }
+    
+    return true; // Default allow for unmapped paths
+  };
+
+  const isAccessDenied = !checkCurrentRouteAccess();
 
   const filteredNavItems = navItems.filter(item => hasPageAccess(item.pageId));
   const filteredBottomItems = bottomItems.filter(item => hasPageAccess(item.pageId));
@@ -282,18 +307,18 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                     <div className="px-4 py-2 border-b border-border">
                       <p className="font-label-caps text-[10px] uppercase tracking-widest text-outline font-bold">Customer Views</p>
                     </div>
-                    <a
-                      href={`/tv/${tenant?.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={() => {
+                        setPreviewOpen(false);
+                        setTvModalOpen(true);
+                      }}
                       className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors text-on-surface"
-                      onClick={() => setPreviewOpen(false)}
                     >
                       <span className="material-symbols-outlined text-[18px] text-primary">tv</span>
                       TV Display
-                    </a>
+                    </button>
                     <a
-                      href={tenant?.subdomain ? getTenantUrl(tenant.subdomain, '/booking') : '#'}
+                      href={tenant?.subdomain ? getTenantUrl(tenant.subdomain, `/booking${activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : ''}`) : '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors text-on-surface"
@@ -320,6 +345,14 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                     <div className="px-4 py-2 border-b border-border">
                       <p className="font-label-caps text-[10px] uppercase tracking-widest text-outline font-bold">Select Location</p>
                     </div>
+                    {(user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN') && (
+                      <button 
+                        onClick={() => handleLocationSelect('all')} 
+                        className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors flex items-center justify-between ${activeLocationId === 'all' ? 'text-primary' : 'text-on-surface-variant'}`}
+                      >
+                        All Locations {activeLocationId === 'all' && <span className="material-symbols-outlined text-[18px]">check</span>}
+                      </button>
+                    )}
                     {locations.length > 0 ? (
                       locations.map((loc: any) => (
                         <button 
@@ -640,7 +673,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
       <main className={`ml-0 md:ml-sidebar-w flex-1 flex flex-col bg-canvas dark:bg-dark-canvas relative min-w-0 ${settingsMode ? 'pt-[108px]' : 'pt-header-h'}`}>
         <div className={`flex-1 w-full min-w-0 relative flex flex-col ${noPadding ? '' : 'p-margin-mobile md:p-margin-desktop'}`}>
-           {children}
+           {isAccessDenied ? <AccessDeniedOverlay /> : children}
         </div>
       </main>
 
@@ -739,6 +772,45 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
           isOpen={isServiceModalOpen}
           onClose={() => setIsServiceModalOpen(false)}
         />
+      )}
+
+      {tvModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+          <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            <h2 className="text-xl font-bold text-on-surface dark:text-white mb-2">Select TV Display Queue</h2>
+            <p className="text-sm text-on-surface-variant dark:text-zinc-400 mb-6">Choose a queue to display on the TV.</p>
+            
+            <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+              {tenant?.queues?.length > 0 ? (
+                tenant.queues.map((q: any) => (
+                  <button
+                    key={q.id}
+                    onClick={() => {
+                      setTvModalOpen(false);
+                      const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
+                      window.open(getTenantUrl(tenant.subdomain || '', `/tv/${tenant.id}?queueId=${q.id}${locParam}`), '_blank');
+                    }}
+                    className="w-full text-left px-4 py-3 rounded-xl border border-border dark:border-dark-border hover:border-primary hover:bg-primary/5 transition-colors font-medium flex justify-between items-center group"
+                  >
+                    {q.name}
+                    <span className="material-symbols-outlined text-[18px] text-primary opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+                  </button>
+                ))
+              ) : (
+                <p className="text-sm text-on-surface-variant dark:text-zinc-500 text-center py-4">No queues available.</p>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button 
+                onClick={() => setTvModalOpen(false)}
+                className="px-4 py-2 text-sm font-semibold text-on-surface hover:bg-surface-container rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,20 +1,9 @@
 import React from 'react';
-import { Eye, EyeOff, LayoutGrid, AlignJustify, Maximize2, Coffee } from 'lucide-react';
 
 interface ScheduleSidebarProps {
   services: any[];
   appointments: any[];
   visits: any[];
-  showEmptySlots: boolean;
-  showIdleGaps: boolean;
-  showBufferZones: boolean;
-  showWalkins: boolean;
-  rowDensity: 'compact' | 'normal' | 'expanded';
-  onToggleEmptySlots: () => void;
-  onToggleIdleGaps: () => void;
-  onToggleBufferZones: () => void;
-  onToggleWalkins: () => void;
-  onDensityChange: (d: 'compact' | 'normal' | 'expanded') => void;
 }
 
 function CapacityBar({ used, total, label }: { used: number; total: number; label: string }) {
@@ -34,50 +23,10 @@ function CapacityBar({ used, total, label }: { used: number; total: number; labe
   );
 }
 
-function ToggleRow({
-  label,
-  description,
-  active,
-  onToggle,
-  icon,
-}: {
-  label: string;
-  description?: string;
-  active: boolean;
-  onToggle: () => void;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onToggle}
-      className={`w-full flex items-center gap-3 p-2.5 rounded-xl transition-all text-left ${active ? 'bg-primary/10 text-primary dark:text-sky-400' : 'hover:bg-surface-container dark:hover:bg-white/5 text-on-surface-variant dark:text-zinc-400'}`}
-    >
-      <span className="shrink-0">{icon || (active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />)}</span>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold leading-tight">{label}</p>
-        {description && <p className="text-[10px] opacity-60 mt-0.5">{description}</p>}
-      </div>
-      <div className={`ml-auto w-8 h-4 rounded-full transition-colors shrink-0 ${active ? 'bg-primary dark:bg-sky-500' : 'bg-zinc-300 dark:bg-zinc-700'}`}>
-        <div className={`w-3 h-3 bg-white rounded-full mt-0.5 transition-transform shadow ${active ? 'translate-x-4' : 'translate-x-0.5'}`} />
-      </div>
-    </button>
-  );
-}
-
 export function ScheduleSidebar({
   services,
   appointments,
   visits,
-  showEmptySlots,
-  showIdleGaps,
-  showBufferZones,
-  showWalkins,
-  rowDensity,
-  onToggleEmptySlots,
-  onToggleIdleGaps,
-  onToggleBufferZones,
-  onToggleWalkins,
-  onDensityChange,
 }: ScheduleSidebarProps) {
   // Compute total slots per service (9am–6pm business window)
   const today = new Date();
@@ -125,52 +74,7 @@ export function ScheduleSidebar({
           </div>
         </div>
 
-        {/* View toggles */}
-        <div className="space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Layers</p>
-          <ToggleRow label="Empty Slots" description="Ghost placeholders for open capacity" active={showEmptySlots} onToggle={onToggleEmptySlots} />
-          <ToggleRow label="Idle Gaps" description="Detected gaps between bookings" active={showIdleGaps} onToggle={onToggleIdleGaps} />
-          <ToggleRow label="Buffer Zones" description="Cleanup/prep time after appointments" active={showBufferZones} onToggle={onToggleBufferZones} />
-          <ToggleRow label="Walk-ins" description="Walkin visit blocks" active={showWalkins} onToggle={onToggleWalkins} />
-        </div>
 
-        {/* Row density */}
-        <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Row Height</p>
-          <div className="flex gap-1.5">
-            {(['compact', 'normal', 'expanded'] as const).map((d) => (
-              <button
-                key={d}
-                onClick={() => onDensityChange(d)}
-                className={`flex-1 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all ${rowDensity === d ? 'bg-primary text-white shadow-sm' : 'bg-surface-container dark:bg-white/10 text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-white/15'}`}
-              >
-                {d === 'compact' ? 'S' : d === 'normal' ? 'M' : 'L'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Legend */}
-        <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Legend</p>
-          <div className="space-y-1.5">
-            {[
-              { color: 'bg-sky-200 border-sky-300 dark:bg-sky-900/50 dark:border-sky-700', label: 'Appointment' },
-              { color: 'bg-emerald-200 border-emerald-300 dark:bg-emerald-900/50 dark:border-emerald-700', label: 'Walk-in' },
-              { color: 'border-dashed border-zinc-300 dark:border-zinc-600', label: 'Empty slot', dashed: true },
-              { color: 'bg-amber-100 border-amber-200 dark:bg-amber-900/30 dark:border-amber-700', label: 'Buffer time' },
-            ].map(({ color, label, dashed }) => (
-              <div key={label} className="flex items-center gap-2">
-                <div className={`w-5 h-3 rounded border ${color} shrink-0`} />
-                <span className="text-[11px] text-on-surface-variant">{label}</span>
-              </div>
-            ))}
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-3 rounded" style={{ background: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(113,113,122,0.3) 2px, rgba(113,113,122,0.3) 4px)' }} />
-              <span className="text-[11px] text-on-surface-variant">Idle gap</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

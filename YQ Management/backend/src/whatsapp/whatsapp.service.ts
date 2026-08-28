@@ -12,6 +12,9 @@ import { WhatsappLogger } from './whatsapp.logger';
 import { QueueGateway } from '../queue/queue.gateway';
 import { WhatsappChatbot } from './whatsapp.chatbot';
 
+import { ServiceService } from '../service/service.service';
+import { AppointmentService } from '../appointment/appointment.service';
+
 interface EvolutionError {
   message: string;
   status?: number;
@@ -45,6 +48,8 @@ export class WhatsappService implements OnModuleInit {
     private redisService: RedisService,
     private readonly whatsappLogger: WhatsappLogger,
     private readonly queueGateway: QueueGateway,
+    private readonly serviceService: ServiceService,
+    private readonly appointmentService: AppointmentService,
   ) {}
 
   async onModuleInit() {
@@ -1523,6 +1528,8 @@ export class WhatsappService implements OnModuleInit {
         async (jidToSend, textToSend) => {
           await this.sendMessage(instanceName, jidToSend, textToSend);
         },
+        this.serviceService,
+        this.appointmentService,
       );
       const botResult = await bot.process(tenant, phone, jid, rawText);
 

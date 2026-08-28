@@ -136,8 +136,12 @@ export class QueueService {
     return { success: true };
   }
 
-  async getQueuesForTenant(userTokenPayload: any) {
+  async getQueuesForTenant(userTokenPayload: any, locationId?: string) {
     const where: any = { tenantId: userTokenPayload.tenantId };
+    
+    if (locationId) {
+      where.locationId = locationId;
+    }
 
     if (
       userTokenPayload.role === 'OPERATOR' ||

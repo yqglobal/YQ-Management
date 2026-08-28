@@ -35,8 +35,11 @@ export class VisitService {
     });
   }
 
-  async findAll(userTokenPayload: any, scope?: 'today' | 'history') {
+  async findAll(userTokenPayload: any, scope?: 'today' | 'history', locationId?: string) {
     const where: any = { tenantId: userTokenPayload.tenantId };
+    if (locationId) {
+      where.locationId = locationId;
+    }
     if (
       userTokenPayload.role === 'OPERATOR' ||
       userTokenPayload.role === 'MANAGER'
@@ -710,7 +713,7 @@ export class VisitService {
     });
   }
 
-  async validateToken(tokenString: string, tenantId: string) {
+  async validateToken(tokenString: string, tenantId: string, locationId?: string) {
     let tokenValue = tokenString;
     try {
       if (tokenString.includes('http')) {
@@ -722,11 +725,17 @@ export class VisitService {
       // Ignore
     }
 
+    const whereClause: any = {
+      OR: [{ id: tokenValue }, { accessToken: tokenValue }],
+      tenantId: tenantId,
+    };
+
+    if (locationId && locationId !== 'all') {
+      whereClause.locationId = locationId;
+    }
+
     const visit = await this.prisma.visit.findFirst({
-      where: {
-        OR: [{ id: tokenValue }, { accessToken: tokenValue }],
-        tenantId: tenantId,
-      },
+      where: whereClause,
       include: {
         customer: true,
         queue: {

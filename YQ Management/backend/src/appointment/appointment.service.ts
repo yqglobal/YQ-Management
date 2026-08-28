@@ -78,8 +78,12 @@ export class AppointmentService {
     return appointment;
   }
 
-  async findAll(userTokenPayload: any, status?: string) {
+  async findAll(userTokenPayload: any, status?: string, locationId?: string) {
     const where: any = { tenantId: userTokenPayload.tenantId };
+    
+    if (locationId) {
+      where.locationId = locationId;
+    }
 
     if (userTokenPayload.role === 'OPERATOR') {
       const user = await this.prisma.user.findUnique({

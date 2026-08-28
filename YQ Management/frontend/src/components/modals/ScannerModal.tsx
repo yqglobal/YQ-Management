@@ -7,6 +7,7 @@ import { fetchApi } from '../../lib/api';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { detectCountryByTimezone } from '../../lib/country-codes';
+import { useLocation } from '../LocationContext';
 
 type ScannerStatus = 'idle' | 'scanning' | 'processing' | 'approved' | 'rejected' | 'error';
 
@@ -42,6 +43,7 @@ const SCANNER_CONFIG = {
 export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boolean; onClose: () => void; onScanSuccess: (data: any) => void }) {
   if (!isOpen) return null;
 
+  const { activeLocationId } = useLocation();
   const [scannerStatus, setScannerStatus] = useState<ScannerStatus>('idle');
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -196,7 +198,10 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
 
           const result = await fetchApi('/visits/validate', {
             method: 'POST',
-            body: JSON.stringify({ tokenId: decodedText })
+            body: JSON.stringify({ 
+              tokenId: decodedText,
+              locationId: activeLocationId === 'all' ? undefined : activeLocationId
+            })
           });
 
           const validationResult: ValidationResult = {
@@ -349,7 +354,10 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
     try {
       const result = await fetchApi('/visits/validate', {
         method: 'POST',
-        body: JSON.stringify({ tokenId: manualTokenId.trim() }),
+        body: JSON.stringify({ 
+          tokenId: manualTokenId.trim(),
+          locationId: activeLocationId === 'all' ? undefined : activeLocationId
+        }),
       });
 
       const validationResult: ValidationResult = {

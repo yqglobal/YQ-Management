@@ -28,7 +28,12 @@ export default function SettingsLayout({ children, pageTitle = 'Settings', pageS
 
   const filteredNavLinks = settingsNavLinks.filter(link => {
     if (link.href === '/dashboard/settings/profile') return true;
-    return isAdmin;
+    if (isAdmin) return true;
+    
+    // Check if the operator has explicit permission for this settings page
+    // Map the href to the page ID (e.g., /dashboard/settings/workspace -> settings-workspace)
+    const pageId = link.href.split('/').slice(-2).join('-');
+    return user?.allowedPages?.includes(pageId);
   });
 
   const activeSection = filteredNavLinks.find(l => router.pathname === l.href);

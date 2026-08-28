@@ -14,9 +14,12 @@ import Link from 'next/link';
 import { ServiceModal } from '../../../components/modals/ServiceModal';
 import { LinkServicesModal } from '../../../components/modals/LinkServicesModal';
 import PrintQRModal from '../../../components/PrintQRModal';
+import { useLocation } from '../../../components/LocationContext';
+import { useAuth } from '../../../components/AuthContext';
 
 export default function QueuesList() {
   const router = useRouter();
+  const { activeLocationId } = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [linkModalQueue, setLinkModalQueue] = useState<any>(null);
@@ -28,10 +31,28 @@ export default function QueuesList() {
   const queryClient = useQueryClient();
   const plan = usePlan();
 
+  const locParamPrefix = activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : '';
+
+  const { user } = useAuth();
   const { data: queues = [], isLoading } = useQuery({
-    queryKey: ['queues'],
-    queryFn: () => fetchApi('/queue'),
+    queryKey: ['queues', activeLocationId],
+    queryFn: () => fetchApi(`/queue${locParamPrefix}`),
   });
+
+  const filteredQueues = React.useMemo(() => {
+    let q = queues;
+    if (user && user.role === 'OPERATOR') {
+      if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
+        q = q.filter((queue: any) => {
+          if (queue.services && queue.services.length > 0) {
+            return queue.services.some((svc: any) => user.allowedServiceIds!.includes(svc.id));
+          }
+          return false;
+        });
+      }
+    }
+    return q;
+  }, [queues, user]);
 
   const { data: locations = [] } = useQuery({
     queryKey: ['locations'],
@@ -122,7 +143,7 @@ export default function QueuesList() {
                     <div className="flex items-center gap-3">
             <button
               onClick={() => setIsPrintQRModalOpen(true)}
-              disabled={isLoading || queues.length === 0}
+              disabled={isLoading || filteredQueues.length === 0}
               className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-low dark:bg-white/5 border border-border dark:border-dark-border hover:bg-surface-container dark:hover:bg-white/10 text-on-surface dark:text-white rounded-xl font-medium transition-colors text-sm disabled:opacity-50"
             >
               <Printer strokeWidth={1.5} className="w-4 h-4" />
@@ -148,7 +169,7 @@ export default function QueuesList() {
             </div>
           )}
 
-          {!isLoading && queues.length === 0 && (
+          {!isLoading && filteredQueues.length === 0 && (
             <div className="p-16 flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 bg-surface-container-low dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
                 <ListOrdered strokeWidth={1.5} className="w-8 h-8 text-on-surface-variant opacity-50" />
@@ -166,9 +187,9 @@ export default function QueuesList() {
             </div>
           )}
 
-          {!isLoading && queues.length > 0 && (
+          {!isLoading && filteredQueues.length > 0 && (
             <div className="divide-y divide-border dark:divide-dark-border">
-              {queues.map((queue: any, i: number) => (
+              {filteredQueues.map((queue: any, i: number) => (
                 <div
                   key={queue.id}
                   className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors"
