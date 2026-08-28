@@ -26,6 +26,7 @@ https:// {
         header Strict-Transport-Security "max-age=31536000;"
         header X-Frame-Options "SAMEORIGIN"
         header X-Content-Type-Options "nosniff"
+        encode zstd gzip
         reverse_proxy frontend:3001
     }
 

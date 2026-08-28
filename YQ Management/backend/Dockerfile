@@ -42,5 +42,5 @@ COPY --from=builder /app/scripts ./scripts
 
 EXPOSE 3000
 
-# Start script: Runs migrations and starts the app
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main"]
+# Start script: Starts the app (migrations handled externally)
+CMD ["node", "dist/src/main"]

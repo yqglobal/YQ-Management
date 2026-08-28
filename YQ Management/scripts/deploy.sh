@@ -19,9 +19,9 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-echo "====> Rebuilding Docker Containers..."
-# Build without bringing down the system yet
-docker compose -f docker-compose.production.yml build
+echo "====> Pulling New Docker Images..."
+# Pull the pre-built GHCR images
+docker compose -f docker-compose.production.yml pull
 
 echo "====> Running Safe Database Migrations..."
 # Run migrations safely using a temporary container to prevent downtime crashes
