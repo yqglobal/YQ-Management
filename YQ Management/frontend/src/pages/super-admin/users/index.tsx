@@ -27,7 +27,9 @@ export default function SuperAdminUsers() {
       queryClient.invalidateQueries({ queryKey: ['super-admin-users'] });
       setShowAddModal(false);
       setNewUser({ email: '', role: 'TENANT_ADMIN', tenantId: '' });
+      toast.success('User created successfully');
     },
+    onError: (error: any) => toast.error(error.message || 'Failed to create user'),
   });
 
   const updateUserMutation = useMutation({
@@ -35,14 +37,18 @@ export default function SuperAdminUsers() {
       fetchApi(`/super-admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-users'] });
+      toast.success('User updated successfully');
     },
+    onError: (error: any) => toast.error(error.message || 'Failed to update user'),
   });
 
   const deleteUserMutation = useMutation({
     mutationFn: (id: string) => fetchApi(`/super-admin/users/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-users'] });
+      toast.success('User deleted');
     },
+    onError: (error: any) => toast.error(error.message || 'Failed to delete user'),
   });
 
   const handleCreateUser = () => {
@@ -254,7 +260,6 @@ export default function SuperAdminUsers() {
                 onClick={() => {
                   updateUserMutation.mutate({ id: editingUser.id, data: { email: editingUser.email, role: editingUser.role } });
                   setEditingUser(null);
-                  toast.success('User updated');
                 }}
                 className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >

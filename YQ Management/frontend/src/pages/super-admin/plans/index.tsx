@@ -51,7 +51,9 @@ export default function SuperAdminPlans() {
       queryClient.invalidateQueries({ queryKey: ['super-admin-plans'] });
       setShowCreateModal(false);
       resetForm();
+      toast.success('Plan created successfully');
     },
+    onError: (error: any) => toast.error(error.message || 'Failed to create plan'),
   });
 
   const updateMutation = useMutation({
@@ -62,14 +64,18 @@ export default function SuperAdminPlans() {
       setEditingPlan(null);
       resetForm();
       setShowCreateModal(false);
+      toast.success('Plan updated successfully');
     },
+    onError: (error: any) => toast.error(error.message || 'Failed to update plan'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => fetchApi(`/super-admin/plans/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-plans'] });
+      toast.success('Plan deleted');
     },
+    onError: (error: any) => toast.error(error.message || 'Failed to delete plan'),
   });
 
   const toggleStatusMutation = useMutation({
@@ -77,7 +83,9 @@ export default function SuperAdminPlans() {
       fetchApi(`/super-admin/plans/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-plans'] });
+      toast.success('Plan status updated');
     },
+    onError: (error: any) => toast.error(error.message || 'Failed to update status'),
   });
 
   const duplicateMutation = useMutation({
@@ -85,7 +93,9 @@ export default function SuperAdminPlans() {
       fetchApi(`/super-admin/plans/${id}/duplicate`, { method: 'POST', body: JSON.stringify({ name }) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-plans'] });
+      toast.success('Plan duplicated');
     },
+    onError: (error: any) => toast.error(error.message || 'Failed to duplicate plan'),
   });
 
   const resetForm = () => {
