@@ -14,6 +14,7 @@ import { GlobalCommandPalette } from '../components/GlobalCommandPalette';
 import { Toaster } from 'sonner';
 
 import { LocationProvider } from '../components/LocationContext';
+import { MaintenanceOverlay } from '../components/MaintenanceOverlay';
 
 function AppRouterSetter() {
   const router = useRouter();
@@ -40,6 +41,7 @@ export default function App({ Component, pageProps }: AppProps) {
           </LocationProvider>
         </AuthProvider>
         <Toaster position="bottom-right" richColors closeButton />
+        <MaintenanceOverlay />
       </ThemeProvider>
     </QueryClientProvider>
   );

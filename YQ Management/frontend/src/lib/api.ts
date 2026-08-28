@@ -163,10 +163,19 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           redirecting = true;
           router.push('/login');
         }
+      } else if (response.status === 502 || response.status === 503 || response.status === 504) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('api-maintenance'));
+        }
+        console.error(`[API Error] [${requestId}] ${options.method || 'GET'} ${endpoint} → ${response.status}: Services Unavailable (Maintenance)`);
       } else {
         console.error(`[API Error] [${requestId}] ${options.method || 'GET'} ${endpoint} → ${response.status}: ${errorMessage}`, errorDetails);
       }
       throw new ApiError(response.status, errorMessage, endpoint, errorDetails);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('api-recovered'));
     }
 
     if (response.status === 204 || response.headers.get('content-length') === '0') {
