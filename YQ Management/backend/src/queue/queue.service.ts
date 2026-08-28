@@ -221,7 +221,7 @@ export class QueueService {
 
     if (queue && queue.tenant) {
       const tenant = queue.tenant as any;
-      const planFeatures = tenant.subscriptions?.[0]?.plan?.features as any;
+      const planFeatures = tenant.subscriptions?.[0]?.plan?.features;
       const hasCustomBranding = planFeatures?.customBranding === true;
       if (!hasCustomBranding) {
         tenant.branding = null;

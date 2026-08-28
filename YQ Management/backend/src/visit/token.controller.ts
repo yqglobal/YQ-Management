@@ -23,7 +23,10 @@ export class TokenController {
   @Post('request-otp')
   async requestOtp(@Body() body: { phone: string; serviceId: string }) {
     if (!body.phone || !body.serviceId) {
-      throw new HttpException('Missing phone or serviceId', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Missing phone or serviceId',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const service = await this.prisma.service.findUnique({
@@ -36,10 +39,13 @@ export class TokenController {
     }
 
     const tenant = service.tenant;
-    
+
     // If WhatsApp is not connected for this tenant, throw 503 so frontend bypasses OTP
     if (!tenant.whatsappConnected || !tenant.whatsappInstanceId) {
-      throw new HttpException('WhatsApp not connected for this tenant', HttpStatus.SERVICE_UNAVAILABLE);
+      throw new HttpException(
+        'WhatsApp not connected for this tenant',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
     }
 
     // Generate 6-digit OTP
@@ -51,13 +57,15 @@ export class TokenController {
 
     // Send OTP via WhatsApp
     const message = `Your Qmova verification code is ${otpCode}. It expires in 5 minutes.`;
-    
+
     // Send in background to avoid blocking
     this.whatsappService
       .sendToTenant(tenant.id, body.phone, message)
       .then((res) => {
         if (!res.success) {
-          this.logger.error(`Failed to send OTP to ${body.phone}: ${res.error}`);
+          this.logger.error(
+            `Failed to send OTP to ${body.phone}: ${res.error}`,
+          );
         }
       })
       .catch((err) => {

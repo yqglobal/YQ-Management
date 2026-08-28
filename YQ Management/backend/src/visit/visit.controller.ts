@@ -86,7 +86,10 @@ export class VisitController {
     );
   }
   @Post('validate')
-  async validateToken(@Req() req: AuthenticatedRequest, @Body() body: { tokenId: string }) {
+  async validateToken(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { tokenId: string },
+  ) {
     return this.visitService.validateToken(body.tokenId, req.user.tenantId);
   }
 
@@ -94,8 +97,13 @@ export class VisitController {
   async transferVisit(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { nextQueueId: string }
+    @Body() body: { nextQueueId: string },
   ) {
-    return this.visitService.transferVisit(id, body.nextQueueId, req.user.tenantId, req.user.userId);
+    return this.visitService.transferVisit(
+      id,
+      body.nextQueueId,
+      req.user.tenantId,
+      req.user.userId,
+    );
   }
 }

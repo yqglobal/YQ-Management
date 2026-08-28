@@ -124,6 +124,17 @@ export class SuperAdminService {
         workspaces: {
           select: { id: true, name: true },
         },
+        subscriptions: {
+          where: {
+            status: { in: ['ACTIVE', 'TRIAL', 'PAST_DUE'] }
+          },
+          include: {
+            plan: {
+              select: { name: true }
+            }
+          },
+          take: 1,
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -550,8 +561,10 @@ export class SuperAdminService {
     if (dto.features !== undefined) data.features = dto.features;
     if (dto.limits !== undefined) {
       data.limits = dto.limits;
-      if (dto.limits.maxQueues !== undefined) data.maxQueues = dto.limits.maxQueues;
-      if (dto.limits.maxTokens !== undefined) data.maxVisits = dto.limits.maxTokens;
+      if (dto.limits.maxQueues !== undefined)
+        data.maxQueues = dto.limits.maxQueues;
+      if (dto.limits.maxTokens !== undefined)
+        data.maxVisits = dto.limits.maxTokens;
     }
     if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
 

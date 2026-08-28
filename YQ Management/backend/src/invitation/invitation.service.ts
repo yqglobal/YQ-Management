@@ -120,7 +120,9 @@ export class InvitationService {
         usedCount: { increment: 1 },
         used: invitation.usedCount + 1 >= invitation.maxUses,
         usedAt:
-          invitation.usedCount + 1 >= invitation.maxUses ? new Date() : undefined,
+          invitation.usedCount + 1 >= invitation.maxUses
+            ? new Date()
+            : undefined,
       },
     });
 
@@ -136,7 +138,9 @@ export class InvitationService {
   async getInvitePreview(code: string) {
     const invitation = await this.prisma.invitation.findFirst({
       where: { code: code.toUpperCase(), used: false },
-      include: { tenant: { select: { name: true, subdomain: true, branding: true } } },
+      include: {
+        tenant: { select: { name: true, subdomain: true, branding: true } },
+      },
     });
 
     if (!invitation) {

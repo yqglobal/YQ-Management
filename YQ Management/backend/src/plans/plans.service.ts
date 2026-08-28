@@ -225,7 +225,9 @@ export class PlansService {
     const deleted = await this.prisma.plan.delete({
       where: { id },
     });
-    this.logger.log(`Plan permanently deleted: ${deleted.name} (${deleted.id})`);
+    this.logger.log(
+      `Plan permanently deleted: ${deleted.name} (${deleted.id})`,
+    );
     return deleted;
   }
 }

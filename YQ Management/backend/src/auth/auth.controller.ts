@@ -226,8 +226,11 @@ export class AuthController {
       req.user?.email?.toLowerCase() === 'yqbuddysa@gmail.com' ||
       req.user?.email?.toLowerCase() ===
         process.env.SUPER_ADMIN_EMAIL?.toLowerCase();
-    const personalSettings = (req.user?.personalSettings as Record<string, any>) || {};
-    const isNewUser = req.user.isNewUser || (!personalSettings.onboardingCompleted && !isSuperAdmin);
+    const personalSettings =
+      (req.user?.personalSettings as Record<string, any>) || {};
+    const isNewUser =
+      req.user.isNewUser ||
+      (!personalSettings.onboardingCompleted && !isSuperAdmin);
 
     if (isSuperAdmin) {
       res.redirect(`${frontendUrl}/super-admin?token=${access_token}`);
@@ -333,7 +336,10 @@ export class AuthController {
         notificationsEnabled: body.notificationsEnabled,
       };
     if (body.onboardingCompleted !== undefined)
-      currentSettings = { ...currentSettings, onboardingCompleted: body.onboardingCompleted };
+      currentSettings = {
+        ...currentSettings,
+        onboardingCompleted: body.onboardingCompleted,
+      };
     if (body.fullName !== undefined)
       currentSettings = { ...currentSettings, fullName: body.fullName };
     if (body.phone !== undefined)
@@ -414,7 +420,12 @@ export class AuthController {
       path: '/',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
-    return { success: true, access_token, tenantId: result.tenantId, role: result.role };
+    return {
+      success: true,
+      access_token,
+      tenantId: result.tenantId,
+      role: result.role,
+    };
   }
 
   @UseGuards(ThrottlerGuard)

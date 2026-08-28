@@ -37,7 +37,11 @@ export class AppointmentController {
     @Query('locationId') locationId?: string,
   ) {
     const targetDate = date || new Date().toISOString().split('T')[0];
-    return this.appointmentService.getScheduleView(req.user.tenantId, targetDate, locationId);
+    return this.appointmentService.getScheduleView(
+      req.user.tenantId,
+      targetDate,
+      locationId,
+    );
   }
 
   @Get()

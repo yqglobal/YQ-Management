@@ -45,7 +45,8 @@ export class UsersService {
     });
 
     // Owner is the TENANT_ADMIN with earliest account
-    const owner = activeUsers.find((u) => u.role === 'TENANT_ADMIN') || activeUsers[0];
+    const owner =
+      activeUsers.find((u) => u.role === 'TENANT_ADMIN') || activeUsers[0];
     const ownerId = owner?.id ?? null;
 
     const staffList: any[] = activeUsers.map((u) => ({
@@ -63,9 +64,10 @@ export class UsersService {
     });
 
     const now = new Date();
-    const tenantAdmin = activeUsers.find(
-      (u) => u.role === 'TENANT_ADMIN' || u.role === 'SUPER_ADMIN',
-    ) || activeUsers[0];
+    const tenantAdmin =
+      activeUsers.find(
+        (u) => u.role === 'TENANT_ADMIN' || u.role === 'SUPER_ADMIN',
+      ) || activeUsers[0];
 
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -98,11 +100,35 @@ export class UsersService {
             tenantName,
           );
         }
-        staffList.push({ id: inv.id, email: inv.email, role: inv.role, status: 'EXPIRED', code: inv.code, expiresAt: inv.expiresAt, isInvite: true });
+        staffList.push({
+          id: inv.id,
+          email: inv.email,
+          role: inv.role,
+          status: 'EXPIRED',
+          code: inv.code,
+          expiresAt: inv.expiresAt,
+          isInvite: true,
+        });
       } else if (isExpired || inv.used) {
-        staffList.push({ id: inv.id, email: inv.email, role: inv.role, status: 'EXPIRED', code: inv.code, expiresAt: inv.expiresAt, isInvite: true });
+        staffList.push({
+          id: inv.id,
+          email: inv.email,
+          role: inv.role,
+          status: 'EXPIRED',
+          code: inv.code,
+          expiresAt: inv.expiresAt,
+          isInvite: true,
+        });
       } else {
-        staffList.push({ id: inv.id, email: inv.email, role: inv.role, status: 'INVITED', code: inv.code, expiresAt: inv.expiresAt, isInvite: true });
+        staffList.push({
+          id: inv.id,
+          email: inv.email,
+          role: inv.role,
+          status: 'INVITED',
+          code: inv.code,
+          expiresAt: inv.expiresAt,
+          isInvite: true,
+        });
       }
     }
 
@@ -233,7 +259,10 @@ export class UsersService {
         res.error || 'Failed to dispatch Brevo invitation email.',
       );
     }
-    return { success: true, message: 'Invitation email successfully sent via Brevo.' };
+    return {
+      success: true,
+      message: 'Invitation email successfully sent via Brevo.',
+    };
   }
 
   async resendInvite(tenantId: string, inviteId: string) {
@@ -243,7 +272,8 @@ export class UsersService {
     });
 
     if (!invite) throw new NotFoundException('Invitation record not found.');
-    if (invite.tenantId !== tenantId) throw new NotFoundException('Unauthorized invitation renewal.');
+    if (invite.tenantId !== tenantId)
+      throw new NotFoundException('Unauthorized invitation renewal.');
 
     const code = randomBytes(6).toString('hex').toUpperCase().substring(0, 8);
     const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);

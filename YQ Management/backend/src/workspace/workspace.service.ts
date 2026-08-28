@@ -97,7 +97,8 @@ export class WorkspaceService {
 
     if (user.role === 'OPERATOR' || user.role === 'MANAGER') {
       const personalSettings = user.personalSettings as any;
-      const fullName = personalSettings?.fullName || user.email?.split('@')[0] || 'Staff';
+      const fullName =
+        personalSettings?.fullName || user.email?.split('@')[0] || 'Staff';
       const primaryLocationId = invitation.allowedLocationIds[0] || null;
 
       try {

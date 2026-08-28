@@ -91,7 +91,13 @@ export class VisitService {
         waitingStart: true,
         createdAt: true,
         customer: { select: { name: true } },
-        service: { select: { name: true, expectedDuration: true, requireManualCheckIn: true } },
+        service: {
+          select: {
+            name: true,
+            expectedDuration: true,
+            requireManualCheckIn: true,
+          },
+        },
         queue: { select: { name: true } },
         location: { select: { name: true, address: true } },
         scheduledTime: true,
@@ -122,7 +128,7 @@ export class VisitService {
       ewt = waitingAhead * (visit.service?.expectedDuration || 5);
     }
 
-    return { 
+    return {
       token: {
         ...visit,
         status: visit.currentState,
@@ -130,12 +136,12 @@ export class VisitService {
         scheduledFor: visit.scheduledTime,
         checkedIn: visit.currentState !== 'SCHEDULED',
         queue: {
-          requireManualCheckIn: visit.service?.requireManualCheckIn || false
-        }
+          requireManualCheckIn: visit.service?.requireManualCheckIn || false,
+        },
       },
-      position, 
+      position,
       estimatedWaitTime: ewt,
-      isScheduled: !!visit.scheduledTime
+      isScheduled: !!visit.scheduledTime,
     };
   }
 
@@ -715,27 +721,34 @@ export class VisitService {
 
     const visit = await this.prisma.visit.findFirst({
       where: {
-        OR: [
-          { id: tokenValue },
-          { accessToken: tokenValue }
-        ],
-        tenantId: tenantId
+        OR: [{ id: tokenValue }, { accessToken: tokenValue }],
+        tenantId: tenantId,
       },
       include: {
         customer: true,
         queue: {
-          include: { location: true }
+          include: { location: true },
         },
-        service: true
-      }
+        service: true,
+      },
     });
 
     if (!visit) {
-      return { valid: false, reason: 'Invalid token or not found for this workspace' };
+      return {
+        valid: false,
+        reason: 'Invalid token or not found for this workspace',
+      };
     }
 
-    if (visit.currentState === 'COMPLETED' || visit.currentState === 'CANCELLED' || visit.currentState === 'MISSED') {
-      return { valid: false, reason: `Visit is already ${visit.currentState.toLowerCase()}` };
+    if (
+      visit.currentState === 'COMPLETED' ||
+      visit.currentState === 'CANCELLED' ||
+      visit.currentState === 'MISSED'
+    ) {
+      return {
+        valid: false,
+        reason: `Visit is already ${visit.currentState.toLowerCase()}`,
+      };
     }
 
     return {
@@ -747,16 +760,25 @@ export class VisitService {
       locationName: visit.queue?.location?.name || 'Unknown Location',
       serviceBooked: visit.service?.name || 'Unknown Service',
       scheduledFor: visit.scheduledTime,
-      checkedIn: visit.currentState !== 'SCHEDULED'
+      checkedIn: visit.currentState !== 'SCHEDULED',
     };
   }
 
-  async transferVisit(visitId: string, nextQueueId: string, tenantId: string, operatorId?: string) {
+  async transferVisit(
+    visitId: string,
+    nextQueueId: string,
+    tenantId: string,
+    operatorId?: string,
+  ) {
     return this.prisma.$transaction(async (tx) => {
-      const visit = await tx.visit.findUnique({ where: { id: visitId, tenantId } });
+      const visit = await tx.visit.findUnique({
+        where: { id: visitId, tenantId },
+      });
       if (!visit) throw new NotFoundException('Visit not found');
 
-      const nextQueue = await tx.queue.findUnique({ where: { id: nextQueueId, tenantId } });
+      const nextQueue = await tx.queue.findUnique({
+        where: { id: nextQueueId, tenantId },
+      });
       if (!nextQueue) throw new NotFoundException('Target queue not found');
 
       const updated = await tx.visit.update({
@@ -764,7 +786,7 @@ export class VisitService {
         data: {
           queueId: nextQueueId,
           currentState: 'WAITING',
-        }
+        },
       });
 
       await tx.outboxEvent.create({
@@ -775,8 +797,8 @@ export class VisitService {
             previousQueueId: visit.queueId,
             queueId: updated.queueId,
             tenantId: updated.tenantId,
-          }
-        }
+          },
+        },
       });
       return updated;
     });

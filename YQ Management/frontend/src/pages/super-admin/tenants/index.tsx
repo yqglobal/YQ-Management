@@ -191,7 +191,7 @@ export default function SuperAdminTenants() {
                             tenant.subscriptionStatus === 'TRIAL' || !tenant.subscriptionStatus ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400' :
                             'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400'
                           }`}>
-                            {tenant.subscriptionStatus || 'TRIAL'}
+                            {tenant.subscriptions?.[0]?.plan?.name || tenant.subscriptionStatus || 'TRIAL'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white font-medium">

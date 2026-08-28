@@ -95,7 +95,10 @@ export class AuthService {
       this.emailService
         .sendLoginNotification(email)
         .catch((err) =>
-          this.logger.error(`Failed to send login notification to ${email}`, err),
+          this.logger.error(
+            `Failed to send login notification to ${email}`,
+            err,
+          ),
         );
     }
 
@@ -124,10 +127,16 @@ export class AuthService {
         }
       } else if (intent === 'signup') {
         if (user) {
-          return { _oauthError: user.googleId ? 'ALREADY_LINKED_GOOGLE' : 'EMAIL_PWD_ACCOUNT' };
+          return {
+            _oauthError: user.googleId
+              ? 'ALREADY_LINKED_GOOGLE'
+              : 'EMAIL_PWD_ACCOUNT',
+          };
         }
 
-        this.logger.log(`Creating tenant + user for Google SSO signup: ${email}`);
+        this.logger.log(
+          `Creating tenant + user for Google SSO signup: ${email}`,
+        );
         const tenantName = email.split('@')[0] + "'s Workspace";
 
         const tenant = await this.prisma.tenant.create({
@@ -153,7 +162,11 @@ export class AuthService {
         isNewUser = true;
       }
 
-      if (user && user.role === 'TENANT_ADMIN' && (accessToken || refreshToken)) {
+      if (
+        user &&
+        user.role === 'TENANT_ADMIN' &&
+        (accessToken || refreshToken)
+      ) {
         await this.prisma.tenant.update({
           where: { id: user.tenantId },
           data: {
@@ -223,9 +236,13 @@ export class AuthService {
       },
     });
 
-    const user = await this.prisma.user.findUnique({ where: { id: newUser.id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: newUser.id },
+    });
     if (!user) {
-      throw new InternalServerErrorException('User not found after registration');
+      throw new InternalServerErrorException(
+        'User not found after registration',
+      );
     }
 
     return user;
@@ -235,12 +252,16 @@ export class AuthService {
    * Join an existing tenant via an invitation code.
    * Called when a new or existing user accepts a team invite.
    */
-  async joinWithInvite(userId: string, inviteCode: string): Promise<{ tenantId: string; role: string }> {
+  async joinWithInvite(
+    userId: string,
+    inviteCode: string,
+  ): Promise<{ tenantId: string; role: string }> {
     const invitation = await this.prisma.invitation.findFirst({
       where: { code: inviteCode.toUpperCase(), used: false },
     });
 
-    if (!invitation) throw new BadRequestException('Invalid or already used invitation code');
+    if (!invitation)
+      throw new BadRequestException('Invalid or already used invitation code');
     if (invitation.expiresAt && invitation.expiresAt < new Date()) {
       throw new BadRequestException('Invitation code has expired');
     }
@@ -259,7 +280,7 @@ export class AuthService {
       where: { id: userId },
       data: {
         tenantId: invitation.tenantId,
-        role: invitation.role as Role,
+        role: invitation.role,
         allowedLocationIds: invitation.allowedLocationIds,
         allowedServiceIds: invitation.allowedServiceIds,
         allowedPages: invitation.allowedPages,
@@ -276,7 +297,9 @@ export class AuthService {
       },
     });
 
-    this.logger.log(`User ${userId} joined tenant ${invitation.tenantId} via invite ${inviteCode}`);
+    this.logger.log(
+      `User ${userId} joined tenant ${invitation.tenantId} via invite ${inviteCode}`,
+    );
     return { tenantId: invitation.tenantId, role: invitation.role };
   }
 }

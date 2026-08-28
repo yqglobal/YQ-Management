@@ -289,13 +289,20 @@ export class AppointmentService {
     const serviceStats = services.map((svc) => {
       const svcAppointments = appointments
         .filter((a) => a.serviceId === svc.id)
-        .sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime());
+        .sort(
+          (a, b) =>
+            new Date(a.scheduledStart).getTime() -
+            new Date(b.scheduledStart).getTime(),
+        );
 
-      const gaps: Array<{ start: string; end: string; durationMins: number }> = [];
+      const gaps: Array<{ start: string; end: string; durationMins: number }> =
+        [];
 
       for (let i = 0; i < svcAppointments.length - 1; i++) {
         const gapStart = new Date(svcAppointments[i].scheduledEnd).getTime();
-        const gapEnd = new Date(svcAppointments[i + 1].scheduledStart).getTime();
+        const gapEnd = new Date(
+          svcAppointments[i + 1].scheduledStart,
+        ).getTime();
         const durationMins = Math.round((gapEnd - gapStart) / 60000);
         if (durationMins >= 10) {
           gaps.push({
@@ -307,7 +314,8 @@ export class AppointmentService {
       }
 
       const effectiveDurationMins =
-        svc.avgActualDurationMins !== null && svc.avgActualDurationMins !== undefined
+        svc.avgActualDurationMins !== null &&
+        svc.avgActualDurationMins !== undefined
           ? svc.avgActualDurationMins
           : svc.expectedDuration;
 
@@ -331,7 +339,10 @@ export class AppointmentService {
    * Called when a visit is completed. Updates the rolling avg actual duration
    * for the service (rolling over the last 30 completed visits).
    */
-  async updateAvgActualDuration(serviceId: string, tenantId: string): Promise<void> {
+  async updateAvgActualDuration(
+    serviceId: string,
+    tenantId: string,
+  ): Promise<void> {
     try {
       const recentCompleted = await this.prisma.visit.findMany({
         where: {

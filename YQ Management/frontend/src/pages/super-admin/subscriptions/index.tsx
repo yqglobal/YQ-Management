@@ -81,7 +81,7 @@ export default function SuperAdminSubscriptions() {
                   subscriptions.map((sub: any) => (
                     <tr key={sub.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900 dark:text-white">
-                        {sub.workspace?.tenant?.name || 'Unknown'}
+                        {sub.tenant?.name || 'Unknown'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white text-sm">
                         {sub.plan?.name || '-'}

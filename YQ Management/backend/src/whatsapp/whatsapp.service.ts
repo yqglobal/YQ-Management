@@ -1501,7 +1501,9 @@ export class WhatsappService implements OnModuleInit {
 
       const planFeatures = tenant.subscriptions?.[0]?.plan?.features as any;
       if (!planFeatures?.whatsappChatbot) {
-        this.logger.debug(`Chatbot blocked by subscription plan for tenant ${tenant.id}`);
+        this.logger.debug(
+          `Chatbot blocked by subscription plan for tenant ${tenant.id}`,
+        );
         return { ignored: true };
       }
 
@@ -1665,11 +1667,11 @@ export class WhatsappService implements OnModuleInit {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
     });
-    if (!tenant || !tenant.whatsappInstanceId) {
+    if (!tenant || !tenant.whatsappInstanceId || !tenant.whatsappConnected) {
       this.logger.warn(
-        `Tenant ${tenantId} has no configured WhatsApp instance`,
+        `Tenant ${tenantId} WhatsApp is not configured or disconnected`,
       );
-      return { success: false, error: 'WhatsApp not configured for tenant' };
+      return { success: false, error: 'WhatsApp not configured or disconnected' };
     }
     return this.sendMessage(tenant.whatsappInstanceId, number, text);
   }

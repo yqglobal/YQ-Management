@@ -216,9 +216,12 @@ export class PaymentsService {
           where: { tenantId: transaction.tenantId },
         });
 
-        const isUpgrade = existingSub && existingSub.planId !== transaction.planId;
-        const newMetadata = existingSub?.metadata ? (existingSub.metadata as any) : {};
-        
+        const isUpgrade =
+          existingSub && existingSub.planId !== transaction.planId;
+        const newMetadata = existingSub?.metadata
+          ? (existingSub.metadata as any)
+          : {};
+
         if (isUpgrade) {
           newMetadata.upgradedFrom = existingSub.planId;
           newMetadata.upgradedAt = new Date().toISOString();

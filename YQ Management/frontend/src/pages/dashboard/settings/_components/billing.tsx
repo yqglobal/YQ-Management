@@ -84,7 +84,7 @@ export default function BillingSettings() {
 
   const trialMutation = useMutation({
     mutationFn: (data: { planId: string }) =>
-      fetchApi('/billing/workspace/subscription/trial', {
+      fetchApi('/billing/subscriptions/trial', {
         method: 'POST',
         body: JSON.stringify(data)
       }),

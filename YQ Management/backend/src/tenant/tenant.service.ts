@@ -85,7 +85,7 @@ export class TenantService {
     if (!hasCustomBranding) {
       tenant.branding = null;
     }
-    
+
     (tenant as any).planFeatures = { customBranding: hasCustomBranding };
 
     try {
@@ -124,10 +124,17 @@ export class TenantService {
     }
 
     // Enforce customBranding feature toggle
-    const plan = tenant.subscriptions?.[0]?.plan;
-    const hasCustomBranding = plan?.features
-      ? (plan.features as any).customBranding === true
-      : false;
+    const subscription = tenant.subscriptions?.[0];
+    const plan = subscription?.plan;
+    
+    // Parse features if stored as string
+    let planFeatures = plan?.features as any;
+    if (typeof planFeatures === 'string') {
+      try { planFeatures = JSON.parse(planFeatures); } catch (e) { planFeatures = {}; }
+    }
+
+    const isTrial = subscription?.status === 'TRIAL';
+    const hasCustomBranding = isTrial || (planFeatures?.customBranding === true);
 
     if (!hasCustomBranding) {
       tenant.branding = null;
@@ -185,7 +192,8 @@ export class TenantService {
     if (data.name !== undefined) updateData.name = data.name;
     if (data.subdomain !== undefined) updateData.subdomain = data.subdomain;
     if (data.branding !== undefined) updateData.branding = data.branding;
-    if (data.customerExperience !== undefined) updateData.customerExperience = data.customerExperience;
+    if (data.customerExperience !== undefined)
+      updateData.customerExperience = data.customerExperience;
 
     return this.prisma.tenant.update({
       where: { id },

@@ -9,7 +9,11 @@ import { AppointmentModule } from '../appointment/appointment.module';
 import { TokenController } from './token.controller';
 
 @Module({
-  imports: [WhatsappModule, forwardRef(() => SubscriptionModule), forwardRef(() => AppointmentModule)],
+  imports: [
+    WhatsappModule,
+    forwardRef(() => SubscriptionModule),
+    forwardRef(() => AppointmentModule),
+  ],
   providers: [VisitService, VisitCron],
   controllers: [VisitController, PublicVisitController, TokenController],
   exports: [VisitService],

@@ -37,7 +37,10 @@ export class AuditInterceptor implements NestInterceptor {
     }
 
     // Skip auth and audit/log endpoints to avoid noise and loops
-    if (request.url.startsWith('/auth') || request.url.startsWith('/audit/log')) {
+    if (
+      request.url.startsWith('/auth') ||
+      request.url.startsWith('/audit/log')
+    ) {
       return next.handle();
     }
 

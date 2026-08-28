@@ -50,7 +50,8 @@ export class SubscriptionService {
     }
 
     const limitsStr = sub.plan.limits;
-    const parsedLimits = typeof limitsStr === 'string' ? JSON.parse(limitsStr) : (limitsStr || {});
+    const parsedLimits =
+      typeof limitsStr === 'string' ? JSON.parse(limitsStr) : limitsStr || {};
     const maxQueues = parsedLimits?.maxQueues ?? sub.plan.maxQueues;
 
     if (resource === 'queues') {
