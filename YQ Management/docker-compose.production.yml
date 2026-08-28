@@ -81,7 +81,7 @@ services:
         max-file: "5"
 
   backend:
-    image: ghcr.io/${GITHUB_REPOSITORY:-yqglobal/yq-management}-backend:latest
+    image: ghcr.io/yqglobal/yq-management-backend:latest
     container_name: yq-backend
     restart: always
     environment:
@@ -123,7 +123,7 @@ services:
         max-file: "3"
 
   frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY:-yqglobal/yq-management}-frontend:latest
+    image: ghcr.io/yqglobal/yq-management-frontend:latest
     container_name: yq-frontend
     restart: always
     environment:
