@@ -20,12 +20,18 @@ if [ ! -f .env ]; then
 fi
 
 echo "====> Pulling New Docker Images..."
-TOKEN=${1:-$GITHUB_TOKEN}
-ACTOR=${2:-$GITHUB_ACTOR}
+# Read GHCR credentials from a file stored directly on the VPS.
+# This avoids GitHub Actions secret-masking issues with ephemeral GITHUB_TOKEN.
+# To update credentials: echo 'TOKEN' > /root/.ghcr_token && echo 'USERNAME' > /root/.ghcr_user
+GHCR_TOKEN_FILE="/root/.ghcr_token"
+GHCR_USER_FILE="/root/.ghcr_user"
 
-if [ -n "$TOKEN" ] && [ -n "$ACTOR" ]; then
-    echo "====> Authenticating with GHCR..."
-    echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+if [ -f "$GHCR_TOKEN_FILE" ] && [ -f "$GHCR_USER_FILE" ]; then
+    echo "====> Authenticating with GHCR (from stored credentials)..."
+    cat "$GHCR_TOKEN_FILE" | docker login ghcr.io -u "$(cat $GHCR_USER_FILE)" --password-stdin
+else
+    echo "WARNING: GHCR credentials not found at $GHCR_TOKEN_FILE / $GHCR_USER_FILE"
+    echo "Run: echo 'YOUR_PAT' > /root/.ghcr_token && echo 'yqglobal' > /root/.ghcr_user"
 fi
 # Pull the pre-built GHCR images
 docker compose -f docker-compose.production.yml pull
