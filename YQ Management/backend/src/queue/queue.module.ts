@@ -11,7 +11,7 @@ import { PrismaModule } from '../prisma/prisma.module';
   imports: [
     WebhooksModule,
     forwardRef(() => VisitModule),
-    SubscriptionModule,
+    forwardRef(() => SubscriptionModule),
     PrismaModule,
   ],
   providers: [QueueService, QueueGateway],

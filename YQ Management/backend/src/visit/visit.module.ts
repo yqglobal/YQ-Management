@@ -11,10 +11,10 @@ import { CommunicationModule } from '../communication/communication.module';
 
 @Module({
   imports: [
-    WhatsappModule,
+    forwardRef(() => WhatsappModule),
     forwardRef(() => SubscriptionModule),
     forwardRef(() => AppointmentModule),
-    CommunicationModule,
+    forwardRef(() => CommunicationModule),
   ],
   providers: [VisitService, VisitCron],
   controllers: [VisitController, PublicVisitController, TokenController],

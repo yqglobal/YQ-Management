@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { PermissionsModule } from '../permissions/permissions.module';
@@ -15,19 +15,21 @@ import { EnterpriseInquiryController } from './enterprise-inquiry.controller';
 import { EnterpriseInquiryService } from './enterprise-inquiry.service';
 import { EmailModule } from '../email/email.module';
 import { SystemLogModule } from '../system-log/system-log.module';
+import { SubscriptionModule } from '../subscription/subscription.module';
 
 @Module({
   imports: [
     PrismaModule,
-    AuthModule,
+    forwardRef(() => AuthModule),
     PermissionsModule,
     SystemLogModule,
     EmailModule,
+    forwardRef(() => SubscriptionModule),
   ],
   controllers: [BillingController, EnterpriseInquiryController],
   providers: [
     PlansService,
-    SubscriptionService,
+    
     PaymentsService,
     InvoiceService,
     UsageService,
@@ -38,7 +40,7 @@ import { SystemLogModule } from '../system-log/system-log.module';
   ],
   exports: [
     PlansService,
-    SubscriptionService,
+    
     PaymentsService,
     InvoiceService,
     UsageService,

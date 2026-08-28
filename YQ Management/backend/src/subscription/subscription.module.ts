@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { SubscriptionService } from './subscription.service';
 import { SubscriptionController } from './subscription.controller';
 import { SubscriptionCron } from './subscription.cron';
@@ -12,7 +12,7 @@ import { EmailModule } from '../email/email.module';
 @Module({
   imports: [
     PrismaModule,
-    BillingModule,
+    forwardRef(() => BillingModule),
     PermissionsModule,
     CommunicationModule,
     EmailModule,
