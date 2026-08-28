@@ -38,6 +38,8 @@ async function bootstrap() {
     process.env.APP_URL,
     'http://localhost:3000',
     'http://localhost:3001',
+    'https://qmova.yqbuddy.com',
+    'https://api.qmova.yqbuddy.com',
     ...(process.env.EXTRA_ALLOWED_ORIGINS || '')
       .split(',')
       .map((o) => o.trim())
