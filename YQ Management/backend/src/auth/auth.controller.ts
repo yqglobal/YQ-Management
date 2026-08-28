@@ -23,6 +23,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { PasswordResetService } from './password-reset.service';
 import type { AuthenticatedRequest } from './types/auth.types';
 import { RedisService } from '../redis/redis.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Controller('auth')
 export class AuthController {
@@ -32,6 +33,7 @@ export class AuthController {
     private readonly emailService: EmailService,
     private readonly passwordResetService: PasswordResetService,
     private readonly redisService: RedisService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   @UseGuards(ThrottlerGuard)
@@ -388,6 +390,51 @@ export class AuthController {
       }
       // Workspace creation removed — Tenant is the single root entity
       // companyName is already updated on the Tenant above
+    }
+
+    if (
+      !req.user.personalSettings?.onboardingCompleted &&
+      body.onboardingCompleted === true &&
+      req.user.tenantId
+    ) {
+      try {
+        const trialPlan = await this.usersService['prisma'].plan.findFirst({
+          where: { type: 'trial', active: true },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        if (trialPlan) {
+          await this.subscriptionService.startFreeTrial(
+            req.user.tenantId,
+            trialPlan.id,
+            trialPlan.trialDays || 14
+          );
+          new Logger(AuthController.name).log(
+            `Automatically started trial plan for tenant ${req.user.tenantId} upon onboarding completion.`
+          );
+        } else {
+          // Fallback to first available active plan if no specific trial plan exists
+          const fallbackPlan = await this.usersService['prisma'].plan.findFirst({
+            where: { active: true },
+            orderBy: { createdAt: 'asc' },
+          });
+          if (fallbackPlan) {
+            await this.subscriptionService.startFreeTrial(
+              req.user.tenantId,
+              fallbackPlan.id,
+              fallbackPlan.trialDays || 14
+            );
+            new Logger(AuthController.name).log(
+              `Automatically started fallback plan for tenant ${req.user.tenantId} upon onboarding completion.`
+            );
+          }
+        }
+      } catch (err) {
+        new Logger(AuthController.name).error(
+          `Failed to start free trial for tenant ${req.user.tenantId} on onboarding completion`,
+          err
+        );
+      }
     }
 
     return { success: true, user: updatedUser };

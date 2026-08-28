@@ -8,11 +8,13 @@ import { JwtStrategy } from './jwt.strategy';
 import { GoogleStrategy } from './google.strategy';
 import { ConfigModule } from '@nestjs/config';
 import { PasswordResetService } from './password-reset.service';
+import { SubscriptionModule } from '../subscription/subscription.module';
 
 @Module({
   imports: [
     ConfigModule,
     UsersModule,
+    SubscriptionModule,
     PassportModule,
     JwtModule.registerAsync({
       useFactory: () => {

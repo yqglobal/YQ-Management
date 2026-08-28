@@ -764,6 +764,41 @@ export class VisitService {
     };
   }
 
+  async cancelPublicVisit(accessToken: string) {
+    const visit = await this.prisma.visit.findUnique({
+      where: { accessToken },
+      include: { queue: { include: { location: true } }, customer: true },
+    });
+
+    if (!visit) throw new NotFoundException('Visit not found');
+
+    if (
+      visit.currentState === 'COMPLETED' ||
+      visit.currentState === 'CANCELLED' ||
+      visit.currentState === 'MISSED'
+    ) {
+      throw new BadRequestException(`Visit is already ${visit.currentState.toLowerCase()}`);
+    }
+
+    const updated = await this.prisma.visit.update({
+      where: { id: visit.id },
+      data: { currentState: 'CANCELLED' },
+      include: { customer: true, queue: true, service: true, tenant: true },
+    });
+
+    await this.communicationService.publish(CommunicationEvent.VISIT_STATUS_CHANGED, {
+      tenantId: updated.tenantId,
+      visitId: updated.id,
+      oldState: visit.currentState,
+      newState: 'CANCELLED',
+      customerPhone: updated.customer?.phone,
+      customerName: updated.customer?.name,
+      queueName: updated.queue?.name,
+    });
+
+    return { success: true, visit: updated };
+  }
+
   async transferVisit(
     visitId: string,
     nextQueueId: string,

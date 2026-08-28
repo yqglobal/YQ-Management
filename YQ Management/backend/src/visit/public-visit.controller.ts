@@ -28,6 +28,11 @@ export class PublicVisitController {
     return visit;
   }
 
+  @Post(':accessToken/cancel')
+  async cancelPublicVisit(@Param('accessToken') accessToken: string) {
+    return this.visitService.cancelPublicVisit(accessToken);
+  }
+
   @Post('queue/:queueId/join')
   async joinQueue(
     @Param('queueId') queueId: string,

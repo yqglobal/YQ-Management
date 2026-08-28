@@ -1499,8 +1499,18 @@ export class WhatsappService implements OnModuleInit {
         return { ignored: true };
       }
 
-      const planFeatures = tenant.subscriptions?.[0]?.plan?.features as any;
-      if (!planFeatures?.whatsappChatbot) {
+      const subscription = tenant.subscriptions?.[0];
+      const plan = subscription?.plan;
+      let planFeatures = plan?.features as any;
+      
+      if (typeof planFeatures === 'string') {
+        try { planFeatures = JSON.parse(planFeatures); } catch (e) { planFeatures = {}; }
+      }
+
+      const isTrial = subscription?.status === 'TRIAL';
+      const hasChatbot = isTrial || (planFeatures?.whatsappChatbot === true);
+
+      if (!hasChatbot) {
         this.logger.debug(
           `Chatbot blocked by subscription plan for tenant ${tenant.id}`,
         );
