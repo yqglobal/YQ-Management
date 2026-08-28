@@ -7,12 +7,14 @@ import { SubscriptionModule } from '../subscription/subscription.module';
 import { PublicVisitController } from './public-visit.controller';
 import { AppointmentModule } from '../appointment/appointment.module';
 import { TokenController } from './token.controller';
+import { CommunicationModule } from '../communication/communication.module';
 
 @Module({
   imports: [
     WhatsappModule,
     forwardRef(() => SubscriptionModule),
     forwardRef(() => AppointmentModule),
+    CommunicationModule,
   ],
   providers: [VisitService, VisitCron],
   controllers: [VisitController, PublicVisitController, TokenController],

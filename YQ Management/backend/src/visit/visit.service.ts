@@ -12,6 +12,8 @@ import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { RedisService } from '../redis/redis.service';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { AppointmentService } from '../appointment/appointment.service';
+import { CommunicationService } from '../communication/communication.service';
+import { CommunicationEvent } from '../communication/events/communication-events.enum';
 
 @Injectable()
 export class VisitService {
@@ -23,6 +25,7 @@ export class VisitService {
     private readonly subscriptionService: SubscriptionService,
     private readonly appointmentService: AppointmentService,
     private readonly redisService: RedisService,
+    private readonly communicationService: CommunicationService,
   ) {}
 
   // Basic CRUD for controllers
@@ -786,7 +789,7 @@ export class VisitService {
       include: { customer: true, queue: true, service: true, tenant: true },
     });
 
-    await this.communicationService.publish(CommunicationEvent.VISIT_STATUS_CHANGED, {
+    await this.communicationService.publish(CommunicationEvent.QUEUE_CANCELLED, {
       tenantId: updated.tenantId,
       visitId: updated.id,
       oldState: visit.currentState,
