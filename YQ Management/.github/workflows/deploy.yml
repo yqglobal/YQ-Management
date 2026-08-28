@@ -67,17 +67,11 @@ jobs:
     steps:
       - name: Trigger VPS Deploy Script
         uses: appleboy/ssh-action@v1.0.3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           key: ${{ secrets.VPS_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          envs: GITHUB_TOKEN,GITHUB_ACTOR
           script: |
-            export GITHUB_TOKEN=$GITHUB_TOKEN
-            export GITHUB_ACTOR=$GITHUB_ACTOR
-            bash "/var/www/yq/YQ Management/scripts/deploy.sh"
+            bash "/var/www/yq/YQ Management/scripts/deploy.sh" "${{ secrets.GITHUB_TOKEN }}" "${{ github.actor }}"
