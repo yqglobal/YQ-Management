@@ -54,33 +54,63 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-[921px] flex flex-col items-center justify-center pt-32 px-gutter overflow-hidden perspective-1000">
+      <section className="relative min-h-[950px] flex flex-col items-center justify-center pt-36 px-gutter overflow-hidden perspective-1000">
+        
+        {/* Background Grid Pattern */}
+        <div className="absolute inset-0 bg-[url('https://res.cloudinary.com/djp3znbwz/image/upload/v1706692997/grid-pattern-dark.png')] bg-repeat opacity-[0.03] pointer-events-none mix-blend-screen" style={{ backgroundSize: '40px 40px' }}></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_20%,_#09090b_70%)] pointer-events-none"></div>
+
+        {/* Dynamic Aurora Glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/30 via-transparent to-transparent opacity-70 pointer-events-none"></div>
         <motion.div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-sky-500/10 blur-[120px] rounded-full z-0 pointer-events-none mix-blend-screen"
+          className="absolute top-[10%] right-[10%] w-[500px] h-[500px] bg-emerald-600/20 rounded-full mix-blend-screen filter blur-[100px] pointer-events-none"
+          animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, -50, 0] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div 
+          className="absolute top-[20%] left-[10%] w-[600px] h-[600px] bg-sky-600/20 rounded-full mix-blend-screen filter blur-[120px] pointer-events-none"
+          animate={{ scale: [1, 1.1, 1], x: [0, -40, 0], y: [0, 60, 0] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div 
+          className="absolute top-[40%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen"
           animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
-          transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
+          transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
         />
 
         <motion.div 
           style={{ y: heroY, opacity: opacityFade }}
           className="max-w-4xl mx-auto text-center z-10 space-y-8 flex flex-col items-center"
         >
+          {/* Pill Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-md shadow-[0_0_20px_rgba(255,255,255,0.03)] cursor-pointer hover:bg-white/[0.06] hover:border-white/20 transition-all group relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-sky-400/10 to-indigo-400/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <span className="relative flex h-2 w-2 rounded-full bg-sky-400">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+            </span>
+            <span className="relative text-[11px] font-bold text-zinc-300 uppercase tracking-widest group-hover:text-white transition-colors">Qmova 2.0 Now Live</span>
+          </motion.div>
 
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="text-6xl md:text-[80px] font-headline-lg font-extrabold tracking-[-0.04em] leading-[1.1] text-white relative z-10 drop-shadow-2xl"
+            className="text-6xl md:text-[84px] font-headline-lg font-extrabold tracking-[-0.04em] leading-[1.05] text-white relative z-10 drop-shadow-2xl"
           >
             The End of the <br className="hidden md:block"/>
-            <span className="bg-gradient-to-r from-sky-400 via-indigo-400 to-sky-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">Waiting Room.</span>
+            <span className="bg-gradient-to-r from-sky-400 via-indigo-300 to-sky-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient filter drop-shadow-[0_0_30px_rgba(56,189,248,0.3)]">Waiting Room.</span>
           </motion.h1>
 
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            className="font-body-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed text-lg md:text-xl"
+            className="font-body-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed text-lg md:text-xl font-medium"
           >
             Seamlessly merge scheduled appointments and spontaneous walk-ins into a single, autonomous queue—powered by native WhatsApp integration and algorithmic routing.
           </motion.p>
@@ -89,14 +119,17 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6 w-full px-6 md:px-0"
           >
-            <Link href="/register" className="group w-full sm:w-auto h-[52px] px-8 rounded-full bg-sky-600 text-white font-body-md font-semibold hover:bg-sky-500 transition-all shadow-[0_0_30px_rgba(2,132,199,0.4)] hover:shadow-[0_0_40px_rgba(2,132,199,0.6)] flex items-center justify-center gap-2 hover:scale-105 active:scale-95">
-              Initialize Workspace
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <Link href="/register" className="relative group w-full sm:w-auto h-[54px] px-8 rounded-full bg-sky-600 text-white font-body-md font-bold hover:bg-sky-500 transition-all shadow-[0_0_30px_rgba(2,132,199,0.3)] flex items-center justify-center gap-2 hover:scale-105 active:scale-95 overflow-hidden">
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-sky-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none blur-xl"></div>
+              <span className="relative z-10 flex items-center gap-2 drop-shadow-md">
+                Initialize Workspace
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </span>
             </Link>
-            <Link href="/docs" className="w-full sm:w-auto h-[52px] px-8 rounded-full glass-ui text-white font-body-md font-medium hover:bg-white/10 transition-all flex items-center justify-center gap-2 border border-white/10 hover:border-white/20 hover:scale-105 active:scale-95">
-              Read the Docs
+            <Link href="/docs" className="relative group w-full sm:w-auto h-[54px] px-8 rounded-full bg-white/[0.03] text-white font-body-md font-semibold hover:bg-white/[0.08] transition-all flex items-center justify-center gap-2 border border-white/10 hover:border-white/20 hover:scale-105 active:scale-95">
+              <span className="relative z-10">Read the Docs</span>
             </Link>
           </motion.div>
         </motion.div>
