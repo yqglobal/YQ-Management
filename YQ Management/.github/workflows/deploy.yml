@@ -60,19 +60,10 @@ jobs:
   deploy-vps:
     name: Deploy to VPS
     needs: build-and-push
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, yq-vps]
     environment:
       name: Production
       url: https://qmova.yqbuddy.com
     steps:
-      - name: Trigger VPS Deploy Script
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_KEY }}
-          port: 22
-          timeout: 30s
-          command_timeout: 15m
-          script: |
-            bash "/var/www/yq/YQ Management/scripts/deploy.sh" "${{ secrets.GITHUB_TOKEN }}" "${{ github.actor }}"
+      - name: Run Deploy Script
+        run: bash "/var/www/yq/YQ Management/scripts/deploy.sh"
