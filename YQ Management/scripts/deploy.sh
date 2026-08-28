@@ -20,6 +20,10 @@ if [ ! -f .env ]; then
 fi
 
 echo "====> Pulling New Docker Images..."
+if [ -n "$GITHUB_TOKEN" ] && [ -n "$GITHUB_ACTOR" ]; then
+    echo "====> Authenticating with GHCR..."
+    echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+fi
 # Pull the pre-built GHCR images
 docker compose -f docker-compose.production.yml pull
 
