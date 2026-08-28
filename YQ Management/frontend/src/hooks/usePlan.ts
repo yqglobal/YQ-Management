@@ -108,8 +108,8 @@ export function usePlan(): UsePlanResult {
       ? visits.filter((v: any) => v.createdAt && new Date(v.createdAt) >= monthStart).length
       : 0;
 
-    const queueUsagePct = limits.maxQueues > 0 ? Math.min(100, (queueCount / limits.maxQueues) * 100) : 0;
-    const tokenUsagePct = limits.maxTokens > 0 ? Math.min(100, (tokensThisMonth / limits.maxTokens) * 100) : 0;
+    const queueUsagePct = limits.maxQueues > 0 ? Math.min(100, (queueCount / Math.max(1, limits.maxQueues)) * 100) : 0;
+    const tokenUsagePct = limits.maxTokens > 0 ? Math.min(100, (tokensThisMonth / Math.max(1, limits.maxTokens)) * 100) : 0;
 
     // If status is null (no subscription found — e.g. SUPER_ADMIN or API error), grant access by default.
     // Only block access when we explicitly know the subscription is EXPIRED or CANCELLED.

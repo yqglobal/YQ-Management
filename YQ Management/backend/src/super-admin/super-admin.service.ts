@@ -548,7 +548,11 @@ export class SuperAdminService {
     if (dto.currency !== undefined) data.currency = dto.currency;
     if (dto.trialDays !== undefined) data.trialDays = dto.trialDays;
     if (dto.features !== undefined) data.features = dto.features;
-    if (dto.limits !== undefined) data.limits = dto.limits;
+    if (dto.limits !== undefined) {
+      data.limits = dto.limits;
+      if (dto.limits.maxQueues !== undefined) data.maxQueues = dto.limits.maxQueues;
+      if (dto.limits.maxTokens !== undefined) data.maxVisits = dto.limits.maxTokens;
+    }
     if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
 
     return this.prisma.plan.update({ where: { id }, data });

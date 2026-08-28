@@ -104,7 +104,7 @@ export class BillingController {
     return this.subscriptionService.startFreeTrial(
       tenantId,
       body.planId,
-      body.trialDays ?? 7,
+      body.trialDays,
     );
   }
 

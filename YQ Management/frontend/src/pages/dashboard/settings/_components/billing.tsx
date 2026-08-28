@@ -82,6 +82,23 @@ export default function BillingSettings() {
     },
   });
 
+  const trialMutation = useMutation({
+    mutationFn: (data: { planId: string }) =>
+      fetchApi('/billing/workspace/subscription/trial', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['billing-subscription'] });
+      await queryClient.invalidateQueries({ queryKey: ['current-subscription'] });
+      toast.success('Plan started successfully!');
+      setCheckoutPlan(null);
+    },
+    onError: () => {
+      toast.error('Error starting plan');
+    },
+  });
+
   const enterpriseMutation = useMutation({
     mutationFn: (data: typeof enterpriseForm) =>
       fetchApi('/billing/enterprise-inquiries', {
@@ -124,7 +141,13 @@ export default function BillingSettings() {
   };
 
   const confirmCheckout = () => {
-    if (checkoutPlan) subscribeMutation.mutate({ planId: checkoutPlan.id, billingInterval });
+    if (checkoutPlan) {
+      if (checkoutPlan.price === 0) {
+        trialMutation.mutate({ planId: checkoutPlan.id });
+      } else {
+        subscribeMutation.mutate({ planId: checkoutPlan.id, billingInterval });
+      }
+    }
   };
 
   useEffect(() => {
@@ -146,8 +169,8 @@ export default function BillingSettings() {
   }, [paymentData]);
 
   const isTrial = currentSub?.status === 'TRIAL';
-  // Trial users AND paying users should see their plan details (not the pricing grid)
-  const isPaid = (currentSub?.status === 'ACTIVE' && currentSub?.plan?.price > 0) || isTrial;
+  // Trial users AND paying users (including free ACTIVE plans) should see their plan details (not the pricing grid)
+  const isPaid = currentSub?.status === 'ACTIVE' || isTrial;
   const isExpired = currentSub?.status === 'EXPIRED' || currentSub?.status === 'CANCELLED';
   const isPastDue = currentSub?.status === 'PAST_DUE';
   const isPendingPayment = currentSub?.status === 'PENDING_PAYMENT';
@@ -650,16 +673,16 @@ export default function BillingSettings() {
 
               <button
                 onClick={confirmCheckout}
-                disabled={subscribeMutation.isPending || !!paymentData}
+                disabled={subscribeMutation.isPending || trialMutation.isPending || !!paymentData}
                 className="w-full h-[48px] bg-primary hover:bg-primary-container text-white rounded-xl font-body-lg font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 relative overflow-hidden group"
               >
-                {(subscribeMutation.isPending || !!paymentData) && <div className="absolute inset-0 bg-black/10"></div>}
-                {subscribeMutation.isPending || !!paymentData ? (
+                {(subscribeMutation.isPending || trialMutation.isPending || !!paymentData) && <div className="absolute inset-0 bg-black/10"></div>}
+                {subscribeMutation.isPending || trialMutation.isPending || !!paymentData ? (
                   <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin relative z-10" />
                 ) : (
                   <span className="material-symbols-outlined text-[20px] relative z-10">lock</span>
                 )}
-                <span className="relative z-10">{paymentData ? 'Redirecting to Secure Payment...' : 'Confirm & Pay with Ozow'}</span>
+                <span className="relative z-10">{paymentData ? 'Redirecting to Secure Payment...' : checkoutPlan?.price === 0 ? 'Activate Plan' : 'Confirm & Pay with Ozow'}</span>
               </button>
               <p className="text-center font-body-sm text-[11px] text-on-surface-variant dark:text-outline mt-4 font-medium flex items-center justify-center gap-1">
                 <span className="material-symbols-outlined text-[14px]">shield</span> Secure Instant EFT by Ozow

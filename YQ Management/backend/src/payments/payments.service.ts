@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -43,7 +44,10 @@ export class PaymentsService {
     return new Date(startDate.getTime() + periodDays * 24 * 60 * 60 * 1000);
   }
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private subscriptionService: SubscriptionService,
+  ) {}
 
   async generatePaymentLink(
     tenantId: string,
@@ -208,6 +212,20 @@ export class PaymentsService {
           transaction.billingInterval || 'monthly',
         );
 
+        const existingSub = await this.prisma.subscription.findUnique({
+          where: { tenantId: transaction.tenantId },
+        });
+
+        const isUpgrade = existingSub && existingSub.planId !== transaction.planId;
+        const newMetadata = existingSub?.metadata ? (existingSub.metadata as any) : {};
+        
+        if (isUpgrade) {
+          newMetadata.upgradedFrom = existingSub.planId;
+          newMetadata.upgradedAt = new Date().toISOString();
+        } else if (existingSub) {
+          newMetadata.renewedAt = new Date().toISOString();
+        }
+
         await this.prisma.subscription.upsert({
           where: { tenantId: transaction.tenantId },
           update: {
@@ -220,6 +238,7 @@ export class PaymentsService {
             // Clear trial dates when converting to paid subscription
             trialStartDate: null,
             trialEndDate: null,
+            metadata: newMetadata,
           },
           create: {
             tenantId: transaction.tenantId,

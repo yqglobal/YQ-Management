@@ -49,17 +49,22 @@ export class SubscriptionService {
       );
     }
 
-    if (resource === 'queues' && sub.plan.maxQueues !== null) {
-      if (currentCount >= sub.plan.maxQueues) {
-        throw new BillingException(
-          `Queue limit reached (${sub.plan.maxQueues}) for your current plan. Please upgrade to add more queues.`,
-        );
+    const limitsStr = sub.plan.limits;
+    const parsedLimits = typeof limitsStr === 'string' ? JSON.parse(limitsStr) : (limitsStr || {});
+    const maxQueues = parsedLimits?.maxQueues ?? sub.plan.maxQueues;
+
+    if (resource === 'queues') {
+      if (maxQueues !== undefined && maxQueues !== null) {
+        if (currentCount >= maxQueues) {
+          throw new BillingException(
+            `Queue limit reached (${maxQueues}) for your current plan. Please upgrade to add more queues.`,
+          );
+        }
       }
     }
 
     if (resource === 'locations') {
-      const limits = (sub.plan.limits as any) || {};
-      const maxLocations = limits.maxLocations;
+      const maxLocations = parsedLimits?.maxLocations;
       if (maxLocations !== undefined && maxLocations !== null) {
         if (currentCount >= maxLocations) {
           throw new BillingException(
@@ -71,8 +76,7 @@ export class SubscriptionService {
 
     // FIX (2C): Enforce visit/token quota against the plan's maxVisits limit or limits.maxTokens.
     if (resource === 'visits') {
-      const limits = (sub.plan.limits as any) || {};
-      const maxVisits = (sub.plan as any).maxVisits ?? limits.maxTokens;
+      const maxVisits = sub.plan.maxVisits ?? parsedLimits?.maxTokens;
 
       if (maxVisits !== undefined && maxVisits !== null) {
         if (currentCount >= maxVisits) {
@@ -375,7 +379,7 @@ export class SubscriptionService {
   async startFreeTrial(
     tenantId: string,
     planId: string,
-    trialDays: number,
+    trialDays?: number,
   ): Promise<Subscription & { plan: Plan }> {
     const plan = await this.prisma.plan.findUnique({
       where: { id: planId },
@@ -383,6 +387,8 @@ export class SubscriptionService {
     if (!plan) {
       throw new NotFoundException(`Plan with id ${planId} not found`);
     }
+
+    const actualTrialDays = trialDays ?? plan.trialDays ?? 14;
 
     const existing = await this.prisma.subscription.findUnique({
       where: { tenantId },
@@ -400,7 +406,7 @@ export class SubscriptionService {
 
     const now = new Date();
     const trialEndDate = new Date(
-      now.getTime() + trialDays * 24 * 60 * 60 * 1000,
+      now.getTime() + actualTrialDays * 24 * 60 * 60 * 1000,
     );
 
     const subscription = await this.prisma.subscription.create({
@@ -418,7 +424,7 @@ export class SubscriptionService {
     });
 
     this.logger.log(
-      `Free trial started for workspace ${tenantId}, plan ${planId}, ${trialDays} days`,
+      `Free trial started for workspace ${tenantId}, plan ${planId}, ${actualTrialDays} days`,
     );
 
     try {
@@ -430,7 +436,7 @@ export class SubscriptionService {
         await this.emailService.sendTrialStartedEmail(
           workspaceOwner.email,
           plan.name,
-          trialDays,
+          actualTrialDays,
         );
       }
     } catch (e) {
