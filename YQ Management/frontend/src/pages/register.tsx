@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ArrowRight, Lock, Mail, User, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { fetchApi, AuthStorage, getBackendUrl } from '../lib/api';
 import TermsModal from '../components/TermsModal';
 import { Logo } from '../components/Logo';
@@ -131,10 +132,28 @@ export default function Register() {
       <div className="noise-overlay"></div>
 
       {/* Left Panel - Visual */}
-      <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-zinc-950 items-center justify-center border-r border-white/5 z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-sky-900/20 via-transparent to-transparent opacity-60"></div>
-        <div className="absolute top-1/4 -right-20 w-96 h-96 bg-emerald-600 rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob"></div>
-        <div className="absolute bottom-1/4 -left-20 w-96 h-96 bg-sky-600 rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob animation-delay-4000"></div>
+      <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-[#09090b] items-center justify-center border-r border-white/5 z-10">
+        {/* Background Grid Pattern */}
+        <div className="absolute inset-0 bg-[url('https://res.cloudinary.com/djp3znbwz/image/upload/v1706692997/grid-pattern-dark.png')] bg-repeat opacity-[0.03] pointer-events-none mix-blend-screen" style={{ backgroundSize: '40px 40px' }}></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_20%,_#09090b_70%)] pointer-events-none"></div>
+
+        {/* Dynamic Aurora Glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/30 via-transparent to-transparent opacity-70 pointer-events-none"></div>
+        <motion.div 
+          className="absolute top-[10%] right-[10%] w-[500px] h-[500px] bg-emerald-600/20 rounded-full mix-blend-screen filter blur-[100px] pointer-events-none"
+          animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, -50, 0] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div 
+          className="absolute top-[20%] left-[10%] w-[600px] h-[600px] bg-sky-600/20 rounded-full mix-blend-screen filter blur-[120px] pointer-events-none"
+          animate={{ scale: [1, 1.1, 1], x: [0, -40, 0], y: [0, 60, 0] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div 
+          className="absolute top-[40%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen"
+          animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
+          transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
+        />
 
         <div className="relative z-10 max-w-md p-12">
           <div className="mb-12">

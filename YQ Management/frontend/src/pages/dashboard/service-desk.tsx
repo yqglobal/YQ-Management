@@ -5,7 +5,6 @@ import AdminLayout from '../../components/AdminLayout';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchApi, getBackendUrl } from '../../lib/api';
-import { io, Socket } from 'socket.io-client';
 import { WelcomeModal } from '../../components/modals/WelcomeModal';
 import { CreateVisitModal } from '../../components/modals/CreateVisitModal';
 import { ScannerModal } from '../../components/modals/ScannerModal';
@@ -15,6 +14,7 @@ import { usePlan } from '../../hooks/usePlan';
 import Link from 'next/link';
 import { useLocation } from '../../components/LocationContext';
 import { useAuth } from '../../components/AuthContext';
+import { useSocket } from '../../components/SocketProvider';
 
 export default function ServiceDeskToday() {
   const { user } = useAuth();
@@ -26,6 +26,7 @@ export default function ServiceDeskToday() {
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileTab, setMobileTab] = useState<'pool' | 'pipeline'>('pool');
+  const { socket } = useSocket();
   
   const plan = usePlan();
 
@@ -88,38 +89,28 @@ export default function ServiceDeskToday() {
 
   // Connect to Socket.io for real-time updates
   useEffect(() => {
-    if (!tenant?.id) return;
+    if (!socket || !tenant?.id) return;
 
-    const socket: Socket = io(getBackendUrl(), {
-      transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
-      autoConnect: true,
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: 10,
-    });
-
-    socket.on('connect', () => {
-      console.log('Connected to real-time service desk stream');
-      socket.emit('joinTenantRoom', tenant.id);
-    });
-
-    socket.on('queueUpdated', (data) => {
+    const handleQueueUpdated = (data: any) => {
       console.log('Real-time update: queueUpdated', data);
       queryClient.invalidateQueries({ queryKey: ['visits', 'today', activeLocationId] });
       queryClient.invalidateQueries({ queryKey: ['queues', activeLocationId] });
-    });
+    };
 
-    socket.on('visitUpdated', (data) => {
+    const handleVisitUpdated = (data: any) => {
       console.log('Real-time update: visitUpdated', data);
       queryClient.invalidateQueries({ queryKey: ['visits', 'today', activeLocationId] });
       queryClient.invalidateQueries({ queryKey: ['appointments', 'pending', activeLocationId] });
-    });
+    };
+
+    socket.on('queueUpdated', handleQueueUpdated);
+    socket.on('visitUpdated', handleVisitUpdated);
 
     return () => {
-      socket.disconnect();
+      socket.off('queueUpdated', handleQueueUpdated);
+      socket.off('visitUpdated', handleVisitUpdated);
     };
-  }, [tenant?.id, queryClient, activeLocationId]);
+  }, [socket, tenant?.id, queryClient, activeLocationId]);
 
   const updateVisitMutation = useMutation({
     mutationFn: (data: { id: string, resourceId: string }) => 

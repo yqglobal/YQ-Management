@@ -56,25 +56,25 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative min-h-[950px] flex flex-col items-center justify-center pt-36 px-gutter overflow-hidden perspective-1000">
         
-        {/* Background Grid Pattern */}
-        <div className="absolute inset-0 bg-[url('https://res.cloudinary.com/djp3znbwz/image/upload/v1706692997/grid-pattern-dark.png')] bg-repeat opacity-[0.03] pointer-events-none mix-blend-screen" style={{ backgroundSize: '40px 40px' }}></div>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_20%,_#09090b_70%)] pointer-events-none"></div>
+        {/* Grid and Glow */}
+        <div className="absolute inset-0 bg-[url('https://res.cloudinary.com/djp3znbwz/image/upload/v1706692997/grid-pattern-dark.png')] bg-repeat opacity-[0.02] mix-blend-screen pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#09090b] to-[#09090b] pointer-events-none"></div>
 
         {/* Dynamic Aurora Glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/30 via-transparent to-transparent opacity-70 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/40 via-transparent to-transparent opacity-70 pointer-events-none"></div>
         <motion.div 
-          className="absolute top-[10%] right-[10%] w-[500px] h-[500px] bg-emerald-600/20 rounded-full mix-blend-screen filter blur-[100px] pointer-events-none"
-          animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, -50, 0] }}
+          className="absolute top-[5%] right-[15%] w-[600px] h-[600px] bg-purple-600/20 rounded-full mix-blend-screen filter blur-[120px] pointer-events-none"
+          animate={{ scale: [1, 1.2, 1], x: [0, 40, 0], y: [0, -40, 0] }}
           transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div 
-          className="absolute top-[20%] left-[10%] w-[600px] h-[600px] bg-sky-600/20 rounded-full mix-blend-screen filter blur-[120px] pointer-events-none"
-          animate={{ scale: [1, 1.1, 1], x: [0, -40, 0], y: [0, 60, 0] }}
+          className="absolute top-[20%] left-[10%] w-[500px] h-[500px] bg-teal-600/20 rounded-full mix-blend-screen filter blur-[100px] pointer-events-none"
+          animate={{ scale: [1, 1.1, 1], x: [0, -50, 0], y: [0, 50, 0] }}
           transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div 
-          className="absolute top-[40%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen"
-          animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
+          className="absolute top-[40%] left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-blue-600/10 blur-[150px] rounded-full pointer-events-none mix-blend-screen"
+          animate={{ opacity: [0.4, 0.7, 0.4], scale: [1, 1.05, 1] }}
           transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
         />
 
@@ -99,11 +99,11 @@ export default function LandingPage() {
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="text-6xl md:text-[84px] font-headline-lg font-extrabold tracking-[-0.04em] leading-[1.05] text-white relative z-10 drop-shadow-2xl"
+            transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+            className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight text-white glow-text"
           >
-            The End of the <br className="hidden md:block"/>
-            <span className="bg-gradient-to-r from-sky-400 via-indigo-300 to-sky-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient filter drop-shadow-[0_0_30px_rgba(56,189,248,0.3)]">Waiting Room.</span>
+            The End of the <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-sky-400 to-teal-400 animate-gradient">Waiting Room.</span>
           </motion.h1>
 
           <motion.p 
@@ -144,11 +144,18 @@ export default function LandingPage() {
         >
           {/* Main Dashboard Mockup */}
           <motion.div 
-            className="absolute w-[850px] h-[480px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_0_100px_rgba(2,132,199,0.15)] overflow-hidden flex flex-col z-20"
-            initial={{ y: 40, opacity: 0, scale: 0.95 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
+            className="w-full max-w-5xl h-[600px] rounded-2xl bg-black/40 border border-white/10 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl relative flex flex-col"
+            style={{ 
+              rotateX: heroY,
+              transformPerspective: 1200,
+            }}
+            initial={{ opacity: 0, y: 100, rotateX: 20 }}
+            animate={{ opacity: 1, y: 0, rotateX: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 120, delay: 0.2 }}
           >
+             {/* Dynamic subtle glow inside the dashboard */}
+             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-teal-500/5 pointer-events-none"></div>
+             
              {/* Dashboard Header */}
              <div className="h-12 bg-white/5 border-b border-white/10 flex items-center px-4 gap-2">
                <div className="flex gap-2">
