@@ -17,14 +17,14 @@ export class RedisIoAdapter extends IoAdapter {
   }
 
   createIOServer(port: number, options?: ServerOptions): any {
-    options = {
+    const serverOptions: any = {
       ...options,
       cors: {
         origin: true,
         credentials: true,
       },
     };
-    const server = super.createIOServer(port, options);
+    const server = super.createIOServer(port, serverOptions);
     server.adapter(this.adapterConstructor);
     return server;
   }
