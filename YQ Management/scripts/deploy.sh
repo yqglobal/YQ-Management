@@ -43,7 +43,7 @@ docker compose -f docker-compose.production.yml run --rm backend npx prisma migr
 
 echo "====> Starting new containers..."
 # Recreate only the containers that have changed images or configs
-docker compose -f docker-compose.production.yml up -d --remove-orphans
+docker compose -f docker-compose.production.yml up -d --remove-orphans --wait
 
 # Clean up dangling images to save disk space
 docker image prune -f

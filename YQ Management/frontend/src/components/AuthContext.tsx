@@ -45,11 +45,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           router.push('/onboarding');
         }
       })
-      .catch(() => {
-        setUser(null);
-        setLoading(false);
-        if (router.pathname.startsWith('/dashboard') || router.pathname.startsWith('/onboarding')) {
-          router.push('/login');
+      .catch((err) => {
+        if (err?.status === 401 || err?.status === 403) {
+          setUser(null);
+          setLoading(false);
+          if (router.pathname.startsWith('/dashboard') || router.pathname.startsWith('/onboarding')) {
+            router.push('/login');
+          }
+        } else {
+          // Keep loading as false but do not clear user/redirect on network/502 errors
+          setLoading(false);
         }
       })
       .finally(() => {
@@ -85,8 +90,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const data = await fetchApi('/auth/me');
       setUser(data);
-    } catch {
-      setUser(null);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403) {
+        setUser(null);
+      }
     }
   };
 

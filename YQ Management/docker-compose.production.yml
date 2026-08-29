@@ -114,6 +114,17 @@ services:
         condition: service_healthy
       evolution:
         condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      update_config:
+        order: start-first
+        failure_action: rollback
+        delay: 5s
     networks:
       - yq-network
     logging:
@@ -135,7 +146,19 @@ services:
       - NEXT_PUBLIC_APP_URL=https://${DOMAIN_BASE}
       - NEXT_PUBLIC_SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/keep-alive"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      update_config:
+        order: start-first
+        failure_action: rollback
+        delay: 5s
     networks:
       - yq-network
     logging:
@@ -158,9 +181,12 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - frontend
-      - backend
-      - evolution
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      evolution:
+        condition: service_started
     networks:
       - yq-network
 
