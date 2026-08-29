@@ -4,6 +4,8 @@ import {
   HttpException,
   HttpStatus,
   OnModuleInit,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
@@ -47,8 +49,11 @@ export class WhatsappService implements OnModuleInit {
     private prisma: PrismaService,
     private redisService: RedisService,
     private readonly whatsappLogger: WhatsappLogger,
+    @Inject(forwardRef(() => QueueGateway))
     private readonly queueGateway: QueueGateway,
+    @Inject(forwardRef(() => ServiceService))
     private readonly serviceService: ServiceService,
+    @Inject(forwardRef(() => AppointmentService))
     private readonly appointmentService: AppointmentService,
   ) {}
 

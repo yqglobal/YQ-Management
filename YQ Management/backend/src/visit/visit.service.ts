@@ -4,6 +4,8 @@ import {
   ConflictException,
   BadRequestException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVisitDto } from './dto/create-visit.dto';
@@ -21,10 +23,14 @@ export class VisitService {
 
   constructor(
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => WhatsappService))
     private readonly whatsappService: WhatsappService,
+    @Inject(forwardRef(() => SubscriptionService))
     private readonly subscriptionService: SubscriptionService,
+    @Inject(forwardRef(() => AppointmentService))
     private readonly appointmentService: AppointmentService,
     private readonly redisService: RedisService,
+    @Inject(forwardRef(() => CommunicationService))
     private readonly communicationService: CommunicationService,
   ) {}
 
