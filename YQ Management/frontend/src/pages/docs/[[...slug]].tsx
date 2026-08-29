@@ -82,27 +82,26 @@ export const getStaticPaths: GetStaticPaths = async () => {
   const docs = getAllDocs();
   
   return {
-    paths: docs.map((doc) => ({
-      params: {
-        slug: doc.slugAsParams,
-      },
-    })),
+    paths: [
+      { params: { slug: [] } }, // Add root /docs path so the redirect in getStaticProps can run
+      ...docs.map((doc) => ({
+        params: {
+          slug: doc.slugAsParams,
+        },
+      }))
+    ],
     fallback: false, // Return 404 for missing docs
   };
 };
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
-  const slugArray = (params?.slug as string[]) || [];
+  let slugArray = (params?.slug as string[]) || [];
   
-  // Handle root /docs redirecting to product/getting-started or something
-  // For now, if no slug, redirect to /docs/product
   if (slugArray.length === 0) {
-    return {
-      redirect: {
-        destination: '/docs/product',
-        permanent: false,
-      },
-    };
+    const allDocs = getAllDocs();
+    if (allDocs.length > 0) {
+      slugArray = allDocs[0].slugAsParams;
+    }
   }
 
   const doc = getDocBySlug(slugArray);
