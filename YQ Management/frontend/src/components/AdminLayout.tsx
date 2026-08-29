@@ -781,24 +781,30 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
             <p className="text-sm text-on-surface-variant dark:text-zinc-400 mb-6">Choose a queue to display on the TV.</p>
             
             <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-              {tenant?.queues?.length > 0 ? (
-                tenant.queues.map((q: any) => (
-                  <button
-                    key={q.id}
-                    onClick={() => {
-                      setTvModalOpen(false);
-                      const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
-                      window.open(getTenantUrl(tenant.subdomain || '', `/tv/${tenant.id}?queueId=${q.id}${locParam}`), '_blank');
-                    }}
-                    className="w-full text-left px-4 py-3 rounded-xl border border-border dark:border-dark-border hover:border-primary hover:bg-primary/5 transition-colors font-medium flex justify-between items-center group"
-                  >
-                    {q.name}
-                    <span className="material-symbols-outlined text-[18px] text-primary opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
-                  </button>
-                ))
-              ) : (
-                <p className="text-sm text-on-surface-variant dark:text-zinc-500 text-center py-4">No queues available.</p>
-              )}
+              {(() => {
+                const displayQueues = tenant?.queues?.filter((q: any) => 
+                  !activeLocationId || activeLocationId === 'all' || q.locationId === activeLocationId
+                ) || [];
+                
+                return displayQueues.length > 0 ? (
+                  displayQueues.map((q: any) => (
+                    <button
+                      key={q.id}
+                      onClick={() => {
+                        setTvModalOpen(false);
+                        const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
+                        window.open(getTenantUrl(tenant.subdomain || '', `/tv/${tenant.id}?queueId=${q.id}${locParam}`), '_blank');
+                      }}
+                      className="w-full text-left px-4 py-3 rounded-xl border border-border dark:border-dark-border hover:border-primary hover:bg-primary/5 transition-colors font-medium flex justify-between items-center group"
+                    >
+                      {q.name}
+                      <span className="material-symbols-outlined text-[18px] text-primary opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-sm text-on-surface-variant dark:text-zinc-500 text-center py-4">No queues available for this location.</p>
+                );
+              })()}
             </div>
 
             <div className="mt-6 flex justify-end">
