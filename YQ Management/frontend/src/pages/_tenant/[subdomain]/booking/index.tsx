@@ -381,17 +381,20 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         throw new Error(err.message || 'Failed to complete booking.');
       }
       const data = await res.json();
-      const accessTokens = data.map((d: any) => d.accessToken).filter(Boolean).join(',');
+      const accessTokens = data.map((d: any) => d.accessToken).filter(Boolean);
       
-      let queryObj: any = { subdomain: router.query.subdomain };
-      let queryStr = '';
-      if (phone) {
-        queryObj.phone = phone;
-        queryStr = `?phone=${encodeURIComponent(phone)}`;
-      } else {
-        queryObj.tokens = accessTokens;
-        queryStr = `?tokens=${accessTokens}`;
+      if (accessTokens.length > 0) {
+        try {
+          const stored = JSON.parse(localStorage.getItem('qmova_active_tokens') || '[]');
+          const updatedTokens = Array.from(new Set([...stored, ...accessTokens]));
+          localStorage.setItem('qmova_active_tokens', JSON.stringify(updatedTokens));
+        } catch (e) {
+          console.error('Failed to save tokens to local storage', e);
+        }
       }
+
+      const tokenStr = accessTokens.join(',');
+      let queryStr = `?tokens=${tokenStr}`;
 
       let targetUrl = `/booking/status${queryStr}`;
       if (window.location.pathname.startsWith('/t/')) {

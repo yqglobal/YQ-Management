@@ -176,30 +176,6 @@ export class VisitService {
     });
   }
 
-  async findByPhonePublic(phone: string) {
-    if (!phone) return [];
-    return this.prisma.visit.findMany({
-      where: {
-        customer: { phone },
-        currentState: { notIn: ['COMPLETED', 'NO_SHOW', 'CANCELLED'] },
-      },
-      select: {
-        id: true,
-        queueId: true,
-        displayId: true,
-        accessToken: true,
-        currentState: true,
-        waitingStart: true,
-        scheduledTime: true,
-        createdAt: true,
-        customer: { select: { name: true, phone: true } },
-        service: { select: { name: true, expectedDuration: true } },
-        location: { select: { name: true, address: true } },
-        tenant: { select: { name: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
 
   async update(id: string, tenantId: string, updateVisitDto: UpdateVisitDto) {
     await this.findOne(id, tenantId);

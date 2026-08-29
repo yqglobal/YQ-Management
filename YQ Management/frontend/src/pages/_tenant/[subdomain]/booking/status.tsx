@@ -10,8 +10,28 @@ const baseUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL
 
 export default function StatusPage() {
   const router = useRouter();
-  const { subdomain, tokens, phone } = router.query;
+  const { subdomain, tokens } = router.query;
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  
+  const [localTokens, setLocalTokens] = useState<string>('');
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [recoveryPhone, setRecoveryPhone] = useState('');
+  const [recoveryOtp, setRecoveryOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [recoveryError, setRecoveryError] = useState('');
+  const [isRecovering, setIsRecovering] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isDark = document.documentElement.classList.contains('dark');
+      setTheme(isDark ? 'dark' : 'light');
+      
+      const storedTokens = JSON.parse(localStorage.getItem('qmova_active_tokens') || '[]');
+      if (storedTokens.length > 0) {
+        setLocalTokens(storedTokens.join(','));
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -47,23 +67,70 @@ export default function StatusPage() {
     enabled: !!subdomain,
   });
 
+  const activeTokens = tokens || localTokens;
+
   const { data: visits = [], isLoading } = useQuery({
-    queryKey: ['public-status', tokens, phone],
+    queryKey: ['public-status', activeTokens],
     queryFn: async () => {
-      if (phone) {
-        const res = await fetch(`${baseUrl}/public-visit/by-phone?phone=${encodeURIComponent(phone as string)}`);
-        if (!res.ok) throw new Error('Failed to fetch status');
-        return res.json();
-      } else if (tokens) {
-        const res = await fetch(`${baseUrl}/public-visit/status-multiple?tokens=${tokens}`);
+      if (activeTokens) {
+        const res = await fetch(`${baseUrl}/public-visit/status-multiple?tokens=${activeTokens}`);
         if (!res.ok) throw new Error('Failed to fetch status');
         return res.json();
       }
       return [];
     },
-    enabled: !!tokens || !!phone,
+    enabled: !!activeTokens,
     refetchInterval: 10000, // Refresh every 10 seconds to get queue updates
   });
+
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecoveryError('');
+    setIsRecovering(true);
+    try {
+      const res = await fetch(`${baseUrl}/public-visit/request-recovery-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: recoveryPhone, tenantId: tenant?.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Failed to send OTP');
+      }
+      setOtpSent(true);
+    } catch (err: any) {
+      setRecoveryError(err.message);
+    } finally {
+      setIsRecovering(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecoveryError('');
+    setIsRecovering(true);
+    try {
+      const res = await fetch(`${baseUrl}/public-visit/recover`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: recoveryPhone, tenantId: tenant?.id, otp: recoveryOtp }),
+      });
+      if (!res.ok) throw new Error('Invalid OTP');
+      const data = await res.json();
+      
+      if (data.tokens && data.tokens.length > 0) {
+        localStorage.setItem('qmova_active_tokens', JSON.stringify(data.tokens));
+        setLocalTokens(data.tokens.join(','));
+        setRecoveryMode(false);
+      } else {
+        setRecoveryError('No active tickets found for this number.');
+      }
+    } catch (err: any) {
+      setRecoveryError(err.message);
+    } finally {
+      setIsRecovering(false);
+    }
+  };
 
   const primaryColor = tenant?.branding?.primaryColor || '#4f46e5';
   const logoUrl = tenant?.branding?.logoUrl;
@@ -77,19 +144,82 @@ export default function StatusPage() {
     );
   }
 
+  if (recoveryMode) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex flex-col items-center p-6 text-slate-900 dark:text-zinc-100">
+        <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-3xl p-8 shadow-xl mt-12">
+          <button onClick={() => setRecoveryMode(false)} className="mb-6 flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+            <span className="material-symbols-outlined text-[18px] mr-1">arrow_back</span>
+            Back
+          </button>
+          
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-extrabold tracking-tight mb-2">Find My Tickets</h1>
+            <p className="text-gray-500 dark:text-gray-400">Enter your phone number to recover access to your tickets</p>
+          </div>
+
+          {!otpSent ? (
+            <form onSubmit={handleRequestOtp} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wider">Phone Number <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold material-symbols-outlined">call</span>
+                  <input 
+                    type="tel" required placeholder="+1234567890" value={recoveryPhone} onChange={e => setRecoveryPhone(e.target.value)}
+                    className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 focus:border-primary focus:bg-white dark:focus:bg-zinc-900 transition-all font-bold"
+                  />
+                </div>
+              </div>
+              {recoveryError && <p className="text-red-500 text-sm font-medium bg-red-50 dark:bg-red-950/30 p-3 rounded-lg">{recoveryError}</p>}
+              <button type="submit" disabled={isRecovering} className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50" style={{ backgroundColor: primaryColor }}>
+                {isRecovering ? 'Sending OTP...' : 'Send OTP via WhatsApp'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wider">OTP Code <span className="text-red-500">*</span></label>
+                <input 
+                  type="text" required placeholder="Enter 6-digit code" value={recoveryOtp} onChange={e => setRecoveryOtp(e.target.value)}
+                  className="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 focus:border-primary focus:bg-white dark:focus:bg-zinc-900 transition-all font-bold tracking-widest text-center text-xl"
+                />
+              </div>
+              {recoveryError && <p className="text-red-500 text-sm font-medium bg-red-50 dark:bg-red-950/30 p-3 rounded-lg">{recoveryError}</p>}
+              <button type="submit" disabled={isRecovering} className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50" style={{ backgroundColor: primaryColor }}>
+                {isRecovering ? 'Verifying...' : 'Verify OTP'}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!visits.length) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex items-center justify-center p-6 text-slate-900 dark:text-zinc-100">
-        <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-8 max-w-sm w-full text-center shadow-lg">
-          <h1 className="text-xl font-bold mb-2">No Tickets Found</h1>
-          <p className="text-gray-500 mb-6">We couldn't find any active tickets for this link.</p>
-          <button 
-            onClick={() => router.push(`/booking`)}
-            className="w-full py-3 rounded-xl font-bold text-white transition-all hover:opacity-90"
-            style={{ backgroundColor: primaryColor }}
-          >
-            Go to Booking
-          </button>
+        <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-3xl p-8 max-w-sm w-full text-center shadow-lg">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="material-symbols-outlined text-[32px] text-gray-400">confirmation_number</span>
+          </div>
+          <h1 className="text-2xl font-extrabold tracking-tight mb-2">No Tickets Found</h1>
+          <p className="text-gray-500 mb-8">We couldn't find any active tickets for this link.</p>
+          
+          <div className="space-y-3">
+            <button 
+              onClick={() => router.push(`/booking`)}
+              className="w-full py-4 rounded-xl font-bold text-white transition-all hover:opacity-90 shadow-md"
+              style={{ backgroundColor: primaryColor }}
+            >
+              Go to Booking
+            </button>
+            <button 
+              onClick={() => setRecoveryMode(true)}
+              className="w-full py-4 rounded-xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-zinc-800 transition-colors hover:bg-gray-200 dark:hover:bg-zinc-700"
+            >
+              Find My Tickets
+            </button>
+          </div>
         </div>
       </div>
     );
