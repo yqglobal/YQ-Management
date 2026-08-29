@@ -120,11 +120,11 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
           setServiceDetails(prev => ({
             ...prev,
             [serviceId]: { 
+              ...(prev[serviceId] || {}), 
               joinMode: hasQueues ? 'immediate' : 'appointment',
               selectedDate: '',
               selectedSlot: '',
               responses: {},
-              ...(prev[serviceId] || {}), 
               queueId 
             }
           }));

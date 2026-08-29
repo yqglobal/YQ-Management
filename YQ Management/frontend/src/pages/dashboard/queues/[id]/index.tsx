@@ -143,6 +143,18 @@ export default function QueueDetails() {
     onError: () => toast.error('Failed to skip token')
   });
 
+  const checkInTokenMutation = useMutation({
+    mutationFn: (tokenId: string) => fetchApi(`/visits/${tokenId}/checkin`, { method: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] }),
+    onError: () => toast.error('Failed to check in patient')
+  });
+
+  const startTokenMutation = useMutation({
+    mutationFn: (tokenId: string) => fetchApi(`/visits/${tokenId}/start`, { method: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] }),
+    onError: () => toast.error('Failed to start serving patient')
+  });
+
   const cancelTokenMutation = useMutation({
     mutationFn: (tokenId: string) => fetchApi(`/visits/${tokenId}/cancel`, { method: 'POST' }),
     onSuccess: () => {
