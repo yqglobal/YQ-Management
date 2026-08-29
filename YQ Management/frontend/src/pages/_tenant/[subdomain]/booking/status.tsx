@@ -68,20 +68,41 @@ export default function StatusPage() {
   });
 
   const activeTokens = tokens || localTokens;
+  const [visits, setVisits] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data: visits = [], isLoading } = useQuery({
-    queryKey: ['public-status', activeTokens],
-    queryFn: async () => {
-      if (activeTokens) {
-        const res = await fetch(`${baseUrl}/public-visit/status-multiple?tokens=${activeTokens}`);
-        if (!res.ok) throw new Error('Failed to fetch status');
-        return res.json();
+  useEffect(() => {
+    // Determine the query string for SSE, can be empty if relying purely on cookies
+    const query = activeTokens ? `?tokens=${activeTokens}` : '';
+    
+    // We only connect if we have some token source (URL, LocalStorage, or assumed Cookie)
+    // Actually, if it's purely cookie-based, activeTokens might be empty on first load.
+    // That's fine, we will still try to connect and if the cookie exists, backend will find it.
+    
+    const es = new EventSource(`${baseUrl}/public-visit/stream${query}`, {
+      withCredentials: true, // Crucial for sending HTTP-Only cookies
+    });
+
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setVisits(data);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Failed to parse SSE data', err);
       }
-      return [];
-    },
-    enabled: !!activeTokens,
-    refetchInterval: 10000, // Refresh every 10 seconds to get queue updates
-  });
+    };
+
+    es.onerror = (err) => {
+      console.error('SSE Error:', err);
+      // Let EventSource handle auto-reconnects, but if we're still loading, fail gracefully after a delay
+      setTimeout(() => setIsLoading(false), 3000); 
+    };
+
+    return () => {
+      es.close();
+    };
+  }, [activeTokens]);
 
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,6 +134,7 @@ export default function StatusPage() {
       const res = await fetch(`${baseUrl}/public-visit/recover`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Ensure cookies are sent
         body: JSON.stringify({ phone: recoveryPhone, tenantId: tenant?.id, otp: recoveryOtp }),
       });
       if (!res.ok) throw new Error('Invalid OTP');
@@ -122,6 +144,7 @@ export default function StatusPage() {
         localStorage.setItem('qmova_active_tokens', JSON.stringify(data.tokens));
         setLocalTokens(data.tokens.join(','));
         setRecoveryMode(false);
+        // EventSource will automatically re-run because activeTokens changes
       } else {
         setRecoveryError('No active tickets found for this number.');
       }

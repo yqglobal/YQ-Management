@@ -1,4 +1,7 @@
-import { Controller, Get, Param, Post, Body, Query, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Query, HttpException, HttpStatus, Logger, Req, Res, Sse, MessageEvent } from '@nestjs/common';
+import type { Request, Response } from 'express';
+import { Observable, timer, from } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { VisitService } from './visit.service';
 import { RedisService } from '../redis/redis.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
@@ -16,13 +19,44 @@ export class PublicVisitController {
   ) {}
 
   @Get('status-multiple')
-  async statusMultiple(@Query('tokens') tokens: string) {
-    if (!tokens) return [];
-    const tokenArray = tokens
+  async statusMultiple(
+    @Query('tokens') tokens: string,
+    @Req() req: Request,
+  ) {
+    // Read from query param first (for magic links), fallback to cookie
+    let tokenStr = tokens || req.cookies['qmova_session'];
+    if (!tokenStr) return [];
+    
+    const tokenArray = tokenStr
       .split(',')
-      .map((t) => t.trim())
+      .map((t: string) => t.trim())
       .filter(Boolean);
+      
     return this.visitService.findMultiplePublic(tokenArray);
+  }
+
+  @Sse('stream')
+  streamStatus(
+    @Query('tokens') tokens: string,
+    @Req() req: Request,
+  ): Observable<MessageEvent> {
+    let tokenStr = tokens || req.cookies['qmova_session'];
+    if (!tokenStr) {
+      return from([]);
+    }
+
+    const tokenArray = tokenStr
+      .split(',')
+      .map((t: string) => t.trim())
+      .filter(Boolean);
+
+    // Poll every 5 seconds, starting immediately
+    return timer(0, 5000).pipe(
+      switchMap(() => this.visitService.findMultiplePublic(tokenArray)),
+      map((visits) => ({
+        data: visits,
+      } as MessageEvent)),
+    );
   }
 
   @Post('request-recovery-otp')
@@ -48,6 +82,23 @@ export class PublicVisitController {
     if (!tenant.whatsappConnected || !tenant.whatsappInstanceId) {
       throw new HttpException('WhatsApp not connected for this tenant', HttpStatus.SERVICE_UNAVAILABLE);
     }
+
+    // Rate Limiting: Max 3 requests per 5 minutes per phone
+    const rateLimitKey = `ratelimit:otp:${body.tenantId}:${body.phone}`;
+    const attemptsStr = await this.redisService.client.get(rateLimitKey);
+    const attempts = attemptsStr ? parseInt(attemptsStr, 10) : 0;
+
+    if (attempts >= 3) {
+      throw new HttpException('Too many OTP requests. Please try again later.', HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    // Increment and set TTL if it's the first attempt
+    const multi = this.redisService.client.multi();
+    multi.incr(rateLimitKey);
+    if (attempts === 0) {
+      multi.expire(rateLimitKey, 300); // 5 minutes window
+    }
+    await multi.exec();
 
     // Generate 6-digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -77,7 +128,11 @@ export class PublicVisitController {
   }
 
   @Post('recover')
-  async recoverTickets(@Body() body: { phone: string; tenantId: string; otp: string }) {
+  async recoverTickets(
+    @Body() body: { phone: string; tenantId: string; otp: string },
+    @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
+  ) {
     if (!body.phone || !body.tenantId || !body.otp) {
       throw new HttpException('Missing phone, tenantId, or otp', HttpStatus.BAD_REQUEST);
     }
@@ -102,7 +157,24 @@ export class PublicVisitController {
       },
     });
 
-    return { success: true, tokens: visits.map(v => v.accessToken) };
+    const tokens = visits.map(v => v.accessToken);
+    
+    if (tokens.length > 0) {
+      // Merge with existing cookie tokens if any
+      const existingTokensStr = req.cookies['qmova_session'] || '';
+      const existingTokens = existingTokensStr.split(',').filter(Boolean);
+      const allTokens = Array.from(new Set([...existingTokens, ...tokens]));
+
+      // Set HTTP-Only Cookie
+      res.cookie('qmova_session', allTokens.join(','), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      });
+    }
+
+    return { success: true, tokens };
   }
 
   @Get(':accessToken')
@@ -140,7 +212,25 @@ export class PublicVisitController {
         formResponses?: any;
       }[];
     },
+    @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
   ) {
-    return this.visitService.joinMultiple(body);
+    const visits = await this.visitService.joinMultiple(body);
+    const tokens = visits.map((v: any) => v.accessToken).filter(Boolean);
+
+    if (tokens.length > 0) {
+      const existingTokensStr = req.cookies['qmova_session'] || '';
+      const existingTokens = existingTokensStr.split(',').filter(Boolean);
+      const allTokens = Array.from(new Set([...existingTokens, ...tokens]));
+
+      res.cookie('qmova_session', allTokens.join(','), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      });
+    }
+
+    return visits;
   }
 }

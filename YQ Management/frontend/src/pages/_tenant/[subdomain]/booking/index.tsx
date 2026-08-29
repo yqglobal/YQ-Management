@@ -368,6 +368,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
       const res = await fetch(`${baseUrl}/public-visit/join-multiple`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           customerName: name,
           phone: phone || undefined,
