@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
@@ -14,6 +16,7 @@ import { GoogleService } from '../integrations/google/google.service';
 export class AppointmentService {
   constructor(
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => WhatsappService))
     private readonly whatsappService: WhatsappService,
     private readonly redisService: RedisService,
     private readonly googleService: GoogleService,
