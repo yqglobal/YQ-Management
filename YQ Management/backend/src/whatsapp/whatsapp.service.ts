@@ -1613,8 +1613,9 @@ export class WhatsappService implements OnModuleInit {
       'POST',
       {
         number: normalizedNumber,
-        options: { delay: 0, presence: 'composing' },
         text,
+        delay: 0,
+        presence: 'composing'
       },
       25000,
     );
@@ -1793,7 +1794,8 @@ export class WhatsappService implements OnModuleInit {
       'POST',
       {
         number: normalizedNumber,
-        options: { delay: 0, presence: 'composing' },
+        delay: 0,
+        presence: 'composing',
         buttonMessage: { text, footer, buttons },
       },
     );

@@ -174,7 +174,8 @@ export class EvolutionProvider implements WhatsAppProvider {
       const fullUrl = `${this.baseUrl}${path}`;
       const payload = {
         number: cleanNumber,
-        options: { delay: 1200, presence: 'composing' },
+        delay: 1200,
+        presence: 'composing',
         buttonMessage: { text, footer, buttons },
       };
 
