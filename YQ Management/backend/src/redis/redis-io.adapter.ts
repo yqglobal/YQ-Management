@@ -11,7 +11,14 @@ export class RedisIoAdapter extends IoAdapter {
       host: process.env.REDIS_HOST || 'localhost',
       port: Number(process.env.REDIS_PORT) || 6379,
     });
+    pubClient.on('error', (err) => {
+      console.error('Redis adapter pubClient error:', err);
+    });
+
     const subClient = pubClient.duplicate();
+    subClient.on('error', (err) => {
+      console.error('Redis adapter subClient error:', err);
+    });
 
     this.adapterConstructor = createAdapter(pubClient, subClient);
   }
