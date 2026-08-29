@@ -137,6 +137,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   
   // State for the per-service dynamic flow
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
+  const [enlargedQrTokenId, setEnlargedQrTokenId] = useState<string | null>(null);
   const [serviceDetails, setServiceDetails] = useState<Record<string, {
     joinMode: 'immediate' | 'appointment',
     selectedDate: string,
@@ -876,8 +877,14 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                     </div>
 
                     <div className="flex justify-center mb-4">
-                      <div className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                      <div 
+                        className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm cursor-pointer hover:shadow-md transition-shadow relative group"
+                        onClick={() => setEnlargedQrTokenId(t.id)}
+                      >
                         <QRCode value={t.id} size={100} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                        <div className="absolute inset-0 bg-black/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <span className="material-symbols-outlined text-black drop-shadow-md">zoom_in</span>
+                        </div>
                       </div>
                     </div>
 
@@ -931,6 +938,38 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               >
                 Book Another Service
               </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {enlargedQrTokenId && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+              onClick={() => setEnlargedQrTokenId(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="bg-white p-8 rounded-3xl shadow-2xl relative max-w-sm w-full"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button 
+                  onClick={() => setEnlargedQrTokenId(null)}
+                  className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+                <h3 className="text-center font-bold text-lg mb-6 text-gray-800">Scan QR Code</h3>
+                <div className="flex justify-center">
+                  <QRCode value={enlargedQrTokenId} size={250} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                </div>
+                <p className="text-center text-sm text-gray-500 mt-6">Present this to the receptionist</p>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
