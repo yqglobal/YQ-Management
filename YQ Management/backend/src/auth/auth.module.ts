@@ -31,6 +31,6 @@ import { SubscriptionModule } from '../subscription/subscription.module';
   ],
   providers: [AuthService, JwtStrategy, GoogleStrategy, PasswordResetService],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

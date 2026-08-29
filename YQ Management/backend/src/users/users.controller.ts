@@ -14,26 +14,31 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { Role } from '@prisma/client';
 import { WorkspaceGuard } from '../auth/workspace.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePagePermission } from '../auth/permissions.decorator';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
 import { Throttle } from '@nestjs/throttler';
 
 @Controller('users')
-@UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-@Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN)
+@UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard, PermissionsGuard)
+@Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
+  @RequirePagePermission('settings-team')
   getUsers(@Req() req: AuthenticatedRequest) {
     return this.usersService.getUsersByTenant(req.user.tenantId);
   }
 
   @Post()
+  @RequirePagePermission('settings-team')
   createUser(@Req() req: AuthenticatedRequest, @Body() body: any) {
     return this.usersService.createUser(req.user.tenantId, body);
   }
 
   @Post('send-invite-email')
+  @RequirePagePermission('settings-team')
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   sendInviteEmail(
     @Req() req: AuthenticatedRequest,
@@ -43,11 +48,13 @@ export class UsersController {
   }
 
   @Post('resend-invite/:id')
+  @RequirePagePermission('settings-team')
   resendInvite(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.usersService.resendInvite(req.user.tenantId, id);
   }
 
   @Post(':id/permissions')
+  @RequirePagePermission('settings-team')
   async updatePermissions(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -79,6 +86,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @RequirePagePermission('settings-team')
   async deleteUser(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const result = await this.usersService.deleteUser(
       req.user.tenantId,

@@ -23,6 +23,12 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   const [appointmentGranularityMins, setAppointmentGranularityMins] = useState(15);
   const [formConfig, setFormConfig] = useState<any[]>([]);
 
+  // Cascading Availability States
+  const [useLocationHours, setUseLocationHours] = useState(true);
+  const [businessHoursOverride, setBusinessHoursOverride] = useState<any>(null);
+  const [exceptionDatesOverride, setExceptionDatesOverride] = useState<string[]>([]);
+  const [newExceptionDate, setNewExceptionDate] = useState('');
+
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -46,6 +52,9 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       if (service.queues) {
         setSelectedQueueIds(service.queues.map((q: any) => q.id));
       }
+      setUseLocationHours(service.useLocationHours ?? true);
+      setBusinessHoursOverride(service.businessHoursOverride || null);
+      setExceptionDatesOverride(service.exceptionDatesOverride || []);
     } else {
       setName('');
       setDescription('');
@@ -56,6 +65,9 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setRequireManualCheckIn(false);
       setAppointmentGranularityMins(15);
       setFormConfig([]);
+      setUseLocationHours(true);
+      setBusinessHoursOverride(null);
+      setExceptionDatesOverride([]);
     }
   }, [service, locationId, isOpen]);
 
@@ -108,7 +120,10 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       allowAppointments,
       requireManualCheckIn,
       appointmentGranularityMins,
-      formConfig
+      formConfig,
+      useLocationHours,
+      businessHoursOverride: useLocationHours ? null : businessHoursOverride,
+      exceptionDatesOverride: useLocationHours ? null : exceptionDatesOverride
     });
   };
 
@@ -234,6 +249,55 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
                 </div>
               </>
             )}
+
+            <div className="pt-4 mt-2 border-t border-gray-200 dark:border-white/10">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Operating Hours & Schedule</h3>
+              
+              <label className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/5 rounded-xl cursor-pointer mb-4">
+                <input
+                  type="checkbox"
+                  checked={useLocationHours}
+                  onChange={(e) => setUseLocationHours(e.target.checked)}
+                  className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white block">Inherit Location Operating Hours</span>
+                  <span className="text-xs text-gray-500 dark:text-zinc-500 block">Use the global schedule configured for this location</span>
+                </div>
+              </label>
+
+              {!useLocationHours && (
+                <div className="p-4 bg-indigo-50/50 dark:bg-indigo-500/5 rounded-xl border border-indigo-100 dark:border-indigo-500/10">
+                  <p className="text-sm font-medium text-indigo-900 dark:text-indigo-300 mb-2">Custom Service Schedule</p>
+                  <p className="text-xs text-indigo-700/70 dark:text-indigo-400/70 mb-4">
+                    Since this service operates on a different schedule, please configure its custom hours below.
+                  </p>
+                  
+                  {/* Basic custom schedule mock - in a full implementation we'd reuse the LocationHours UI here or open a sub-modal.
+                      For now we just add a button that would open a custom schedule editor. */}
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      if (!businessHoursOverride) {
+                        setBusinessHoursOverride({
+                          monday: { closed: false, start: '09:00', end: '17:00' },
+                          tuesday: { closed: false, start: '09:00', end: '17:00' },
+                          wednesday: { closed: false, start: '09:00', end: '17:00' },
+                          thursday: { closed: false, start: '09:00', end: '17:00' },
+                          friday: { closed: false, start: '09:00', end: '17:00' },
+                          saturday: { closed: true, start: '09:00', end: '17:00' },
+                          sunday: { closed: true, start: '09:00', end: '17:00' },
+                        });
+                        toast.success('Custom schedule initialized. Edit below (Simplified view).');
+                      }
+                    }}
+                    className="w-full py-2 bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 rounded-lg text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-500/30 transition-colors"
+                  >
+                    {businessHoursOverride ? 'Custom Schedule Configured' : 'Setup Custom Schedule'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {service && queues.length > 0 && (

@@ -24,6 +24,8 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   
+  const [isBlockMode, setIsBlockMode] = useState(false);
+  
   const [locationId, setLocationId] = useState('');
   const [queueId, setQueueId] = useState('');
   const [serviceId, setServiceId] = useState('');
@@ -109,12 +111,14 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
     setScheduledDate('');
     setScheduledTime('');
     setNotes('');
+    setIsBlockMode(false);
     onClose();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !locationId || !serviceId || !scheduledDate || !scheduledTime) return;
+    if (!locationId || !serviceId || !scheduledDate || !scheduledTime) return;
+    if (!isBlockMode && !name) return;
     
     try {
       const service = services.find((s: any) => s.id === serviceId);
@@ -132,16 +136,21 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
         scheduledEnd = new Date(scheduledStart.getTime() + duration * 60000);
       }
 
-      // 1. Create or find customer
-      const customer = await createCustomerMutation.mutateAsync({
-        name,
-        phone: phone || undefined,
-        email: email || undefined,
-      });
+      let customerId: string | undefined;
+
+      if (!isBlockMode) {
+        // 1. Create or find customer
+        const customer = await createCustomerMutation.mutateAsync({
+          name,
+          phone: phone || undefined,
+          email: email || undefined,
+        });
+        customerId = customer.id;
+      }
       
-      // 2. Create appointment
+      // 2. Create appointment or block
       await createMutation.mutateAsync({
-        customerId: customer.id,
+        customerId,
         locationId,
         ...(queueId ? { queueId } : {}),
         serviceId,
@@ -149,8 +158,8 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
         scheduledStart: scheduledStart.toISOString(),
         scheduledEnd: scheduledEnd.toISOString(),
         bookingSource: 'APPOINTMENT',
-        status: 'CONFIRMED',
-        ...(age ? { formData: { age } } : {})
+        status: isBlockMode ? 'BLOCKED' : 'CONFIRMED',
+        ...(age && !isBlockMode ? { formData: { age } } : {})
       });
     } catch (error) {
       toast.error('Failed to create appointment');
@@ -199,59 +208,56 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Name <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    required
-                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
-                    placeholder="John Doe"
-                  />
+              
+              {!isBlockMode && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Name <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder="John Doe"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Phone</label>
+                      <PhoneInput
+                        international
+                        defaultCountry={defaultCountry}
+                        value={phone}
+                        onChange={(v: any) => setPhone(v || '')}
+                        className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder="john@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Age</label>
+                      <input
+                        type="number"
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                        className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder="25"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Age <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(Optional)</span></label>
-                  <input
-                    type="number"
-                    value={age}
-                    onChange={e => setAge(e.target.value)}
-                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
-                    placeholder="e.g. 30"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Phone <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(Optional)</span></label>
-                  <PhoneInput
-                    international
-                    defaultCountry={defaultCountry}
-                    onCountryChange={(country) => {
-                      if (country) {
-                        setDefaultCountry(country);
-                        localStorage.setItem('qmova_scanner_country', country);
-                      }
-                    }}
-                    value={phone}
-                    onChange={(value) => setPhone(value || '')}
-                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-indigo-500 transition-all text-sm h-11"
-                    placeholder="+1 234 567 8900"
-                  />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Email <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(Optional)</span></label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
-                    placeholder="john@example.com"
-                  />
-                </div>
-              </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Location <span className="text-red-500">*</span></label>
@@ -313,6 +319,23 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                   })()}
                 </select>
               </div>
+
+              <div className="flex bg-gray-100 dark:bg-black/30 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setIsBlockMode(false)}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${!isBlockMode ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  Appointment
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsBlockMode(true)}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${isBlockMode ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  Block Time
+                </button>
+              </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -359,12 +382,12 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Notes</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">{isBlockMode ? 'Reason (Internal)' : 'Notes (Optional)'}</label>
                 <textarea 
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-h-[80px]"
-                  placeholder="Optional notes for this appointment..."
+                  placeholder={isBlockMode ? 'e.g. Lunch break, Maintenance' : 'Optional notes...'}
                 />
               </div>
 
@@ -378,11 +401,11 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                 </button>
                 <button 
                   type="submit"
-                  disabled={createMutation.isPending || !name || !locationId || !serviceId || !scheduledDate || !scheduledTime}
+                  disabled={createMutation.isPending || !locationId || !serviceId || (!isBlockMode && !name) || !scheduledDate || !scheduledTime}
                   className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors shadow-[0_0_15px_rgba(79,70,229,0.3)] disabled:opacity-50"
                 >
                   {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {createMutation.isPending ? 'Creating...' : 'Create Appointment'}
+                  {createMutation.isPending ? 'Saving...' : isBlockMode ? 'Confirm Blockout' : 'Create Appointment'}
                 </button>
               </div>
             </form>

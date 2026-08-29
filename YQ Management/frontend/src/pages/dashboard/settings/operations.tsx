@@ -3,9 +3,10 @@ import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
-import { Box, Plus, Trash2, Loader2, MapPin, Pencil, Check, X, Layers } from 'lucide-react';
+import { Box, Plus, Trash2, Loader2, MapPin, Pencil, Check, X, Layers, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { ServiceModal } from '../../../components/modals/ServiceModal';
+import { LocationHoursModal } from '../../../components/modals/LocationHoursModal';
 
 export default function ResourcesSettingsPage() {
   const queryClient = useQueryClient();
@@ -29,6 +30,7 @@ export default function ResourcesSettingsPage() {
   const [editLocName, setEditLocName] = useState('');
   const [editLocAddress, setEditLocAddress] = useState('');
   const [editLocCity, setEditLocCity] = useState('');
+  const [hoursModalLocation, setHoursModalLocation] = useState<any>(null);
 
   // --- Services state ---
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -354,6 +356,9 @@ export default function ResourcesSettingsPage() {
                       </>
                     ) : (
                       <>
+                        <button onClick={() => setHoursModalLocation(loc)} className="p-2 text-on-surface-variant hover:text-indigo-500 hover:bg-indigo-500/10 rounded-lg transition-colors" title="Operating Hours">
+                          <Clock className="w-4 h-4" />
+                        </button>
                         <button onClick={() => startEditLocation(loc)} className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Edit">
                           <Pencil className="w-4 h-4" />
                         </button>
@@ -661,6 +666,14 @@ export default function ResourcesSettingsPage() {
           onClose={() => setIsServiceModalOpen(false)} 
           service={selectedServiceForEdit} 
           locationId={selectedServiceLocationId !== 'all' ? selectedServiceLocationId : undefined}
+        />
+      )}
+
+      {hoursModalLocation && (
+        <LocationHoursModal
+          isOpen={!!hoursModalLocation}
+          onClose={() => setHoursModalLocation(null)}
+          location={hoursModalLocation}
         />
       )}
     </SettingsLayout>

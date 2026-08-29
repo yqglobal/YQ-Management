@@ -60,6 +60,14 @@ export class VisitService {
       ) {
         where.locationId = { in: user.allowedLocationIds };
       }
+
+      if (
+        user &&
+        user.allowedServiceIds &&
+        user.allowedServiceIds.length > 0
+      ) {
+        where.serviceId = { in: user.allowedServiceIds };
+      }
     }
     if (scope === 'today') {
       const start = new Date();

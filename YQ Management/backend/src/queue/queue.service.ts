@@ -157,6 +157,19 @@ export class QueueService {
       ) {
         where.locationId = { in: user.allowedLocationIds };
       }
+
+      if (
+        user &&
+        user.allowedServiceIds &&
+        user.allowedServiceIds.length > 0
+      ) {
+        // Only return queues that are linked to at least one of the allowed services
+        where.services = {
+          some: {
+            id: { in: user.allowedServiceIds },
+          },
+        };
+      }
     }
 
     return this.prisma.queue.findMany({

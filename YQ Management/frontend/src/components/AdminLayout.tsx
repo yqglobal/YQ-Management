@@ -105,9 +105,9 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     : locations.find((l: any) => l.id === activeLocationId) || locations[0];
 
   const navItems = [
-    { label: 'Inbox', href: '/dashboard/inbox', icon: 'chat', pageId: 'inbox' },
     { label: 'Service Desk', href: '/dashboard/service-desk', icon: 'desktop_windows', pageId: 'service-desk' },
     { label: 'Scanner', href: '/dashboard/check-in', icon: 'qr_code_scanner', pageId: 'service-desk' },
+    { label: 'Inbox', href: '/dashboard/inbox', icon: 'chat', pageId: 'inbox' },
     { label: 'Schedule', href: '/dashboard/appointments', icon: 'calendar_today', pageId: 'appointments' },
     { label: 'Queues', href: '/dashboard/queues', icon: 'list_alt', pageId: 'service-desk' },
     { label: 'Analytics', href: '/dashboard/analytics', icon: 'analytics', pageId: 'analytics' },

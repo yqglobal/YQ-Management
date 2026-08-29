@@ -1,0 +1,27 @@
+
+/* Custom DatePicker Styling */
+.custom-calendar-container {
+  width: 100% !important;
+  background-color: var(--bg-color) !important;
+  border-color: var(--border-color) !important;
+  font-family: inherit;
+}
+.custom-calendar-container .react-datepicker__header {
+  background-color: var(--bg-color) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+.custom-calendar-container .react-datepicker__current-month,
+.custom-calendar-container .react-datepicker__day-name,
+.custom-calendar-container .react-datepicker__day {
+  color: inherit !important;
+}
+.custom-calendar-container .react-datepicker__day:hover {
+  background-color: rgba(128,128,128, 0.1) !important;
+}
+.custom-calendar-container .react-datepicker__day--selected {
+  background-color: var(--primary-color) !important;
+  color: #fff !important;
+}
+.custom-calendar-container .react-datepicker__day--keyboard-selected {
+  background-color: var(--primary-color-alpha) !important;
+}

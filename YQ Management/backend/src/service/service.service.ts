@@ -204,11 +204,15 @@ export class ServiceService {
     const concurrentSlots = service.concurrentSlots || 1;
     const timezone = service.location?.timezone || 'UTC';
 
-    // Check exceptions
-    if (service.location?.exceptionDates) {
-      const exceptions = service.location.exceptionDates as string[];
-      if (exceptions.includes(date)) return []; // Holiday or closed day
+    // Determine which settings to use
+    let exceptions: string[] = [];
+    if (service.useLocationHours && service.location?.exceptionDates) {
+      exceptions = service.location.exceptionDates as string[];
+    } else if (!service.useLocationHours && service.exceptionDatesOverride) {
+      exceptions = service.exceptionDatesOverride as string[];
     }
+    
+    if (exceptions.includes(date)) return []; // Holiday or closed day
 
     // Default business hours: 09:00 to 17:00 local time.
     let startHour = 9;
@@ -221,8 +225,14 @@ export class ServiceService {
     const [year, month, day] = date.split('-').map(Number);
     const localDayDate = new Date(year, month - 1, day);
 
-    if (service.location?.businessHours) {
-      const bh = service.location.businessHours as any;
+    let businessHours: any = null;
+    if (service.useLocationHours && service.location?.businessHours) {
+      businessHours = service.location.businessHours;
+    } else if (!service.useLocationHours && service.businessHoursOverride) {
+      businessHours = service.businessHoursOverride;
+    }
+
+    if (businessHours) {
       const dayOfWeek = localDayDate.getDay(); // 0 = Sunday
       const days = [
         'sunday',
@@ -235,8 +245,8 @@ export class ServiceService {
       ];
       const dayName = days[dayOfWeek];
 
-      if (bh[dayName]) {
-        const { start, end, closed } = bh[dayName];
+      if (businessHours[dayName]) {
+        const { start, end, closed } = businessHours[dayName];
         if (closed) return []; // No slots if closed
         if (start) {
           const [h, m] = start.split(':');
@@ -270,11 +280,11 @@ export class ServiceService {
       select: { scheduledTime: true },
     });
 
-    const existingAppointments = await (this.prisma as any).appointment
-      ?.findMany?.({
+    const existingAppointments = await this.prisma.appointment
+      .findMany({
         where: {
           serviceId,
-          status: { notIn: ['CANCELLED', 'NO_SHOW', 'REJECTED'] },
+          status: { notIn: ['CANCELLED', 'NO_SHOW', 'REJECTED'] }, // BLOCKED acts as a normal appointment consuming time
           scheduledStart: { gte: startOfDayUTC, lt: endOfDayUTC },
         },
         select: { scheduledStart: true, scheduledEnd: true },
@@ -334,5 +344,65 @@ export class ServiceService {
     }
 
     return result;
+  }
+
+  async getAvailableDates(serviceId: string, month: number, year: number) {
+    const service = await this.prisma.service.findUnique({
+      where: { id: serviceId },
+      include: { location: true },
+    });
+
+    if (!service) throw new NotFoundException('Service not found');
+    if (!service.allowAppointments) return [];
+
+    let exceptions: string[] = [];
+    if (service.useLocationHours && service.location?.exceptionDates) {
+      exceptions = service.location.exceptionDates as string[];
+    } else if (!service.useLocationHours && service.exceptionDatesOverride) {
+      exceptions = service.exceptionDatesOverride as string[];
+    }
+
+    let businessHours: any = null;
+    if (service.useLocationHours && service.location?.businessHours) {
+      businessHours = service.location.businessHours;
+    } else if (!service.useLocationHours && service.businessHoursOverride) {
+      businessHours = service.businessHoursOverride;
+    }
+
+    const availableDates: string[] = [];
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const days = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ];
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      // Create local date string YYYY-MM-DD
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      
+      // Check exceptions
+      if (exceptions.includes(dateStr)) continue;
+
+      // Check day of week closure
+      const localDayDate = new Date(year, month - 1, day);
+      const dayOfWeek = localDayDate.getDay();
+      const dayName = days[dayOfWeek];
+
+      let isClosed = false;
+      if (businessHours && businessHours[dayName]) {
+        isClosed = businessHours[dayName].closed === true;
+      }
+
+      if (!isClosed) {
+        availableDates.push(dateStr);
+      }
+    }
+
+    return availableDates;
   }
 }

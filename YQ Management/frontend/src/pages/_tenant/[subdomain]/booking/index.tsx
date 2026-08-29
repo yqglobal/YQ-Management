@@ -10,6 +10,8 @@ import { useTheme } from '../../../../components/ThemeProvider';
 import { Sun, Moon } from 'lucide-react';
 import { detectCountryByTimezone } from '../../../../lib/country-codes';
 import QRCode from 'react-qr-code';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 interface Service {
   id: string;
@@ -148,6 +150,8 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   
   const [availableSlots, setAvailableSlots] = useState<Record<string, string[]>>({});
   const [loadingSlots, setLoadingSlots] = useState<Record<string, boolean>>({});
+  const [availableDatesMap, setAvailableDatesMap] = useState<Record<string, string[]>>({});
+  const [loadingDates, setLoadingDates] = useState(false);
 
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -272,6 +276,36 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
       .catch(() => setAvailableSlots(p => ({ ...p, [currentServiceId]: [] })))
       .finally(() => setLoadingSlots(p => ({ ...p, [currentServiceId]: false })));
   }, [currentDetails.selectedDate, currentService, currentDetails.joinMode, currentServiceId, baseUrl]);
+
+  // Fetch available dates for a specific month
+  const fetchAvailableDates = async (serviceId: string, date: Date) => {
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    const cacheKey = `${serviceId}-${month}-${year}`;
+    
+    if (availableDatesMap[cacheKey]) return; // Already fetched
+
+    setLoadingDates(true);
+    try {
+      const res = await fetch(`${baseUrl}/service/${serviceId}/available-dates?month=${month}&year=${year}`);
+      if (res.ok) {
+        const dates = await res.json();
+        setAvailableDatesMap(prev => ({ ...prev, [cacheKey]: dates }));
+      }
+    } catch (e) {
+      console.error('Failed to fetch available dates', e);
+    } finally {
+      setLoadingDates(false);
+    }
+  };
+
+  // Initially fetch for current month when switching to a service in appointment mode
+  useEffect(() => {
+    if (currentServiceId && currentDetails.joinMode === 'appointment') {
+      const initDate = currentDetails.selectedDate ? new Date(currentDetails.selectedDate) : new Date();
+      fetchAvailableDates(currentServiceId, initDate);
+    }
+  }, [currentServiceId, currentDetails.joinMode]);
 
   const formConfig = React.useMemo(() => {
     if (!currentService || !currentQueue) return [];
@@ -670,10 +704,39 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
 
                     {currentDetails.joinMode === 'appointment' && (
                       <div className="space-y-3 mt-4">
-                        <input type="date" value={currentDetails.selectedDate} onChange={e => updateCurrentDetails({ selectedDate: e.target.value })} min={new Date().toISOString().split('T')[0]} className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent" style={{ '--tw-ring-color': primaryColor } as React.CSSProperties} />
+                        <div className="w-full relative">
+                          <DatePicker
+                            selected={currentDetails.selectedDate ? new Date(currentDetails.selectedDate) : null}
+                            onChange={(date: Date | null) => {
+                              if (date) {
+                                // Adjust timezone offset manually so it formats correctly
+                                const tzOffset = date.getTimezoneOffset() * 60000;
+                                const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
+                                updateCurrentDetails({ selectedDate: localISOTime, selectedSlot: '' });
+                              } else {
+                                updateCurrentDetails({ selectedDate: '', selectedSlot: '' });
+                              }
+                            }}
+                            onMonthChange={(date) => fetchAvailableDates(currentServiceId, date)}
+                            filterDate={(date) => {
+                              // Filter out dates that are not in our availableDates cache for this month
+                              const m = date.getMonth() + 1;
+                              const y = date.getFullYear();
+                              const key = `${currentServiceId}-${m}-${y}`;
+                              if (!availableDatesMap[key]) return true; // If not loaded yet, let them click, but API slot load might fail. Better to show a loader on the whole calendar if loadingDates is true
+                              
+                              const tzOffset = date.getTimezoneOffset() * 60000;
+                              const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
+                              return availableDatesMap[key].includes(localISOTime);
+                            }}
+                            minDate={new Date()}
+                            inline
+                            calendarClassName="custom-calendar-container border border-gray-200 dark:border-zinc-800 rounded-xl w-full"
+                          />
+                        </div>
                         {currentDetails.selectedDate && (
-                          <div className="grid grid-cols-3 gap-2 mt-2 max-h-48 overflow-y-auto pr-1">
-                            {loadingSlots[currentServiceId] ? <p className="col-span-3 text-sm text-center text-gray-500">Loading...</p> : availableSlots[currentServiceId]?.length === 0 ? <p className="col-span-3 text-sm text-center text-red-500">No slots available.</p> : availableSlots[currentServiceId]?.map((slotData: any) => {
+                          <div className="grid grid-cols-3 gap-2 mt-4 max-h-48 overflow-y-auto pr-1 border-t border-gray-200 dark:border-zinc-800 pt-4">
+                            {loadingSlots[currentServiceId] ? <p className="col-span-3 text-sm text-center text-gray-500 py-4">Loading available times...</p> : availableSlots[currentServiceId]?.length === 0 ? <p className="col-span-3 text-sm text-center text-red-500">No times available on this date.</p> : availableSlots[currentServiceId]?.map((slotData: any) => {
                               const slotTime = typeof slotData === 'string' ? slotData : slotData.time;
                               const isAvailable = typeof slotData === 'string' ? true : slotData.available;
                               const isSelected = currentDetails.selectedSlot === slotTime;

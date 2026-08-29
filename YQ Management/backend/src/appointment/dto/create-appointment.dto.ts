@@ -12,8 +12,9 @@ export class CreateAppointmentDto {
   @IsString()
   tenantId?: string;
 
+  @IsOptional()
   @IsString()
-  customerId: string;
+  customerId?: string;
 
   @IsString()
   locationId: string;

@@ -11,6 +11,8 @@ import { Server, Socket } from 'socket.io';
 import { Logger, OnModuleInit } from '@nestjs/common';
 import { RedisService } from '../redis/redis.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { UseGuards } from '@nestjs/common';
+import { WsJwtGuard } from '../auth/ws-jwt.guard';
 
 @WebSocketGateway({
   cors: {
@@ -90,6 +92,7 @@ export class QueueGateway
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
+  @UseGuards(WsJwtGuard)
   @SubscribeMessage('joinQueueRoom')
   handleJoinQueueRoom(
     @MessageBody() queueId: string,
@@ -100,6 +103,7 @@ export class QueueGateway
     return { event: 'joinedRoom', data: `queue_${queueId}` };
   }
 
+  @UseGuards(WsJwtGuard)
   @SubscribeMessage('joinTenantRoom')
   handleJoinTenantRoom(
     @MessageBody() tenantId: string,

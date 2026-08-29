@@ -19,6 +19,8 @@ import { WorkspaceGuard } from '../auth/workspace.guard';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { BillingException } from '../billing/errors/billing-exceptions';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Controller('whatsapp')
 export class WhatsappController {
@@ -26,6 +28,7 @@ export class WhatsappController {
     private readonly whatsappService: WhatsappService,
     private readonly whatsappLogger: WhatsappLogger,
     private readonly subscriptionService: SubscriptionService,
+    @InjectQueue('whatsapp-webhooks') private readonly webhooksQueue: Queue,
   ) {}
 
   private async checkWhatsappFeature(tenantId: string) {
@@ -180,7 +183,14 @@ export class WhatsappController {
       }
     }
 
-    return this.whatsappService.handleWebhook(instanceName, body);
+    // Push the webhook payload to BullMQ for asynchronous processing
+    await this.webhooksQueue.add(
+      'process-webhook',
+      { instanceName, body },
+      { removeOnComplete: true, removeOnFail: 100 }, // Keep 100 failed jobs for debugging
+    );
+
+    return { accepted: true };
   }
 
   // Dev helper: simulate an Evolution webhook payload locally.

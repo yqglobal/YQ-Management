@@ -91,24 +91,26 @@ export default function ServiceDeskToday() {
   useEffect(() => {
     if (!socket || !tenant?.id) return;
 
-    const handleQueueUpdated = (data: any) => {
-      console.log('Real-time update: queueUpdated', data);
+    socket.emit('joinTenantRoom', tenant.id);
+
+    const handleVisitEvent = (payload: any) => {
+      console.log('Real-time visit event:', payload);
+      // Invalidate queries to fetch the latest state
       queryClient.invalidateQueries({ queryKey: ['visits', 'today', activeLocationId] });
       queryClient.invalidateQueries({ queryKey: ['queues', activeLocationId] });
-    };
-
-    const handleVisitUpdated = (data: any) => {
-      console.log('Real-time update: visitUpdated', data);
-      queryClient.invalidateQueries({ queryKey: ['visits', 'today', activeLocationId] });
       queryClient.invalidateQueries({ queryKey: ['appointments', 'pending', activeLocationId] });
     };
 
-    socket.on('queueUpdated', handleQueueUpdated);
-    socket.on('visitUpdated', handleVisitUpdated);
+    const events = [
+      'VISIT_CREATED', 'VISIT_CALLED', 'VISIT_COMPLETED', 
+      'VISIT_CHECKED_IN', 'VISIT_MISSED', 'VISIT_CANCELLED', 
+      'APPOINTMENT_CREATED', 'queue_status_changed'
+    ];
+    
+    events.forEach(ev => socket.on(ev, handleVisitEvent));
 
     return () => {
-      socket.off('queueUpdated', handleQueueUpdated);
-      socket.off('visitUpdated', handleVisitUpdated);
+      events.forEach(ev => socket.off(ev, handleVisitEvent));
     };
   }, [socket, tenant?.id, queryClient, activeLocationId]);
 

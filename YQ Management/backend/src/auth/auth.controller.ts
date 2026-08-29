@@ -19,7 +19,7 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { AuthGuard } from '@nestjs/passport';
 import { EmailService } from '../email/email.service';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { PasswordResetService } from './password-reset.service';
 import type { AuthenticatedRequest } from './types/auth.types';
 import { RedisService } from '../redis/redis.service';
@@ -37,6 +37,7 @@ export class AuthController {
   ) {}
 
   @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 300000 } }) // 5 requests per 5 minutes
   @Post('login')
   async login(
     @Body() body: any,
@@ -90,6 +91,7 @@ export class AuthController {
   }
 
   @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 300000 } }) // 5 requests per 5 minutes
   @Post('verify-login')
   async verifyLogin(
     @Body() body: { email: string; otp: string },

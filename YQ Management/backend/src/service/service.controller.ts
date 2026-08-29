@@ -33,6 +33,16 @@ export class ServiceController {
     return this.serviceService.getAvailableSlots(id, date);
   }
 
+  // Public endpoint to get available dates for a month
+  @Get(':id/available-dates')
+  async getAvailableDates(
+    @Param('id') id: string,
+    @Query('month') month: string,
+    @Query('year') year: string,
+  ) {
+    return this.serviceService.getAvailableDates(id, parseInt(month), parseInt(year));
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post()
   create(
