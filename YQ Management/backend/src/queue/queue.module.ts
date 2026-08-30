@@ -6,12 +6,14 @@ import { WebhooksModule } from '../webhooks/webhooks.module';
 import { VisitModule } from '../visit/visit.module';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     WebhooksModule,
     forwardRef(() => VisitModule),
     forwardRef(() => SubscriptionModule),
+    forwardRef(() => AuthModule),
     PrismaModule,
   ],
   providers: [QueueService, QueueGateway],
