@@ -41,7 +41,7 @@ export class WhatsappService implements OnModuleInit {
   // Public URL where the backend receives webhooks. In many deployments APP_URL
   // points to the frontend (Vercel). Provide BACKEND_PUBLIC_URL to explicitly
   // direct Evolution webhooks to the backend (Render) public URL, e.g.
-  // BACKEND_PUBLIC_URL=https://qmova-backend.onrender.com
+  // BACKEND_PUBLIC_URL=https://api.qmova.yqbuddy.com
   private readonly backendPublicUrl =
     process.env.BACKEND_PUBLIC_URL || this.appUrl;
 

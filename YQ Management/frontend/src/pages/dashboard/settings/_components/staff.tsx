@@ -388,7 +388,7 @@ export default function StaffDirectory() {
                                 role: s.role,
                                 inviteCode: s.code || '',
                                 inviteId: s.id,
-                                inviteUrl: `https://yq-qmova.vercel.app/register?inviteCode=${s.code}`,
+                                inviteUrl: `https://qmova.yqbuddy.com/register?inviteCode=${s.code}`,
                                 workspaceName: 'Your Workspace'
                               })}
                               className="text-[12px] font-bold text-[#0284C7] underline hover:text-[#0369A1] transition-colors"

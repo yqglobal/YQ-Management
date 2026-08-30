@@ -272,7 +272,7 @@ export class EmailService {
       const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Staff Invitation Expired</h2>
       <p style="color: #4b5563; line-height: 1.6;">The workspace invitation sent to <strong>${staffEmail}</strong> to join <strong>${workspaceName}</strong> has remained unaccepted for over 3 days and has expired.</p>
       <p style="color: #4b5563; line-height: 1.6;">For organizational security, the joining code has been automatically disabled. You can easily reissue a fresh 3-day invitation anytime directly from your Staff Directory settings in the dashboard.</p>
-      ${generateButtonHtml('Manage Staff & Resend', 'https://yq-qmova.vercel.app/dashboard/settings/staff')}`;
+      ${generateButtonHtml('Manage Staff & Resend', 'https://qmova.yqbuddy.com/dashboard/settings/staff')}`;
 
       const htmlContent = createBrandEmailLayout({
         title: 'Staff Invitation Expired Notice',
@@ -327,7 +327,7 @@ export class EmailService {
       <p style="color: #4b5563; line-height: 1.6;">Your role in the workspace <strong>${workspaceName}</strong> has been updated.</p>
       <p style="color: #4b5563; line-height: 1.6;">You are now assigned the role of <strong>${newRole}</strong>.</p>
       <p style="color: #4b5563; line-height: 1.6;">If you believe this was a mistake, please contact your workspace administrator.</p>
-      ${generateButtonHtml('Go to Dashboard', 'https://yq-qmova.vercel.app/dashboard')}`;
+      ${generateButtonHtml('Go to Dashboard', 'https://qmova.yqbuddy.com/dashboard')}`;
 
       const htmlContent = createBrandEmailLayout({
         title: 'Your Qmova Role was Updated',
@@ -371,7 +371,7 @@ export class EmailService {
       const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Admin Privileges Granted</h2>
       <p style="color: #4b5563; line-height: 1.6;">You have been granted full <strong>Admin</strong> privileges in the workspace <strong>${workspaceName}</strong> by ${oldAdminEmail}.</p>
       <p style="color: #4b5563; line-height: 1.6;">You now have full control over the workspace settings, billing, and staff management.</p>
-      ${generateButtonHtml('Access Workspace', 'https://yq-qmova.vercel.app/dashboard')}`;
+      ${generateButtonHtml('Access Workspace', 'https://qmova.yqbuddy.com/dashboard')}`;
 
       const htmlContent = createBrandEmailLayout({
         title: 'You are now an Admin',
@@ -454,7 +454,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Welcome aboard, ${name || 'there'}!</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your Qmova account has been successfully created. We're thrilled to have you join us.</p>
     <p style="color: #4b5563; line-height: 1.6;">You can now log in and start configuring your workspace to manage queues and services effortlessly.</p>
-    ${generateButtonHtml('Go to Dashboard', 'https://yq-qmova.vercel.app/dashboard')}`;
+    ${generateButtonHtml('Go to Dashboard', 'https://qmova.yqbuddy.com/dashboard')}`;
     await this.sendEmail(
       email,
       subject,
@@ -481,7 +481,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Thank You for Your Purchase!</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your payment was successful and your subscription to the <strong>${planName}</strong> plan is now active.</p>
     <p style="color: #4b5563; line-height: 1.6;">Enjoy the premium features of Qmova. You can review your billing details in the dashboard settings.</p>
-    ${generateButtonHtml('View Billing', 'https://yq-qmova.vercel.app/dashboard/settings/billing')}`;
+    ${generateButtonHtml('View Billing', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
     await this.sendEmail(
       email,
       subject,
@@ -496,7 +496,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Subscription Cancelled</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your subscription to the <strong>${planName}</strong> plan has been cancelled.</p>
     <p style="color: #4b5563; line-height: 1.6;">You will continue to have access until the end of your current billing period. If this was a mistake, you can always renew your plan from the billing settings.</p>
-    ${generateButtonHtml('Manage Billing', 'https://yq-qmova.vercel.app/dashboard/settings/billing')}`;
+    ${generateButtonHtml('Manage Billing', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
     await this.sendEmail(
       email,
       subject,
@@ -515,7 +515,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Plan Renewal Reminder</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your subscription to the <strong>${planName}</strong> plan is renewing in <strong>${daysRemaining}</strong> days.</p>
     <p style="color: #4b5563; line-height: 1.6;">Please ensure your payment method is up to date to avoid any service interruptions.</p>
-    ${generateButtonHtml('Manage Billing', 'https://yq-qmova.vercel.app/dashboard/settings/billing')}`;
+    ${generateButtonHtml('Manage Billing', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
     await this.sendEmail(
       email,
       subject,
@@ -530,7 +530,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Subscription Expired</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your subscription to the <strong>${planName}</strong> plan has officially expired.</p>
     <p style="color: #4b5563; line-height: 1.6;">To regain access to premium features, please renew your plan through your billing dashboard.</p>
-    ${generateButtonHtml('Renew Plan', 'https://yq-qmova.vercel.app/dashboard/settings/billing')}`;
+    ${generateButtonHtml('Renew Plan', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
     await this.sendEmail(
       email,
       subject,
@@ -555,7 +555,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Welcome to Qmova!</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your ${trialDays}-day free trial for the <strong>${planName}</strong> plan has officially started.</p>
     <p style="color: #4b5563; line-height: 1.6;">We are excited for you to explore all the premium features. If you have any questions, our support team is here to help.</p>
-    ${generateButtonHtml('Go to Dashboard', 'https://yq-qmova.vercel.app/dashboard')}`;
+    ${generateButtonHtml('Go to Dashboard', 'https://qmova.yqbuddy.com/dashboard')}`;
     await this.sendEmail(
       email,
       subject,
@@ -570,7 +570,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Trial Expiring Soon</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your free trial is coming to an end in <strong>${daysLeft} days</strong>.</p>
     <p style="color: #4b5563; line-height: 1.6;">To continue using Qmova without interruption, please add a payment method to your billing settings.</p>
-    ${generateButtonHtml('Update Billing', 'https://yq-qmova.vercel.app/dashboard/settings/billing')}`;
+    ${generateButtonHtml('Update Billing', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
     await this.sendEmail(
       email,
       subject,

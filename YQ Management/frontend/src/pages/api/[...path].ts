@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import http from 'http';
 import https from 'https';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'https://qmova-backend.onrender.com';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'https://api.qmova.yqbuddy.com';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const url = new URL(req.url || '', `http://${req.headers.host}`);

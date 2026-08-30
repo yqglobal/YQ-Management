@@ -43,7 +43,7 @@ export default function SuperAdminCommunication() {
   const [lastSentWaOtp, setLastSentWaOtp] = useState<string | null>(null);
 
   // QR Test State
-  const [qrTestValue, setQrTestValue] = useState('https://yq-qmova.vercel.app/kiosk/demo-tenant-123');
+  const [qrTestValue, setQrTestValue] = useState('https://qmova.yqbuddy.com/kiosk/demo-tenant-123');
   const [checkingConnection, setCheckingConnection] = useState(false);
 
   // Fetch Live System Status
@@ -607,7 +607,7 @@ export default function SuperAdminCommunication() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => setQrTestValue('https://yq-qmova.vercel.app/kiosk/demo-tenant-123')}
+                    onClick={() => setQrTestValue('https://qmova.yqbuddy.com/kiosk/demo-tenant-123')}
                     className="px-3 py-1.5 bg-indigo-900/40 hover:bg-indigo-900/70 text-indigo-300 rounded-lg text-xs font-mono transition-all"
                   >
                     Kiosk Demo

@@ -25,7 +25,6 @@ export class TenantContextMiddleware implements NestMiddleware {
 
     if (!subdomain) {
       if (
-        !host.includes('onrender.com') &&
         !host.includes('localhost') &&
         !host.includes('127.0.0.1')
       ) {

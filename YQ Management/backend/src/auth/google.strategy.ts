@@ -15,7 +15,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const clientID = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const backendUrl =
-      process.env.BACKEND_URL || 'https://qmova-backend.onrender.com';
+      process.env.BACKEND_URL || 'https://api.qmova.yqbuddy.com';
     const callbackURL = `${backendUrl}/auth/google/callback`;
 
     if (!clientID || !clientSecret) {

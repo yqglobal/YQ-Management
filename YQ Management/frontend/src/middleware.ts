@@ -38,10 +38,7 @@ export async function middleware(req: NextRequest) {
     
     // Fallbacks for known deployments if env var isn't set
     if (!baseDomain) {
-      if (hostname.includes('yq-qmova.vercel.app')) baseDomain = 'yq-qmova.vercel.app';
-      else if (hostname.includes('qmova.vercel.app')) baseDomain = 'qmova.vercel.app';
-      else if (hostname.includes('qmova-app.vercel.app')) baseDomain = 'qmova-app.vercel.app';
-      else if (hostname.includes('qmova.yqbuddy.com')) baseDomain = 'qmova.yqbuddy.com';
+      if (hostname.includes('qmova.yqbuddy.com')) baseDomain = 'qmova.yqbuddy.com';
     }
 
     if (baseDomain && hostname.endsWith(`.${baseDomain}`)) {
@@ -89,7 +86,7 @@ export async function middleware(req: NextRequest) {
     }
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://qmova-backend.onrender.com';
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.qmova.yqbuddy.com';
       const res = await fetch(`${backendUrl}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,

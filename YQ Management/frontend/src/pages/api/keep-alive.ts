@@ -22,8 +22,8 @@ export default async function handler(
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'https://qmova-backend.onrender.com';
-  const evoUrl = process.env.EVOLUTION_API_URL || 'https://qmova-evolution-api.onrender.com';
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'https://api.qmova.yqbuddy.com';
+  const evoUrl = process.env.EVOLUTION_API_URL || 'https://evo.qmova.yqbuddy.com';
   const evoApiKey = process.env.EVOLUTION_API_KEY || '';
 
   const results: Record<string, { status: number | string; ok: boolean }> = {};

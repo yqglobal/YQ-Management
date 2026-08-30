@@ -91,7 +91,7 @@ async function fetchWithRetry(
 }
 
 export function getBackendUrl() {
-  let baseUrl = 'https://qmova-backend.onrender.com';
+  let baseUrl = 'https://api.qmova.yqbuddy.com';
   try {
     if (typeof window !== 'undefined') {
       if (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {

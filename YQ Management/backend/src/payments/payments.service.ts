@@ -19,12 +19,12 @@ export class PaymentsService {
   private readonly baseUrl =
     process.env.BACKEND_URL ||
     (process.env.NODE_ENV === 'production'
-      ? 'https://qmova-backend.onrender.com'
+      ? 'https://api.qmova.yqbuddy.com'
       : 'http://localhost:3000');
   private readonly frontendUrl =
     process.env.FRONTEND_URL ||
     (process.env.NODE_ENV === 'production'
-      ? 'https://yq-qmova.vercel.app'
+      ? 'https://qmova.yqbuddy.com'
       : 'http://localhost:3001');
 
   private getOzowCheckoutUrl() {
