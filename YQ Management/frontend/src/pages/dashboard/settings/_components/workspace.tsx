@@ -1,10 +1,11 @@
 import { getTenantUrl } from "../../../../lib/utils";
 import React, { useState, useEffect } from 'react';
-import { Save, Loader2, Building2, Copy, ExternalLink } from 'lucide-react';
+import { Save, Loader2, Building2, Copy, ExternalLink, MonitorPlay } from 'lucide-react';
 import { useAuth } from '../../../../components/AuthContext';
 import { fetchApi } from '../../../../lib/api';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
+import { SelectServiceModal } from '../../../../components/modals/SelectServiceModal';
 
 export default function WorkspaceSettingsPage() {
   const { user, refetch } = useAuth();
@@ -13,6 +14,7 @@ export default function WorkspaceSettingsPage() {
   const [tenantSubdomain, setTenantSubdomain] = useState('');
   const [subdomainError, setSubdomainError] = useState('');
   const [tenantId, setTenantId] = useState('');
+  const [isTvModalOpen, setIsTvModalOpen] = useState(false);
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN';
 
@@ -161,9 +163,10 @@ export default function WorkspaceSettingsPage() {
           <LinkRow
             icon="monitor"
             title="TV Lobby Display"
-            description="Paste into a browser on your lobby TV or screen share to show a live calling board."
+            description="Open a live calling board on your lobby TV or screen share."
             url={tenantSubdomain ? `${portalUrl}/tv/${currentTenantId}` : `${baseUrl}/tv/${currentTenantId}`}
-            onCopy={() => copyLink(tenantSubdomain ? `${portalUrl}/tv/${currentTenantId}` : `${baseUrl}/tv/${currentTenantId}`, 'TV display link')}
+            onCopy={() => setIsTvModalOpen(true)}
+            onCustomClick={() => setIsTvModalOpen(true)}
           />
 
           {/* Customer portal */}
@@ -179,16 +182,34 @@ export default function WorkspaceSettingsPage() {
 
         </div>
       </div>
+
+      <SelectServiceModal 
+        isOpen={isTvModalOpen}
+        onClose={() => setIsTvModalOpen(false)}
+        tenantId={currentTenantId || ''}
+        baseUrl={baseUrl}
+        portalUrl={portalUrl || baseUrl}
+        isCustomDomain={!!tenantSubdomain}
+        onSelect={(url) => {
+          window.open(url, '_blank');
+          setIsTvModalOpen(false);
+        }}
+        onCopy={(url) => {
+          copyLink(url, 'TV display link');
+          setIsTvModalOpen(false);
+        }}
+      />
     </div>
   );
 }
 
-function LinkRow({ icon, title, description, url, onCopy }: {
+function LinkRow({ icon, title, description, url, onCopy, onCustomClick }: {
   icon: string;
   title: string;
   description: string;
   url: string;
   onCopy: () => void;
+  onCustomClick?: () => void;
 }) {
   return (
     <div className="flex items-center gap-4 p-4 bg-surface-container-low dark:bg-white/[0.02] border border-border dark:border-dark-border rounded-xl">
@@ -204,19 +225,29 @@ function LinkRow({ icon, title, description, url, onCopy }: {
         <button
           onClick={onCopy}
           className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-container dark:bg-white/5 hover:bg-surface-container-high dark:hover:bg-white/10 border border-border dark:border-dark-border transition-colors text-on-surface-variant"
-          title="Copy"
+          title="Copy Link"
         >
           <Copy strokeWidth={1.5} className="w-4 h-4" />
         </button>
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30 border border-primary/20 transition-colors text-primary"
-          title="Open"
-        >
-          <ExternalLink strokeWidth={1.5} className="w-4 h-4" />
-        </a>
+        {onCustomClick ? (
+           <button
+             onClick={onCustomClick}
+             className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30 border border-primary/20 transition-colors text-primary"
+             title="Open Options"
+           >
+             <ExternalLink strokeWidth={1.5} className="w-4 h-4" />
+           </button>
+        ) : (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30 border border-primary/20 transition-colors text-primary"
+            title="Open"
+          >
+            <ExternalLink strokeWidth={1.5} className="w-4 h-4" />
+          </a>
+        )}
       </div>
     </div>
   );

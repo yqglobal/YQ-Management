@@ -7,6 +7,7 @@ const withPWA = withPWAInit({
   register: true,
   // @ts-expect-error skipWaiting is commonly used but missing from types
   skipWaiting: true,
+  buildExcludes: [/dynamic-css-manifest\.json$/],
 });
 
 const nextConfig: NextConfig = {

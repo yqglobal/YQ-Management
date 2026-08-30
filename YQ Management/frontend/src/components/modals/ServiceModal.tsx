@@ -4,6 +4,7 @@ import { X, Loader2, Plus } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
+import { ScheduleEditor, WeeklySchedule } from '../common/ScheduleEditor';
 
 interface ServiceModalProps {
   isOpen: boolean;
@@ -48,12 +49,27 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
         }
       }
       setFormConfig(initialFormConfig);
-      // If service includes queues, map them
       if (service.queues) {
         setSelectedQueueIds(service.queues.map((q: any) => q.id));
       }
       setUseLocationHours(service.useLocationHours ?? true);
-      setBusinessHoursOverride(service.businessHoursOverride || null);
+      
+      if (service.businessHoursOverride) {
+        const newHours: any = {
+          monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: []
+        };
+        Object.keys(service.businessHoursOverride).forEach(day => {
+          const val = service.businessHoursOverride[day];
+          if (Array.isArray(val)) {
+            newHours[day] = val;
+          } else if (val) {
+            newHours[day] = val.closed ? [] : [{ start: val.start, end: val.end }];
+          }
+        });
+        setBusinessHoursOverride(newHours);
+      } else {
+        setBusinessHoursOverride(null);
+      }
       setExceptionDatesOverride(service.exceptionDatesOverride || []);
     } else {
       setName('');
@@ -273,28 +289,42 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
                     Since this service operates on a different schedule, please configure its custom hours below.
                   </p>
                   
-                  {/* Basic custom schedule mock - in a full implementation we'd reuse the LocationHours UI here or open a sub-modal.
-                      For now we just add a button that would open a custom schedule editor. */}
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      if (!businessHoursOverride) {
+                  {!businessHoursOverride ? (
+                    <button 
+                      type="button" 
+                      onClick={() => {
                         setBusinessHoursOverride({
-                          monday: { closed: false, start: '09:00', end: '17:00' },
-                          tuesday: { closed: false, start: '09:00', end: '17:00' },
-                          wednesday: { closed: false, start: '09:00', end: '17:00' },
-                          thursday: { closed: false, start: '09:00', end: '17:00' },
-                          friday: { closed: false, start: '09:00', end: '17:00' },
-                          saturday: { closed: true, start: '09:00', end: '17:00' },
-                          sunday: { closed: true, start: '09:00', end: '17:00' },
+                          monday: [{ start: '09:00', end: '17:00' }],
+                          tuesday: [{ start: '09:00', end: '17:00' }],
+                          wednesday: [{ start: '09:00', end: '17:00' }],
+                          thursday: [{ start: '09:00', end: '17:00' }],
+                          friday: [{ start: '09:00', end: '17:00' }],
+                          saturday: [],
+                          sunday: [],
                         });
-                        toast.success('Custom schedule initialized. Edit below (Simplified view).');
-                      }
-                    }}
-                    className="w-full py-2 bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 rounded-lg text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-500/30 transition-colors"
-                  >
-                    {businessHoursOverride ? 'Custom Schedule Configured' : 'Setup Custom Schedule'}
-                  </button>
+                        toast.success('Custom schedule initialized. Edit below.');
+                      }}
+                      className="w-full py-2 bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 rounded-lg text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-500/30 transition-colors"
+                    >
+                      Setup Custom Schedule
+                    </button>
+                  ) : (
+                    <div className="mt-4">
+                      <ScheduleEditor
+                        schedule={businessHoursOverride}
+                        onChange={setBusinessHoursOverride}
+                        exceptionDates={exceptionDatesOverride}
+                        onChangeExceptions={setExceptionDatesOverride}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setBusinessHoursOverride(null)}
+                        className="mt-4 text-xs font-semibold px-3 py-2 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+                      >
+                        Remove Custom Schedule
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

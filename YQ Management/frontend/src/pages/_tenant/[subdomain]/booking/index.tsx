@@ -523,8 +523,8 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
           )}
           {tenant?.planFeatures?.customBranding === false ? (
             <>
-              <img src="/qmova-dark-logo.png" alt="Qmova" className="h-8 max-w-[140px] object-contain dark:hidden" />
-              <img src="/qmova-light-logo.png" alt="Qmova" className="h-8 max-w-[140px] object-contain hidden dark:block" />
+              <img src="/qmova-light-logo.png" alt="Qmova" className="h-8 max-w-[140px] object-contain dark:hidden" />
+              <img src="/qmova-dark-logo.png" alt="Qmova" className="h-8 max-w-[140px] object-contain hidden dark:block" />
             </>
           ) : logoUrl ? (
             <img src={logoUrl} alt={tenant.name} className="h-8 max-w-[140px] object-contain" />
@@ -1054,9 +1054,10 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         {/* Branding Fallback (Powered by Qmova) */}
         {(!tenant?.branding || !tenant?.planFeatures?.customBranding) && (
           <div className="mt-8 pb-4 text-center">
-            <a href="https://qmova.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+            <a href="https://qmova.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
               <span>Powered by</span>
-              <span className="font-bold text-gray-900 dark:text-white text-sm">Qmova</span>
+              <img src="/qmova-light-logo.png" alt="Qmova" className="h-[18px] object-contain dark:hidden" />
+              <img src="/qmova-dark-logo.png" alt="Qmova" className="h-[18px] object-contain hidden dark:block" />
             </a>
           </div>
         )}

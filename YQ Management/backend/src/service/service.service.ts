@@ -219,6 +219,9 @@ export class ServiceService {
     let startMinute = 0;
     let endHour = 17;
     let endMinute = 0;
+    
+    // For handling multiple business hours blocks (breaks)
+    const dailyBreaks: Array<{ start: string, end: string }> = [];
 
     // We parse the local date string "YYYY-MM-DD"
     // to find what day of the week it is in that timezone.
@@ -245,18 +248,44 @@ export class ServiceService {
       ];
       const dayName = days[dayOfWeek];
 
-      if (businessHours[dayName]) {
-        const { start, end, closed } = businessHours[dayName];
-        if (closed) return []; // No slots if closed
-        if (start) {
-          const [h, m] = start.split(':');
-          startHour = parseInt(h);
-          startMinute = parseInt(m || '0');
-        }
-        if (end) {
-          const [h, m] = end.split(':');
-          endHour = parseInt(h);
-          endMinute = parseInt(m || '0');
+      const val = businessHours[dayName];
+      if (val) {
+        if (Array.isArray(val)) {
+          if (val.length === 0) return []; // closed
+          
+          const firstBlock = val[0];
+          const lastBlock = val[val.length - 1];
+          if (firstBlock.start) {
+            const [h, m] = firstBlock.start.split(':');
+            startHour = parseInt(h);
+            startMinute = parseInt(m || '0');
+          }
+          if (lastBlock.end) {
+            const [h, m] = lastBlock.end.split(':');
+            endHour = parseInt(h);
+            endMinute = parseInt(m || '0');
+          }
+          
+          // Calculate breaks between blocks
+          for (let i = 0; i < val.length - 1; i++) {
+            dailyBreaks.push({
+              start: val[i].end,
+              end: val[i + 1].start
+            });
+          }
+        } else {
+          const { start, end, closed } = val;
+          if (closed) return []; // No slots if closed
+          if (start) {
+            const [h, m] = start.split(':');
+            startHour = parseInt(h);
+            startMinute = parseInt(m || '0');
+          }
+          if (end) {
+            const [h, m] = end.split(':');
+            endHour = parseInt(h);
+            endMinute = parseInt(m || '0');
+          }
         }
       }
     }
@@ -312,6 +341,18 @@ export class ServiceService {
           });
         }
       }
+    }
+
+    // Add configured daily breaks as blocked ranges
+    for (const b of dailyBreaks) {
+      const [sh, sm] = b.start.split(':');
+      const [eh, em] = b.end.split(':');
+      const localBreakStart = `${date}T${sh.padStart(2, '0')}:${sm.padStart(2, '0')}:00`;
+      const localBreakEnd = `${date}T${eh.padStart(2, '0')}:${em.padStart(2, '0')}:00`;
+      blockedRanges.push({
+        start: fromZonedTime(localBreakStart, timezone).getTime(),
+        end: fromZonedTime(localBreakEnd, timezone).getTime()
+      });
     }
 
     const nowMs = Date.now();
@@ -395,7 +436,12 @@ export class ServiceService {
 
       let isClosed = false;
       if (businessHours && businessHours[dayName]) {
-        isClosed = businessHours[dayName].closed === true;
+        const val = businessHours[dayName];
+        if (Array.isArray(val)) {
+          isClosed = val.length === 0;
+        } else {
+          isClosed = val.closed === true;
+        }
       }
 
       if (!isClosed) {

@@ -327,6 +327,10 @@ export default function Onboarding() {
         method: 'POST',
         body: JSON.stringify({ code: inviteCode }),
       });
+      await fetchApi('/auth/personal-settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ onboardingCompleted: true })
+      });
       localStorage.removeItem('qmova_invite_code');
       localStorage.removeItem('onboarding_step');
       localStorage.removeItem('onboarding_form_data');

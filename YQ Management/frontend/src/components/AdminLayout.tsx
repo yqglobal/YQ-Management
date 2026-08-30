@@ -16,6 +16,7 @@ import { QueueMigrationModal } from './modals/QueueMigrationModal';
 import { ServiceModal } from './modals/ServiceModal';
 import { useSocket } from '../components/SocketProvider';
 import { AccessDeniedOverlay } from './AccessDeniedOverlay';
+import { PlanGateModal } from './PlanGateModal';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -164,6 +165,14 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   const isAccessDenied = !checkCurrentRouteAccess();
 
+  useEffect(() => {
+    if (isAccessDenied && router.isReady) {
+      router.replace('/dashboard');
+      const toastEvent = new CustomEvent('admin-toast', { detail: { message: 'Access Denied: You do not have permission to view this page.', type: 'error' } });
+      window.dispatchEvent(toastEvent);
+    }
+  }, [isAccessDenied, router.isReady, router.asPath]);
+
   const filteredNavItems = navItems.filter(item => hasPageAccess(item.pageId));
   const filteredBottomItems = bottomItems.filter(item => hasPageAccess(item.pageId));
 
@@ -187,16 +196,8 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Strict enforcement: redirect to billing if plan is expired/pending payment
-  useEffect(() => {
-    if (!user) return; // Let AuthContext handle unauthenticated users
-    // Super admins have no tenant subscription — never redirect them to billing
-    const isSuperAdminUser = user?.role === 'SUPER_ADMIN' || user?.email?.toLowerCase() === 'yqbuddysa@gmail.com';
-    if (isSuperAdminUser) return;
-    if (!plan.isLoading && plan.status !== null && !plan.canAccess && !router.pathname.startsWith('/dashboard/settings/billing')) {
-      router.replace('/dashboard/settings/billing');
-    }
-  }, [plan.isLoading, plan.status, plan.canAccess, router.pathname, user]);
+  // Plan enforcement: redirect to billing if expired/cancelled is now handled inline via PlanGateModal
+  // (old redirect logic removed — the modal is non-dismissable and safer)
 
   const [showQueueMigration, setShowQueueMigration] = useState(true);
 
@@ -207,6 +208,14 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   return (
     <div className="bg-canvas dark:bg-dark-canvas text-on-surface dark:text-white font-body-md min-h-screen flex flex-col antialiased">
+      {/* Plan gate: shown for non-super-admin tenanted users with no subscription at all */}
+      {!plan.isLoading && plan.hasNoPlan && !!user?.tenantId && !isSuperAdmin && (
+        <PlanGateModal mode="no-plan" />
+      )}
+      {/* Expired/cancelled gate */}
+      {!plan.isLoading && !plan.hasNoPlan && !plan.canAccess && !!user?.tenantId && !isSuperAdmin && (
+        <PlanGateModal mode="expired" />
+      )}
       {!hasAcceptedPolicies && !!user?.tenantId && user?.personalSettings?.onboardingCompleted !== false && user?.role !== 'SUPER_ADMIN' && <AdvancedPoliciesModal />}
       <DashboardTour />
 
@@ -673,7 +682,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
       <main className={`ml-0 md:ml-sidebar-w flex-1 flex flex-col bg-canvas dark:bg-dark-canvas relative min-w-0 ${settingsMode ? 'pt-[108px]' : 'pt-header-h'}`}>
         <div className={`flex-1 w-full min-w-0 relative flex flex-col ${noPadding ? '' : 'p-margin-mobile md:p-margin-desktop'}`}>
-           {isAccessDenied ? <AccessDeniedOverlay /> : children}
+           {isAccessDenied ? null : children}
         </div>
       </main>
 

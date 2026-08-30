@@ -453,21 +453,38 @@ export default function ServiceDeskToday() {
                   </div>
                 </div>
                 <h3 className="font-headline-sm text-on-surface dark:text-white mb-2">Queue is crystal clear.</h3>
-                <p className="text-body-md text-outline text-center max-w-sm mb-8 leading-relaxed">
-                  {visits.length === 0 
-                    ? "Your waiting room is empty. Share your booking page or have visitors scan your QR code to get started." 
-                    : "Inbox zero! All customers have been successfully routed and served."}
-                </p>
-                {visits.length === 0 && tenant?.subdomain && (
-                  <a
-                    href={getTenantUrl(tenant.subdomain, `/booking${activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : ''}`)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-semibold text-body-sm hover:bg-primary-container transition-all hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]"
-                  >
-                    <MonitorPlay className="w-5 h-5" />
-                    Open Booking Page
-                  </a>
+                {queues.length === 0 ? (
+                  <>
+                    <p className="text-body-md text-outline text-center max-w-sm mb-8 leading-relaxed">
+                      You haven't configured any queues yet. Set up a queue to start receiving customers.
+                    </p>
+                    <Link
+                      href="/dashboard/queues"
+                      className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-semibold text-body-sm hover:bg-primary-container transition-all shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">list_alt</span>
+                      Configure Queues
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-body-md text-outline text-center max-w-sm mb-8 leading-relaxed">
+                      {visits.length === 0 
+                        ? "Your waiting room is empty. Share your booking page or have visitors scan your QR code to get started." 
+                        : "Inbox zero! All customers have been successfully routed and served."}
+                    </p>
+                    {visits.length === 0 && tenant?.subdomain && (
+                      <a
+                        href={getTenantUrl(tenant.subdomain, `/booking${activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : ''}`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-semibold text-body-sm hover:bg-primary-container transition-all hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]"
+                      >
+                        <MonitorPlay className="w-5 h-5" />
+                        Open Booking Page
+                      </a>
+                    )}
+                  </>
                 )}
               </div>
             )}

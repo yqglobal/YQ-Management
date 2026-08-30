@@ -258,134 +258,227 @@ export default function BillingSettings() {
         </div>
       ) : isPaid ? (
         /* POST-PURCHASE VIEW: Active Plan Details */
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          <div className="md:col-span-8 bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-[24px] p-6 md:p-8 relative overflow-hidden shadow-sm flex flex-col">
-            <div className={`absolute left-0 top-0 bottom-0 w-2 ${isTrial ? 'bg-indigo-500' : 'bg-[#10b981]'}`}></div>
-            
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-6 border-b border-border dark:border-dark-border gap-6">
-              <div>
-                <h4 className="font-label-caps text-label-caps text-on-surface-variant dark:text-outline tracking-widest uppercase mb-4">Current Subscription</h4>
-                <div className="flex items-center gap-4 mb-2">
-                  <h3 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight font-semibold">
-                    {currentSub?.plan?.name || 'Unknown Plan'}
-                  </h3>
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-label-caps text-label-caps border ${isTrial ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isTrial ? 'bg-indigo-500' : 'bg-emerald-500'}`}></span>
-                    {isTrial ? 'TRIAL' : 'ACTIVE'}
-                  </span>
+        <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">
+          
+          {/* Hero Subscription Card */}
+          <div className={`relative overflow-hidden rounded-[2.5rem] p-8 md:p-12 border ${isTrial ? 'bg-indigo-950/20 border-indigo-500/20' : 'bg-slate-900/50 border-white/10 shadow-2xl'} backdrop-blur-md`}>
+            {/* Background Glows */}
+            <div className={`absolute -top-32 -right-32 w-96 h-96 rounded-full blur-[100px] opacity-20 pointer-events-none ${isTrial ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
+            <div className={`absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-[100px] opacity-10 pointer-events-none ${isTrial ? 'bg-purple-500' : 'bg-sky-500'}`} />
+
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+              
+              <div className="flex-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white text-xs font-bold uppercase tracking-widest mb-4 shadow-sm backdrop-blur-md">
+                  <span className={`w-2 h-2 rounded-full ${isTrial ? 'bg-indigo-400 animate-pulse' : 'bg-emerald-400'}`}></span>
+                  {isTrial ? 'Trial Active' : 'Active Subscription'}
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-y-2 gap-x-6 font-body-sm text-body-sm text-on-surface-variant dark:text-outline mt-4">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">calendar_today</span>
-                    <span>Started: {formatBillingDate(isTrial ? currentSub?.trialStartDate : currentSub?.currentPeriodStart)}</span>
-                  </div>
+                <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-2 flex items-center gap-3">
+                  {currentSub?.plan?.name || 'Starter Plan'}
+                  {currentSub?.plan?.name?.toLowerCase().includes('pro') && <Crown className="w-8 h-8 text-amber-400" />}
+                </h2>
+                <p className="text-zinc-400 text-lg">
+                  {isTrial 
+                    ? `You have ${trialDaysLeft} days remaining in your free trial.` 
+                    : `Your subscription is active and renews on ${formatBillingDate(currentSub?.nextBillingDate)}.`}
+                </p>
+
+                <div className="flex flex-wrap items-center gap-4 mt-8">
                   {isTrial ? (
-                    <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium">
-                      <span className="material-symbols-outlined text-[18px]">hourglass_empty</span>
-                      <span>{trialDaysLeft} days left</span>
-                    </div>
+                    <button onClick={() => document.getElementById('upgrade-section')?.scrollIntoView({ behavior: 'smooth' })} className="px-6 h-12 bg-white text-indigo-950 hover:bg-zinc-100 rounded-xl font-bold transition-all shadow-xl shadow-white/10 flex items-center gap-2">
+                      Upgrade Now <ArrowRight className="w-4 h-4" />
+                    </button>
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[18px]">update</span>
-                      <span>Renews: {formatBillingDate(currentSub?.nextBillingDate)}</span>
-                    </div>
+                    <button onClick={() => document.getElementById('upgrade-section')?.scrollIntoView({ behavior: 'smooth' })} className="px-6 h-12 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl font-bold transition-all flex items-center gap-2 backdrop-blur-sm">
+                      Manage Plan
+                    </button>
                   )}
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">payments</span>
-                    <span>Billed {currentSub?.billingInterval}</span>
-                  </div>
-                  {currentSub?.cancellationDate && (
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-500 bg-amber-500/10 dark:bg-amber-500/20 px-2 py-1 rounded-md">
-                      <span className="material-symbols-outlined text-[16px]">cancel</span>
-                      <span>Cancels on {formatBillingDate(currentSub?.nextBillingDate)}</span>
-                    </div>
+                  {!currentSub?.cancellationDate && !isTrial && (
+                    <button 
+                      onClick={() => {
+                        if (confirm('Are you sure you want to cancel your subscription? You will retain access until the end of your billing cycle.')) {
+                          handleCancelSubscription(false);
+                        }
+                      }}
+                      className="px-6 h-12 text-zinc-400 hover:text-white transition-colors text-sm font-medium"
+                    >
+                      Cancel Subscription
+                    </button>
+                  )}
+                  {isTrial && (
+                    <button
+                      onClick={() => { if (confirm('Are you sure you want to cancel your trial? You will lose access immediately.')) handleCancelSubscription(true); }}
+                      className="px-6 h-12 text-zinc-400 hover:text-white transition-colors text-sm font-medium"
+                    >
+                      End Trial Early
+                    </button>
                   )}
                 </div>
               </div>
-              
-              <div className="shrink-0 flex flex-col gap-3 w-full md:w-auto">
-                {!isTrial && <button className="bg-primary text-white font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-primary-container transition-colors w-full sm:w-auto shadow-sm">Upgrade Plan</button>}
-                {!currentSub?.cancellationDate && (
-                  <button 
-                    onClick={() => {
-                      if (confirm('Are you sure you want to cancel your subscription? You will retain access until the end of your billing cycle.')) {
-                        handleCancelSubscription(false);
-                      }
-                    }}
-                    className="bg-transparent text-on-surface dark:text-white border border-border dark:border-dark-border font-body-md text-body-md font-semibold px-6 h-[44px] rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors w-full sm:w-auto"
-                  >
-                    Cancel Plan
-                  </button>
-                )}
+
+              {/* Quick Features List */}
+              <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm min-w-[280px]">
+                <h4 className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-4">Plan Includes</h4>
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-3 text-white text-sm">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    Up to {currentSub?.plan?.limits?.maxQueues || 'Unlimited'} Queues
+                  </li>
+                  <li className="flex items-center gap-3 text-white text-sm">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    Up to {currentSub?.plan?.limits?.maxTokens || 'Unlimited'} Tokens/day
+                  </li>
+                  {currentSub?.plan?.features?.whatsappNotifications && (
+                    <li className="flex items-center gap-3 text-white text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      WhatsApp Notifications
+                    </li>
+                  )}
+                  {currentSub?.plan?.features?.customBranding && (
+                    <li className="flex items-center gap-3 text-white text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      Custom Branding
+                    </li>
+                  )}
+                </ul>
               </div>
+
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-              <div className="bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-dark-border rounded-xl p-4 shadow-sm relative overflow-hidden group">
-                <div className="absolute inset-0 bg-emerald-500/5 blur-xl group-hover:bg-emerald-500/10 transition-colors pointer-events-none"></div>
-                <div className="flex justify-between items-center mb-3 relative z-10">
-                  <span className="font-semibold text-body-sm text-on-surface dark:text-white flex items-center gap-2">
-                    <span className="material-symbols-outlined text-emerald-500 text-[18px]">layers</span>
-                    Active Queues
-                  </span>
-                  <span className="text-xs font-data-mono font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-500/20">
-                    {currentSub?.plan?.limits?.maxQueues ? `2 / ${currentSub.plan.limits.maxQueues}` : '2 / Unlimited'}
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-surface-container-highest dark:bg-zinc-800 rounded-full overflow-hidden relative z-10">
-                  <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: currentSub?.plan?.limits?.maxQueues ? `${(2 / currentSub.plan.limits.maxQueues) * 100}%` : '10%' }}></div>
-                </div>
-              </div>
-
-              <div className="bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-dark-border rounded-xl p-4 shadow-sm relative overflow-hidden group">
-                <div className="absolute inset-0 bg-sky-500/5 blur-xl group-hover:bg-sky-500/10 transition-colors pointer-events-none"></div>
-                <div className="flex justify-between items-center mb-3 relative z-10">
-                  <span className="font-semibold text-body-sm text-on-surface dark:text-white flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sky-500 text-[18px]">confirmation_number</span>
-                    Daily Tokens
-                  </span>
-                  <span className="text-xs font-data-mono font-medium text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10 px-2 py-0.5 rounded border border-sky-100 dark:border-sky-500/20">
-                    {currentSub?.plan?.limits?.maxTokens ? `145 / ${currentSub.plan.limits.maxTokens}` : '145 / Unlimited'}
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-surface-container-highest dark:bg-zinc-800 rounded-full overflow-hidden relative z-10">
-                  <div className="h-full bg-sky-500 rounded-full shadow-[0_0_10px_rgba(14,165,233,0.5)]" style={{ width: currentSub?.plan?.limits?.maxTokens ? `${(145 / currentSub.plan.limits.maxTokens) * 100}%` : '15%' }}></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Action buttons moved to the top header */}
           </div>
 
-          <div className="md:col-span-4 flex flex-col gap-6 md:gap-8">
+          {/* Usage Stats Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Queues Usage */}
+            <div className="bg-card dark:bg-zinc-900/40 border border-border dark:border-white/5 rounded-3xl p-8 flex items-center justify-between group overflow-hidden relative">
+              <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/5 transition-colors duration-500"></div>
+              
+              <div className="relative z-10">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 mb-4">
+                  <span className="material-symbols-outlined text-[24px]">layers</span>
+                </div>
+                <h3 className="text-xl font-bold text-on-surface dark:text-white mb-1">Active Queues</h3>
+                <p className="text-zinc-500 text-sm">Queues configured in your workspace</p>
+                <div className="mt-6 flex items-baseline gap-2">
+                  <span className="text-4xl font-bold text-on-surface dark:text-white">{usage.queues}</span>
+                  <span className="text-zinc-500 font-medium">/ {currentSub?.plan?.limits?.maxQueues || '∞'}</span>
+                </div>
+              </div>
 
-            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-6 flex flex-col relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-colors"></div>
-              <h4 className="font-headline-sm text-headline-sm text-on-surface dark:text-white mb-2">{currentSub?.plan?.name.toLowerCase().includes('standard') ? 'Upgrade to Premium' : 'Enterprise Setup'}</h4>
-              <p className="text-on-surface-variant dark:text-outline font-body-sm text-body-sm mb-6 leading-relaxed relative z-10">
-                {currentSub?.plan?.name.toLowerCase().includes('standard')
-                  ? 'Unlock advanced features like WhatsApp Chat, full white-labeling, and dedicated support to scale your business.'
-                  : 'Get a custom infrastructure, unlimited locations, and dedicated account management for large-scale operations.'}
-              </p>
-              <div className="mt-auto pt-4 relative z-10">
-                <button onClick={() => currentSub?.plan?.name.toLowerCase().includes('standard') ? handleUpgradeClick(plans.find((p: any) => p.name.includes('Premium'))) : setShowEnterpriseModal(true)} className="w-full bg-primary hover:bg-primary-container text-white font-body-md text-body-md font-semibold h-[44px] rounded-lg transition-colors shadow-sm">
-                  {currentSub?.plan?.name.toLowerCase().includes('standard') ? 'View Premium Plan' : 'Contact Sales'}
+              <div className="relative z-10 w-32 h-32 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-zinc-100 dark:text-zinc-800" />
+                  <circle 
+                    cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" 
+                    strokeLinecap="round"
+                    className="text-emerald-500 transition-all duration-1000 ease-out"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - (currentSub?.plan?.limits?.maxQueues ? Math.min(1, usage.queues / currentSub.plan.limits.maxQueues) : 0))}`}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center flex-col">
+                  <span className="text-xl font-bold text-on-surface dark:text-white">
+                    {currentSub?.plan?.limits?.maxQueues ? Math.round((usage.queues / currentSub.plan.limits.maxQueues) * 100) : 0}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tokens Usage */}
+            <div className="bg-card dark:bg-zinc-900/40 border border-border dark:border-white/5 rounded-3xl p-8 flex items-center justify-between group overflow-hidden relative">
+              <div className="absolute inset-0 bg-sky-500/0 group-hover:bg-sky-500/5 transition-colors duration-500"></div>
+              
+              <div className="relative z-10">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-500 mb-4">
+                  <span className="material-symbols-outlined text-[24px]">confirmation_number</span>
+                </div>
+                <h3 className="text-xl font-bold text-on-surface dark:text-white mb-1">Tokens This Month</h3>
+                <p className="text-zinc-500 text-sm">Customers served across all locations</p>
+                <div className="mt-6 flex items-baseline gap-2">
+                  <span className="text-4xl font-bold text-on-surface dark:text-white">{usage.tokensThisMonth}</span>
+                  <span className="text-zinc-500 font-medium">/ {currentSub?.plan?.limits?.maxTokens || '∞'}</span>
+                </div>
+              </div>
+
+              <div className="relative z-10 w-32 h-32 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-zinc-100 dark:text-zinc-800" />
+                  <circle 
+                    cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" 
+                    strokeLinecap="round"
+                    className="text-sky-500 transition-all duration-1000 ease-out"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - (currentSub?.plan?.limits?.maxTokens ? Math.min(1, usage.tokensThisMonth / currentSub.plan.limits.maxTokens) : 0))}`}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center flex-col">
+                  <span className="text-xl font-bold text-on-surface dark:text-white">
+                    {currentSub?.plan?.limits?.maxTokens ? Math.round((usage.tokensThisMonth / currentSub.plan.limits.maxTokens) * 100) : 0}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Upgrade & Payment Info Row */}
+          <div id="upgrade-section" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div className="lg:col-span-2 bg-gradient-to-br from-indigo-950/40 to-slate-900/80 border border-indigo-500/20 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-700"></div>
+              
+              <div className="relative z-10 flex-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 text-xs font-bold uppercase tracking-widest mb-3 border border-indigo-500/20">
+                  <Zap className="w-3.5 h-3.5" /> Ready to scale?
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">
+                  {currentSub?.plan?.name?.toLowerCase().includes('standard') ? 'Upgrade to Premium' : 'Need more power?'}
+                </h3>
+                <p className="text-indigo-200/70 text-sm leading-relaxed max-w-md">
+                  Unlock unlimited queues, advanced analytics, custom white-labeling, and dedicated support for your growing business.
+                </p>
+              </div>
+
+              <div className="relative z-10 shrink-0 w-full md:w-auto">
+                <button onClick={() => {
+                    const upgradePlan = plans.find((p: any) => p.name.includes(currentSub?.plan?.name?.toLowerCase().includes('standard') ? 'Premium' : 'Standard'));
+                    if (upgradePlan) handleUpgradeClick(upgradePlan);
+                    else setShowEnterpriseModal(true);
+                  }} 
+                  className="w-full md:w-auto px-8 h-12 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
+                >
+                  View Upgrade Options
                 </button>
               </div>
             </div>
 
-            <div className="bg-surface-container-lowest dark:bg-black/20 border border-border dark:border-dark-border rounded-xl p-6 flex flex-col mt-6">
-              <h4 className="font-headline-sm text-headline-sm text-on-surface dark:text-white mb-2">Payment Method</h4>
-              <p className="text-on-surface-variant dark:text-outline font-body-sm text-body-sm mb-4 leading-relaxed">
-                Processed via Ozow Instant EFT.
+            <div className="bg-card dark:bg-zinc-900/40 border border-border dark:border-white/5 rounded-3xl p-8 flex flex-col">
+              <h3 className="text-lg font-bold text-on-surface dark:text-white mb-2">Payment Method</h3>
+              <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+                Your payments are securely processed via Ozow Instant EFT.
               </p>
-              <button className="text-primary font-body-md font-semibold hover:underline flex items-center gap-2">
-                Billing History <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              </button>
+              
+              <div className="mt-auto">
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-surface-container-low dark:bg-white/5 border border-border dark:border-white/10 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-surface-container-highest dark:bg-zinc-800 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-on-surface-variant dark:text-zinc-400">account_balance</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-on-surface dark:text-white">Instant EFT</p>
+                    <p className="text-xs text-on-surface-variant dark:text-zinc-400">Supported by all major SA banks</p>
+                  </div>
+                </div>
+
+                <button className="text-sm font-bold text-primary dark:text-indigo-400 hover:text-primary-fixed dark:hover:text-indigo-300 transition-colors flex items-center gap-1 group">
+                  View Billing History 
+                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
             </div>
 
           </div>
+
         </div>
       ) : (
         /* PRE-PURCHASE VIEW: Pricing Grid (Trial / Expired / New users) */

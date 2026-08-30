@@ -175,15 +175,32 @@ export default function QueuesList() {
                 <ListOrdered strokeWidth={1.5} className="w-8 h-8 text-on-surface-variant opacity-50" />
               </div>
               <p className="text-lg font-semibold text-on-surface dark:text-white mb-1">No queues yet</p>
-              <p className="text-sm text-on-surface-variant dark:text-zinc-400 max-w-sm">
-                Create your first queue to start managing visitor flow.
-              </p>
-              <button
-                onClick={() => plan.isAtQueueLimit ? setShowQuotaModal(true) : setIsModalOpen(true)}
-                className="mt-6 flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-container transition-colors"
-              >
-                <Plus strokeWidth={1.5} className="w-4 h-4" /> Create Queue
-              </button>
+              
+              {locations.length === 0 || services.length === 0 ? (
+                <>
+                  <p className="text-sm text-on-surface-variant dark:text-zinc-400 max-w-sm mb-6">
+                    Before you can create a queue, you need to set up at least one {locations.length === 0 ? 'location' : 'service'}.
+                  </p>
+                  <Link
+                    href="/dashboard/settings/operations"
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-container transition-colors"
+                  >
+                    <Settings2 strokeWidth={1.5} className="w-4 h-4" /> Go to Operations
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-on-surface-variant dark:text-zinc-400 max-w-sm">
+                    Create your first queue to start managing visitor flow.
+                  </p>
+                  <button
+                    onClick={() => plan.isAtQueueLimit ? setShowQuotaModal(true) : setIsModalOpen(true)}
+                    className="mt-6 flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-container transition-colors"
+                  >
+                    <Plus strokeWidth={1.5} className="w-4 h-4" /> Create Queue
+                  </button>
+                </>
+              )}
             </div>
           )}
 

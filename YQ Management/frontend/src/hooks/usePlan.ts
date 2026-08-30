@@ -40,6 +40,7 @@ export interface UsePlanResult {
   subscriptionEndDate: Date | null;
   isLoading: boolean;
   canAccess: boolean; // false when expired/cancelled
+  hasNoPlan: boolean; // true when status === null and user has a tenantId (needs to pick a plan)
 }
 
 const DEFAULT_LIMITS: PlanLimits = { maxQueues: 1, maxTokens: 100 };
@@ -114,6 +115,11 @@ export function usePlan(): UsePlanResult {
     // If status is null (no subscription found — e.g. SUPER_ADMIN or API error), grant access by default.
     // Only block access when we explicitly know the subscription is EXPIRED or CANCELLED.
     const canAccess = status === null || status === 'TRIAL' || status === 'ACTIVE' || status === 'PAST_DUE' || status === 'PENDING_PAYMENT';
+    
+    // hasNoPlan is true when there is genuinely no subscription record (status null),
+    // which means the user hasn't started a trial or purchased yet.
+    // Super admins will never have a sub, so callers must guard that separately.
+    const hasNoPlan = status === null;
 
     return {
       status,
@@ -132,6 +138,7 @@ export function usePlan(): UsePlanResult {
       subscriptionEndDate,
       isLoading: subLoading,
       canAccess,
+      hasNoPlan,
     };
   }, [sub, queues, visits, subLoading]);
 }

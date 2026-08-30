@@ -57,6 +57,10 @@ export default function JoinPage() {
         method: 'POST',
         body: JSON.stringify({ code: inviteCode }),
       });
+      await fetchApi('/auth/personal-settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ onboardingCompleted: true })
+      });
       setWorkspaceName(res.workspace?.name || 'the workspace');
       setStatus('success');
       localStorage.removeItem('qmova_invite_code');

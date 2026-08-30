@@ -6,7 +6,7 @@ import { fetchApi } from '../../../lib/api';
 import { Box, Plus, Trash2, Loader2, MapPin, Pencil, Check, X, Layers, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { ServiceModal } from '../../../components/modals/ServiceModal';
-import { LocationHoursModal } from '../../../components/modals/LocationHoursModal';
+import { LocationModal } from '../../../components/modals/LocationModal';
 
 export default function ResourcesSettingsPage() {
   const queryClient = useQueryClient();
@@ -23,14 +23,8 @@ export default function ResourcesSettingsPage() {
   const [editResourceServiceIds, setEditResourceServiceIds] = useState<string[]>([]);
 
   // --- Locations state ---
-  const [newLocName, setNewLocName] = useState('');
-  const [newLocAddress, setNewLocAddress] = useState('');
-  const [newLocCity, setNewLocCity] = useState('');
-  const [editingLocId, setEditingLocId] = useState<string | null>(null);
-  const [editLocName, setEditLocName] = useState('');
-  const [editLocAddress, setEditLocAddress] = useState('');
-  const [editLocCity, setEditLocCity] = useState('');
-  const [hoursModalLocation, setHoursModalLocation] = useState<any>(null);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [selectedLocationForEdit, setSelectedLocationForEdit] = useState<any>(null);
 
   // --- Services state ---
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -98,32 +92,6 @@ export default function ResourcesSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['resources'] });
       toast.success('Resource deleted');
     }
-  });
-
-  // Location mutations
-  const createLocationMutation = useMutation({
-    mutationFn: (data: { name: string; address?: string; city?: string }) => fetchApi('/location', {
-      method: 'POST', body: JSON.stringify(data)
-    }),
-    onSuccess: () => {
-      setNewLocName(''); setNewLocAddress(''); setNewLocCity('');
-      queryClient.invalidateQueries({ queryKey: ['locations'] });
-      queryClient.invalidateQueries({ queryKey: ['tenant', 'me'] });
-      toast.success('Location added');
-    },
-    onError: (err: any) => toast.error(err.message || 'Failed to add location')
-  });
-
-  const updateLocationMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name: string; address?: string; city?: string } }) =>
-      fetchApi(`/location/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-    onSuccess: () => {
-      setEditingLocId(null);
-      queryClient.invalidateQueries({ queryKey: ['locations'] });
-      queryClient.invalidateQueries({ queryKey: ['tenant', 'me'] });
-      toast.success('Location updated');
-    },
-    onError: (err: any) => toast.error(err.message || 'Failed to update location')
   });
 
   const deleteLocationMutation = useMutation({
@@ -260,58 +228,20 @@ export default function ResourcesSettingsPage() {
           </div>
         </div>
 
-        {/* Add Location Form */}
-        <form onSubmit={handleCreateLocation} className="mb-8 bg-surface-container-low dark:bg-zinc-900/40 border border-dashed border-border dark:border-zinc-700 rounded-2xl p-5">
-          <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-4">Add New Location</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">Name *</label>
-              <input
-                type="text"
-                value={newLocName}
-                onChange={e => setNewLocName(e.target.value)}
-                className="w-full bg-canvas dark:bg-zinc-950 border border-border dark:border-zinc-700 rounded-lg px-3 py-2 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-medium"
-                placeholder="e.g. Main Branch"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">Address</label>
-              <input
-                type="text"
-                value={newLocAddress}
-                onChange={e => setNewLocAddress(e.target.value)}
-                className="w-full bg-canvas dark:bg-zinc-950 border border-border dark:border-zinc-700 rounded-lg px-3 py-2 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm"
-                placeholder="123 Main Street"
-              />
-            </div>
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <label className="block text-xs font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">City</label>
-                <input
-                  type="text"
-                  value={newLocCity}
-                  onChange={e => setNewLocCity(e.target.value)}
-                  className="w-full bg-canvas dark:bg-zinc-950 border border-border dark:border-zinc-700 rounded-lg px-3 py-2 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm"
-                  placeholder="Johannesburg"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={!newLocName.trim() || createLocationMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 disabled:opacity-50 h-[38px] shrink-0"
-              >
-                {createLocationMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                Add
-              </button>
-            </div>
-          </div>
-        </form>
-
         {locationsLoading ? (
           <div className="flex items-center justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-outline" /></div>
         ) : (
           <div className="space-y-3">
+            <div className="flex justify-end mb-4">
+              <button
+                type="button"
+                onClick={() => { setSelectedLocationForEdit(null); setIsLocationModalOpen(true); }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all shadow-sm"
+              >
+                <Plus className="w-4 h-4" strokeWidth={2.5} />
+                Create Location
+              </button>
+            </div>
             {(locations as any[]).length === 0 ? (
               <div className="text-center p-8 border border-dashed border-border dark:border-dark-border rounded-xl">
                 <MapPin className="w-8 h-8 text-outline mx-auto mb-2 opacity-50" />
@@ -321,53 +251,25 @@ export default function ResourcesSettingsPage() {
             ) : (
               (locations as any[]).map((loc: any) => (
                 <div key={loc.id} className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-zinc-800 rounded-xl gap-3">
-                  {editingLocId === loc.id ? (
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <input type="text" value={editLocName} onChange={e => setEditLocName(e.target.value)}
-                        className="bg-canvas dark:bg-zinc-900 border border-emerald-500 rounded-lg px-3 py-1.5 text-sm font-medium outline-none" placeholder="Name" autoFocus />
-                      <input type="text" value={editLocAddress} onChange={e => setEditLocAddress(e.target.value)}
-                        className="bg-canvas dark:bg-zinc-900 border border-border dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm outline-none" placeholder="Address" />
-                      <input type="text" value={editLocCity} onChange={e => setEditLocCity(e.target.value)}
-                        className="bg-canvas dark:bg-zinc-900 border border-border dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm outline-none" placeholder="City" />
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shrink-0">
+                      <MapPin className="w-5 h-5 text-emerald-500" />
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shrink-0">
-                        <MapPin className="w-5 h-5 text-emerald-500" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm text-on-surface dark:text-white">{loc.name}</p>
-                        {(loc.address || loc.city) && (
-                          <p className="text-xs text-on-surface-variant dark:text-zinc-500 truncate">{[loc.address, loc.city].filter(Boolean).join(', ')}</p>
-                        )}
-                      </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-on-surface dark:text-white">{loc.name}</p>
+                      {(loc.address || loc.city) && (
+                        <p className="text-xs text-on-surface-variant dark:text-zinc-500 truncate">{[loc.address, loc.city].filter(Boolean).join(', ')}</p>
+                      )}
                     </div>
-                  )}
+                  </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {editingLocId === loc.id ? (
-                      <>
-                        <button onClick={() => handleUpdateLocation(loc.id)} disabled={updateLocationMutation.isPending}
-                          className="p-2 text-emerald-600 hover:bg-emerald-500/10 rounded-lg transition-colors" title="Save">
-                          {updateLocationMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                        </button>
-                        <button onClick={() => setEditingLocId(null)} className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors" title="Cancel">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button onClick={() => setHoursModalLocation(loc)} className="p-2 text-on-surface-variant hover:text-indigo-500 hover:bg-indigo-500/10 rounded-lg transition-colors" title="Operating Hours">
-                          <Clock className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => startEditLocation(loc)} className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Edit">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => { if (confirm(`Delete "${loc.name}"? Queues linked to this location will be unlinked.`)) deleteLocationMutation.mutate(loc.id); }}
-                          className="p-2 text-on-surface-variant hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Delete">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
+                    <button onClick={() => { setSelectedLocationForEdit(loc); setIsLocationModalOpen(true); }} className="p-2 text-on-surface-variant hover:text-indigo-500 hover:bg-indigo-500/10 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium" title="Edit Location">
+                      <Pencil className="w-4 h-4" /> Edit
+                    </button>
+                    <button onClick={() => { if (confirm(`Delete "${loc.name}"? Queues linked to this location will be unlinked.`)) deleteLocationMutation.mutate(loc.id); }}
+                      className="p-2 text-on-surface-variant hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Delete">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))
@@ -670,10 +572,13 @@ export default function ResourcesSettingsPage() {
       )}
 
       {hoursModalLocation && (
-        <LocationHoursModal
-          isOpen={!!hoursModalLocation}
-          onClose={() => setHoursModalLocation(null)}
-          location={hoursModalLocation}
+        <LocationModal
+          isOpen={isLocationModalOpen}
+          onClose={() => {
+            setIsLocationModalOpen(false);
+            setSelectedLocationForEdit(null);
+          }}
+          location={selectedLocationForEdit}
         />
       )}
     </SettingsLayout>
