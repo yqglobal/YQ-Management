@@ -256,42 +256,48 @@ export default function BillingSettings() {
           <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" />
           Loading billing info...
         </div>
-      ) : isPaid ? (
         /* POST-PURCHASE VIEW: Active Plan Details */
-        <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">
+        <div className="flex flex-col gap-8 max-w-6xl mx-auto w-full animate-in fade-in duration-500">
           
           {/* Hero Subscription Card */}
-          <div className={`relative overflow-hidden rounded-[2.5rem] p-8 md:p-12 border ${isTrial ? 'bg-indigo-950/20 border-indigo-500/20' : 'bg-slate-900/50 border-white/10 shadow-2xl'} backdrop-blur-md`}>
-            {/* Background Glows */}
-            <div className={`absolute -top-32 -right-32 w-96 h-96 rounded-full blur-[100px] opacity-20 pointer-events-none ${isTrial ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
-            <div className={`absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-[100px] opacity-10 pointer-events-none ${isTrial ? 'bg-purple-500' : 'bg-sky-500'}`} />
+          <div className={`relative overflow-hidden rounded-[2.5rem] p-8 md:p-12 border shadow-2xl ${
+            isTrial 
+              ? 'bg-gradient-to-br from-indigo-950/80 to-purple-950/80 border-indigo-500/30 shadow-indigo-500/10' 
+              : 'bg-gradient-to-br from-zinc-900/90 to-black border-white/10 shadow-black/50'
+          } backdrop-blur-xl group`}>
+            {/* Background Glows & Mesh */}
+            <div className={`absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full blur-[120px] opacity-30 pointer-events-none transition-transform duration-1000 group-hover:scale-110 ${isTrial ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
+            <div className={`absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full blur-[120px] opacity-20 pointer-events-none transition-transform duration-1000 group-hover:scale-110 ${isTrial ? 'bg-purple-500' : 'bg-sky-500'}`} />
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
 
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-10">
               
               <div className="flex-1">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white text-xs font-bold uppercase tracking-widest mb-4 shadow-sm backdrop-blur-md">
-                  <span className={`w-2 h-2 rounded-full ${isTrial ? 'bg-indigo-400 animate-pulse' : 'bg-emerald-400'}`}></span>
-                  {isTrial ? 'Trial Active' : 'Active Subscription'}
+                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold uppercase tracking-widest mb-6 shadow-sm backdrop-blur-md ${
+                  isTrial ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] ${isTrial ? 'bg-indigo-400 animate-pulse' : 'bg-emerald-400'}`}></span>
+                  {isTrial ? '14-Day Trial Active' : 'Active Subscription'}
                 </div>
                 
-                <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-2 flex items-center gap-3">
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight mb-4 flex items-center gap-4">
                   {currentSub?.plan?.name || 'Starter Plan'}
-                  {currentSub?.plan?.name?.toLowerCase().includes('pro') && <Crown className="w-8 h-8 text-amber-400" />}
+                  {currentSub?.plan?.name?.toLowerCase().includes('pro') && <Crown className="w-10 h-10 text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.4)]" />}
                 </h2>
-                <p className="text-zinc-400 text-lg">
+                <p className="text-zinc-300 text-lg md:text-xl font-medium max-w-xl leading-relaxed">
                   {isTrial 
-                    ? `You have ${trialDaysLeft} days remaining in your free trial.` 
-                    : `Your subscription is active and renews on ${formatBillingDate(currentSub?.nextBillingDate)}.`}
+                    ? `You have ${trialDaysLeft} days remaining in your free trial to explore all premium features.` 
+                    : `Your subscription is active and will auto-renew on ${formatBillingDate(currentSub?.nextBillingDate)}.`}
                 </p>
 
-                <div className="flex flex-wrap items-center gap-4 mt-8">
+                <div className="flex flex-wrap items-center gap-4 mt-10">
                   {isTrial ? (
-                    <button onClick={() => document.getElementById('upgrade-section')?.scrollIntoView({ behavior: 'smooth' })} className="px-6 h-12 bg-white text-indigo-950 hover:bg-zinc-100 rounded-xl font-bold transition-all shadow-xl shadow-white/10 flex items-center gap-2">
-                      Upgrade Now <ArrowRight className="w-4 h-4" />
+                    <button onClick={() => document.getElementById('upgrade-section')?.scrollIntoView({ behavior: 'smooth' })} className="px-8 h-14 bg-white text-indigo-950 hover:bg-indigo-50 rounded-2xl font-bold transition-all shadow-xl shadow-white/10 flex items-center gap-2 hover:-translate-y-0.5 active:translate-y-0 text-base">
+                      <Sparkles className="w-5 h-5" /> Upgrade to a Paid Plan
                     </button>
                   ) : (
-                    <button onClick={() => document.getElementById('upgrade-section')?.scrollIntoView({ behavior: 'smooth' })} className="px-6 h-12 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl font-bold transition-all flex items-center gap-2 backdrop-blur-sm">
-                      Manage Plan
+                    <button onClick={() => document.getElementById('upgrade-section')?.scrollIntoView({ behavior: 'smooth' })} className="px-8 h-14 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-2xl font-bold transition-all flex items-center gap-2 backdrop-blur-md hover:-translate-y-0.5 active:translate-y-0 text-base">
+                      Change Plan
                     </button>
                   )}
                   {!currentSub?.cancellationDate && !isTrial && (
@@ -301,7 +307,7 @@ export default function BillingSettings() {
                           handleCancelSubscription(false);
                         }
                       }}
-                      className="px-6 h-12 text-zinc-400 hover:text-white transition-colors text-sm font-medium"
+                      className="px-6 h-14 text-zinc-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all text-sm font-semibold"
                     >
                       Cancel Subscription
                     </button>
@@ -309,7 +315,7 @@ export default function BillingSettings() {
                   {isTrial && (
                     <button
                       onClick={() => { if (confirm('Are you sure you want to cancel your trial? You will lose access immediately.')) handleCancelSubscription(true); }}
-                      className="px-6 h-12 text-zinc-400 hover:text-white transition-colors text-sm font-medium"
+                      className="px-6 h-14 text-zinc-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all text-sm font-semibold"
                     >
                       End Trial Early
                     </button>
@@ -318,26 +324,37 @@ export default function BillingSettings() {
               </div>
 
               {/* Quick Features List */}
-              <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm min-w-[280px]">
-                <h4 className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-4">Plan Includes</h4>
-                <ul className="space-y-3">
-                  <li className="flex items-center gap-3 text-white text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-md min-w-[320px] shadow-2xl relative overflow-hidden group-hover:border-white/20 transition-colors">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <h4 className="text-zinc-400 text-xs font-bold uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                  <Shield className="w-4 h-4" /> Plan Features
+                </h4>
+                <ul className="space-y-4">
+                  <li className="flex items-center gap-4 text-white text-base font-medium">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
                     Up to {currentSub?.plan?.limits?.maxQueues || 'Unlimited'} Queues
                   </li>
-                  <li className="flex items-center gap-3 text-white text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <li className="flex items-center gap-4 text-white text-base font-medium">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
                     Up to {currentSub?.plan?.limits?.maxTokens || 'Unlimited'} Tokens/day
                   </li>
                   {currentSub?.plan?.features?.whatsappNotifications && (
-                    <li className="flex items-center gap-3 text-white text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <li className="flex items-center gap-4 text-white text-base font-medium">
+                      <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
                       WhatsApp Notifications
                     </li>
                   )}
                   {currentSub?.plan?.features?.customBranding && (
-                    <li className="flex items-center gap-3 text-white text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <li className="flex items-center gap-4 text-white text-base font-medium">
+                      <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
                       Custom Branding
                     </li>
                   )}
@@ -348,27 +365,27 @@ export default function BillingSettings() {
           </div>
 
           {/* Usage Stats Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             
             {/* Queues Usage */}
-            <div className="bg-card dark:bg-zinc-900/40 border border-border dark:border-white/5 rounded-3xl p-8 flex items-center justify-between group overflow-hidden relative">
-              <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/5 transition-colors duration-500"></div>
+            <div className="bg-card dark:bg-zinc-900/60 border border-border dark:border-white/10 rounded-[2rem] p-10 flex flex-col sm:flex-row items-center justify-between group overflow-hidden relative shadow-lg">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-colors duration-700"></div>
               
-              <div className="relative z-10">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 mb-4">
-                  <span className="material-symbols-outlined text-[24px]">layers</span>
+              <div className="relative z-10 text-center sm:text-left mb-8 sm:mb-0">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-500 mb-5 border border-emerald-500/20 shadow-inner">
+                  <span className="material-symbols-outlined text-[28px]">layers</span>
                 </div>
-                <h3 className="text-xl font-bold text-on-surface dark:text-white mb-1">Active Queues</h3>
-                <p className="text-zinc-500 text-sm">Queues configured in your workspace</p>
-                <div className="mt-6 flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-on-surface dark:text-white">{usage.queues}</span>
-                  <span className="text-zinc-500 font-medium">/ {currentSub?.plan?.limits?.maxQueues || '∞'}</span>
+                <h3 className="text-2xl font-bold text-on-surface dark:text-white mb-2">Active Queues</h3>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Queues configured in workspace</p>
+                <div className="mt-6 flex items-baseline justify-center sm:justify-start gap-2">
+                  <span className="text-5xl font-black text-on-surface dark:text-white tracking-tighter">{usage.queues}</span>
+                  <span className="text-zinc-400 font-bold text-lg">/ {currentSub?.plan?.limits?.maxQueues || '∞'}</span>
                 </div>
               </div>
 
-              <div className="relative z-10 w-32 h-32 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-zinc-100 dark:text-zinc-800" />
+              <div className="relative z-10 w-40 h-40 flex items-center justify-center shrink-0">
+                <svg className="w-full h-full transform -rotate-90 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-surface-container-high dark:text-zinc-800" />
                   <circle 
                     cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" 
                     strokeLinecap="round"
@@ -378,7 +395,7 @@ export default function BillingSettings() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center flex-col">
-                  <span className="text-xl font-bold text-on-surface dark:text-white">
+                  <span className="text-3xl font-black text-on-surface dark:text-white">
                     {currentSub?.plan?.limits?.maxQueues ? Math.round((usage.queues / currentSub.plan.limits.maxQueues) * 100) : 0}%
                   </span>
                 </div>
@@ -386,24 +403,24 @@ export default function BillingSettings() {
             </div>
 
             {/* Tokens Usage */}
-            <div className="bg-card dark:bg-zinc-900/40 border border-border dark:border-white/5 rounded-3xl p-8 flex items-center justify-between group overflow-hidden relative">
-              <div className="absolute inset-0 bg-sky-500/0 group-hover:bg-sky-500/5 transition-colors duration-500"></div>
+            <div className="bg-card dark:bg-zinc-900/60 border border-border dark:border-white/10 rounded-[2rem] p-10 flex flex-col sm:flex-row items-center justify-between group overflow-hidden relative shadow-lg">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/5 rounded-full blur-3xl group-hover:bg-sky-500/10 transition-colors duration-700"></div>
               
-              <div className="relative z-10">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-500 mb-4">
-                  <span className="material-symbols-outlined text-[24px]">confirmation_number</span>
+              <div className="relative z-10 text-center sm:text-left mb-8 sm:mb-0">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-sky-500/10 text-sky-500 mb-5 border border-sky-500/20 shadow-inner">
+                  <span className="material-symbols-outlined text-[28px]">confirmation_number</span>
                 </div>
-                <h3 className="text-xl font-bold text-on-surface dark:text-white mb-1">Tokens This Month</h3>
-                <p className="text-zinc-500 text-sm">Customers served across all locations</p>
-                <div className="mt-6 flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-on-surface dark:text-white">{usage.tokensThisMonth}</span>
-                  <span className="text-zinc-500 font-medium">/ {currentSub?.plan?.limits?.maxTokens || '∞'}</span>
+                <h3 className="text-2xl font-bold text-on-surface dark:text-white mb-2">Tokens This Month</h3>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Customers served across locations</p>
+                <div className="mt-6 flex items-baseline justify-center sm:justify-start gap-2">
+                  <span className="text-5xl font-black text-on-surface dark:text-white tracking-tighter">{usage.tokensThisMonth}</span>
+                  <span className="text-zinc-400 font-bold text-lg">/ {currentSub?.plan?.limits?.maxTokens || '∞'}</span>
                 </div>
               </div>
 
-              <div className="relative z-10 w-32 h-32 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-zinc-100 dark:text-zinc-800" />
+              <div className="relative z-10 w-40 h-40 flex items-center justify-center shrink-0">
+                <svg className="w-full h-full transform -rotate-90 drop-shadow-[0_0_8px_rgba(14,165,233,0.3)]" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-surface-container-high dark:text-zinc-800" />
                   <circle 
                     cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" 
                     strokeLinecap="round"
@@ -413,7 +430,7 @@ export default function BillingSettings() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center flex-col">
-                  <span className="text-xl font-bold text-on-surface dark:text-white">
+                  <span className="text-3xl font-black text-on-surface dark:text-white">
                     {currentSub?.plan?.limits?.maxTokens ? Math.round((usage.tokensThisMonth / currentSub.plan.limits.maxTokens) * 100) : 0}%
                   </span>
                 </div>
@@ -423,19 +440,20 @@ export default function BillingSettings() {
           </div>
 
           {/* Upgrade & Payment Info Row */}
-          <div id="upgrade-section" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div id="upgrade-section" className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4">
             
-            <div className="lg:col-span-2 bg-gradient-to-br from-indigo-950/40 to-slate-900/80 border border-indigo-500/20 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-700"></div>
+            <div className="lg:col-span-2 bg-gradient-to-br from-indigo-950/80 to-purple-950/60 border border-indigo-500/30 rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center justify-between gap-10 relative overflow-hidden group shadow-2xl">
+              <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-[conic-gradient(from_0deg_at_50%_50%,rgba(99,102,241,0.1)_0deg,rgba(168,85,247,0.1)_180deg,rgba(99,102,241,0.1)_360deg)] animate-[spin_10s_linear_infinite] pointer-events-none"></div>
               
-              <div className="relative z-10 flex-1">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 text-xs font-bold uppercase tracking-widest mb-3 border border-indigo-500/20">
-                  <Zap className="w-3.5 h-3.5" /> Ready to scale?
+              <div className="relative z-10 flex-1 text-center md:text-left">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-widest mb-4 border border-white/20 backdrop-blur-md shadow-lg">
+                  <Zap className="w-3.5 h-3.5 text-amber-400" /> Ready to scale?
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">
+                <h3 className="text-3xl font-black text-white mb-3 tracking-tight">
                   {currentSub?.plan?.name?.toLowerCase().includes('standard') ? 'Upgrade to Premium' : 'Need more power?'}
                 </h3>
-                <p className="text-indigo-200/70 text-sm leading-relaxed max-w-md">
+                <p className="text-indigo-100/80 text-base font-medium leading-relaxed max-w-md mx-auto md:mx-0">
                   Unlock unlimited queues, advanced analytics, custom white-labeling, and dedicated support for your growing business.
                 </p>
               </div>
@@ -446,31 +464,37 @@ export default function BillingSettings() {
                     if (upgradePlan) handleUpgradeClick(upgradePlan);
                     else setShowEnterpriseModal(true);
                   }} 
-                  className="w-full md:w-auto px-8 h-12 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
+                  className="w-full md:w-auto px-8 h-14 bg-white hover:bg-indigo-50 text-indigo-900 rounded-2xl font-bold transition-all shadow-xl shadow-white/10 flex items-center justify-center gap-3 text-base hover:-translate-y-0.5 active:translate-y-0"
                 >
-                  View Upgrade Options
+                  View Upgrade Options <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            <div className="bg-card dark:bg-zinc-900/40 border border-border dark:border-white/5 rounded-3xl p-8 flex flex-col">
-              <h3 className="text-lg font-bold text-on-surface dark:text-white mb-2">Payment Method</h3>
-              <p className="text-zinc-500 text-sm leading-relaxed mb-6">
-                Your payments are securely processed via Ozow Instant EFT.
+            <div className="bg-card dark:bg-zinc-900/60 border border-border dark:border-white/10 rounded-[2.5rem] p-10 flex flex-col shadow-lg">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-surface-container-high dark:bg-white/10 flex items-center justify-center">
+                  <CreditCard className="w-5 h-5 text-on-surface dark:text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-on-surface dark:text-white tracking-tight">Payment Method</h3>
+              </div>
+              
+              <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium leading-relaxed mb-8">
+                Your subscription payments are securely processed via Ozow Instant EFT.
               </p>
               
               <div className="mt-auto">
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-surface-container-low dark:bg-white/5 border border-border dark:border-white/10 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-surface-container-highest dark:bg-zinc-800 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-on-surface-variant dark:text-zinc-400">account_balance</span>
+                <div className="flex items-center gap-4 p-5 rounded-2xl bg-surface-container-low dark:bg-white/5 border border-border dark:border-white/10 mb-6 group hover:bg-surface-container transition-colors cursor-default">
+                  <div className="w-12 h-12 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center shrink-0 border border-border dark:border-white/5 shadow-sm">
+                    <span className="material-symbols-outlined text-emerald-500 text-[24px]">account_balance</span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-on-surface dark:text-white">Instant EFT</p>
-                    <p className="text-xs text-on-surface-variant dark:text-zinc-400">Supported by all major SA banks</p>
+                    <p className="text-base font-bold text-on-surface dark:text-white">Instant EFT</p>
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Supported by all SA banks</p>
                   </div>
                 </div>
 
-                <button className="text-sm font-bold text-primary dark:text-indigo-400 hover:text-primary-fixed dark:hover:text-indigo-300 transition-colors flex items-center gap-1 group">
+                <button className="text-sm font-bold text-primary dark:text-indigo-400 hover:text-primary-fixed dark:hover:text-indigo-300 transition-colors flex items-center gap-2 group w-full justify-center bg-surface-container-low dark:bg-white/5 hover:bg-surface-container dark:hover:bg-white/10 py-3 rounded-xl">
                   View Billing History 
                   <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
                 </button>

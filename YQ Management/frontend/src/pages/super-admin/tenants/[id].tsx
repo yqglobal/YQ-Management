@@ -13,10 +13,29 @@ export default function SuperAdminTenantDetail() {
   const router = useRouter();
   const { id } = router.query;
 
+  const queryClient = useQueryClient();
   const { data: tenant, isLoading } = useQuery({
     queryKey: ['super-admin-tenant', id],
     queryFn: () => fetchApi(`/super-admin/tenants/${id}`),
     enabled: !!id,
+  });
+
+  const [showAssignPlanModal, setShowAssignPlanModal] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState('');
+
+  const { data: plans, isLoading: plansLoading } = useQuery({
+    queryKey: ['super-admin-plans', 'ACTIVE'],
+    queryFn: () => fetchApi('/super-admin/plans?status=ACTIVE'),
+  });
+
+  const assignPlanMutation = useMutation({
+    mutationFn: (planId: string) => fetchApi(`/super-admin/tenants/${id}/assign-plan`, { method: 'POST', body: JSON.stringify({ planId }) }),
+    onSuccess: () => {
+      toast.success('Plan assigned successfully');
+      setShowAssignPlanModal(false);
+      queryClient.invalidateQueries({ queryKey: ['super-admin-tenant', id] });
+    },
+    onError: () => toast.error('Failed to assign plan'),
   });
 
   const deleteTenantMutation = useMutation({
@@ -246,7 +265,10 @@ export default function SuperAdminTenantDetail() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2">
+          <button 
+            onClick={() => setShowAssignPlanModal(true)}
+            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+          >
             <CreditCard className="w-4 h-4" /> Assign Plan
           </button>
           <button className="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2" onClick={handleDelete}>
@@ -254,6 +276,60 @@ export default function SuperAdminTenantDetail() {
           </button>
         </div>
       </div>
+
+      {showAssignPlanModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Assign Plan</h2>
+              <button onClick={() => setShowAssignPlanModal(false)} className="p-2 text-gray-400 dark:text-zinc-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4 mb-8">
+              <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300">Select Plan</label>
+              {plansLoading ? (
+                <div className="h-12 bg-gray-100 dark:bg-zinc-800 rounded-xl animate-pulse" />
+              ) : (
+                <select
+                  value={selectedPlanId}
+                  onChange={(e) => setSelectedPlanId(e.target.value)}
+                  className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="">-- Choose a plan --</option>
+                  {plans?.map((plan: any) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name} ({plan.currency} {plan.price})
+                    </option>
+                  ))}
+                </select>
+              )}
+              <p className="text-xs text-gray-500 dark:text-zinc-400">
+                This will immediately cancel any existing active or trial subscriptions and grant access to the selected plan.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setShowAssignPlanModal(false)} 
+                className="px-4 py-2 text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  if (selectedPlanId) assignPlanMutation.mutate(selectedPlanId);
+                }}
+                disabled={!selectedPlanId || assignPlanMutation.isPending}
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+              >
+                {assignPlanMutation.isPending ? 'Assigning...' : 'Confirm Assignment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </SuperAdminLayout>
   );
 }

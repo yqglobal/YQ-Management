@@ -171,6 +171,16 @@ export class SuperAdminController {
     return this.superAdminService.changePlanStatus(id, dto.status);
   }
 
+  @Post('tenants/:id/assign-plan')
+  async assignPlan(
+    @Req() req: any,
+    @Param('id') tenantId: string,
+    @Body() body: { planId: string },
+  ) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.assignPlanToTenant(tenantId, body.planId);
+  }
+
   @Post('plans/:id/duplicate')
   async duplicatePlan(
     @Req() req: any,

@@ -208,15 +208,15 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   return (
     <div className="bg-canvas dark:bg-dark-canvas text-on-surface dark:text-white font-body-md min-h-screen flex flex-col antialiased">
-      {/* Plan gate: shown for non-super-admin tenanted users with no subscription at all */}
-      {!plan.isLoading && plan.hasNoPlan && !!user?.tenantId && !isSuperAdmin && (
+      {/* Plan gate: shown for tenanted users with no subscription at all */}
+      {!plan.isLoading && plan.hasNoPlan && !!user?.tenantId && (
         <PlanGateModal mode="no-plan" />
       )}
       {/* Expired/cancelled gate */}
-      {!plan.isLoading && !plan.hasNoPlan && !plan.canAccess && !!user?.tenantId && !isSuperAdmin && (
+      {!plan.isLoading && !plan.hasNoPlan && !plan.canAccess && !!user?.tenantId && (
         <PlanGateModal mode="expired" />
       )}
-      {!hasAcceptedPolicies && !!user?.tenantId && user?.personalSettings?.onboardingCompleted !== false && user?.role !== 'SUPER_ADMIN' && <AdvancedPoliciesModal />}
+      {!hasAcceptedPolicies && !!user?.tenantId && user?.personalSettings?.onboardingCompleted !== false && <AdvancedPoliciesModal />}
       <DashboardTour />
 
       {/* Mobile overlay */}

@@ -622,4 +622,26 @@ export class SuperAdminService {
       data: { status },
     });
   }
+
+  async assignPlanToTenant(tenantId: string, planId: string) {
+    const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
+    if (!plan) throw new Error('Plan not found');
+
+    // Cancel existing active/trial subscriptions
+    await this.prisma.subscription.updateMany({
+      where: { tenantId, status: { in: ['ACTIVE', 'TRIAL'] } },
+      data: { status: 'CANCELLED', cancellationDate: new Date() },
+    });
+
+    // Create new subscription
+    return this.prisma.subscription.create({
+      data: {
+        tenantId,
+        planId,
+        status: 'ACTIVE',
+        billingCycleStart: new Date(),
+        nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // simplistic next billing 30 days
+      },
+    });
+  }
 }
