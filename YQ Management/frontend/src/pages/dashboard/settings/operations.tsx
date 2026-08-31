@@ -571,7 +571,7 @@ export default function ResourcesSettingsPage() {
         />
       )}
 
-      {hoursModalLocation && (
+      {isLocationModalOpen && (
         <LocationModal
           isOpen={isLocationModalOpen}
           onClose={() => {

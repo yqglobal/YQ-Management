@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Head from 'next/head';
-import { CheckCircle2, AlertCircle, Loader2, Zap, Building2, ArrowRight, Sparkles, Crown, CreditCard } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, Zap, Building2, ArrowRight, Sparkles, Crown, CreditCard, Shield } from 'lucide-react';
 import { fetchApi } from '../../../../lib/api';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
