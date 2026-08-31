@@ -256,8 +256,9 @@ export default function BillingSettings() {
           <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" />
           Loading billing info...
         </div>
-        /* POST-PURCHASE VIEW: Active Plan Details */
+      ) : isPaid ? (
         <div className="flex flex-col gap-8 max-w-6xl mx-auto w-full animate-in fade-in duration-500">
+          {/* POST-PURCHASE VIEW: Active Plan Details */}
           
           {/* Hero Subscription Card */}
           <div className={`relative overflow-hidden rounded-[2.5rem] p-8 md:p-12 border shadow-2xl ${
@@ -505,8 +506,8 @@ export default function BillingSettings() {
 
         </div>
       ) : (
-        /* PRE-PURCHASE VIEW: Pricing Grid (Trial / Expired / New users) */
         <div>
+          {/* PRE-PURCHASE VIEW: Pricing Grid (Trial / Expired / New users) */}
           {/* ── Current Plan Banner (Trial, Expired, Past Due, Pending) ── */}
           {(isTrial || isExpired || isPastDue || isPendingPayment) && currentSub && (
             <div className={`rounded-2xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border relative overflow-hidden ${
