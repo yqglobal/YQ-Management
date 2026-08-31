@@ -12,10 +12,10 @@ ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
 WORKDIR /app
 
 # Enable Next.js telemetry disable
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY . .
 
@@ -27,8 +27,8 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
@@ -46,7 +46,7 @@ USER node
 
 EXPOSE 3000
 
-ENV PORT 3000
+ENV PORT=3000
 
 # server.js is created by next build from the standalone output
 CMD ["node", "server.js"]

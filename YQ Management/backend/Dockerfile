@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev for build)
-RUN npm ci
+RUN npm install
 
 # Copy Prisma schema and generate client
 COPY prisma ./prisma
@@ -24,11 +24,11 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 # Install production dependencies
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Copy generated Prisma client
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
