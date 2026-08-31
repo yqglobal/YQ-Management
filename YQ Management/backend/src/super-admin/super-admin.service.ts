@@ -639,7 +639,8 @@ export class SuperAdminService {
         tenantId,
         planId,
         status: 'ACTIVE',
-        billingCycleStart: new Date(),
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // simplistic next billing 30 days
       },
     });
