@@ -39,10 +39,8 @@ export function PlanSelectModal({ isOpen, onClose, onSelectPlan, isPendingPaymen
 
   if (planLoading || isPlansLoading) {
     return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[600px] flex justify-center p-8">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </DialogContent>
+      <Dialog open={isOpen} onOpenChange={onClose} className="sm:max-w-[600px] flex justify-center p-8">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </Dialog>
     );
   }

@@ -1,0 +1,27 @@
+version: 2
+updates:
+  # Maintain dependencies for the Next.js Frontend
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "fix"
+      include: "scope"
+    open-pull-requests-limit: 5
+
+  # Maintain dependencies for the NestJS Backend
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "fix"
+      include: "scope"
+    open-pull-requests-limit: 5
+
+  # Maintain GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

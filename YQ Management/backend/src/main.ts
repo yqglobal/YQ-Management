@@ -8,6 +8,8 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './redis/redis-io.adapter';
 import { json, urlencoded } from 'express';
+import * as Sentry from '@sentry/node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -16,6 +18,15 @@ async function bootstrap() {
   // instead of the reverse-proxy's internal IP
   const expressApp = app.getHttpAdapter().getInstance();
   expressApp.set('trust proxy', 1);
+
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    integrations: [
+      nodeProfilingIntegration(),
+    ],
+    tracesSampleRate: 1.0, 
+    profilesSampleRate: 1.0, 
+  });
 
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
@@ -81,6 +92,9 @@ async function bootstrap() {
   // NOTE: AllExceptionsFilter is registered globally via APP_FILTER in app.module.ts
   // with PrismaService injected. Do NOT also register it here — that would create
   // two competing error handlers with different capabilities.
+
+  // The error handler must be registered before any other error middleware and after all controllers
+  Sentry.setupExpressErrorHandler(expressApp);
 
   const server = await app.listen(process.env.PORT ?? 3000);
 
