@@ -16,6 +16,8 @@ import { LinkServicesModal } from '../../../components/modals/LinkServicesModal'
 import PrintQRModal from '../../../components/PrintQRModal';
 import { useLocation } from '../../../components/LocationContext';
 import { useAuth } from '../../../components/AuthContext';
+import { QuotaFreezeGuard } from '../../../components/QuotaFreezeGuard';
+import { QuotaWarningBanner } from '../../../components/QuotaWarningBanner';
 
 export default function QueuesList() {
   const router = useRouter();
@@ -159,6 +161,12 @@ export default function QueuesList() {
           </div>
         </div>
 
+        <QuotaWarningBanner 
+          resourceType="queues" 
+          frozenCount={plan.usage.frozenCounts.queues} 
+          limit={typeof plan.limits === 'string' ? JSON.parse(plan.limits).maxQueues : plan.limits.maxQueues} 
+        />
+
         {/* List */}
         <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl overflow-hidden shadow-sm">
           {isLoading && (
@@ -205,12 +213,12 @@ export default function QueuesList() {
           )}
 
           {!isLoading && filteredQueues.length > 0 && (
-            <div className="divide-y divide-border dark:divide-dark-border">
+            <div className="grid grid-cols-1 divide-y divide-border dark:divide-dark-border">
               {filteredQueues.map((queue: any, i: number) => (
-                <div
-                  key={queue.id}
-                  className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors"
-                >
+                <QuotaFreezeGuard key={queue.id} isFrozen={queue.frozenByQuota} resourceName="queue">
+                  <div
+                    className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors"
+                  >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0">
                       <ListOrdered strokeWidth={1.5} className="w-5 h-5 text-primary" />
@@ -251,6 +259,7 @@ export default function QueuesList() {
                     </button>
                   </div>
                 </div>
+                </QuotaFreezeGuard>
               ))}
             </div>
           )}

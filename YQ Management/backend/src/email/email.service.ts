@@ -645,4 +645,51 @@ export class EmailService {
       return { success: false, error: error?.message };
     }
   }
+
+  async sendPlanUpgradedEmail(email: string, fromPlan: string, toPlan: string) {
+    const subject = 'Your Qmova Plan Has Been Upgraded';
+    const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Upgrade Successful</h2>
+    <p style="color: #4b5563; line-height: 1.6;">You have successfully upgraded your subscription from <strong>${fromPlan}</strong> to the <strong>${toPlan}</strong> plan.</p>
+    <p style="color: #4b5563; line-height: 1.6;">Any resources that were previously frozen due to quota limits have been automatically restored. Enjoy your new premium features!</p>
+    ${generateButtonHtml('Go to Dashboard', 'https://qmova.yqbuddy.com/dashboard')}`;
+    await this.sendEmail(
+      email,
+      subject,
+      'Plan Upgraded',
+      `Your subscription was upgraded to ${toPlan}.`,
+      content,
+    );
+  }
+
+  async sendPlanDowngradedEmail(email: string, fromPlan: string, toPlan: string, frozenSummary?: string) {
+    const subject = 'Your Qmova Plan Has Been Downgraded';
+    const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Plan Downgraded</h2>
+    <p style="color: #4b5563; line-height: 1.6;">Your subscription has been changed from <strong>${fromPlan}</strong> to the <strong>${toPlan}</strong> plan.</p>
+    ${frozenSummary ? `<p style="color: #b91c1c; font-weight: 600; line-height: 1.6;">Important: ${frozenSummary}</p>` : ''}
+    <p style="color: #4b5563; line-height: 1.6;">Frozen resources are not deleted, but they are inaccessible to your customers. Your oldest resources remain active. You can restore frozen resources at any time by upgrading your plan or deleting excess resources.</p>
+    ${generateButtonHtml('Review Resources', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
+    await this.sendEmail(
+      email,
+      subject,
+      'Plan Downgraded',
+      `Your subscription was changed to ${toPlan}.`,
+      content,
+    );
+  }
+
+  async sendQuotaExceededEmail(email: string, resourceType: string, current: number, limit: number) {
+    const subject = 'Qmova Quota Limit Reached';
+    const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Action Required: Quota Exceeded</h2>
+    <p style="color: #4b5563; line-height: 1.6;">You have reached the maximum limit for <strong>${resourceType}</strong> on your current plan.</p>
+    <p style="color: #4b5563; line-height: 1.6;">Current usage: ${current} / Limit: ${limit}</p>
+    <p style="color: #4b5563; line-height: 1.6;">To add more ${resourceType}, please upgrade your subscription or archive existing ones.</p>
+    ${generateButtonHtml('Upgrade Plan', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
+    await this.sendEmail(
+      email,
+      subject,
+      'Quota Limit Reached',
+      `You reached the limit for ${resourceType}.`,
+      content,
+    );
+  }
 }

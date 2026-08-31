@@ -7,6 +7,8 @@ export type PlanStatus = 'TRIAL' | 'ACTIVE' | 'PENDING_PAYMENT' | 'CANCELLED' | 
 export interface PlanLimits {
   maxQueues: number;
   maxTokens: number; // per month
+  maxLocations: number;
+  maxServices: number;
 }
 
 export interface PlanFeatures {
@@ -31,7 +33,9 @@ export interface UsePlanResult {
   trialDaysLeft: number;
   limits: PlanLimits;
   features: PlanFeatures;
-  usage: { queues: number; tokensThisMonth: number };
+  usage: { queues: number; tokensThisMonth: number; locations: number; services: number };
+  frozenCounts: { queues: number; locations: number; services: number };
+  trialPermanentlyUsed: boolean;
   isFeatureEnabled: (key: keyof PlanFeatures) => boolean;
   isAtQueueLimit: boolean;
   isAtTokenLimit: boolean;
@@ -43,7 +47,7 @@ export interface UsePlanResult {
   hasNoPlan: boolean; // true when status === null and user has a tenantId (needs to pick a plan)
 }
 
-const DEFAULT_LIMITS: PlanLimits = { maxQueues: 1, maxTokens: 100 };
+const DEFAULT_LIMITS: PlanLimits = { maxQueues: 1, maxTokens: 100, maxLocations: 1, maxServices: 1 };
 const DEFAULT_FEATURES: PlanFeatures = { whatsappNotifications: false };
 
 function guessTier(planName?: string): UsePlanResult['planTier'] {
@@ -75,6 +79,18 @@ export function usePlan(): UsePlanResult {
     staleTime: 30_000,
   });
 
+  const { data: locations = [] } = useQuery({
+    queryKey: ['locations'],
+    queryFn: () => fetchApi('/location').catch(() => []),
+    staleTime: 30_000,
+  });
+
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => fetchApi('/service').catch(() => []),
+    staleTime: 30_000,
+  });
+
   return useMemo((): UsePlanResult => {
     const status = (sub?.status as PlanStatus) ?? null;
     const plan = sub?.plan;
@@ -103,6 +119,15 @@ export function usePlan(): UsePlanResult {
 
     // Usage
     const queueCount = Array.isArray(queues) ? queues.length : 0;
+    const locationCount = Array.isArray(locations) ? locations.length : 0;
+    const serviceCount = Array.isArray(services) ? services.length : 0;
+
+    const frozenQueues = Array.isArray(queues) ? queues.filter((q: any) => q.frozenByQuota).length : 0;
+    const frozenLocations = Array.isArray(locations) ? locations.filter((l: any) => l.frozenByQuota).length : 0;
+    const frozenServices = Array.isArray(services) ? services.filter((s: any) => s.frozenByQuota).length : 0;
+
+    const trialPermanentlyUsed = Boolean(sub?.trialEndDate && new Date(sub.trialEndDate) < new Date()) || (status === 'EXPIRED') || Boolean(sub?.metadata?.downgradedFrom);
+
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const tokensThisMonth = Array.isArray(visits)
@@ -129,7 +154,9 @@ export function usePlan(): UsePlanResult {
       trialDaysLeft,
       limits,
       features,
-      usage: { queues: queueCount, tokensThisMonth },
+      usage: { queues: queueCount, tokensThisMonth, locations: locationCount, services: serviceCount },
+      frozenCounts: { queues: frozenQueues, locations: frozenLocations, services: frozenServices },
+      trialPermanentlyUsed,
       isFeatureEnabled: (key) => isTrialActive || features[key] === true,
       isAtQueueLimit: queueCount >= limits.maxQueues,
       isAtTokenLimit: tokensThisMonth >= limits.maxTokens,
@@ -140,5 +167,5 @@ export function usePlan(): UsePlanResult {
       canAccess,
       hasNoPlan,
     };
-  }, [sub, queues, visits, subLoading]);
+  }, [sub, queues, visits, locations, services, subLoading]);
 }

@@ -7,9 +7,13 @@ import { Box, Plus, Trash2, Loader2, MapPin, Pencil, Check, X, Layers, Clock } f
 import { toast } from 'sonner';
 import { ServiceModal } from '../../../components/modals/ServiceModal';
 import { LocationModal } from '../../../components/modals/LocationModal';
+import { usePlan } from '../../../hooks/usePlan';
+import { QuotaFreezeGuard } from '../../../components/QuotaFreezeGuard';
+import { QuotaWarningBanner } from '../../../components/QuotaWarningBanner';
 
 export default function ResourcesSettingsPage() {
   const queryClient = useQueryClient();
+  const plan = usePlan();
   const [activeTab, setActiveTab] = useState<'locations' | 'services' | 'resources'>('locations');
 
   // --- Resources state ---
@@ -228,6 +232,12 @@ export default function ResourcesSettingsPage() {
           </div>
         </div>
 
+        <QuotaWarningBanner 
+          resourceType="locations" 
+          frozenCount={plan.usage.frozenCounts.locations} 
+          limit={typeof plan.limits === 'string' ? JSON.parse(plan.limits).maxLocations : plan.limits.maxLocations} 
+        />
+
         {locationsLoading ? (
           <div className="flex items-center justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-outline" /></div>
         ) : (
@@ -250,7 +260,8 @@ export default function ResourcesSettingsPage() {
               </div>
             ) : (
               (locations as any[]).map((loc: any) => (
-                <div key={loc.id} className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-zinc-800 rounded-xl gap-3">
+                <QuotaFreezeGuard key={loc.id} isFrozen={loc.frozenByQuota} resourceName="location">
+                <div className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-zinc-800 rounded-xl gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shrink-0">
                       <MapPin className="w-5 h-5 text-emerald-500" />
@@ -272,6 +283,7 @@ export default function ResourcesSettingsPage() {
                     </button>
                   </div>
                 </div>
+                </QuotaFreezeGuard>
               ))
             )}
           </div>
@@ -314,6 +326,12 @@ export default function ResourcesSettingsPage() {
             </button>
           </div>
         </div>
+
+        <QuotaWarningBanner 
+          resourceType="services" 
+          frozenCount={plan.usage.frozenCounts.services} 
+          limit={typeof plan.limits === 'string' ? JSON.parse(plan.limits).maxServices : plan.limits.maxServices} 
+        />
 
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-between mb-6">
            <div className="relative flex-1 w-full sm:max-w-xs">
@@ -359,7 +377,8 @@ export default function ResourcesSettingsPage() {
               </p>
             ) : (
               (filteredServices as any[]).map((service: any) => (
-                <div key={service.id} className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-zinc-800 rounded-xl gap-3">
+                <QuotaFreezeGuard key={service.id} isFrozen={service.frozenByQuota} resourceName="service">
+                <div className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-zinc-800 rounded-xl gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0">
                       <Layers className="w-5 h-5 text-blue-500" />
@@ -381,6 +400,7 @@ export default function ResourcesSettingsPage() {
                     </button>
                   </div>
                 </div>
+                </QuotaFreezeGuard>
               ))
             )}
           </div>

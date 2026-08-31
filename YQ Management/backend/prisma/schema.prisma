@@ -236,6 +236,10 @@ model Queue {
   tokens    Token[]
   visits    Visit[]
   services  Service[]  @relation("QueueToService")
+  
+  frozenByQuota Boolean @default(false)
+  frozenAt      DateTime?
+  createdAt     DateTime @default(now())
 
   @@index([tenantId])
   @@index([locationId])
@@ -609,6 +613,9 @@ model Location {
   tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
+  frozenByQuota Boolean @default(false)
+  frozenAt      DateTime?
+
   @@index([tenantId])
   @@index([workspaceId])
 }
@@ -646,6 +653,9 @@ model Service {
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  frozenByQuota Boolean @default(false)
+  frozenAt      DateTime?
 
   @@index([tenantId])
   @@index([locationId])

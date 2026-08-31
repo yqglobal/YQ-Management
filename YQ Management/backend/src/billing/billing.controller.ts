@@ -7,6 +7,7 @@ import {
   UseGuards,
   Request,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
@@ -128,6 +129,21 @@ export class BillingController {
     return this.subscriptionService.downgradeSubscription(
       req.user.tenantId,
       dto,
+    );
+  }
+
+  @Get('workspace/subscription/downgrade-preview')
+  @Roles(Role.TENANT_ADMIN, Role.ADMIN)
+  async getDowngradePreview(
+    @Request() req: AuthenticatedRequest,
+    @Query('planId') planId: string,
+  ) {
+    if (!planId) {
+      throw new BadRequestException('planId is required');
+    }
+    return this.subscriptionService.getDowngradePreview(
+      req.user.tenantId,
+      planId,
     );
   }
 

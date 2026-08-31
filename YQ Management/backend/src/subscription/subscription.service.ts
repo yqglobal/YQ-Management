@@ -171,20 +171,10 @@ export class SubscriptionService {
     dto: UpgradeSubscriptionDto,
   ): Promise<Subscription> {
     const subscription = await this.getSubscription(tenantId);
-    if (!subscription) {
-      throw new NotFoundException('No subscription found for workspace');
-    }
+    if (!subscription) throw new NotFoundException('No subscription found for workspace');
 
-    const plan = await this.prisma.plan.findUnique({
-      where: { id: dto.planId },
-    });
-    if (!plan) {
-      throw new NotFoundException(`Plan with id ${dto.planId} not found`);
-    }
-
-    if (!plan.active) {
-      throw new BillingException(`Plan ${plan.name} is not active`);
-    }
+    const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
+    if (!plan || !plan.active) throw new BillingException(`Plan not found or inactive`);
 
     const billingInterval = dto.billingInterval || subscription.billingInterval;
 
@@ -207,9 +197,26 @@ export class SubscriptionService {
       include: { plan: true },
     });
 
-    this.logger.log(
-      `Subscription upgraded for workspace ${tenantId} to plan ${dto.planId}`,
-    );
+    await this.releaseQuotaFreeze(tenantId);
+
+    // Send email
+    try {
+      const owner = await this.prisma.user.findFirst({
+        where: { tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+        select: { email: true },
+      });
+      if (owner?.email) {
+        await this.emailService.sendPlanUpgradedEmail(
+          owner.email,
+          subscription.plan?.name || 'Previous Plan',
+          plan.name,
+        );
+      }
+    } catch (e) {
+      this.logger.error(`Failed to send upgrade email`, e);
+    }
+
+    this.logger.log(`Subscription upgraded for workspace ${tenantId} to plan ${dto.planId}`);
     return updated;
   }
 
@@ -218,20 +225,20 @@ export class SubscriptionService {
     dto: DowngradeSubscriptionDto,
   ): Promise<Subscription> {
     const subscription = await this.getSubscription(tenantId);
-    if (!subscription) {
-      throw new NotFoundException('No subscription found for workspace');
-    }
+    if (!subscription) throw new NotFoundException('No subscription found for workspace');
 
-    const plan = await this.prisma.plan.findUnique({
-      where: { id: dto.planId },
-    });
-    if (!plan) {
-      throw new NotFoundException(`Plan with id ${dto.planId} not found`);
-    }
+    const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
+    if (!plan || !plan.active) throw new BillingException(`Plan not found or inactive`);
 
-    if (!plan.active) {
-      throw new BillingException(`Plan ${plan.name} is not active`);
-    }
+    // Get downgrade preview for email before doing it
+    const preview = await this.getDowngradePreview(tenantId, dto.planId);
+    const frozenSummaryParts = [];
+    if (preview.queues.excess > 0) frozenSummaryParts.push(`${preview.queues.excess} queues`);
+    if (preview.locations.excess > 0) frozenSummaryParts.push(`${preview.locations.excess} locations`);
+    if (preview.services.excess > 0) frozenSummaryParts.push(`${preview.services.excess} services`);
+    const frozenSummary = frozenSummaryParts.length > 0 
+      ? `Due to quota limits, ${frozenSummaryParts.join(', ')} have been temporarily frozen.`
+      : undefined;
 
     const updated = await this.prisma.subscription.update({
       where: { tenantId },
@@ -239,14 +246,8 @@ export class SubscriptionService {
         planId: dto.planId,
         status: SubscriptionStatus.ACTIVE,
         currentPeriodStart: new Date(),
-        currentPeriodEnd: this.calculatePeriodEnd(
-          new Date(),
-          subscription.billingInterval,
-        ),
-        nextBillingDate: this.calculatePeriodEnd(
-          new Date(),
-          subscription.billingInterval,
-        ),
+        currentPeriodEnd: this.calculatePeriodEnd(new Date(), subscription.billingInterval),
+        nextBillingDate: this.calculatePeriodEnd(new Date(), subscription.billingInterval),
         metadata: {
           ...((subscription.metadata ?? {}) as Record<string, unknown>),
           downgradedFrom: subscription.planId,
@@ -256,9 +257,27 @@ export class SubscriptionService {
       include: { plan: true },
     });
 
-    this.logger.log(
-      `Subscription downgraded for workspace ${tenantId} to plan ${dto.planId}`,
-    );
+    await this.applyQuotaFreeze(tenantId, preview.queues.newLimit, preview.locations.newLimit, preview.services.newLimit);
+
+    // Send email
+    try {
+      const owner = await this.prisma.user.findFirst({
+        where: { tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+        select: { email: true },
+      });
+      if (owner?.email) {
+        await this.emailService.sendPlanDowngradedEmail(
+          owner.email,
+          subscription.plan?.name || 'Previous Plan',
+          plan.name,
+          frozenSummary
+        );
+      }
+    } catch (e) {
+      this.logger.error(`Failed to send downgrade email`, e);
+    }
+
+    this.logger.log(`Subscription downgraded for workspace ${tenantId} to plan ${dto.planId}`);
     return updated;
   }
 
@@ -536,5 +555,106 @@ export class SubscriptionService {
         ? 365 * 24 * 60 * 60 * 1000
         : 30 * 24 * 60 * 60 * 1000;
     return new Date(startDate.getTime() + ms);
+  }
+
+  async getDowngradePreview(tenantId: string, targetPlanId: string) {
+    const plan = await this.prisma.plan.findUnique({ where: { id: targetPlanId } });
+    if (!plan) throw new NotFoundException('Plan not found');
+
+    const parsedLimits = typeof plan.limits === 'string' ? JSON.parse(plan.limits) : plan.limits || {};
+    const maxQueues = parsedLimits?.maxQueues ?? plan.maxQueues ?? Infinity;
+    const maxLocations = parsedLimits?.maxLocations ?? Infinity;
+    const maxServices = parsedLimits?.maxServices ?? Infinity;
+
+    const queues = await this.prisma.queue.findMany({ where: { tenantId }, orderBy: { createdAt: 'asc' }, select: { id: true, name: true, createdAt: true } });
+    const locations = await this.prisma.location.findMany({ where: { tenantId }, orderBy: { createdAt: 'asc' }, select: { id: true, name: true, createdAt: true } });
+    const services = await this.prisma.service.findMany({ where: { tenantId }, orderBy: { createdAt: 'asc' }, select: { id: true, name: true, createdAt: true } });
+
+    const qExcess = Math.max(0, queues.length - maxQueues);
+    const lExcess = Math.max(0, locations.length - maxLocations);
+    const sExcess = Math.max(0, services.length - maxServices);
+
+    return {
+      queues: {
+        current: queues.length,
+        newLimit: maxQueues,
+        excess: qExcess,
+        protected: queues.slice(0, queues.length - qExcess),
+        willFreeze: queues.slice(queues.length - qExcess),
+      },
+      locations: {
+        current: locations.length,
+        newLimit: maxLocations,
+        excess: lExcess,
+        protected: locations.slice(0, locations.length - lExcess),
+        willFreeze: locations.slice(locations.length - lExcess),
+      },
+      services: {
+        current: services.length,
+        newLimit: maxServices,
+        excess: sExcess,
+        protected: services.slice(0, services.length - sExcess),
+        willFreeze: services.slice(services.length - sExcess),
+      }
+    };
+  }
+
+  async applyQuotaFreeze(tenantId: string, maxQueues: number, maxLocations: number, maxServices: number) {
+    // Queues
+    const queues = await this.prisma.queue.findMany({ where: { tenantId }, orderBy: { createdAt: 'asc' }, select: { id: true } });
+    if (queues.length > maxQueues) {
+      const toFreeze = queues.slice(maxQueues).map((q: any) => q.id);
+      await this.prisma.queue.updateMany({
+        where: { id: { in: toFreeze } },
+        data: { frozenByQuota: true, frozenAt: new Date() }
+      });
+    }
+
+    // Locations
+    const locations = await this.prisma.location.findMany({ where: { tenantId }, orderBy: { createdAt: 'asc' }, select: { id: true } });
+    if (locations.length > maxLocations) {
+      const toFreeze = locations.slice(maxLocations).map((l: any) => l.id);
+      await this.prisma.location.updateMany({
+        where: { id: { in: toFreeze } },
+        data: { frozenByQuota: true, frozenAt: new Date() }
+      });
+    }
+
+    // Services
+    const services = await this.prisma.service.findMany({ where: { tenantId }, orderBy: { createdAt: 'asc' }, select: { id: true } });
+    if (services.length > maxServices) {
+      const toFreeze = services.slice(maxServices).map((s: any) => s.id);
+      await this.prisma.service.updateMany({
+        where: { id: { in: toFreeze } },
+        data: { frozenByQuota: true, frozenAt: new Date() }
+      });
+    }
+  }
+
+  async releaseQuotaFreeze(tenantId: string) {
+    await this.prisma.queue.updateMany({
+      where: { tenantId, frozenByQuota: true },
+      data: { frozenByQuota: false, frozenAt: null }
+    });
+    await this.prisma.location.updateMany({
+      where: { tenantId, frozenByQuota: true },
+      data: { frozenByQuota: false, frozenAt: null }
+    });
+    await this.prisma.service.updateMany({
+      where: { tenantId, frozenByQuota: true },
+      data: { frozenByQuota: false, frozenAt: null }
+    });
+  }
+
+  async rebalanceQuota(tenantId: string) {
+    const sub = await this.getSubscription(tenantId);
+    if (!sub || !sub.plan || sub.status !== SubscriptionStatus.ACTIVE) return;
+    const parsedLimits = typeof sub.plan.limits === 'string' ? JSON.parse(sub.plan.limits) : sub.plan.limits || {};
+    const maxQueues = parsedLimits?.maxQueues ?? sub.plan.maxQueues ?? Infinity;
+    const maxLocations = parsedLimits?.maxLocations ?? Infinity;
+    const maxServices = parsedLimits?.maxServices ?? Infinity;
+
+    await this.releaseQuotaFreeze(tenantId);
+    await this.applyQuotaFreeze(tenantId, maxQueues, maxLocations, maxServices);
   }
 }

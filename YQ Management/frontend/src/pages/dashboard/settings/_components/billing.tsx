@@ -6,7 +6,9 @@ import { useRouter } from 'next/router';
 import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePlan } from '../../../../hooks/usePlan';
-
+import { PlanSelectModal } from '../../../../components/billing/PlanSelectModal';
+import { DowngradeWarningModal } from '../../../../components/billing/DowngradeWarningModal';
+import { Button } from '../../../../components/ui/button';
 interface OzowPaymentData {
   paymentUrl?: string;
   checkoutUrl?: string;
@@ -99,6 +101,11 @@ export default function BillingSettings() {
     },
   });
 
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [isDowngradeModalOpen, setIsDowngradeModalOpen] = useState(false);
+  const [selectedPlanForDowngrade, setSelectedPlanForDowngrade] = useState<any>(null);
+  const [selectedBillingInterval, setSelectedBillingInterval] = useState('monthly');
+
   const enterpriseMutation = useMutation({
     mutationFn: (data: typeof enterpriseForm) =>
       fetchApi('/billing/enterprise-inquiries', {
@@ -112,6 +119,25 @@ export default function BillingSettings() {
     },
     onError: () => {
       toast.error('Failed to send inquiry. Please try again later.');
+    }
+  });
+
+  const downgradeMutation = useMutation({
+    mutationFn: (data: { planId: string }) =>
+      fetchApi('/billing/workspace/subscription/downgrade', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['billing-subscription'] });
+      await queryClient.invalidateQueries({ queryKey: ['current-subscription'] });
+      toast.success('Subscription downgraded successfully.');
+      setIsDowngradeModalOpen(false);
+      setSelectedPlanForDowngrade(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to downgrade subscription.');
+      setIsDowngradeModalOpen(false);
     }
   });
 
@@ -131,13 +157,13 @@ export default function BillingSettings() {
   const { usage } = usePlan();
 
   const handleUpgradeClick = (plan: any) => {
+    // If it's a downgrade
     if (currentSub?.plan?.price > plan.price) {
-      if (plan.limits?.maxQueues && usage.queues > plan.limits.maxQueues) {
-        toast.error(`Cannot downgrade: You have ${usage.queues} queues but the ${plan.name} plan only allows ${plan.limits.maxQueues}. Please delete some queues first.`);
-        return;
-      }
+      setSelectedPlanForDowngrade(plan);
+      setIsDowngradeModalOpen(true);
+    } else {
+      setCheckoutPlan(plan);
     }
-    setCheckoutPlan(plan);
   };
 
   const confirmCheckout = () => {
@@ -249,6 +275,33 @@ export default function BillingSettings() {
         </div>
       )}
 
+      {/* Plan Selection Modal */}
+      <PlanSelectModal 
+        isOpen={isPlanModalOpen} 
+        onClose={() => setIsPlanModalOpen(false)} 
+        onSelectPlan={(plan, interval) => {
+          setIsPlanModalOpen(false);
+          setBillingInterval(interval);
+          handleUpgradeClick(plan);
+        }}
+        isPendingPayment={isPendingPayment}
+      />
+
+      {/* Downgrade Warning Modal */}
+      <DowngradeWarningModal
+        isOpen={isDowngradeModalOpen}
+        onClose={() => {
+          setIsDowngradeModalOpen(false);
+          setSelectedPlanForDowngrade(null);
+        }}
+        onConfirm={() => {
+          if (selectedPlanForDowngrade) {
+            downgradeMutation.mutate({ planId: selectedPlanForDowngrade.id });
+          }
+        }}
+        targetPlan={selectedPlanForDowngrade}
+      />
+
 
 
       {isSubLoading || isPlansLoading ? (
@@ -293,11 +346,11 @@ export default function BillingSettings() {
 
                 <div className="flex flex-wrap items-center gap-4 mt-10">
                   {isTrial ? (
-                    <button onClick={() => document.getElementById('upgrade-section')?.scrollIntoView({ behavior: 'smooth' })} className="px-8 h-14 bg-white text-indigo-950 hover:bg-indigo-50 rounded-2xl font-bold transition-all shadow-xl shadow-white/10 flex items-center gap-2 hover:-translate-y-0.5 active:translate-y-0 text-base">
+                    <button onClick={() => setIsPlanModalOpen(true)} className="px-8 h-14 bg-white text-indigo-950 hover:bg-indigo-50 rounded-2xl font-bold transition-all shadow-xl shadow-white/10 flex items-center gap-2 hover:-translate-y-0.5 active:translate-y-0 text-base">
                       <Sparkles className="w-5 h-5" /> Upgrade to a Paid Plan
                     </button>
                   ) : (
-                    <button onClick={() => document.getElementById('upgrade-section')?.scrollIntoView({ behavior: 'smooth' })} className="px-8 h-14 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-2xl font-bold transition-all flex items-center gap-2 backdrop-blur-md hover:-translate-y-0.5 active:translate-y-0 text-base">
+                    <button onClick={() => setIsPlanModalOpen(true)} className="px-8 h-14 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-2xl font-bold transition-all flex items-center gap-2 backdrop-blur-md hover:-translate-y-0.5 active:translate-y-0 text-base">
                       Change Plan
                     </button>
                   )}
@@ -460,11 +513,7 @@ export default function BillingSettings() {
               </div>
 
               <div className="relative z-10 shrink-0 w-full md:w-auto">
-                <button onClick={() => {
-                    const upgradePlan = plans.find((p: any) => p.name.includes(currentSub?.plan?.name?.toLowerCase().includes('standard') ? 'Premium' : 'Standard'));
-                    if (upgradePlan) handleUpgradeClick(upgradePlan);
-                    else setShowEnterpriseModal(true);
-                  }} 
+                <button onClick={() => setIsPlanModalOpen(true)} 
                   className="w-full md:w-auto px-8 h-14 bg-white hover:bg-indigo-50 text-indigo-900 rounded-2xl font-bold transition-all shadow-xl shadow-white/10 flex items-center justify-center gap-3 text-base hover:-translate-y-0.5 active:translate-y-0"
                 >
                   View Upgrade Options <ArrowRight className="w-5 h-5" />
@@ -583,113 +632,10 @@ export default function BillingSettings() {
             </div>
           </div>
 
-          <div className="flex justify-center mb-10">
-            <div className="inline-flex items-center p-1 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-lg">
-              <button
-                onClick={() => setBillingInterval('monthly')}
-                className={`px-6 h-[40px] rounded-md font-body-sm font-semibold transition-colors ${billingInterval === 'monthly' ? 'bg-white dark:bg-zinc-800 text-on-surface dark:text-white shadow-sm' : 'text-on-surface-variant dark:text-outline hover:text-on-surface'}`}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setBillingInterval('yearly')}
-                className={`px-6 h-[40px] rounded-md font-body-sm font-semibold transition-colors flex items-center gap-2 ${billingInterval === 'yearly' ? 'bg-white dark:bg-zinc-800 text-on-surface dark:text-white shadow-sm' : 'text-on-surface-variant dark:text-outline hover:text-on-surface'}`}
-              >
-                Annually <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider">Save 10%</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            {plans.map((plan: {
-              id: string;
-              name: string;
-              description?: string;
-              billingInterval?: string;
-              price: number;
-              currency?: string;
-              limits?: { maxQueues?: number; maxTokens?: number };
-              features?: { whatsappNotifications?: boolean; textToSpeech?: boolean; customBranding?: boolean };
-            }) => {
-              const price = billingInterval === 'yearly' && plan.billingInterval === 'monthly'
-                ? Math.floor(plan.price * 12 * 0.9)
-                : plan.price;
-              const isPopular = plan.name.toLowerCase().includes('standard') || plan.name.toLowerCase().includes('pro');
-
-              return (
-                <div key={plan.id} className={`bg-card dark:bg-dark-card rounded-[24px] border ${isPopular ? 'border-primary shadow-lg shadow-primary/5 dark:shadow-none' : 'border-border dark:border-dark-border'} p-8 flex flex-col relative overflow-hidden`}>
-                  {isPopular && (
-                    <div className="absolute top-0 left-0 w-full h-1.5 bg-primary"></div>
-                  )}
-                  {isPopular && (
-                    <span className="absolute top-4 right-4 bg-primary text-white font-bold text-[10px] px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                      Most Popular
-                    </span>
-                  )}
-
-                  <h3 className="font-headline-md text-headline-md text-on-surface dark:text-white mb-2 tracking-tight font-semibold">{plan.name}</h3>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline h-10">{plan.description}</p>
-
-                  <div className="my-6">
-                    <span className="font-data-mono-lg text-data-mono-lg text-on-surface dark:text-white text-3xl">{plan.currency === 'ZAR' ? 'R' : '$'}{price}</span>
-                    <span className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline ml-1">/{billingInterval === 'yearly' ? 'year' : 'month'}</span>
-                  </div>
-
-                  <button
-                    onClick={() => handleUpgradeClick(plan)}
-                    disabled={subscribeMutation.isPending || (currentSub?.planId === plan.id) || isPendingPayment}
-                    className={`w-full h-[44px] rounded-lg font-body-md font-semibold flex items-center justify-center gap-2 transition-colors mb-8 ${isPopular ? 'bg-primary hover:bg-primary-container text-white' : 'bg-surface-container-high dark:bg-white/10 hover:bg-surface-container-highest dark:hover:bg-white/20 text-on-surface dark:text-white'} disabled:opacity-50`}
-                  >
-                    {subscribeMutation.isPending && subscribeMutation.variables?.planId === plan.id ? (
-                      <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" />
-                    ) : null}
-                    {currentSub?.planId === plan.id ? 'Current Plan' : isPendingPayment ? 'Payment Pending' : 'Select Plan'}
-                  </button>
-
-                  <div className="space-y-4 flex-1">
-                    <p className="font-label-caps text-label-caps text-on-surface-variant dark:text-outline uppercase tracking-wider">Features included:</p>
-                    <ul className="space-y-4">
-                      <li className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-surface-container-highest dark:bg-white/10 flex items-center justify-center text-on-surface dark:text-white mt-0.5">
-                          <span className="material-symbols-outlined text-[12px]">check</span>
-                        </div>
-                        <span className="font-body-sm text-body-sm text-on-surface dark:text-white font-medium">Up to {plan.limits?.maxQueues || 1} Queues</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-surface-container-highest dark:bg-white/10 flex items-center justify-center text-on-surface dark:text-white mt-0.5">
-                          <span className="material-symbols-outlined text-[12px]">check</span>
-                        </div>
-                        <span className="font-body-sm text-body-sm text-on-surface dark:text-white font-medium">Up to {plan.limits?.maxTokens || 500} Tokens/day</span>
-                      </li>
-                      {plan.features?.whatsappNotifications && (
-                        <li className="flex items-start gap-3">
-                          <div className="w-5 h-5 rounded-full bg-surface-container-highest dark:bg-white/10 flex items-center justify-center text-on-surface dark:text-white mt-0.5">
-                            <span className="material-symbols-outlined text-[12px]">check</span>
-                          </div>
-                          <span className="font-body-sm text-body-sm text-on-surface dark:text-white font-medium">WhatsApp Notifications</span>
-                        </li>
-                      )}
-                      {plan.features?.textToSpeech && (
-                        <li className="flex items-start gap-3">
-                          <div className="w-5 h-5 rounded-full bg-surface-container-highest dark:bg-white/10 flex items-center justify-center text-on-surface dark:text-white mt-0.5">
-                            <span className="material-symbols-outlined text-[12px]">check</span>
-                          </div>
-                          <span className="font-body-sm text-body-sm text-on-surface dark:text-white font-medium">Audio Announcements</span>
-                        </li>
-                      )}
-                      {plan.features?.customBranding && (
-                        <li className="flex items-start gap-3">
-                          <div className="w-5 h-5 rounded-full bg-surface-container-highest dark:bg-white/10 flex items-center justify-center text-on-surface dark:text-white mt-0.5">
-                            <span className="material-symbols-outlined text-[12px]">check</span>
-                          </div>
-                          <span className="font-body-sm text-body-sm text-on-surface dark:text-white font-medium">Custom Branding</span>
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex justify-center mb-10 mt-6">
+            <Button size="lg" onClick={() => setIsPlanModalOpen(true)} className="px-8 text-base">
+              View All Plans
+            </Button>
           </div>
 
           {/* Enterprise Tier Section */}
