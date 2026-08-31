@@ -172,7 +172,7 @@ export class WhatsappChatbot {
     if (config.quickReplies?.human) {
       msg += `${optionNum++}. Speak to a Human\n`;
     }
-    
+
     // Always append booking as an option
     msg += `4. Book an Appointment\n`;
 
@@ -306,7 +306,10 @@ export class WhatsappChatbot {
         where: { id: session.id },
         data: {
           step: 11,
-          context: { ...((session.context as any) || {}), locationId: locations[0].id },
+          context: {
+            ...(session.context || {}),
+            locationId: locations[0].id,
+          },
         },
       });
       await this.promptServices(tenantId, locations[0].id, jid);
@@ -324,7 +327,10 @@ export class WhatsappChatbot {
       where: { id: session.id },
       data: {
         step: 10,
-        context: { ...((session.context as any) || {}), locations: locations.map(l => l.id) },
+        context: {
+          ...(session.context || {}),
+          locations: locations.map((l) => l.id),
+        },
       },
     });
 
@@ -338,12 +344,15 @@ export class WhatsappChatbot {
     session: any,
     text: string,
   ) {
-    const ctx = session.context as any;
+    const ctx = session.context;
     const locations = ctx.locations || [];
     const index = parseInt(text) - 1;
 
     if (isNaN(index) || index < 0 || index >= locations.length) {
-      await this.sendMsg(jid, "Invalid selection. Please reply with a valid number.");
+      await this.sendMsg(
+        jid,
+        'Invalid selection. Please reply with a valid number.',
+      );
       return;
     }
 
@@ -359,7 +368,11 @@ export class WhatsappChatbot {
     await this.promptServices(tenantId, locationId, jid);
   }
 
-  private async promptServices(tenantId: string, locationId: string, jid: string) {
+  private async promptServices(
+    tenantId: string,
+    locationId: string,
+    jid: string,
+  ) {
     const services = await this.prisma.service.findMany({
       where: { tenantId, locationId: locationId },
       orderBy: { name: 'asc' },
@@ -382,7 +395,7 @@ export class WhatsappChatbot {
     await this.prisma.chatSession.updateMany({
       where: { tenantId, phone: jid.split('@')[0] },
       data: {
-        context: { services: services.map(s => s.id) },
+        context: { services: services.map((s) => s.id) },
       },
     });
 
@@ -396,24 +409,27 @@ export class WhatsappChatbot {
     session: any,
     text: string,
   ) {
-    const ctx = session.context as any;
+    const ctx = session.context;
     // To safely merge, we should retrieve the latest session first, but we have session here.
     // Wait, promptServices used updateMany which doesn't merge context, it overwrites it.
     // I need to retrieve session again or merge properly.
     const currentSession = await this.prisma.chatSession.findUnique({
-      where: { id: session.id }
+      where: { id: session.id },
     });
     const currentCtx = (currentSession?.context as any) || {};
     const services = currentCtx.services || [];
     const index = parseInt(text) - 1;
 
     if (isNaN(index) || index < 0 || index >= services.length) {
-      await this.sendMsg(jid, "Invalid selection. Please reply with a valid number.");
+      await this.sendMsg(
+        jid,
+        'Invalid selection. Please reply with a valid number.',
+      );
       return;
     }
 
     const serviceId = services[index];
-    
+
     // Prompt date
     const today = new Date();
     const tomorrow = new Date(today);
@@ -424,7 +440,7 @@ export class WhatsappChatbot {
     const dates = [
       today.toISOString().split('T')[0],
       tomorrow.toISOString().split('T')[0],
-      dayAfter.toISOString().split('T')[0]
+      dayAfter.toISOString().split('T')[0],
     ];
 
     let msg = `When would you like to book?\n\n`;
@@ -451,12 +467,15 @@ export class WhatsappChatbot {
     session: any,
     text: string,
   ) {
-    const ctx = session.context as any;
+    const ctx = session.context;
     const dates = ctx.dates || [];
     const index = parseInt(text) - 1;
 
     if (isNaN(index) || index < 0 || index >= dates.length) {
-      await this.sendMsg(jid, "Invalid selection. Please reply with 1, 2, or 3.");
+      await this.sendMsg(
+        jid,
+        'Invalid selection. Please reply with 1, 2, or 3.',
+      );
       return;
     }
 
@@ -464,30 +483,38 @@ export class WhatsappChatbot {
     const serviceId = ctx.serviceId;
 
     if (!this.serviceService) {
-      await this.sendMsg(jid, "Booking service unavailable at this moment.");
+      await this.sendMsg(jid, 'Booking service unavailable at this moment.');
       return;
     }
 
     const slots = await this.serviceService.getAvailableSlots(serviceId, date);
-    
+
     if (!slots || slots.length === 0) {
-      await this.sendMsg(jid, `No slots available on ${date}. Please reply '0' to start over.`);
+      await this.sendMsg(
+        jid,
+        `No slots available on ${date}. Please reply '0' to start over.`,
+      );
       return;
     }
 
     // List next 5 slots starting from now if today
     const now = new Date();
     // Use .time instead of .start
-    const futureSlots = slots.filter(s => new Date(s.time) > now && s.available).slice(0, 5);
+    const futureSlots = slots
+      .filter((s) => new Date(s.time) > now && s.available)
+      .slice(0, 5);
 
     if (futureSlots.length === 0) {
-      await this.sendMsg(jid, `No more slots available today. Please reply '0' to start over.`);
+      await this.sendMsg(
+        jid,
+        `No more slots available today. Please reply '0' to start over.`,
+      );
       return;
     }
 
     let msg = `Available time slots for ${date}:\n\n`;
     futureSlots.forEach((slot, i) => {
-      msg += `${i + 1}. ${new Date(slot.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}\n`;
+      msg += `${i + 1}. ${new Date(slot.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n`;
     });
     msg += `\nReply with a number, or '0' to cancel.`;
 
@@ -509,12 +536,15 @@ export class WhatsappChatbot {
     session: any,
     text: string,
   ) {
-    const ctx = session.context as any;
+    const ctx = session.context;
     const slots = ctx.slots || [];
     const index = parseInt(text) - 1;
 
     if (isNaN(index) || index < 0 || index >= slots.length) {
-      await this.sendMsg(jid, "Invalid selection. Please reply with a valid number.");
+      await this.sendMsg(
+        jid,
+        'Invalid selection. Please reply with a valid number.',
+      );
       return;
     }
 
@@ -528,7 +558,10 @@ export class WhatsappChatbot {
       },
     });
 
-    await this.sendMsg(jid, "Great! Finally, please reply with your full name to confirm the booking.");
+    await this.sendMsg(
+      jid,
+      'Great! Finally, please reply with your full name to confirm the booking.',
+    );
   }
 
   private async handleFinalizeBooking(
@@ -538,16 +571,16 @@ export class WhatsappChatbot {
     session: any,
     text: string,
   ) {
-    const ctx = session.context as any;
+    const ctx = session.context;
     const name = text.trim();
 
     if (!name || name.length < 2) {
-      await this.sendMsg(jid, "Please provide a valid name.");
+      await this.sendMsg(jid, 'Please provide a valid name.');
       return;
     }
 
     if (!this.appointmentService) {
-      await this.sendMsg(jid, "Booking service unavailable at this moment.");
+      await this.sendMsg(jid, 'Booking service unavailable at this moment.');
       return;
     }
 
@@ -571,11 +604,13 @@ export class WhatsappChatbot {
     }
 
     const start = new Date(ctx.selectedSlot.time);
-    
+
     // Fetch service for expected duration
     let durationMins = 30;
     if (ctx.serviceId) {
-      const srv = await this.prisma.service.findUnique({ where: { id: ctx.serviceId } });
+      const srv = await this.prisma.service.findUnique({
+        where: { id: ctx.serviceId },
+      });
       if (srv && srv.expectedDuration) durationMins = srv.expectedDuration;
     }
     const end = new Date(start.getTime() + durationMins * 60000);
@@ -591,10 +626,19 @@ export class WhatsappChatbot {
         bookingSource: 'WHATSAPP',
       });
 
-      const formattedTime = start.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-      await this.sendMsg(jid, `✅ Booking Confirmed!\n\nName: ${name}\nTime: ${formattedTime}\n\nWe look forward to seeing you. Reply '0' for the main menu.`);
+      const formattedTime = start.toLocaleString([], {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+      await this.sendMsg(
+        jid,
+        `✅ Booking Confirmed!\n\nName: ${name}\nTime: ${formattedTime}\n\nWe look forward to seeing you. Reply '0' for the main menu.`,
+      );
     } catch (e) {
-      await this.sendMsg(jid, "Sorry, there was an error confirming your booking. Please try again later.");
+      await this.sendMsg(
+        jid,
+        'Sorry, there was an error confirming your booking. Please try again later.',
+      );
     }
 
     await this.prisma.chatSession.update({

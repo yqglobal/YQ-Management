@@ -110,11 +110,11 @@ export class VisitCron {
     this.logger.log('Starting Appointment Reminders check...');
     try {
       const now = new Date();
-      
+
       // Calculate time windows
       const in24hStart = new Date(now.getTime() + 23 * 60 * 60 * 1000);
       const in24hEnd = new Date(now.getTime() + 25 * 60 * 60 * 1000);
-      
+
       const in2hStart = new Date(now.getTime() + 1 * 60 * 60 * 1000);
       const in2hEnd = new Date(now.getTime() + 3 * 60 * 60 * 1000);
 
@@ -125,57 +125,91 @@ export class VisitCron {
           currentState: { in: ['SCHEDULED', 'CREATED'] },
           OR: [
             { scheduledTime: { gte: in24hStart, lte: in24hEnd } },
-            { scheduledTime: { gte: in2hStart, lte: in2hEnd } }
-          ]
+            { scheduledTime: { gte: in2hStart, lte: in2hEnd } },
+          ],
         },
         include: {
           customer: true,
-          tenant: { include: { subscriptions: { include: { plan: true }, where: { status: { in: ['ACTIVE', 'TRIAL', 'PAST_DUE'] } } } } }
-        }
+          tenant: {
+            include: {
+              subscriptions: {
+                include: { plan: true },
+                where: { status: { in: ['ACTIVE', 'TRIAL', 'PAST_DUE'] } },
+              },
+            },
+          },
+        },
       });
 
       for (const visit of upcomingVisits) {
-        if (!visit.customer?.phone || !visit.tenant?.whatsappConnected || !visit.tenant?.whatsappInstanceId) continue;
-        
+        if (
+          !visit.customer?.phone ||
+          !visit.tenant?.whatsappConnected ||
+          !visit.tenant?.whatsappInstanceId
+        )
+          continue;
+
         // Check if reminder was already sent via metadata
         const metadata = (visit.metadata as any) || {};
         const remindersSent = metadata.remindersSent || [];
-        
+
         // Determine which reminder window this falls into
-        const is24h = visit.scheduledTime! >= in24hStart && visit.scheduledTime! <= in24hEnd;
+        const is24h =
+          visit.scheduledTime! >= in24hStart &&
+          visit.scheduledTime! <= in24hEnd;
         const reminderType = is24h ? '24h' : '2h';
-        
+
         if (remindersSent.includes(reminderType)) continue;
 
         // Construct message
         const sub = visit.tenant.subscriptions?.[0];
         let planFeatures: any = sub?.plan?.features || {};
         if (typeof planFeatures === 'string') {
-          try { planFeatures = JSON.parse(planFeatures); } catch (e) {}
+          try {
+            planFeatures = JSON.parse(planFeatures);
+          } catch (e) {}
         }
-        const hasCustomBranding = sub?.status === 'TRIAL' || planFeatures.customBranding === true;
+        const hasCustomBranding =
+          sub?.status === 'TRIAL' || planFeatures.customBranding === true;
         const watermark = hasCustomBranding ? '' : '\n\nPowered by Qmova';
 
-        const statusUrl = process.env.APP_URL ? `${process.env.APP_URL}/customer/status/${visit.accessToken}` : null;
-        const linkText = statusUrl ? ` Track your status here: ${statusUrl}` : '';
+        const statusUrl = process.env.APP_URL
+          ? `${process.env.APP_URL}/customer/status/${visit.accessToken}`
+          : null;
+        const linkText = statusUrl
+          ? ` Track your status here: ${statusUrl}`
+          : '';
         const formattedDate = new Intl.DateTimeFormat('en-US', {
-          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true
+          day: '2-digit',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
         }).format(new Date(visit.scheduledTime!));
 
         const message = `Reminder: Hi ${visit.customer.name}, your appointment is scheduled for ${formattedDate}.${linkText}${watermark}`;
 
         try {
-          await this.whatsappService.sendMessage(visit.tenant.whatsappInstanceId, visit.customer.phone, message);
-          
+          await this.whatsappService.sendMessage(
+            visit.tenant.whatsappInstanceId,
+            visit.customer.phone,
+            message,
+          );
+
           // Update metadata to record sent reminder
           remindersSent.push(reminderType);
           await this.prisma.visit.update({
             where: { id: visit.id },
-            data: { metadata: { ...metadata, remindersSent } }
+            data: { metadata: { ...metadata, remindersSent } },
           });
-          this.logger.log(`Sent ${reminderType} reminder to ${visit.customer.phone} for visit ${visit.id}`);
+          this.logger.log(
+            `Sent ${reminderType} reminder to ${visit.customer.phone} for visit ${visit.id}`,
+          );
         } catch (err) {
-          this.logger.error(`Failed to send ${reminderType} reminder for visit ${visit.id}`, err);
+          this.logger.error(
+            `Failed to send ${reminderType} reminder for visit ${visit.id}`,
+            err,
+          );
         }
       }
 
@@ -185,51 +219,82 @@ export class VisitCron {
           status: { in: ['SCHEDULED'] },
           OR: [
             { scheduledStart: { gte: in24hStart, lte: in24hEnd } },
-            { scheduledStart: { gte: in2hStart, lte: in2hEnd } }
-          ]
+            { scheduledStart: { gte: in2hStart, lte: in2hEnd } },
+          ],
         },
         include: {
           customer: true,
-          tenant: { include: { subscriptions: { include: { plan: true }, where: { status: { in: ['ACTIVE', 'TRIAL', 'PAST_DUE'] } } } } }
-        }
+          tenant: {
+            include: {
+              subscriptions: {
+                include: { plan: true },
+                where: { status: { in: ['ACTIVE', 'TRIAL', 'PAST_DUE'] } },
+              },
+            },
+          },
+        },
       });
 
       for (const appt of upcomingAppointments) {
-        if (!appt.customer?.phone || !appt.tenant?.whatsappConnected || !appt.tenant?.whatsappInstanceId) continue;
-        
-        const is24h = appt.scheduledStart >= in24hStart && appt.scheduledStart <= in24hEnd;
+        if (
+          !appt.customer?.phone ||
+          !appt.tenant?.whatsappConnected ||
+          !appt.tenant?.whatsappInstanceId
+        )
+          continue;
+
+        const is24h =
+          appt.scheduledStart >= in24hStart && appt.scheduledStart <= in24hEnd;
         const reminderType = is24h ? '24h' : '2h';
-        
-        // For Appointment model, we can parse reminderStatus 
+
+        // For Appointment model, we can parse reminderStatus
         // e.g. reminderStatus = "SENT_24H,SENT_2H"
-        const sentList = appt.reminderStatus ? appt.reminderStatus.split(',') : [];
+        const sentList = appt.reminderStatus
+          ? appt.reminderStatus.split(',')
+          : [];
         if (sentList.includes(reminderType)) continue;
 
         const sub = appt.tenant.subscriptions?.[0];
         let planFeatures: any = sub?.plan?.features || {};
         if (typeof planFeatures === 'string') {
-          try { planFeatures = JSON.parse(planFeatures); } catch (e) {}
+          try {
+            planFeatures = JSON.parse(planFeatures);
+          } catch (e) {}
         }
-        const hasCustomBranding = sub?.status === 'TRIAL' || planFeatures.customBranding === true;
+        const hasCustomBranding =
+          sub?.status === 'TRIAL' || planFeatures.customBranding === true;
         const watermark = hasCustomBranding ? '' : '\n\nPowered by Qmova';
 
         const formattedDate = new Intl.DateTimeFormat('en-US', {
-          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true
+          day: '2-digit',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
         }).format(new Date(appt.scheduledStart));
 
         const message = `Reminder: Hi ${appt.customer.name}, your appointment is scheduled for ${formattedDate}.${watermark}`;
 
         try {
-          await this.whatsappService.sendMessage(appt.tenant.whatsappInstanceId, appt.customer.phone, message);
-          
+          await this.whatsappService.sendMessage(
+            appt.tenant.whatsappInstanceId,
+            appt.customer.phone,
+            message,
+          );
+
           sentList.push(reminderType);
           await this.prisma.appointment.update({
             where: { id: appt.id },
-            data: { reminderStatus: sentList.join(',') }
+            data: { reminderStatus: sentList.join(',') },
           });
-          this.logger.log(`Sent ${reminderType} reminder to ${appt.customer.phone} for appointment ${appt.id}`);
+          this.logger.log(
+            `Sent ${reminderType} reminder to ${appt.customer.phone} for appointment ${appt.id}`,
+          );
         } catch (err) {
-          this.logger.error(`Failed to send ${reminderType} reminder for appointment ${appt.id}`, err);
+          this.logger.error(
+            `Failed to send ${reminderType} reminder for appointment ${appt.id}`,
+            err,
+          );
         }
       }
 

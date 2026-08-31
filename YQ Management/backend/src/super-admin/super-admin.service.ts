@@ -126,12 +126,12 @@ export class SuperAdminService {
         },
         subscriptions: {
           where: {
-            status: { in: ['ACTIVE', 'TRIAL', 'PAST_DUE'] }
+            status: { in: ['ACTIVE', 'TRIAL', 'PAST_DUE'] },
           },
           include: {
             plan: {
-              select: { name: true }
-            }
+              select: { name: true },
+            },
           },
           take: 1,
         },

@@ -409,32 +409,34 @@ export class AuthController {
           await this.subscriptionService.startFreeTrial(
             req.user.tenantId,
             trialPlan.id,
-            trialPlan.trialDays || 14
+            trialPlan.trialDays || 14,
           );
           new Logger(AuthController.name).log(
-            `Automatically started trial plan for tenant ${req.user.tenantId} upon onboarding completion.`
+            `Automatically started trial plan for tenant ${req.user.tenantId} upon onboarding completion.`,
           );
         } else {
           // Fallback to first available active plan if no specific trial plan exists
-          const fallbackPlan = await this.usersService['prisma'].plan.findFirst({
-            where: { active: true },
-            orderBy: { createdAt: 'asc' },
-          });
+          const fallbackPlan = await this.usersService['prisma'].plan.findFirst(
+            {
+              where: { active: true },
+              orderBy: { createdAt: 'asc' },
+            },
+          );
           if (fallbackPlan) {
             await this.subscriptionService.startFreeTrial(
               req.user.tenantId,
               fallbackPlan.id,
-              fallbackPlan.trialDays || 14
+              fallbackPlan.trialDays || 14,
             );
             new Logger(AuthController.name).log(
-              `Automatically started fallback plan for tenant ${req.user.tenantId} upon onboarding completion.`
+              `Automatically started fallback plan for tenant ${req.user.tenantId} upon onboarding completion.`,
             );
           }
         }
       } catch (err) {
         new Logger(AuthController.name).error(
           `Failed to start free trial for tenant ${req.user.tenantId} on onboarding completion`,
-          err
+          err,
         );
       }
     }

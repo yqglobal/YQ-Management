@@ -211,7 +211,7 @@ export class ServiceService {
     } else if (!service.useLocationHours && service.exceptionDatesOverride) {
       exceptions = service.exceptionDatesOverride as string[];
     }
-    
+
     if (exceptions.includes(date)) return []; // Holiday or closed day
 
     // Default business hours: 09:00 to 17:00 local time.
@@ -219,9 +219,9 @@ export class ServiceService {
     let startMinute = 0;
     let endHour = 17;
     let endMinute = 0;
-    
+
     // For handling multiple business hours blocks (breaks)
-    const dailyBreaks: Array<{ start: string, end: string }> = [];
+    const dailyBreaks: Array<{ start: string; end: string }> = [];
 
     // We parse the local date string "YYYY-MM-DD"
     // to find what day of the week it is in that timezone.
@@ -252,7 +252,7 @@ export class ServiceService {
       if (val) {
         if (Array.isArray(val)) {
           if (val.length === 0) return []; // closed
-          
+
           const firstBlock = val[0];
           const lastBlock = val[val.length - 1];
           if (firstBlock.start) {
@@ -265,12 +265,12 @@ export class ServiceService {
             endHour = parseInt(h);
             endMinute = parseInt(m || '0');
           }
-          
+
           // Calculate breaks between blocks
           for (let i = 0; i < val.length - 1; i++) {
             dailyBreaks.push({
               start: val[i].end,
-              end: val[i + 1].start
+              end: val[i + 1].start,
             });
           }
         } else {
@@ -351,7 +351,7 @@ export class ServiceService {
       const localBreakEnd = `${date}T${eh.padStart(2, '0')}:${em.padStart(2, '0')}:00`;
       blockedRanges.push({
         start: fromZonedTime(localBreakStart, timezone).getTime(),
-        end: fromZonedTime(localBreakEnd, timezone).getTime()
+        end: fromZonedTime(localBreakEnd, timezone).getTime(),
       });
     }
 
@@ -425,7 +425,7 @@ export class ServiceService {
     for (let day = 1; day <= daysInMonth; day++) {
       // Create local date string YYYY-MM-DD
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      
+
       // Check exceptions
       if (exceptions.includes(dateStr)) continue;
 

@@ -1,4 +1,9 @@
-import { Module, MiddlewareConsumer, NestModule, forwardRef } from '@nestjs/common';
+import {
+  Module,
+  MiddlewareConsumer,
+  NestModule,
+  forwardRef,
+} from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
 import { PermissionsModule } from '../permissions/permissions.module';
@@ -29,7 +34,7 @@ import { SubscriptionModule } from '../subscription/subscription.module';
   controllers: [BillingController, EnterpriseInquiryController],
   providers: [
     PlansService,
-    
+
     PaymentsService,
     InvoiceService,
     UsageService,
@@ -40,7 +45,7 @@ import { SubscriptionModule } from '../subscription/subscription.module';
   ],
   exports: [
     PlansService,
-    
+
     PaymentsService,
     InvoiceService,
     UsageService,

@@ -202,13 +202,13 @@ export class OutboxProcessorService implements OnModuleInit {
         service: { select: { name: true } },
         location: { select: { name: true } },
         tenant: {
-          select: { 
-            whatsappConnected: true, 
+          select: {
+            whatsappConnected: true,
             whatsappInstanceId: true,
             subscriptions: {
               where: { status: { in: ['ACTIVE', 'TRIAL', 'PAST_DUE'] } },
-              include: { plan: true }
-            }
+              include: { plan: true },
+            },
           },
         },
       },
@@ -229,9 +229,14 @@ export class OutboxProcessorService implements OnModuleInit {
     const sub = visit.tenant.subscriptions?.[0];
     let planFeatures: any = sub?.plan?.features || {};
     if (typeof planFeatures === 'string') {
-      try { planFeatures = JSON.parse(planFeatures); } catch (e) { planFeatures = {}; }
+      try {
+        planFeatures = JSON.parse(planFeatures);
+      } catch (e) {
+        planFeatures = {};
+      }
     }
-    const hasCustomBranding = sub?.status === 'TRIAL' || planFeatures.customBranding === true;
+    const hasCustomBranding =
+      sub?.status === 'TRIAL' || planFeatures.customBranding === true;
     const watermark = hasCustomBranding ? '' : '\n\nPowered by Qmova';
 
     // Include the customer status link in the message
@@ -243,14 +248,19 @@ export class OutboxProcessorService implements OnModuleInit {
     let message = '';
     if (visit.scheduledTime) {
       const formattedDate = new Intl.DateTimeFormat('en-US', {
-        day: '2-digit', month: 'short', year: 'numeric',
-        hour: '2-digit', minute: '2-digit', hour12: true,
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
       }).format(new Date(visit.scheduledTime));
-      
+
       message = `Hi ${visit.customer.name}, your booking was confirmed for the service *${serviceName}*${locationText} at *${formattedDate}*. Thanks for booking!${linkText}${watermark}`;
     } else {
-      message = `Hello ${visit.customer.name} 👋 Your ticket *${displayId}* has been issued${locationText} for *${serviceName}*.` +
-                `\n\nWe\'ll notify you when it\'s almost your turn. You can also type *STATUS* to check your position.${linkText}${watermark}`;
+      message =
+        `Hello ${visit.customer.name} 👋 Your ticket *${displayId}* has been issued${locationText} for *${serviceName}*.` +
+        `\n\nWe\'ll notify you when it\'s almost your turn. You can also type *STATUS* to check your position.${linkText}${watermark}`;
     }
 
     if (statusUrl) {

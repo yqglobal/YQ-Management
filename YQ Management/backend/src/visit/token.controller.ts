@@ -31,15 +31,15 @@ export class TokenController {
 
     const service = await this.prisma.service.findUnique({
       where: { id: body.serviceId },
-      include: { 
+      include: {
         tenant: {
           include: {
             subscriptions: {
               where: { status: { in: ['ACTIVE', 'TRIAL', 'PAST_DUE'] } },
-              include: { plan: true }
-            }
-          }
-        } 
+              include: { plan: true },
+            },
+          },
+        },
       },
     });
 
@@ -68,9 +68,14 @@ export class TokenController {
     const sub = tenant.subscriptions?.[0];
     let planFeatures: any = sub?.plan?.features || {};
     if (typeof planFeatures === 'string') {
-      try { planFeatures = JSON.parse(planFeatures); } catch (e) { planFeatures = {}; }
+      try {
+        planFeatures = JSON.parse(planFeatures);
+      } catch (e) {
+        planFeatures = {};
+      }
     }
-    const hasCustomBranding = sub?.status === 'TRIAL' || planFeatures.customBranding === true;
+    const hasCustomBranding =
+      sub?.status === 'TRIAL' || planFeatures.customBranding === true;
     const watermark = hasCustomBranding ? '' : '\n\nPowered by Qmova';
 
     // Send OTP via WhatsApp

@@ -138,7 +138,7 @@ export class QueueService {
 
   async getQueuesForTenant(userTokenPayload: any, locationId?: string) {
     const where: any = { tenantId: userTokenPayload.tenantId };
-    
+
     if (locationId) {
       where.locationId = locationId;
     }
@@ -158,11 +158,7 @@ export class QueueService {
         where.locationId = { in: user.allowedLocationIds };
       }
 
-      if (
-        user &&
-        user.allowedServiceIds &&
-        user.allowedServiceIds.length > 0
-      ) {
+      if (user && user.allowedServiceIds && user.allowedServiceIds.length > 0) {
         // Only return queues that are linked to at least one of the allowed services
         where.services = {
           some: {

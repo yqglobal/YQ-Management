@@ -91,7 +91,11 @@ export class VisitController {
     @Req() req: AuthenticatedRequest,
     @Body() body: { tokenId: string; locationId?: string },
   ) {
-    return this.visitService.validateToken(body.tokenId, req.user.tenantId, body.locationId);
+    return this.visitService.validateToken(
+      body.tokenId,
+      req.user.tenantId,
+      body.locationId,
+    );
   }
 
   @Post(':id/transfer')

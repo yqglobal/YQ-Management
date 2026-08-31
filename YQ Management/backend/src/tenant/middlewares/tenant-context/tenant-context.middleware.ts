@@ -24,10 +24,7 @@ export class TenantContextMiddleware implements NestMiddleware {
     let subdomain = manualSubdomain;
 
     if (!subdomain) {
-      if (
-        !host.includes('localhost') &&
-        !host.includes('127.0.0.1')
-      ) {
+      if (!host.includes('localhost') && !host.includes('127.0.0.1')) {
         const parts = host.split('.');
         if (parts.length > 1) {
           const potentialSubdomain = parts[0];

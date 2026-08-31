@@ -21,11 +21,9 @@ async function bootstrap() {
 
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
-    integrations: [
-      nodeProfilingIntegration(),
-    ],
-    tracesSampleRate: 1.0, 
-    profilesSampleRate: 1.0, 
+    integrations: [nodeProfilingIntegration()],
+    tracesSampleRate: 1.0,
+    profilesSampleRate: 1.0,
   });
 
   app.use(json({ limit: '50mb' }));

@@ -13,12 +13,17 @@ export class WhatsappWebhookProcessor extends WorkerHost {
 
   async process(job: Job<any, any, string>): Promise<any> {
     const { instanceName, body } = job.data;
-    this.logger.debug(`Processing webhook for instance ${instanceName} from queue`);
-    
+    this.logger.debug(
+      `Processing webhook for instance ${instanceName} from queue`,
+    );
+
     try {
       await this.whatsappService.handleWebhook(instanceName, body);
     } catch (err) {
-      this.logger.error(`Failed to process webhook for instance ${instanceName}`, err);
+      this.logger.error(
+        `Failed to process webhook for instance ${instanceName}`,
+        err,
+      );
       throw err; // Allow BullMQ to handle retries
     }
   }

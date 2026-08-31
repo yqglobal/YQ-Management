@@ -1512,13 +1512,17 @@ export class WhatsappService implements OnModuleInit {
       const subscription = tenant.subscriptions?.[0];
       const plan = subscription?.plan;
       let planFeatures = plan?.features as any;
-      
+
       if (typeof planFeatures === 'string') {
-        try { planFeatures = JSON.parse(planFeatures); } catch (e) { planFeatures = {}; }
+        try {
+          planFeatures = JSON.parse(planFeatures);
+        } catch (e) {
+          planFeatures = {};
+        }
       }
 
       const isTrial = subscription?.status === 'TRIAL';
-      const hasChatbot = isTrial || (planFeatures?.whatsappChatbot === true);
+      const hasChatbot = isTrial || planFeatures?.whatsappChatbot === true;
 
       if (!hasChatbot) {
         this.logger.debug(
@@ -1615,7 +1619,7 @@ export class WhatsappService implements OnModuleInit {
         number: normalizedNumber,
         text,
         delay: 0,
-        presence: 'composing'
+        presence: 'composing',
       },
       25000,
     );
@@ -1694,7 +1698,10 @@ export class WhatsappService implements OnModuleInit {
       this.logger.warn(
         `Tenant ${tenantId} WhatsApp is not configured or disconnected`,
       );
-      return { success: false, error: 'WhatsApp not configured or disconnected' };
+      return {
+        success: false,
+        error: 'WhatsApp not configured or disconnected',
+      };
     }
     return this.sendMessage(tenant.whatsappInstanceId, number, text);
   }

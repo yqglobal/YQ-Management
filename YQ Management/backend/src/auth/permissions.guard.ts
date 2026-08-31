@@ -1,11 +1,19 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { REQUIRE_PAGE_PERMISSION_KEY } from './permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private reflector: Reflector, private prisma: PrismaService) {}
+  constructor(
+    private reflector: Reflector,
+    private prisma: PrismaService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPageId = this.reflector.getAllAndOverride<string>(
@@ -32,11 +40,17 @@ export class PermissionsGuard implements CanActivate {
     if (userPayload.role === 'OPERATOR') {
       const user = await this.prisma.user.findUnique({
         where: { id: userPayload.userId },
-        select: { allowedPages: true }
+        select: { allowedPages: true },
       });
 
-      if (!user || !user.allowedPages || !user.allowedPages.includes(requiredPageId)) {
-        throw new ForbiddenException(`You do not have permission to access the '${requiredPageId}' feature.`);
+      if (
+        !user ||
+        !user.allowedPages ||
+        !user.allowedPages.includes(requiredPageId)
+      ) {
+        throw new ForbiddenException(
+          `You do not have permission to access the '${requiredPageId}' feature.`,
+        );
       }
       return true;
     }

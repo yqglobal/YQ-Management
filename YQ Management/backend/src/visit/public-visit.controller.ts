@@ -1,4 +1,18 @@
-import { Controller, Get, Param, Post, Body, Query, HttpException, HttpStatus, Logger, Req, Res, Sse, MessageEvent } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  Body,
+  Query,
+  HttpException,
+  HttpStatus,
+  Logger,
+  Req,
+  Res,
+  Sse,
+  MessageEvent,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Observable, timer, from } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
@@ -19,19 +33,16 @@ export class PublicVisitController {
   ) {}
 
   @Get('status-multiple')
-  async statusMultiple(
-    @Query('tokens') tokens: string,
-    @Req() req: Request,
-  ) {
+  async statusMultiple(@Query('tokens') tokens: string, @Req() req: Request) {
     // Read from query param first (for magic links), fallback to cookie
-    let tokenStr = tokens || req.cookies['qmova_session'];
+    const tokenStr = tokens || req.cookies['qmova_session'];
     if (!tokenStr) return [];
-    
+
     const tokenArray = tokenStr
       .split(',')
       .map((t: string) => t.trim())
       .filter(Boolean);
-      
+
     return this.visitService.findMultiplePublic(tokenArray);
   }
 
@@ -40,7 +51,7 @@ export class PublicVisitController {
     @Query('tokens') tokens: string,
     @Req() req: Request,
   ): Observable<MessageEvent> {
-    let tokenStr = tokens || req.cookies['qmova_session'];
+    const tokenStr = tokens || req.cookies['qmova_session'];
     if (!tokenStr) {
       return from([]);
     }
@@ -55,14 +66,17 @@ export class PublicVisitController {
       switchMap(() => this.visitService.findMultiplePublic(tokenArray)),
       map((visits) => ({
         data: visits,
-      } as MessageEvent)),
+      })),
     );
   }
 
   @Post('request-recovery-otp')
   async requestRecoveryOtp(@Body() body: { phone: string; tenantId: string }) {
     if (!body.phone || !body.tenantId) {
-      throw new HttpException('Missing phone or tenantId', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Missing phone or tenantId',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const tenant = await this.prisma.tenant.findUnique({
@@ -80,7 +94,10 @@ export class PublicVisitController {
     }
 
     if (!tenant.whatsappConnected || !tenant.whatsappInstanceId) {
-      throw new HttpException('WhatsApp not connected for this tenant', HttpStatus.SERVICE_UNAVAILABLE);
+      throw new HttpException(
+        'WhatsApp not connected for this tenant',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
     }
 
     // Rate Limiting: Max 3 requests per 5 minutes per phone
@@ -89,7 +106,10 @@ export class PublicVisitController {
     const attempts = attemptsStr ? parseInt(attemptsStr, 10) : 0;
 
     if (attempts >= 3) {
-      throw new HttpException('Too many OTP requests. Please try again later.', HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException(
+        'Too many OTP requests. Please try again later.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     // Increment and set TTL if it's the first attempt
@@ -111,18 +131,27 @@ export class PublicVisitController {
     const sub = tenant.subscriptions?.[0];
     let planFeatures: any = sub?.plan?.features || {};
     if (typeof planFeatures === 'string') {
-      try { planFeatures = JSON.parse(planFeatures); } catch (e) { planFeatures = {}; }
+      try {
+        planFeatures = JSON.parse(planFeatures);
+      } catch (e) {
+        planFeatures = {};
+      }
     }
-    const hasCustomBranding = sub?.status === 'TRIAL' || planFeatures.customBranding === true;
+    const hasCustomBranding =
+      sub?.status === 'TRIAL' || planFeatures.customBranding === true;
     const watermark = hasCustomBranding ? '' : '\n\nPowered by Qmova';
 
     const message = `Your Qmova ticket recovery code is ${otpCode}. It expires in 5 minutes.${watermark}`;
 
-    this.whatsappService.sendToTenant(tenant.id, body.phone, message).then((res) => {
-      if (!res.success) {
-        this.logger.error(`Failed to send recovery OTP to ${body.phone}: ${res.error}`);
-      }
-    });
+    this.whatsappService
+      .sendToTenant(tenant.id, body.phone, message)
+      .then((res) => {
+        if (!res.success) {
+          this.logger.error(
+            `Failed to send recovery OTP to ${body.phone}: ${res.error}`,
+          );
+        }
+      });
 
     return { success: true };
   }
@@ -134,16 +163,19 @@ export class PublicVisitController {
     @Req() req: Request,
   ) {
     if (!body.phone || !body.tenantId || !body.otp) {
-      throw new HttpException('Missing phone, tenantId, or otp', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Missing phone, tenantId, or otp',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const redisKey = `otp:recovery:${body.tenantId}:${body.phone}`;
     const storedOtp = await this.redisService.client.get(redisKey);
-    
+
     if (storedOtp !== body.otp) {
       throw new HttpException('Invalid or expired OTP', HttpStatus.BAD_REQUEST);
     }
-    
+
     await this.redisService.client.del(redisKey);
 
     const visits = await this.prisma.visit.findMany({
@@ -157,8 +189,8 @@ export class PublicVisitController {
       },
     });
 
-    const tokens = visits.map(v => v.accessToken);
-    
+    const tokens = visits.map((v) => v.accessToken);
+
     if (tokens.length > 0) {
       // Merge with existing cookie tokens if any
       const existingTokensStr = req.cookies['qmova_session'] || '';

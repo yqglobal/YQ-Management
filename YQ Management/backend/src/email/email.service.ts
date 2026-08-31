@@ -661,7 +661,12 @@ export class EmailService {
     );
   }
 
-  async sendPlanDowngradedEmail(email: string, fromPlan: string, toPlan: string, frozenSummary?: string) {
+  async sendPlanDowngradedEmail(
+    email: string,
+    fromPlan: string,
+    toPlan: string,
+    frozenSummary?: string,
+  ) {
     const subject = 'Your Qmova Plan Has Been Downgraded';
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Plan Downgraded</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your subscription has been changed from <strong>${fromPlan}</strong> to the <strong>${toPlan}</strong> plan.</p>
@@ -677,7 +682,12 @@ export class EmailService {
     );
   }
 
-  async sendQuotaExceededEmail(email: string, resourceType: string, current: number, limit: number) {
+  async sendQuotaExceededEmail(
+    email: string,
+    resourceType: string,
+    current: number,
+    limit: number,
+  ) {
     const subject = 'Qmova Quota Limit Reached';
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Action Required: Quota Exceeded</h2>
     <p style="color: #4b5563; line-height: 1.6;">You have reached the maximum limit for <strong>${resourceType}</strong> on your current plan.</p>

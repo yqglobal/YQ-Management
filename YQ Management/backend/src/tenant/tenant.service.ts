@@ -126,15 +126,19 @@ export class TenantService {
     // Enforce customBranding feature toggle
     const subscription = tenant.subscriptions?.[0];
     const plan = subscription?.plan;
-    
+
     // Parse features if stored as string
     let planFeatures = plan?.features as any;
     if (typeof planFeatures === 'string') {
-      try { planFeatures = JSON.parse(planFeatures); } catch (e) { planFeatures = {}; }
+      try {
+        planFeatures = JSON.parse(planFeatures);
+      } catch (e) {
+        planFeatures = {};
+      }
     }
 
     const isTrial = subscription?.status === 'TRIAL';
-    const hasCustomBranding = isTrial || (planFeatures?.customBranding === true);
+    const hasCustomBranding = isTrial || planFeatures?.customBranding === true;
 
     if (!hasCustomBranding) {
       tenant.branding = null;

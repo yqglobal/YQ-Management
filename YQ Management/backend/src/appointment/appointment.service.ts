@@ -83,7 +83,7 @@ export class AppointmentService {
 
   async findAll(userTokenPayload: any, status?: string, locationId?: string) {
     const where: any = { tenantId: userTokenPayload.tenantId };
-    
+
     if (locationId) {
       where.locationId = locationId;
     }
@@ -100,11 +100,7 @@ export class AppointmentService {
         where.locationId = { in: user.allowedLocationIds };
       }
 
-      if (
-        user &&
-        user.allowedServiceIds &&
-        user.allowedServiceIds.length > 0
-      ) {
+      if (user && user.allowedServiceIds && user.allowedServiceIds.length > 0) {
         where.serviceId = { in: user.allowedServiceIds };
       }
     }
@@ -208,7 +204,9 @@ export class AppointmentService {
         if (updated.customer.phone) {
           await this.whatsappService
             .sendToTenant(updated.tenantId, updated.customer.phone, message)
-            .catch((e) => console.error('Failed to send rejection whatsapp', e));
+            .catch((e) =>
+              console.error('Failed to send rejection whatsapp', e),
+            );
         }
       }
     } else if (

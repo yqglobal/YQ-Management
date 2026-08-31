@@ -40,7 +40,11 @@ export class ServiceController {
     @Query('month') month: string,
     @Query('year') year: string,
   ) {
-    return this.serviceService.getAvailableDates(id, parseInt(month), parseInt(year));
+    return this.serviceService.getAvailableDates(
+      id,
+      parseInt(month),
+      parseInt(year),
+    );
   }
 
   @UseGuards(JwtAuthGuard)

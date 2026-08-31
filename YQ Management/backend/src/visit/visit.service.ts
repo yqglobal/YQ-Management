@@ -41,7 +41,11 @@ export class VisitService {
     });
   }
 
-  async findAll(userTokenPayload: any, scope?: 'today' | 'history', locationId?: string) {
+  async findAll(
+    userTokenPayload: any,
+    scope?: 'today' | 'history',
+    locationId?: string,
+  ) {
     const where: any = { tenantId: userTokenPayload.tenantId };
     if (locationId) {
       where.locationId = locationId;
@@ -61,11 +65,7 @@ export class VisitService {
         where.locationId = { in: user.allowedLocationIds };
       }
 
-      if (
-        user &&
-        user.allowedServiceIds &&
-        user.allowedServiceIds.length > 0
-      ) {
+      if (user && user.allowedServiceIds && user.allowedServiceIds.length > 0) {
         where.serviceId = { in: user.allowedServiceIds };
       }
     }
@@ -183,7 +183,6 @@ export class VisitService {
       },
     });
   }
-
 
   async update(id: string, tenantId: string, updateVisitDto: UpdateVisitDto) {
     await this.findOne(id, tenantId);
@@ -703,7 +702,11 @@ export class VisitService {
     });
   }
 
-  async validateToken(tokenString: string, tenantId: string, locationId?: string) {
+  async validateToken(
+    tokenString: string,
+    tenantId: string,
+    locationId?: string,
+  ) {
     let tokenValue = tokenString;
     try {
       if (tokenString.includes('http')) {
@@ -779,7 +782,9 @@ export class VisitService {
       visit.currentState === 'CANCELLED' ||
       visit.currentState === 'MISSED'
     ) {
-      throw new BadRequestException(`Visit is already ${visit.currentState.toLowerCase()}`);
+      throw new BadRequestException(
+        `Visit is already ${visit.currentState.toLowerCase()}`,
+      );
     }
 
     const updated = await this.prisma.visit.update({
@@ -788,15 +793,18 @@ export class VisitService {
       include: { customer: true, queue: true, service: true, tenant: true },
     });
 
-    await this.communicationService.publish(CommunicationEvent.QUEUE_CANCELLED, {
-      tenantId: updated.tenantId,
-      visitId: updated.id,
-      oldState: visit.currentState,
-      newState: 'CANCELLED',
-      customerPhone: updated.customer?.phone,
-      customerName: updated.customer?.name,
-      queueName: updated.queue?.name,
-    });
+    await this.communicationService.publish(
+      CommunicationEvent.QUEUE_CANCELLED,
+      {
+        tenantId: updated.tenantId,
+        visitId: updated.id,
+        oldState: visit.currentState,
+        newState: 'CANCELLED',
+        customerPhone: updated.customer?.phone,
+        customerName: updated.customer?.name,
+        queueName: updated.queue?.name,
+      },
+    );
 
     return { success: true, visit: updated };
   }
