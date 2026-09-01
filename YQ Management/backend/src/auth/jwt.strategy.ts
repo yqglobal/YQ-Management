@@ -3,12 +3,14 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../redis/redis.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private configService: ConfigService,
     private redisService: RedisService,
+    private prisma: PrismaService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -42,6 +44,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
       if (isUserBlocked) {
         throw new UnauthorizedException('Access revoked');
+      }
+
+      // Verify user actually exists in DB (handles cases where DB was reset but JWT remains in browser)
+      const userExists = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true },
+      });
+      if (!userExists) {
+        throw new UnauthorizedException('User no longer exists');
       }
     }
 

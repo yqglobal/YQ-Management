@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '../../components/AuthContext';
 import { Logo } from '../../components/Logo';
 import { motion } from 'framer-motion';
-import { Activity, CalendarDays, MessageSquare, MonitorSmartphone, Bell, Scan } from 'lucide-react';
+import { Activity, CalendarDays, MessageSquare, MonitorSmartphone, Bell, Scan, Ticket } from 'lucide-react';
 
 export default function FeaturesPage() {
   const { user } = useAuth();
@@ -57,8 +57,8 @@ export default function FeaturesPage() {
             transition={{ duration: 0.6 }}
             className="text-5xl md:text-7xl font-headline-lg font-extrabold tracking-tight text-white drop-shadow-2xl"
           >
-            Everything you need <br className="hidden md:block"/>
-            <span className="bg-gradient-to-r from-sky-400 via-indigo-400 to-sky-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">to manage the floor.</span>
+            Powerful features. <br className="hidden md:block"/>
+            <span className="bg-gradient-to-r from-sky-400 via-indigo-400 to-sky-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">Effortless management.</span>
           </motion.h1>
 
           <motion.p 
@@ -67,51 +67,51 @@ export default function FeaturesPage() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="font-body-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed text-lg"
           >
-            A deep dive into the powerful tools and capabilities that make Qmova the most advanced waiting room management platform on the market.
+            Discover how Qmova's digital tools help you eliminate wait times, maximize daily bookings, and deliver a premium experience to your customers.
           </motion.p>
         </div>
       </section>
 
-      {/* Feature 1: Smart Routing */}
-      <section className="py-24 px-gutter border-t border-white/5 relative overflow-hidden bg-black/40">
+      {/* 1. Professional Booking Page */}
+      <section id="booking" className="py-24 px-gutter border-t border-white/5 relative overflow-hidden bg-black/40">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
           <div className="flex-1 space-y-6">
-            <div className="w-12 h-12 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400">
-              <Activity className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
+              <CalendarDays className="w-6 h-6" />
             </div>
-            <h2 className="text-4xl font-extrabold text-white">Algorithmic Queue Routing</h2>
+            <h2 className="text-4xl font-extrabold text-white">Professional Booking Page for Your Business</h2>
             <p className="text-zinc-400 text-lg leading-relaxed">
-              We discarded the traditional first-in-first-out list. Our routing engine automatically fits walk-in customers into schedule gaps without delaying booked appointments. It calculates micro-gaps to maintain perfect flow across your entire floor.
+              Launch a beautiful, custom-branded booking page in minutes. Let your clients book appointments online effortlessly, 24/7, without any back-and-forth phone calls.
             </p>
             <ul className="space-y-3 pt-4 text-zinc-300">
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div> Intelligent gap detection</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div> Priority merging for VIPs</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div> Load balancing across multiple desks</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div> Easy to set up, your own custom link</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div> Syncs perfectly with your real-time availability</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div> Professional look that builds trust with customers</li>
             </ul>
           </div>
           <div className="flex-1 w-full bg-[#0f1219] rounded-3xl border border-white/10 p-8 flex flex-col items-center justify-center shadow-2xl min-h-[400px]">
-            <div className="w-full max-w-sm space-y-4">
-              <div className="h-16 w-full bg-white/5 border border-white/10 rounded-xl flex items-center px-4">
-                <div className="w-2 h-2 rounded-full bg-zinc-500 mr-2"></div>
-                <span className="font-data-mono text-[11px] text-zinc-400 uppercase">Appt 09:00</span>
+            <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.15)] relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+              <h3 className="text-black font-bold text-xl mb-4">Book an Appointment</h3>
+              <div className="grid grid-cols-4 gap-2 mb-6">
+                {[12,13,14,15,16,17,18,19].map(d => (
+                  <div key={d} className={`text-center p-2 rounded-lg text-xs font-bold ${d === 15 ? 'bg-purple-600 text-white shadow-lg' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}>
+                    {d} Oct
+                  </div>
+                ))}
               </div>
-              {/* Expanding injection block */}
-              <div className="h-24 w-full bg-emerald-500/10 border-2 border-emerald-500/40 rounded-xl flex flex-col justify-center items-center relative overflow-hidden shadow-[0_0_30px_rgba(16,185,129,0.15)]">
-                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(16,185,129,0.1)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%] animate-gradient"></div>
-                <span className="font-label-caps text-emerald-400 text-[10px] tracking-wider mb-1">WALK-IN INJECTED</span>
-                <span className="font-data-mono font-bold text-white text-sm">Gap: +12m</span>
-              </div>
-              <div className="h-16 w-full bg-white/5 border border-white/10 rounded-xl flex items-center px-4">
-                <div className="w-2 h-2 rounded-full bg-zinc-500 mr-2"></div>
-                <span className="font-data-mono text-[11px] text-zinc-400 uppercase">Appt 09:30</span>
+              <div className="space-y-2">
+                <div className="h-10 w-full rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center text-xs font-bold text-zinc-400">09:00 AM</div>
+                <div className="h-10 w-full rounded-lg bg-purple-100 border-2 border-purple-500 flex items-center justify-center text-xs font-bold text-purple-700">10:00 AM</div>
+                <div className="h-10 w-full rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center text-xs font-bold text-zinc-400">11:00 AM</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Feature 2: WhatsApp */}
-      <section className="py-24 px-gutter border-t border-white/5 relative overflow-hidden">
+      {/* 2. WhatsApp Chatbot */}
+      <section id="whatsapp" className="py-24 px-gutter border-t border-white/5 relative overflow-hidden">
         <div className="max-w-7xl mx-auto flex flex-col-reverse lg:flex-row items-center gap-16">
           <div className="flex-1 w-full bg-[#0f1219] rounded-3xl border border-white/10 p-8 flex items-center justify-center shadow-2xl min-h-[400px]">
              <motion.div 
@@ -120,7 +120,7 @@ export default function FeaturesPage() {
                className="w-64 bg-[#0b141a] border border-white/10 rounded-2xl p-4 shadow-[0_20px_40px_rgba(16,185,129,0.2)] preserve-3d flex flex-col gap-3"
              >
                <div className="bg-[#202c33] p-3 rounded-lg rounded-tl-none border border-emerald-500/20">
-                 <span className="text-xs text-white">Reply with 1 to join queue for Consultations.</span>
+                 <span className="text-xs text-white">Reply with 1 to join queue or 2 to book an appointment.</span>
                </div>
                <div className="bg-emerald-600/40 p-3 rounded-lg rounded-tr-none border border-emerald-500/30 self-end">
                  <span className="text-xs text-white">1</span>
@@ -137,34 +137,34 @@ export default function FeaturesPage() {
             <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
               <MessageSquare className="w-6 h-6" />
             </div>
-            <h2 className="text-4xl font-extrabold text-white">WhatsApp Chatbot Engine</h2>
+            <h2 className="text-4xl font-extrabold text-white">WhatsApp Chatbot for Customer Care & Booking</h2>
             <p className="text-zinc-400 text-lg leading-relaxed">
-              Stop forcing your customers to download proprietary apps. Qmova leverages native WhatsApp integration to allow customers to join queues, check status, and receive alerts via the messaging app they already have installed.
+              Stop forcing customers to download another app. Qmova integrates directly with WhatsApp so your customers can book appointments, join waitlists, and ask questions right from the app they already love.
             </p>
             <ul className="space-y-3 pt-4 text-zinc-300">
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> 5-minute automated warning pings</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> Two-way delay reporting</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> QR code to WhatsApp bridging</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> Zero app downloads required</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> Automated replies for common questions</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> Seamless appointment booking via chat</li>
             </ul>
           </div>
         </div>
       </section>
 
-      {/* Feature 3: Status Pages */}
-      <section className="py-24 px-gutter border-t border-white/5 relative overflow-hidden bg-black/40">
+      {/* 3. Digital Tickets */}
+      <section id="status" className="py-24 px-gutter border-t border-white/5 relative overflow-hidden bg-black/40">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
           <div className="flex-1 space-y-6">
             <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <MonitorSmartphone className="w-6 h-6" />
+              <Ticket className="w-6 h-6" />
             </div>
-            <h2 className="text-4xl font-extrabold text-white">Personalized Status Tracking</h2>
+            <h2 className="text-4xl font-extrabold text-white">Digital Tickets Sent Directly to Mobile via WhatsApp</h2>
             <p className="text-zinc-400 text-lg leading-relaxed">
-              Every customer gets a unique, secure URL acting as their personal status dashboard. It updates in real-time via WebSockets, so they can grab a coffee next door without the fear of losing their place in line.
+              When a customer joins your queue, they instantly receive a digital ticket directly on their phone. They can track their exact wait time and position in line, giving them the freedom to wait comfortably anywhere.
             </p>
             <ul className="space-y-3 pt-4 text-zinc-300">
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div> Live ETA updates</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div> Position in queue display</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div> Pre-arrival digital forms</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div> Instant ticket delivery via WhatsApp</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div> Live wait time and position tracking</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div> Automated 5-minute return reminders</li>
             </ul>
           </div>
           <div className="flex-1 w-full bg-[#0f1219] rounded-3xl border border-white/10 p-8 flex flex-col items-center justify-center shadow-2xl min-h-[400px]">
@@ -183,9 +183,60 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      {/* Feature 4: Mobile Management */}
-      <section className="py-24 px-gutter border-t border-white/5 relative overflow-hidden">
+      {/* 4. Smart Wait Time */}
+      <section id="routing" className="py-24 px-gutter border-t border-white/5 relative overflow-hidden">
         <div className="max-w-7xl mx-auto flex flex-col-reverse lg:flex-row items-center gap-16">
+          <div className="flex-1 w-full bg-[#0f1219] rounded-3xl border border-white/10 p-8 flex flex-col items-center justify-center shadow-2xl min-h-[400px]">
+            <div className="w-full max-w-sm space-y-4">
+              <div className="h-16 w-full bg-white/5 border border-white/10 rounded-xl flex items-center px-4">
+                <div className="w-2 h-2 rounded-full bg-zinc-500 mr-2"></div>
+                <span className="font-data-mono text-[11px] text-zinc-400 uppercase">Appt 09:00</span>
+              </div>
+              <div className="h-24 w-full bg-sky-500/10 border-2 border-sky-500/40 rounded-xl flex flex-col justify-center items-center relative overflow-hidden shadow-[0_0_30px_rgba(14,165,233,0.15)]">
+                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(14,165,233,0.1)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%] animate-gradient"></div>
+                <span className="font-label-caps text-sky-400 text-[10px] tracking-wider mb-1">WALK-IN OPTIMIZED</span>
+                <span className="font-data-mono font-bold text-white text-sm">Gap: +12m</span>
+              </div>
+              <div className="h-16 w-full bg-white/5 border border-white/10 rounded-xl flex items-center px-4">
+                <div className="w-2 h-2 rounded-full bg-zinc-500 mr-2"></div>
+                <span className="font-data-mono text-[11px] text-zinc-400 uppercase">Appt 09:30</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 space-y-6">
+            <div className="w-12 h-12 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400">
+              <Activity className="w-6 h-6" />
+            </div>
+            <h2 className="text-4xl font-extrabold text-white">Smart Wait Time Detection & Booking Optimization</h2>
+            <p className="text-zinc-400 text-lg leading-relaxed">
+              Whether it's a scheduled appointment or a spontaneous walk-in, our smart system calculates the perfect time to slide walk-ins between bookings. We optimize your schedule so no customer is left waiting and your staff stays perfectly busy.
+            </p>
+            <ul className="space-y-3 pt-4 text-zinc-300">
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div> Automatically handles both walk-ins and appointments</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div> Intelligent gap detection maximizes daily revenue</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div> Perfectly balances the workload across your team</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Fully Digital */}
+      <section id="mobile" className="py-24 px-gutter border-t border-white/5 relative overflow-hidden bg-black/40">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
+          <div className="flex-1 space-y-6">
+            <div className="w-12 h-12 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400">
+              <Scan className="w-6 h-6" />
+            </div>
+            <h2 className="text-4xl font-extrabold text-white">Fully Digital Solutions, No Offline Setup Required</h2>
+            <p className="text-zinc-400 text-lg leading-relaxed">
+              Say goodbye to expensive pagers, bulky hardware, and complicated installations. Qmova is entirely cloud-based, meaning you can manage your entire floor from any browser, iPad, or smartphone you already own.
+            </p>
+            <ul className="space-y-3 pt-4 text-zinc-300">
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div> Use your existing smartphones, tablets, or computers</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div> Built-in QR scanner for instant check-ins</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div> Empower your staff to manage the floor from anywhere</li>
+            </ul>
+          </div>
           <div className="flex-1 w-full bg-[#0f1219] rounded-3xl border border-white/10 p-8 flex items-center justify-center shadow-2xl min-h-[400px]">
              <div className="w-64 h-[400px] bg-black border-4 border-zinc-800 rounded-[2rem] shadow-2xl flex flex-col overflow-hidden relative">
                <div className="absolute top-2 inset-x-12 h-4 bg-zinc-800 rounded-full z-20"></div>
@@ -209,40 +260,12 @@ export default function FeaturesPage() {
                </div>
              </div>
           </div>
-          <div className="flex-1 space-y-6">
-            <div className="w-12 h-12 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400">
-              <Scan className="w-6 h-6" />
-            </div>
-            <h2 className="text-4xl font-extrabold text-white">Mobile Management & Scanner</h2>
-            <p className="text-zinc-400 text-lg leading-relaxed">
-              Equip your floor staff with the tools they need, right in their pockets. Qmova's dashboard is fully responsive, featuring a built-in QR scanner that utilizes the smartphone camera to instantly check-in visitors.
-            </p>
-            <ul className="space-y-3 pt-4 text-zinc-300">
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div> Native smartphone camera scanning</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div> Tabbed mobile service desk</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-sky-500 rounded-full"></div> Instant queue dispatch</li>
-            </ul>
-          </div>
         </div>
       </section>
       
-      {/* Feature 5: AI Announcements */}
-      <section className="py-24 px-gutter border-t border-white/5 relative overflow-hidden bg-black/40">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
-          <div className="flex-1 space-y-6">
-            <div className="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
-              <Bell className="w-6 h-6" />
-            </div>
-            <h2 className="text-4xl font-extrabold text-white">AI Voice Announcements</h2>
-            <p className="text-zinc-400 text-lg leading-relaxed">
-              Turn any smart TV or tablet into a digital lobby display. When a customer's turn arrives, Qmova automatically generates a natural-sounding voice announcement, calling them to the correct room.
-            </p>
-            <ul className="space-y-3 pt-4 text-zinc-300">
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> Multiple voice profiles & accents</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> Multi-language support</li>
-              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> Flashing visual cues on screen</li>
-            </ul>
-          </div>
+      {/* 6. AI Announcements */}
+      <section id="ai-voice" className="py-24 px-gutter border-t border-white/5 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto flex flex-col-reverse lg:flex-row items-center gap-16">
           <div className="flex-1 w-full bg-[#0f1219] rounded-3xl border border-white/10 p-8 flex flex-col items-center justify-center shadow-2xl min-h-[400px]">
             <div className="w-full max-w-md bg-black rounded-xl border-4 border-zinc-800 shadow-2xl overflow-hidden flex flex-col relative">
                <div className="h-4 bg-zinc-900 border-b border-white/10"></div>
@@ -262,13 +285,27 @@ export default function FeaturesPage() {
                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent animate-marquee"></div>
              </div>
           </div>
+          <div className="flex-1 space-y-6">
+            <div className="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400">
+              <Bell className="w-6 h-6" />
+            </div>
+            <h2 className="text-4xl font-extrabold text-white">AI Announcements & Custom Display Page</h2>
+            <p className="text-zinc-400 text-lg leading-relaxed">
+              Turn any standard smart TV or monitor into a premium digital lobby display. When a customer's turn arrives, the system flashes their ticket and uses a friendly, natural AI voice to call them to the correct room.
+            </p>
+            <ul className="space-y-3 pt-4 text-zinc-300">
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> Premium, automated AI voice announcements</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> Multi-language support for diverse customers</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> Clear visual cues to direct traffic effortlessly</li>
+            </ul>
+          </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-gutter border-t border-white/5 relative">
+      <section className="py-24 px-gutter border-t border-white/5 relative bg-black/40">
         <div className="max-w-4xl mx-auto text-center space-y-8">
-          <h2 className="text-4xl font-bold text-white">Ready to upgrade your waiting room?</h2>
+          <h2 className="text-4xl font-bold text-white">Ready to upgrade your customer flow?</h2>
           <p className="text-zinc-400 text-lg">Join thousands of businesses streamlining their operations with Qmova.</p>
           <div className="flex justify-center">
             <Link href="/register" className="px-8 py-4 rounded-xl bg-white text-black font-bold hover:scale-105 transition-transform shadow-lg">

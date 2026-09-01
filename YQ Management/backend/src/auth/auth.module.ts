@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { PrismaModule } from '../prisma/prisma.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
@@ -12,6 +13,7 @@ import { SubscriptionModule } from '../subscription/subscription.module';
 
 @Module({
   imports: [
+    PrismaModule,
     ConfigModule,
     UsersModule,
     forwardRef(() => SubscriptionModule),

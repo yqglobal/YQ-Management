@@ -17,6 +17,9 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   turbopack: {},
 
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'framer-motion'],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

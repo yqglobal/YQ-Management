@@ -58,14 +58,11 @@ check_env_file() {
 
 free_port() {
     local port=$1
-    if lsof -Pi ":$port" -sTCP:LISTEN -t >/dev/null 2>&1; then
+    if fuser -n tcp $port >/dev/null 2>&1; then
         log_warning "Port $port is in use. Attempting to free..."
-        PIDS=$(lsof -ti ":$port")
-        if [ -n "$PIDS" ]; then
-            kill -9 $PIDS 2>/dev/null || true
-            sleep 2
-        fi
-        if lsof -Pi ":$port" -sTCP:LISTEN -t >/dev/null 2>&1; then
+        fuser -k -n tcp $port >/dev/null 2>&1 || true
+        sleep 2
+        if fuser -n tcp $port >/dev/null 2>&1; then
             log_error "Port $port is still in use. Please free it manually."
             exit 1
         fi
@@ -212,9 +209,15 @@ done
 
 # Wait for frontend
 for i in {1..90}; do
-    if curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 http://localhost:3001/ 2>/dev/null | grep -q "200"; then
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 http://localhost:3001/ 2>/dev/null)
+    if [ "$HTTP_CODE" == "200" ]; then
         log_success "Frontend UI is healthy."
         break
+    elif [ "$HTTP_CODE" == "500" ]; then
+        log_error "Frontend returned 500 Server Error. Check logs for Next.js compilation errors!"
+        tail -15 "$LOG_FILE"
+        cleanup
+        exit 1
     fi
     if [ $i -eq 90 ]; then log_warning "Frontend health check timed out, but process is alive."; fi
     sleep 1
