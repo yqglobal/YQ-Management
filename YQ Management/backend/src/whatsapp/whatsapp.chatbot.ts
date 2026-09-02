@@ -151,6 +151,11 @@ export class WhatsappChatbot {
       return { handled: true, isHumanPaused: false };
     }
 
+    if (session.step === 20) {
+      await this.handleReviewRating(tenantId, phone, jid, session, text);
+      return { handled: true, isHumanPaused: false };
+    }
+
     // Fallback: If they typed something we didn't understand, prompt them
     await this.sendMsg(
       jid,
@@ -639,6 +644,41 @@ export class WhatsappChatbot {
         jid,
         'Sorry, there was an error confirming your booking. Please try again later.',
       );
+    }
+
+    await this.prisma.chatSession.update({
+      where: { id: session.id },
+      data: { step: 0, context: {} },
+    });
+  }
+
+  private async handleReviewRating(
+    tenantId: string,
+    phone: string,
+    jid: string,
+    session: any,
+    text: string,
+  ) {
+    const rating = parseInt(text.trim());
+    
+    if (isNaN(rating) || rating < 1 || rating > 5) {
+      await this.sendMsg(jid, 'Please reply with a valid number from 1 to 5.');
+      return;
+    }
+
+    if (rating >= 4) {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { googleReviewLink: true }
+      });
+      
+      if (tenant?.googleReviewLink) {
+        await this.sendMsg(jid, `We are thrilled you had a great experience! We would really appreciate it if you could share it on Google:\n${tenant.googleReviewLink}`);
+      } else {
+        await this.sendMsg(jid, 'Thank you for your fantastic feedback!');
+      }
+    } else {
+      await this.sendMsg(jid, "Thank you for your feedback. We are sorry your experience wasn't perfect. Our team has been notified and we will strive to do better next time.");
     }
 
     await this.prisma.chatSession.update({

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '../../components/AuthContext';
 import { Logo } from '../../components/Logo';
 import { motion } from 'framer-motion';
-import { Activity, CalendarDays, MessageSquare, MonitorSmartphone, Bell, Scan, Ticket } from 'lucide-react';
+import { Activity, CalendarDays, MessageSquare, MonitorSmartphone, Bell, Scan, Ticket, Star } from 'lucide-react';
 
 export default function FeaturesPage() {
   const { user } = useAuth();
@@ -298,6 +298,52 @@ export default function FeaturesPage() {
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> Multi-language support for diverse customers</li>
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-rose-500 rounded-full"></div> Clear visual cues to direct traffic effortlessly</li>
             </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. Google Business Profile */}
+      <section id="google-business" className="py-24 px-gutter border-t border-white/5 relative overflow-hidden bg-black/40">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
+          <div className="flex-1 space-y-6">
+            <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+              <Star className="w-6 h-6" />
+            </div>
+            <h2 className="text-4xl font-extrabold text-white">Smart Google Reviews & Business Profile Sync</h2>
+            <p className="text-zinc-400 text-lg leading-relaxed">
+              Turn Google Maps into your best receptionist. Qmova syncs your booking page directly to your Google Business Profile and automatically asks happy, low-wait-time customers to leave a 5-star review.
+            </p>
+            <ul className="space-y-3 pt-4 text-zinc-300">
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Capture customers exactly when they search for you</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Put your 5-star Google reviews on autopilot</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> Only asks for reviews if they had a short wait time</li>
+            </ul>
+          </div>
+          <div className="flex-1 w-full bg-[#0f1219] rounded-3xl border border-white/10 p-8 flex flex-col items-center justify-center shadow-2xl min-h-[400px]">
+            <div className="w-full max-w-sm bg-white rounded-xl shadow-2xl overflow-hidden">
+              <div className="p-4 border-b border-zinc-100 flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">G</div>
+                <div>
+                  <h4 className="text-black font-bold text-sm">Your Business Name</h4>
+                  <div className="flex text-amber-400 text-xs mt-0.5">
+                    <Star className="w-3 h-3 fill-current" />
+                    <Star className="w-3 h-3 fill-current" />
+                    <Star className="w-3 h-3 fill-current" />
+                    <Star className="w-3 h-3 fill-current" />
+                    <Star className="w-3 h-3 fill-current" />
+                    <span className="text-zinc-400 ml-1">(128)</span>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="w-full h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xs shadow-md">
+                  Book Online
+                </div>
+                <div className="w-full h-12 bg-emerald-50 rounded-lg border border-emerald-100 flex items-center justify-center">
+                   <span className="text-emerald-700 font-bold text-xs">Current Wait Time: 12 Mins</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

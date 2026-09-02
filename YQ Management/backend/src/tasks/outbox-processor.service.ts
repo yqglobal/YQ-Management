@@ -165,6 +165,12 @@ export class OutboxProcessorService implements OnModuleInit {
               `WhatsApp VISIT_MISSED notification failed: ${e.message}`,
             ),
           );
+        } else if (type === 'VISIT_COMPLETED') {
+          await this.sendVisitCompletedNotification(payload).catch((e) =>
+            this.logger.warn(
+              `WhatsApp VISIT_COMPLETED notification failed: ${e.message}`,
+            ),
+          );
         }
         break;
 
@@ -258,9 +264,24 @@ export class OutboxProcessorService implements OnModuleInit {
 
       message = `Hi ${visit.customer.name}, your booking was confirmed for the service *${serviceName}*${locationText} at *${formattedDate}*. Thanks for booking!${linkText}${watermark}`;
     } else {
+      let positionText = '';
+      if (visit.queueId) {
+        const peopleAhead = await this.prisma.visit.count({
+          where: {
+            queueId: visit.queueId,
+            currentState: 'WAITING',
+            createdAt: { lt: visit.createdAt },
+          },
+        });
+        const etaMins = (peopleAhead + 1) * 10;
+        positionText = `\n\nThere are *${peopleAhead}* people ahead of you. Estimated wait time: *${etaMins} mins*. Please move towards the reception when it's your turn.`;
+      } else {
+        positionText = `\n\nWe'll notify you when it's almost your turn. You can also type *STATUS* to check your position.`;
+      }
+
       message =
         `Hello ${visit.customer.name} 👋 Your ticket *${displayId}* has been issued${locationText} for *${serviceName}*.` +
-        `\n\nWe\'ll notify you when it\'s almost your turn. You can also type *STATUS* to check your position.${linkText}${watermark}`;
+        `${positionText}${linkText}${watermark}`;
     }
 
     if (statusUrl) {
@@ -395,5 +416,92 @@ export class OutboxProcessorService implements OnModuleInit {
       visit.customer.phone,
       message,
     );
+  }
+
+  /**
+   * Smart 5-Star Reviews via WhatsApp
+   */
+  private async sendVisitCompletedNotification(payload: {
+    visitId: string;
+    tenantId: string;
+    displayId?: string;
+  }) {
+    if (!payload.visitId || !payload.tenantId) return;
+
+    const visit = await this.prisma.visit.findUnique({
+      where: { id: payload.visitId },
+      include: {
+        customer: { select: { name: true, phone: true } },
+        service: { select: { name: true } },
+        tenant: {
+          select: {
+            whatsappConnected: true,
+            whatsappInstanceId: true,
+            enableSmartReviews: true,
+            reviewWaitThresholdMins: true,
+            googleReviewLink: true,
+            googleBusinessConnected: true,
+          },
+        },
+      },
+    });
+
+    if (
+      !visit ||
+      !visit.tenant?.whatsappConnected ||
+      !visit.tenant?.whatsappInstanceId ||
+      !visit.customer?.phone
+    )
+      return;
+
+    // Check if Smart Reviews are enabled and properly configured
+    if (!visit.tenant.enableSmartReviews || !visit.tenant.googleReviewLink) {
+      return;
+    }
+
+    // Calculate wait time
+    if (visit.waitingStart && visit.serviceStart) {
+      const waitTimeMs = visit.serviceStart.getTime() - visit.waitingStart.getTime();
+      const waitTimeMins = Math.floor(waitTimeMs / 60000);
+      const threshold = visit.tenant.reviewWaitThresholdMins || 15;
+
+      if (waitTimeMins <= threshold) {
+        // Customer didn't wait too long, ask for a review rating!
+        const message = `🌟 *How did we do?*\n\nHi ${visit.customer.name}, thanks for visiting us for ${visit.service?.name || 'your service'}!\n\nPlease reply with a number from 1 to 5 to rate your experience (5 being excellent).`;
+
+        await this.whatsappService.sendMessage(
+          visit.tenant.whatsappInstanceId,
+          visit.customer.phone,
+          message,
+        );
+        this.logger.log(`Sent Review Gating request to ${visit.customer.phone} (Wait time: ${waitTimeMins}m <= ${threshold}m)`);
+        
+        // Put the chat session into step 20 to expect a rating
+        try {
+          const cleanPhone = visit.customer.phone.replace(/\\D/g, '').slice(-9);
+          // Assuming we match on the last 9 digits as in whatsapp.chatbot.ts
+          // Wait, outbox-processor doesn't have a direct clean phone logic, we can just use the phone directly if it matches
+          const session = await this.prisma.chatSession.findFirst({
+            where: { tenantId: visit.tenantId, phone: { contains: cleanPhone } }
+          });
+          
+          if (session) {
+             await this.prisma.chatSession.update({
+               where: { id: session.id },
+               data: { step: 20 }
+             });
+          } else {
+             await this.prisma.chatSession.create({
+               data: { tenantId: visit.tenantId, phone: cleanPhone, step: 20 }
+             });
+          }
+        } catch (err) {
+          this.logger.error('Failed to set chat session step to 20', err);
+        }
+
+      } else {
+        this.logger.log(`Skipped Review request for ${visit.customer.phone} (Wait time: ${waitTimeMins}m > ${threshold}m)`);
+      }
+    }
   }
 }

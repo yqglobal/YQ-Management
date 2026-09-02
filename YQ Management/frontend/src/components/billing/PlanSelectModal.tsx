@@ -66,7 +66,7 @@ export function PlanSelectModal({ isOpen, onClose, onSelectPlan, isPendingPaymen
               onClick={() => setBillingInterval('yearly')}
               className={`px-6 h-[40px] rounded-md font-body-sm font-semibold transition-colors flex items-center gap-2 ${billingInterval === 'yearly' ? 'bg-white dark:bg-zinc-800 text-on-surface dark:text-white shadow-sm' : 'text-on-surface-variant dark:text-outline hover:text-on-surface'}`}
             >
-              Annually <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider">Save 10%</span>
+              Annually <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider">Save</span>
             </button>
           </div>
         </div>
@@ -80,7 +80,7 @@ export function PlanSelectModal({ isOpen, onClose, onSelectPlan, isPendingPaymen
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {plans.map((plan: any) => {
             const price = billingInterval === 'yearly' && plan.billingInterval === 'monthly'
-              ? Math.floor(plan.price * 12 * 0.9)
+              ? Math.floor(plan.price * 12 * (1 - (plan.annualDiscountPercent || 10) / 100))
               : plan.price;
             const isPopular = plan.name.toLowerCase().includes('standard') || plan.name.toLowerCase().includes('pro');
             const isCurrent = plan.name === planName;
@@ -99,7 +99,7 @@ export function PlanSelectModal({ isOpen, onClose, onSelectPlan, isPendingPaymen
                     <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-bold">Current</span>
                   )}
                 </div>
-                <p className="font-body-sm text-on-surface-variant h-10 mb-4">{plan.description}</p>
+                <p className="font-body-sm text-on-surface-variant min-h-[60px] mb-4">{plan.description}</p>
                 <div className="mb-6">
                   <span className="font-data-mono-lg text-3xl">{plan.currency === 'ZAR' ? 'R' : '$'}{price}</span>
                   <span className="text-on-surface-variant ml-1">/{billingInterval === 'yearly' ? 'year' : 'month'}</span>

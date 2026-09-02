@@ -3,8 +3,9 @@ import Head from 'next/head';
 import AdminLayout from '../../components/AdminLayout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
-import { MessageSquare, Send, Search, Phone, RefreshCw, CheckCircle } from 'lucide-react';
+import { MessageSquare, Send, Search, Phone, RefreshCw, CheckCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSocket } from '../../components/SocketProvider';
 
 export default function InboxPage() {
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
@@ -26,9 +27,36 @@ export default function InboxPage() {
     refetchInterval: 3000,
   });
 
+  const { socket } = useSocket();
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (payload: any) => {
+      if (payload.type === 'MESSAGE_DELETED') {
+        queryClient.invalidateQueries({ queryKey: ['inbox-messages', selectedPhone] });
+        queryClient.invalidateQueries({ queryKey: ['inbox-conversations'] });
+      }
+    };
+    socket.on('MESSAGE_DELETED', handler);
+    return () => {
+      socket.off('MESSAGE_DELETED', handler);
+    };
+  }, [socket, selectedPhone, queryClient]);
+
+  const handleDelete = async (msgId: string) => {
+    if (!window.confirm('Delete this message for everyone?')) return;
+    try {
+      await fetchApi(`/messages/inbox/${msgId}`, { method: 'DELETE' });
+      toast.success('Message deleted');
+      // Query invalidate will handle UI update via websocket or refetch
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to delete message');
+    }
+  };
 
   const sendMutation = useMutation({
     mutationFn: (text: string) => fetchApi(`/messages/inbox/${selectedPhone}`, {
@@ -137,13 +165,22 @@ export default function InboxPage() {
                   messages.map((m: any) => {
                     const isOperator = m.sender === 'OPERATOR';
                     return (
-                      <div key={m.id} className={`flex ${isOperator ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+                      <div key={m.id} className={`flex ${isOperator ? 'justify-end' : 'justify-start'} group/msg`}>
+                        <div className={`max-w-[75%] rounded-2xl px-4 py-2 relative ${
                           isOperator 
                             ? 'bg-primary text-white rounded-br-sm' 
                             : 'bg-surface-container text-on-surface dark:bg-zinc-800 dark:text-white rounded-bl-sm border border-border dark:border-zinc-700'
                         }`}>
-                          <p className="text-sm whitespace-pre-wrap">{m.body}</p>
+                          {isOperator && (
+                            <button 
+                              onClick={() => handleDelete(m.id)}
+                              className="absolute -left-8 top-1/2 -translate-y-1/2 p-1.5 text-alert hover:bg-alert/10 rounded-full opacity-0 group-hover/msg:opacity-100 transition-opacity"
+                              title="Delete message"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
                           <span className={`text-[10px] mt-1 block ${isOperator ? 'text-primary-100' : 'text-on-surface-variant'}`}>
                             {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>

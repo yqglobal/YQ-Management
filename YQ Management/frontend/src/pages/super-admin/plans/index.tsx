@@ -37,7 +37,7 @@ export default function SuperAdminPlans() {
       maxStaff: 5,
     },
     originalPrice: 0,
-    discountPercent: 0,
+    annualDiscountPercent: 10,
   });
 
   const { data: plans = [], isLoading } = useQuery({
@@ -105,7 +105,7 @@ export default function SuperAdminPlans() {
       features: { textToSpeech: false, whatsappNotifications: false, customBranding: false, apiAccess: false, multiLocation: false, advancedAnalytics: false, appointmentsModule: false },
       limits: { maxQueues: 5, maxTokens: 2000, maxLocations: 1, maxStaff: 5 },
       originalPrice: 0,
-      discountPercent: 0,
+      annualDiscountPercent: 10,
     });
   };
 
@@ -132,7 +132,7 @@ export default function SuperAdminPlans() {
       features: plan.features || { textToSpeech: false, whatsappNotifications: false, customBranding: false, apiAccess: false, multiLocation: false, advancedAnalytics: false, appointmentsModule: false },
       limits: plan.limits || { maxQueues: 5, maxTokens: 2000, maxLocations: 1, maxStaff: 5 },
       originalPrice: plan.originalPrice || 0,
-      discountPercent: plan.discountPercent || 0,
+      annualDiscountPercent: plan.annualDiscountPercent ?? 10,
     });
     setShowCreateModal(true);
   };
@@ -288,8 +288,8 @@ export default function SuperAdminPlans() {
                     <input type="number" value={(formData as any).originalPrice ?? 0} onChange={(e) => setFormData({ ...formData, originalPrice: Number(e.target.value) } as any)} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-zinc-400 mb-1">Discount %</label>
-                    <input type="number" min="0" max="100" value={(formData as any).discountPercent ?? 0} onChange={(e) => setFormData({ ...formData, discountPercent: Number(e.target.value) } as any)} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                    <label className="block text-sm font-medium text-gray-500 dark:text-zinc-400 mb-1">Annual Discount %</label>
+                    <input type="number" min="0" max="100" value={(formData as any).annualDiscountPercent ?? 10} onChange={(e) => setFormData({ ...formData, annualDiscountPercent: Number(e.target.value) } as any)} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
                   </div>
                 </div>
                 

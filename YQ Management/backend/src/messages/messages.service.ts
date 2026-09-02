@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RedisService } from '../redis/redis.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 
 @Injectable()
 export class MessagesService {
@@ -9,6 +10,7 @@ export class MessagesService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
     private redisService: RedisService,
+    private whatsappService: WhatsappService,
   ) {}
 
   async getMessages(visitId: string, tenantId: string) {
@@ -18,7 +20,7 @@ export class MessagesService {
     if (!token) throw new NotFoundException('Visit not found');
 
     return this.prisma.message.findMany({
-      where: { visitId, tenantId },
+      where: { visitId, tenantId, isDeleted: false },
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -39,7 +41,7 @@ export class MessagesService {
     });
 
     return this.prisma.message.findMany({
-      where: { tenantId, customerPhone: phone },
+      where: { tenantId, customerPhone: phone, isDeleted: false },
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -55,10 +57,22 @@ export class MessagesService {
     });
     if (!token) throw new NotFoundException('Visit not found');
 
+    const conversation = await this.prisma.customerConversation.upsert({
+      where: { tenantId_customerPhone: { tenantId, customerPhone: token.customer?.phone || '' } },
+      update: { lastMessageAt: new Date(), status: 'OPEN' },
+      create: {
+        tenantId,
+        customerPhone: token.customer?.phone || '',
+        status: 'OPEN',
+        unreadCount: 0,
+      },
+    });
+
     const message = await this.prisma.message.create({
       data: {
         tenantId,
         customerPhone: token.customer?.phone || '',
+        conversationId: conversation.id,
         visitId,
         body: text,
         sender: 'OPERATOR',
@@ -71,6 +85,7 @@ export class MessagesService {
         token.customer.phone,
         text,
         token.tenantId,
+        message.id
       );
     }
 
@@ -106,7 +121,7 @@ export class MessagesService {
       },
     });
 
-    await this.notificationsService.sendWhatsAppMessage(phone, text, tenantId);
+    await this.notificationsService.sendWhatsAppMessage(phone, text, tenantId, message.id);
 
     this.redisService.client.publish(
       'queue_events',
@@ -114,5 +129,9 @@ export class MessagesService {
     );
 
     return message;
+  }
+
+  async deleteMessage(tenantId: string, messageId: string) {
+    return this.whatsappService.deleteMessage(tenantId, messageId);
   }
 }

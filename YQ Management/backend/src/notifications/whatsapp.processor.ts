@@ -13,7 +13,7 @@ export class WhatsappProcessor extends WorkerHost {
 
   async process(job: Job<any, any, string>): Promise<any> {
     this.logger.log(`Processing whatsapp job ${job.id}`);
-    const { to, body, tenantId } = job.data;
-    await this.notificationsService.executeWhatsAppMessage(to, body, tenantId);
+    const { to, body, tenantId, messageId } = job.data;
+    await this.notificationsService.executeWhatsAppMessage(to, body, tenantId, messageId);
   }
 }

@@ -714,7 +714,7 @@ export default function BillingSettings() {
               <div className="flex justify-between items-center mb-6">
                 <span className="font-body-md text-on-surface-variant dark:text-outline">Billed {billingInterval}</span>
                 <div className="text-right">
-                  <span className="font-data-mono-lg text-3xl text-on-surface dark:text-white font-bold">{checkoutPlan.currency === 'ZAR' ? 'R' : '$'}{billingInterval === 'yearly' && checkoutPlan.billingInterval === 'monthly' ? Math.floor(checkoutPlan.price * 12 * 0.9) : checkoutPlan.price}</span>
+                  <span className="font-data-mono-lg text-3xl text-on-surface dark:text-white font-bold">{checkoutPlan.currency === 'ZAR' ? 'R' : '$'}{billingInterval === 'yearly' && checkoutPlan.billingInterval === 'monthly' ? Math.floor(checkoutPlan.price * 12 * (1 - (checkoutPlan.annualDiscountPercent || 10) / 100)) : checkoutPlan.price}</span>
                   <span className="font-body-sm text-on-surface-variant ml-1">/{billingInterval === 'yearly' ? 'yr' : 'mo'}</span>
                 </div>
               </div>

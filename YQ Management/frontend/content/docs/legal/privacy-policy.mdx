@@ -500,29 +500,41 @@ A Customer may disconnect its supported WhatsApp integration according to the av
 
 ---
 
-# 14. Google OAuth
+# 14. Google API Services and Integrations
 
-Qmova supports Google OAuth as an authentication option.
+Qmova supports Google OAuth as an authentication option and integrates with Google APIs (including Google Calendar and Google Business Profile) to provide core Visit Management functionality.
 
-When you choose Google authentication, Qmova receives the information made available through the applicable Google authentication flow and uses it to:
+## 14.1 Authentication (Google OAuth)
 
-* establish or authenticate your Qmova account;
-* identify your account;
-* associate the authentication event with your Qmova account;
-* maintain the authentication relationship where required.
-
-Depending on the Google authentication flow and provider response, this may include:
+When you choose Google authentication, Qmova receives the information made available through the applicable Google authentication flow to establish or authenticate your Qmova account. Depending on the Google authentication flow and provider response, this may include:
 
 * your name;
 * email address;
 * profile information;
 * a Google account identifier.
 
-Qmova is designed to request only the permissions and information necessary for the supported authentication experience.
+## 14.2 Google API Integrations (Calendar and Business Profile)
 
-Qmova does not intentionally request access to unrelated Google content such as private files or messages merely to authenticate a Qmova account.
+To provide our core services, Customers may optionally authorize Qmova to access their Google Calendar and Google Business Profile data. 
 
-OAuth tokens and authentication credentials are treated as sensitive authentication material and are not intended to be exposed through ordinary Customer interfaces.
+* **Google Calendar API:** Qmova requests access to view, create, and edit calendar events to synchronize Qmova Appointments with your Google Calendar, check your availability, and prevent double-booking.
+* **Google Business Profile API:** Qmova requests access to manage your business location data and services to synchronize your operational Locations and Services directly within the Qmova Workspace.
+
+## 14.3 Limited Use Disclosure
+
+Qmova is committed to protecting your data and strictly limits the use of information obtained through Google APIs.
+
+**Qmova's use and transfer to any other app of information received from Google APIs will adhere to the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements.**
+
+Specifically:
+* **Allowed Use:** We only use the data obtained via Google APIs to provide and improve the Qmova Visit Management, Appointment scheduling, and location synchronization features. 
+* **No Third-Party Sharing for Advertising:** We do not use or share Google user data for advertising purposes. We will not sell your Google data to third parties.
+* **Human Access:** We do not allow humans to read your Google data unless we have your affirmative agreement for specific messages, doing so is necessary for security purposes such as investigating abuse, to comply with applicable law, or for the App's internal operations and even then only when the data has been aggregated and anonymized.
+
+## 14.4 Data Retention and Revocation
+
+Google data synced to Qmova (such as calendar events and location details) is stored securely within our infrastructure to facilitate real-time queue and appointment management. 
+You can revoke Qmova's access to your Google account at any time via your [Google Account Security Settings](https://myaccount.google.com/permissions). Upon revoking access or disconnecting the integration within Qmova, Qmova will securely delete the synced Google Calendar and Business Profile data from our active systems in accordance with our data retention policies.
 
 Google independently processes information under Google's own privacy practices and terms.
 

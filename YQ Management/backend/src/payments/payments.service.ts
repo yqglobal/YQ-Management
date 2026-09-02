@@ -62,11 +62,12 @@ export class PaymentsService {
       throw new BadRequestException('Plan not found');
     }
 
-    // Example calculation: If yearly, maybe a discount, else 12x.
-    // Here we'll just assume plan.price is monthly. Yearly = price * 12 * 0.9 (10% discount)
+    // Example calculation: If yearly, apply dynamic discount, else normal price.
+    // Here we'll just assume plan.price is monthly.
     let finalAmount = plan.price;
     if (billingInterval === 'yearly' && plan.billingInterval === 'monthly') {
-      finalAmount = plan.price * 12 * 0.9;
+      const discountRate = 1 - (plan.annualDiscountPercent || 10) / 100;
+      finalAmount = plan.price * 12 * discountRate;
     } else if (billingInterval === 'yearly') {
       finalAmount = plan.price;
     }

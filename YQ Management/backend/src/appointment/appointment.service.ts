@@ -246,15 +246,27 @@ export class AppointmentService {
       }
     }
 
+    // Sync to Google Calendar
+    if (!['CANCELLED', 'NO_SHOW', 'MISSED', 'REJECTED'].includes(updated.status)) {
+      this.googleService.updateAppointmentInCalendar(updated.tenantId, updated).catch(console.error);
+    } else {
+      // If cancelled/rejected/missed, we should remove from calendar
+      this.googleService.deleteAppointmentFromCalendar(updated.tenantId, updated).catch(console.error);
+    }
+
     return updated;
   }
 
   async remove(id: string, tenantId: string) {
-    await this.findOne(id, tenantId);
+    const appointment = await this.findOne(id, tenantId);
 
-    return this.prisma.appointment.delete({
+    const deleted = await this.prisma.appointment.delete({
       where: { id },
     });
+
+    this.googleService.deleteAppointmentFromCalendar(tenantId, appointment).catch(console.error);
+
+    return deleted;
   }
 
   /**

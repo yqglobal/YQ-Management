@@ -1427,6 +1427,29 @@ export class WhatsappService implements OnModuleInit {
         return { success: true };
       }
 
+      if (payload?.event === 'messages.delete' && payload?.data) {
+        const messageId = payload.data.keys?.[0]?.id || payload.data?.message?.key?.id;
+        if (messageId) {
+          const message = await this.prisma.message.findUnique({
+            where: { whatsappId: messageId },
+          });
+          if (message) {
+            await this.prisma.message.delete({ where: { id: message.id } });
+            
+            this.queueGateway.broadcastTenantUpdate(message.tenantId, 'MESSAGE_DELETED', {
+              messageId: message.id,
+              phone: message.customerPhone,
+            });
+            
+            this.redisService.client.publish(
+              'queue_events',
+              JSON.stringify({ type: 'MESSAGE_DELETED', tenantId: message.tenantId, phone: message.customerPhone, messageId: message.id }),
+            );
+          }
+        }
+        return { success: true };
+      }
+
       if (payload?.event !== 'messages.upsert' || !payload?.data) {
         this.logger.debug(
           `Ignoring unsupported webhook event: ${payload?.event}`,
@@ -1684,6 +1707,76 @@ export class WhatsappService implements OnModuleInit {
         providerId: result.data?.key?.id,
       });
     return { success: true, providerId: result.data?.key?.id };
+  }
+
+  async updateMessageWhatsappId(messageId: string, whatsappId: string) {
+    try {
+      await this.prisma.message.update({
+        where: { id: messageId },
+        data: { whatsappId },
+      });
+    } catch (e) {
+      this.logger.warn(`Could not update whatsappId for message ${messageId}`, e);
+    }
+  }
+
+  async deleteMessage(tenantId: string, messageId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
+    if (!tenant || !tenant.whatsappInstanceId) {
+      throw new Error('WhatsApp not connected');
+    }
+
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+    });
+    
+    if (!message || message.tenantId !== tenantId) {
+      throw new Error('Message not found');
+    }
+    
+    if (!message.whatsappId) {
+      // If it doesn't have a whatsappId yet, just delete from DB.
+      await this.prisma.message.delete({ where: { id: messageId } });
+      return { success: true };
+    }
+
+    // Call Evolution API to delete
+    // Evolution API expects remoteJid and messageId (which is the whatsappId)
+    // Actually, Evolution API /message/delete expects:
+    // { "remoteJid": "number@s.whatsapp.net", "messageId": "..." }
+    const url = `/message/delete/${tenant.whatsappInstanceId}`;
+    const payload = {
+      remoteJid: `${message.customerPhone}@s.whatsapp.net`,
+      messageId: message.whatsappId,
+    };
+
+    try {
+      const evoRes = await this.fetchEvo(url, 'POST', payload);
+      
+      if (evoRes.error) {
+        throw new Error(evoRes.error.message);
+      }
+    } catch (e) {
+      this.logger.warn(`Evolution API delete message failed: ${e instanceof Error ? e.message : String(e)}`);
+      // We will still delete from DB
+    }
+
+    await this.prisma.message.delete({ where: { id: messageId } });
+
+    // Notify dashboard
+    this.queueGateway.broadcastTenantUpdate(tenantId, 'MESSAGE_DELETED', {
+      messageId,
+      phone: message.customerPhone,
+    });
+    
+    this.redisService.client.publish(
+      'queue_events',
+      JSON.stringify({ type: 'MESSAGE_DELETED', tenantId, phone: message.customerPhone, messageId }),
+    );
+
+    return { success: true };
   }
 
   // Send a message by resolving the tenant's configured instanceName.

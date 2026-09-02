@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Loader2, PhoneOff, MessageSquare, RefreshCw } from 'lucide-react';
+import { Send, Loader2, PhoneOff, MessageSquare, RefreshCw, Trash2 } from 'lucide-react';
 import { fetchApi } from '../lib/api';
 import { toast } from 'sonner';
+import { useSocket } from './SocketProvider';
 
 interface Message {
   id: string;
@@ -43,6 +44,8 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const { socket } = useSocket();
+
   const fetchMessages = useCallback(async () => {
     if (!tokenId) return;
     try {
@@ -75,6 +78,34 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (payload: any) => {
+      if (payload.type === 'MESSAGE_DELETED') {
+        setMessages(prev => prev.filter(m => m.id !== payload.messageId));
+      }
+    };
+    socket.on('MESSAGE_DELETED', handler);
+    return () => {
+      socket.off('MESSAGE_DELETED', handler);
+    };
+  }, [socket]);
+
+  const handleDelete = async (msgId: string) => {
+    if (!window.confirm('Delete this message for everyone?')) return;
+    
+    // Optimistic delete
+    const previous = [...messages];
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+    
+    try {
+      await fetchApi(`/messages/inbox/${msgId}`, { method: 'DELETE' });
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to delete message');
+      setMessages(previous); // Revert
+    }
+  };
 
   const handleSend = async () => {
     const text = input.trim();
@@ -212,12 +243,21 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
           }
           const msg: Message = item.msg;
           return (
-            <div key={msg.id} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'} max-w-full`}>
-              <div className={`max-w-[80%] px-3 py-2 rounded-xl shadow-sm ${
+            <div key={msg.id} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'} max-w-full group/msg`}>
+              <div className={`max-w-[80%] px-3 py-2 rounded-xl shadow-sm relative ${
                 msg.fromMe
                   ? 'bg-sky-100 dark:bg-sky-900/40 border border-sky-200 dark:border-sky-800 rounded-tr-none text-sky-900 dark:text-sky-100'
                   : 'bg-white dark:bg-dark-card border border-border dark:border-dark-border rounded-tl-none text-on-surface dark:text-white'
               }`}>
+                {msg.fromMe && msg.status !== 'sending' && (
+                  <button 
+                    onClick={() => handleDelete(msg.id)}
+                    className="absolute -left-8 top-1/2 -translate-y-1/2 p-1.5 text-alert hover:bg-alert/10 rounded-full opacity-0 group-hover/msg:opacity-100 transition-opacity"
+                    title="Delete message"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
                 <p className="text-sm leading-snug break-words">{msg.body}</p>
                 <div className={`flex items-center gap-1 mt-1 justify-end`}>
                   <span className="text-[10px] opacity-60 font-mono">{timeLabel(msg.timestamp)}</span>

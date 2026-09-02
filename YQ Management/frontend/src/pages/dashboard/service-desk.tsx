@@ -552,59 +552,51 @@ export default function ServiceDeskToday() {
         {/* Column 3: Visitor Context */}
         {selectedVisit && (
           <section className="hidden md:flex flex-col col-span-3 bg-card dark:bg-dark-card border-l border-border dark:border-dark-border min-h-0 relative animate-in slide-in-from-right-8">
-            <div className="p-6 border-b border-border dark:border-dark-border shrink-0 relative">
-              <button 
-                onClick={() => setSelectedVisit(null)} 
-                className="absolute top-4 right-4 p-1.5 text-outline hover:bg-surface-container rounded-lg transition-colors"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-primary font-bold text-xl border-2 border-surface">
-                   {selectedVisit.customer?.name ? selectedVisit.customer.name.substring(0,2).toUpperCase() : 'W'}
+            <div className="p-3 border-b border-border dark:border-dark-border shrink-0 relative flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg text-on-surface dark:text-white font-bold truncate max-w-[150px]">
+                    {selectedVisit.customer?.name || 'Walk-in'}
+                  </h2>
+                  <span className="font-data-mono text-[11px] text-primary bg-primary/10 px-1.5 py-0.5 rounded font-bold">
+                    {selectedVisit.ticketNumber || `#TKT-${selectedVisit.id.substring(0,4)}`}
+                  </span>
                 </div>
-                <div className="font-data-mono text-data-mono text-primary font-bold">
-                  {selectedVisit.ticketNumber || `#TKT-${selectedVisit.id.substring(0,4)}`}
-                </div>
+                <button 
+                  onClick={() => setSelectedVisit(null)} 
+                  className="p-1 text-outline hover:bg-surface-container rounded transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
               </div>
-              <h2 className="font-headline-sm text-headline-sm text-on-surface dark:text-white font-semibold">
-                {selectedVisit.customer?.name || 'Walk-in Customer'}
-              </h2>
-              <div className="flex items-center gap-2 text-body-sm text-outline mt-1 font-data-mono">
-                <span className="material-symbols-outlined text-[14px]">smartphone</span>
-                {selectedVisit.customer?.phone || 'No phone provided'}
+
+              <div className="flex items-center justify-between text-xs text-outline font-medium">
+                <div className="flex items-center gap-1 font-data-mono">
+                  <span className="material-symbols-outlined text-[14px]">smartphone</span>
+                  {selectedVisit.customer?.phone || 'No phone'}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="capitalize">{selectedVisit.source?.toLowerCase()}</span> • <span className="text-primary">{selectedVisit.currentState}</span>
+                </div>
               </div>
               
-              <div className="mt-6 border border-border dark:border-dark-border rounded-lg overflow-hidden bg-surface-container-low dark:bg-inverse-surface">
-                <div className="w-full flex items-center justify-between p-3 text-body-sm font-medium text-on-surface dark:text-white border-b border-border/50">
-                  <span>Intake Details</span>
+              <div className="flex items-center justify-between mt-1 pt-2 border-t border-border/50 text-xs">
+                <div className="flex items-center gap-1 text-outline">
+                  <span className="font-medium text-on-surface dark:text-white">Service:</span>
+                  <span className="truncate max-w-[100px]">{selectedVisit.service?.name || 'General'}</span>
                 </div>
-                <div className="p-3 text-body-sm text-outline space-y-2">
-                  <div className="flex justify-between"><span className="font-medium text-on-surface dark:text-white">Service:</span> <span>{selectedVisit.service?.name || 'General'}</span></div>
-                  <div className="flex justify-between"><span className="font-medium text-on-surface dark:text-white">Source:</span> <span className="capitalize">{selectedVisit.source?.toLowerCase()}</span></div>
-                  <div className="flex justify-between"><span className="font-medium text-on-surface dark:text-white">Status:</span> <span className="font-medium text-primary">{selectedVisit.currentState}</span></div>
-                  
-                  {selectedVisit.source === 'APPOINTMENT' && selectedVisit.scheduledFor && (
-                    <div className="flex justify-between pt-2 border-t border-border/50">
-                      <span className="font-medium text-on-surface dark:text-white">Scheduled Time:</span>
-                      <span className="font-medium">{new Date(selectedVisit.scheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between items-center pt-2 border-t border-border/50">
-                    <span className="font-medium text-on-surface dark:text-white">Provider/Room:</span>
-                    <select 
-                      value={selectedVisit.resourceId || ''}
-                      onChange={(e) => updateVisitMutation.mutate({ id: selectedVisit.id, resourceId: e.target.value })}
-                      className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-lg text-xs py-1 px-2 max-w-[120px] outline-none"
-                    >
-                      <option value="">Unassigned</option>
-                      {resources.map((r: any) => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-on-surface dark:text-white">Provider:</span>
+                  <select 
+                    value={selectedVisit.resourceId || ''}
+                    onChange={(e) => updateVisitMutation.mutate({ id: selectedVisit.id, resourceId: e.target.value })}
+                    className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded text-xs py-0.5 px-1 max-w-[100px] outline-none"
+                  >
+                    <option value="">Unassigned</option>
+                    {resources.map((r: any) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

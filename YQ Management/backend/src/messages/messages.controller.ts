@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   Body,
   UseGuards,
@@ -65,5 +66,13 @@ export class MessagesController {
       phone,
       body.text,
     );
+  }
+
+  @Delete('inbox/:id')
+  async deleteMessage(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') messageId: string,
+  ) {
+    return this.messagesService.deleteMessage(req.user.tenantId, messageId);
   }
 }

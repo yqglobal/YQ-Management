@@ -123,6 +123,10 @@ model Tenant {
   googleRefreshToken      String?
   googleTokenExpiry       DateTime?
   googleLocationId        String?
+  googlePlaceId           String?
+  googleReviewLink        String?
+  enableSmartReviews      Boolean   @default(false)
+  reviewWaitThresholdMins Int       @default(15)
 
   appointmentApprovalMode String            @default("AUTO") // AUTO, MANUAL
   users              User[]
@@ -308,6 +312,8 @@ model Message {
   body           String
   sender         String // 'OPERATOR', 'CUSTOMER', 'SYSTEM'
   isRead         Boolean  @default(false)
+  whatsappId     String?  @unique
+  isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
 
   tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -391,6 +397,7 @@ model Plan {
   maxQueues       Int?
   sortOrder       Int      @default(0)
   active          Boolean  @default(true)
+  annualDiscountPercent Int @default(10)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   subscriptions   Subscription[]
