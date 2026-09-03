@@ -8,7 +8,15 @@ const withPWA = withPWAInit({
   register: true,
   // @ts-expect-error skipWaiting is commonly used but missing from types
   skipWaiting: true,
-  buildExcludes: [/dynamic-css-manifest\.json$/],
+  workboxOptions: {
+    exclude: [
+      /dynamic-css-manifest\.json$/,
+      /build-manifest\.json$/,
+      /prerender-manifest\.json$/,
+      /react-loadable-manifest\.json$/,
+      /routes-manifest\.json$/
+    ],
+  },
 });
 
 const nextConfig: NextConfig = {
