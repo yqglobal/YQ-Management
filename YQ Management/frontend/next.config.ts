@@ -28,6 +28,14 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
+      },
+    ],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -39,8 +47,9 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_BUILD_TIMESTAMP: new Date().toISOString(),
     NEXT_PUBLIC_BUILD_COMMIT: (function() {
       try {
-        return require('child_process').execSync('git rev-parse --short HEAD').toString().trim();
-      } catch (e) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        return (require('child_process') as typeof import('child_process')).execSync('git rev-parse --short HEAD').toString().trim();
+      } catch {
         return 'unknown';
       }
     })(),

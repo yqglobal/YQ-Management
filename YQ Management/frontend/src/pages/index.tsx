@@ -2,6 +2,7 @@ import Footer from "../components/Footer";
 import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 
 import { useAuth } from '../components/AuthContext';
 import { Logo } from '../components/Logo';
@@ -102,7 +103,7 @@ export default function LandingPage() {
               <div className="flex -space-x-2">
                 {[1, 2, 3, 4].map(i => (
                   <div key={i} className="w-8 h-8 rounded-full bg-zinc-800 border-2 border-[#09090b] flex items-center justify-center overflow-hidden">
-                    <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="user" className="w-full h-full object-cover" />
+                    <Image src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="user" width={32} height={32} className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
@@ -124,9 +125,12 @@ export default function LandingPage() {
             <div className="absolute -bottom-[10%] -right-[10%] w-[70%] h-[70%] bg-purple-500/30 blur-[100px] rounded-full mix-blend-screen pointer-events-none opacity-50 group-hover:opacity-80 scale-100 group-hover:scale-125 transition-all duration-700 ease-out delay-75" />
 
             {/* Hover Image */}
-            <img
+            <Image
               src="/images/no-bg/maya-hero-section.png"
               alt="Hero Section Image"
+              width={800}
+              height={800}
+              priority
               className="relative z-10 w-[120%] max-w-none h-auto object-contain drop-shadow-[0_0_50px_rgba(0,0,0,0.8)] pointer-events-none scale-100 group-hover:scale-105 translate-y-0 group-hover:-translate-y-4 transition-all duration-700 ease-out"
             />
 
@@ -188,7 +192,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-white mb-3">Virtual Tickets</h3>
               <p className="text-zinc-400 text-sm leading-relaxed">
-                Customers scan a QR code at your door, get a digital ticket on their phone, and wait wherever they want. We alert them when it's their turn.
+                Customers scan a QR code at your door, get a digital ticket on their phone, and wait wherever they want. We alert them when it&apos;s their turn.
               </p>
             </Link>
 
@@ -218,9 +222,12 @@ export default function LandingPage() {
               >
                 <div className="absolute top-0 left-0 w-[80%] h-[80%] bg-sky-500/20 blur-[100px] rounded-full mix-blend-screen pointer-events-none opacity-50 group-hover:opacity-80 scale-100 group-hover:scale-125 transition-all duration-700 ease-out" />
                 <div className="absolute bottom-0 right-0 w-[80%] h-[80%] bg-teal-400/20 blur-[100px] rounded-full mix-blend-screen pointer-events-none opacity-50 group-hover:opacity-80 scale-100 group-hover:scale-125 transition-all duration-700 ease-out delay-75" />
-                <img
+                <Image
                   src="/images/no-bg/maya-reception.png"
                   alt="Receptionist using Qmova Dashboard"
+                  width={800}
+                  height={600}
+                  loading="lazy"
                   className="relative z-10 w-[90%] max-w-none h-auto object-contain drop-shadow-[0_0_50px_rgba(0,0,0,0.6)] pointer-events-none scale-100 group-hover:scale-105 translate-y-0 group-hover:-translate-y-3 transition-all duration-700 ease-out"
                 />
               </motion.div>
@@ -228,7 +235,7 @@ export default function LandingPage() {
               <div className="flex-1 space-y-6">
                 <h2 className="text-3xl md:text-4xl font-extrabold text-white">Empower your receptionists.</h2>
                 <p className="text-lg text-zinc-400 leading-relaxed">
-                  Qmova's web dashboard is so simple that your staff can learn it in 3 minutes. It takes the stress out of the front desk by automatically slotting walk-ins into the gaps between your scheduled appointments.
+                  Qmova&apos;s web dashboard is so simple that your staff can learn it in 3 minutes. It takes the stress out of the front desk by automatically slotting walk-ins into the gaps between your scheduled appointments.
                 </p>
                 <div className="pt-4">
                   <Link href="/features#routing" className="text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-2 group">
@@ -244,7 +251,7 @@ export default function LandingPage() {
               <div className="flex-1 space-y-6 lg:pl-12">
                 <h2 className="text-3xl md:text-4xl font-extrabold text-white">Let AI handle the waiting.</h2>
                 <p className="text-lg text-zinc-400 leading-relaxed">
-                  Give your customers the ultimate convenience. They can join the queue directly through WhatsApp, get real-time updates on their position, and receive a friendly 5-minute warning when it's their turn.
+                  Give your customers the ultimate convenience. They can join the queue directly through WhatsApp, get real-time updates on their position, and receive a friendly 5-minute warning when it&apos;s their turn.
                 </p>
                 <div className="pt-4">
                   <Link href="/features#whatsapp" className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-2 group">
@@ -263,9 +270,12 @@ export default function LandingPage() {
               >
                 <div className="absolute top-0 right-0 w-[80%] h-[80%] bg-emerald-500/20 blur-[100px] rounded-full mix-blend-screen pointer-events-none opacity-50 group-hover:opacity-80 scale-100 group-hover:scale-125 transition-all duration-700 ease-out" />
                 <div className="absolute bottom-0 left-0 w-[80%] h-[80%] bg-green-400/20 blur-[100px] rounded-full mix-blend-screen pointer-events-none opacity-50 group-hover:opacity-80 scale-100 group-hover:scale-125 transition-all duration-700 ease-out delay-75" />
-                <img
+                <Image
                   src="/images/no-bg/maya-whatsapp.png"
                   alt="WhatsApp Chatbot"
+                  width={800}
+                  height={600}
+                  loading="lazy"
                   className="relative z-10 w-[90%] max-w-none h-auto object-contain drop-shadow-[0_0_50px_rgba(0,0,0,0.6)] pointer-events-none scale-100 group-hover:scale-105 translate-y-0 group-hover:-translate-y-3 transition-all duration-700 ease-out"
                 />
               </motion.div>
@@ -282,9 +292,12 @@ export default function LandingPage() {
               >
                 <div className="absolute top-10 left-0 w-[80%] h-[80%] bg-purple-500/20 blur-[100px] rounded-full mix-blend-screen pointer-events-none opacity-50 group-hover:opacity-80 scale-100 group-hover:scale-125 transition-all duration-700 ease-out" />
                 <div className="absolute bottom-10 right-0 w-[80%] h-[80%] bg-pink-500/20 blur-[100px] rounded-full mix-blend-screen pointer-events-none opacity-50 group-hover:opacity-80 scale-100 group-hover:scale-125 transition-all duration-700 ease-out delay-75" />
-                <img
+                <Image
                   src="/images/no-bg/maya-callendar.png"
                   alt="Custom Booking Calendar"
+                  width={800}
+                  height={600}
+                  loading="lazy"
                   className="relative z-10 w-[90%] max-w-none h-auto object-contain drop-shadow-[0_0_50px_rgba(0,0,0,0.6)] pointer-events-none scale-100 group-hover:scale-105 translate-y-0 group-hover:-translate-y-3 transition-all duration-700 ease-out"
                 />
               </motion.div>
@@ -327,9 +340,12 @@ export default function LandingPage() {
               >
                 <div className="absolute top-0 right-10 w-[80%] h-[80%] bg-amber-500/20 blur-[100px] rounded-full mix-blend-screen pointer-events-none opacity-50 group-hover:opacity-80 scale-100 group-hover:scale-125 transition-all duration-700 ease-out" />
                 <div className="absolute bottom-0 left-10 w-[80%] h-[80%] bg-orange-500/20 blur-[100px] rounded-full mix-blend-screen pointer-events-none opacity-50 group-hover:opacity-80 scale-100 group-hover:scale-125 transition-all duration-700 ease-out delay-75" />
-                <img
+                <Image
                   src="/images/no-bg/maya-nohardware.png"
                   alt="No hardware needed"
+                  width={800}
+                  height={600}
+                  loading="lazy"
                   className="relative z-10 w-[90%] max-w-none h-auto object-contain drop-shadow-[0_0_50px_rgba(0,0,0,0.6)] pointer-events-none scale-100 group-hover:scale-105 translate-y-0 group-hover:-translate-y-3 transition-all duration-700 ease-out"
                 />
               </motion.div>
