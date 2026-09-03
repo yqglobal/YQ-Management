@@ -168,7 +168,7 @@ const BUSINESS_TEMPLATES = [
 export default function Onboarding() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [selectedType, setSelectedType] = useState<string>('general');
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -225,7 +225,7 @@ export default function Onboarding() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [trialAgreed, setTrialAgreed] = useState(false);
 
-  const updateStep = (newStep: 1 | 2 | 3 | 4 | 5) => {
+  const updateStep = (newStep: 1 | 2 | 3 | 4 | 5 | 6) => {
     setStep(newStep);
     if (typeof window !== 'undefined') {
       localStorage.setItem('onboarding_step', newStep.toString());
@@ -248,10 +248,19 @@ export default function Onboarding() {
           .catch(() => { });
       }
 
+      if (router.query.googleAuth === 'success') {
+        toast.success('Google account connected successfully!');
+        updateStep(4);
+        // Clean up URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete('googleAuth');
+        window.history.replaceState({}, '', url.toString());
+      }
+
       const savedStep = localStorage.getItem('onboarding_step');
       if (savedStep) {
         const parsed = parseInt(savedStep, 10);
-        if (parsed === 1 || parsed === 2 || parsed === 3 || parsed === 4) setStep(parsed as 1 | 2 | 3 | 4);
+        if (parsed >= 1 && parsed <= 6) setStep(parsed as 1 | 2 | 3 | 4 | 5 | 6);
       }
       const savedData = localStorage.getItem('onboarding_form_data');
       if (savedData) {
@@ -279,8 +288,8 @@ export default function Onboarding() {
   }, [selectedType]);
 
   useEffect(() => {
-    if (inviteCode && (step === 2 || step === 3)) {
-      updateStep(4);
+    if (inviteCode && (step === 2 || step === 3 || step === 4 || step === 5)) {
+      updateStep(6);
     }
   }, [inviteCode, step]);
 
@@ -308,7 +317,7 @@ export default function Onboarding() {
     },
     onSuccess: () => {
       if (inviteCode) {
-        updateStep(4);
+        updateStep(6);
       } else {
         updateStep(2);
       }
@@ -422,10 +431,10 @@ export default function Onboarding() {
     },
   });
 
-  // When entering step 3, try to load a cached QR quickly
+  // When entering step 4, try to load a cached QR quickly
   useEffect(() => {
     let cancelled = false;
-    if (step === 3 && cachedQrQuery.data?.qr) {
+    if (step === 4 && cachedQrQuery.data?.qr) {
       setQrCode(cachedQrQuery.data.qr);
     }
     return () => { cancelled = true; };
@@ -472,7 +481,7 @@ export default function Onboarding() {
       router.push('/dashboard');
     }, 2500);
   };
-const totalSteps = inviteCode ? 2 : 4;
+  const totalSteps = inviteCode ? 2 : 5;
   const currentStepProgress = inviteCode ? (step === 1 ? 1 : 2) : step;
 
   return (
@@ -771,6 +780,51 @@ const totalSteps = inviteCode ? 2 : 4;
             >
               <header className="flex flex-col gap-2 w-full">
                 <h1 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight">
+                  Connect Google Accounts
+                </h1>
+                <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline max-w-lg mx-auto">
+                  Sync calendar appointments and harvest business reviews automatically by connecting your Google accounts.
+                </p>
+              </header>
+
+              <div className="w-full max-w-sm mt-4 p-8 bg-surface-bright dark:bg-zinc-900 border border-border dark:border-dark-border rounded-2xl flex flex-col items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.9 8.2,4.73 12.2,4.73C15.29,4.73 17.1,6.7 17.1,6.7L19,4.72C19,4.72 16.56,2 12.1,2C6.42,2 2.03,6.8 2.03,12C2.03,17.05 6.16,22 12.25,22C17.6,22 21.5,18.33 21.5,12.91C21.5,11.76 21.35,11.1 21.35,11.1V11.1Z" />
+                  </svg>
+                </div>
+                <p className="text-on-surface-variant dark:text-zinc-400 text-sm mb-4">
+                  You can connect multiple Google accounts later from the Settings page.
+                </p>
+                <button
+                  onClick={() => {
+                    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?intent=link_tenant_onboarding`;
+                  }}
+                  className="w-full min-h-[44px] px-8 rounded-lg font-body-md font-medium bg-blue-600 hover:bg-blue-700 text-white transition-opacity flex items-center justify-center gap-2"
+                >
+                  Connect Google Account
+                </button>
+                <button
+                  onClick={() => updateStep(4)}
+                  className="w-full mt-2 text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                >
+                  Skip for now
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 4 && (
+            <motion.div 
+              key="step3"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-8 text-center items-center"
+            >
+              <header className="flex flex-col gap-2 w-full">
+                <h1 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight">
                   Connect WhatsApp
                 </h1>
                 <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline max-w-lg mx-auto">
@@ -916,9 +970,9 @@ const totalSteps = inviteCode ? 2 : 4;
             </motion.div>
           )}
 
-          {step === 4 && (
+          {step === 6 && (
             <motion.div 
-              key="step4"
+              key="step6"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}

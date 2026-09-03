@@ -118,13 +118,7 @@ model Tenant {
   customerExperience Json? // Global settings for forms, feedback, and portal experience
 
   // Google Business Profile Integration
-  googleBusinessConnected Boolean   @default(false)
-  googleAccessToken       String?
-  googleRefreshToken      String?
-  googleTokenExpiry       DateTime?
-  googleLocationId        String?
-  googlePlaceId           String?
-  googleReviewLink        String?
+
   enableSmartReviews      Boolean   @default(false)
   reviewWaitThresholdMins Int       @default(15)
 
@@ -154,6 +148,8 @@ model Tenant {
   invitations         Invitation[]  // Team invitations scoped to this tenant
   autonomousEnabled   Boolean @default(false)
   createdAt DateTime @default(now())
+  
+  googleIntegrations  GoogleIntegration[]
 }
 
 model User {
@@ -620,11 +616,34 @@ model Location {
   tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
+  googleIntegrationId String?
+  googlePlaceId       String?
+  googleCalendarId    String?
+  googleIntegration   GoogleIntegration? @relation(fields: [googleIntegrationId], references: [id], onDelete: SetNull)
+
   frozenByQuota Boolean @default(false)
   frozenAt      DateTime?
 
   @@index([tenantId])
   @@index([workspaceId])
+  @@index([googleIntegrationId])
+}
+
+model GoogleIntegration {
+  id                String   @id @default(uuid())
+  tenantId          String
+  googleId          String
+  email             String
+  accessToken       String
+  refreshToken      String?
+  tokenExpiry       DateTime?
+  createdAt         DateTime @default(now())
+
+  tenant            Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  locations         Location[] // Locations using this specific Google account
+  
+  @@unique([tenantId, email])
+  @@index([tenantId])
 }
 
 model Service {

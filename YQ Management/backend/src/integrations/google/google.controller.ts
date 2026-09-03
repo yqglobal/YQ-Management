@@ -26,7 +26,11 @@ export class GoogleController {
   @Patch('business-profile')
   async updateBusinessProfileSettings(
     @Req() req: any,
-    @Body() data: { googlePlaceId?: string; enableSmartReviews?: boolean; reviewWaitThresholdMins?: number }
+    @Body() data: { 
+      enableSmartReviews?: boolean; 
+      reviewWaitThresholdMins?: number;
+      locations?: any[];
+    }
   ) {
     const tenantId = req.user?.tenantId;
     if (!tenantId) {

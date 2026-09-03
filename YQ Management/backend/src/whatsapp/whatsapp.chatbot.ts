@@ -667,13 +667,22 @@ export class WhatsappChatbot {
     }
 
     if (rating >= 4) {
-      const tenant = await this.prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: { googleReviewLink: true }
-      });
+      const locationId = (session.context as any)?.locationId;
+      let reviewLink = null;
       
-      if (tenant?.googleReviewLink) {
-        await this.sendMsg(jid, `We are thrilled you had a great experience! We would really appreciate it if you could share it on Google:\n${tenant.googleReviewLink}`);
+      if (locationId) {
+        const location = await this.prisma.location.findUnique({
+          where: { id: locationId },
+          select: { googlePlaceId: true }
+        });
+        
+        if (location?.googlePlaceId) {
+          reviewLink = `https://search.google.com/local/writereview?placeid=${location.googlePlaceId}`;
+        }
+      }
+      
+      if (reviewLink) {
+        await this.sendMsg(jid, `We are thrilled you had a great experience! We would really appreciate it if you could share it on Google:\n${reviewLink}`);
       } else {
         await this.sendMsg(jid, 'Thank you for your fantastic feedback!');
       }

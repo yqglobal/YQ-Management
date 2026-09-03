@@ -77,6 +77,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         const user = await this.authService.linkGoogleAccount(
           decoded.sub,
           googleId,
+          email,
           accessToken,
           refreshToken,
         );

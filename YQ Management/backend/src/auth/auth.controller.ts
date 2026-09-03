@@ -206,7 +206,7 @@ export class AuthController {
     const intent = req.query.state || 'login';
 
     if (req.user?._oauthError) {
-      if (intent === 'link_tenant') {
+      if (intent === 'link_tenant' || intent === 'link_tenant_onboarding') {
         return res.redirect(
           `${frontendUrl}/dashboard/settings/integrations?googleAuth=error`,
         );
@@ -244,6 +244,10 @@ export class AuthController {
 
     if (intent === 'link_tenant') {
       res.redirect(`${frontendUrl}/dashboard/settings/integrations?googleAuth=success`);
+    } else if (intent === 'link_tenant_onboarding') {
+      // User connected google from onboarding step 3. 
+      // Add a parameter so the frontend knows they succeeded.
+      res.redirect(`${frontendUrl}/onboarding?token=${access_token}&googleAuth=success`);
     } else if (isSuperAdmin) {
       res.redirect(`${frontendUrl}/super-admin?token=${access_token}`);
     } else if (isNewUser) {

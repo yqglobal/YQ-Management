@@ -26,22 +26,24 @@ export class GoogleService {
 
 
   async syncAppointmentToCalendar(tenantId: string, appointmentDetails: any) {
-    this.logger.log(`Syncing appointment to Google Calendar for tenant ${tenantId}`);
+    this.logger.log(`Syncing appointment to Google Calendar for location ${appointmentDetails.locationId}`);
 
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { googleAccessToken: true, googleRefreshToken: true, name: true },
+    const location = await this.prisma.location.findUnique({
+      where: { id: appointmentDetails.locationId },
+      include: { googleIntegration: true },
     });
 
-    if (!tenant || (!tenant.googleAccessToken && !tenant.googleRefreshToken)) {
-      this.logger.warn(`Tenant ${tenantId} does not have Google Calendar connected. Skipping sync.`);
+    const integration = location?.googleIntegration;
+
+    if (!integration || (!integration.accessToken && !integration.refreshToken)) {
+      this.logger.warn(`Location ${appointmentDetails.locationId} does not have Google Calendar connected. Skipping sync.`);
       return;
     }
 
     try {
       this.oauth2Client.setCredentials({
-        access_token: tenant.googleAccessToken,
-        refresh_token: tenant.googleRefreshToken,
+        access_token: integration.accessToken,
+        refresh_token: integration.refreshToken,
       });
 
       const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
@@ -79,19 +81,20 @@ export class GoogleService {
   }
 
   async updateAppointmentInCalendar(tenantId: string, appointmentDetails: any) {
-    if (!appointmentDetails.formData?.googleEventId) return;
+    if (!appointmentDetails.formData?.googleEventId || !appointmentDetails.locationId) return;
     
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { googleAccessToken: true, googleRefreshToken: true },
+    const location = await this.prisma.location.findUnique({
+      where: { id: appointmentDetails.locationId },
+      include: { googleIntegration: true },
     });
 
-    if (!tenant || (!tenant.googleAccessToken && !tenant.googleRefreshToken)) return;
+    const integration = location?.googleIntegration;
+    if (!integration || (!integration.accessToken && !integration.refreshToken)) return;
 
     try {
       this.oauth2Client.setCredentials({
-        access_token: tenant.googleAccessToken,
-        refresh_token: tenant.googleRefreshToken,
+        access_token: integration.accessToken,
+        refresh_token: integration.refreshToken,
       });
 
       const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
@@ -115,19 +118,20 @@ export class GoogleService {
   }
 
   async deleteAppointmentFromCalendar(tenantId: string, appointmentDetails: any) {
-    if (!appointmentDetails.formData?.googleEventId) return;
+    if (!appointmentDetails.formData?.googleEventId || !appointmentDetails.locationId) return;
 
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { googleAccessToken: true, googleRefreshToken: true },
+    const location = await this.prisma.location.findUnique({
+      where: { id: appointmentDetails.locationId },
+      include: { googleIntegration: true },
     });
 
-    if (!tenant || (!tenant.googleAccessToken && !tenant.googleRefreshToken)) return;
+    const integration = location?.googleIntegration;
+    if (!integration || (!integration.accessToken && !integration.refreshToken)) return;
 
     try {
       this.oauth2Client.setCredentials({
-        access_token: tenant.googleAccessToken,
-        refresh_token: tenant.googleRefreshToken,
+        access_token: integration.accessToken,
+        refresh_token: integration.refreshToken,
       });
 
       const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
@@ -146,57 +150,70 @@ export class GoogleService {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       select: {
-        googlePlaceId: true,
-        googleReviewLink: true,
         enableSmartReviews: true,
         reviewWaitThresholdMins: true,
-        googleBusinessConnected: true,
       },
     });
 
-    return tenant;
+    const locations = await this.prisma.location.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        name: true,
+        googleIntegrationId: true,
+        googlePlaceId: true,
+        googleCalendarId: true,
+      }
+    });
+
+    const googleIntegrations = await this.prisma.googleIntegration.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+      }
+    });
+
+    return { tenant, locations, googleIntegrations };
   }
 
   async updateSettings(
     tenantId: string,
     data: {
-      googlePlaceId?: string;
       enableSmartReviews?: boolean;
       reviewWaitThresholdMins?: number;
+      locations?: {
+        id: string;
+        googleIntegrationId?: string | null;
+        googlePlaceId?: string | null;
+        googleCalendarId?: string | null;
+      }[];
     },
   ) {
-    this.logger.log(`Updating Google Business Profile settings for tenant ${tenantId}`);
+    if (data.enableSmartReviews !== undefined || data.reviewWaitThresholdMins !== undefined) {
+      await this.prisma.tenant.update({
+        where: { id: tenantId },
+        data: {
+          ...(data.enableSmartReviews !== undefined ? { enableSmartReviews: data.enableSmartReviews } : {}),
+          ...(data.reviewWaitThresholdMins !== undefined ? { reviewWaitThresholdMins: data.reviewWaitThresholdMins } : {}),
+        },
+      });
+    }
 
-    const updateData: any = {};
-    if (data.googlePlaceId !== undefined) {
-      updateData.googlePlaceId = data.googlePlaceId;
-      // If a Place ID is provided, automatically generate the review link
-      if (data.googlePlaceId) {
-        updateData.googleReviewLink = `https://search.google.com/local/writereview?placeid=${data.googlePlaceId}`;
-      } else {
-        updateData.googleReviewLink = null;
+    if (data.locations && data.locations.length > 0) {
+      for (const loc of data.locations) {
+        await this.prisma.location.update({
+          where: { id: loc.id, tenantId },
+          data: {
+            ...(loc.googleIntegrationId !== undefined ? { googleIntegrationId: loc.googleIntegrationId } : {}),
+            ...(loc.googlePlaceId !== undefined ? { googlePlaceId: loc.googlePlaceId } : {}),
+            ...(loc.googleCalendarId !== undefined ? { googleCalendarId: loc.googleCalendarId } : {}),
+          },
+        });
       }
     }
-    if (data.enableSmartReviews !== undefined) {
-      updateData.enableSmartReviews = data.enableSmartReviews;
-    }
-    if (data.reviewWaitThresholdMins !== undefined) {
-      updateData.reviewWaitThresholdMins = data.reviewWaitThresholdMins;
-    }
 
-    const tenant = await this.prisma.tenant.update({
-      where: { id: tenantId },
-      data: updateData,
-    });
-
-    return {
-      message: 'Google Business Profile settings updated successfully',
-      settings: {
-        googlePlaceId: tenant.googlePlaceId,
-        googleReviewLink: tenant.googleReviewLink,
-        enableSmartReviews: tenant.enableSmartReviews,
-        reviewWaitThresholdMins: tenant.reviewWaitThresholdMins,
-      },
-    };
+    return this.getSettings(tenantId);
   }
 }

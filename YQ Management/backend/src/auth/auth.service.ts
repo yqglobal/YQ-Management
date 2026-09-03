@@ -167,11 +167,24 @@ export class AuthService {
         user.role === 'TENANT_ADMIN' &&
         (accessToken || refreshToken)
       ) {
-        await this.prisma.tenant.update({
-          where: { id: user.tenantId },
-          data: {
-            ...(accessToken ? { googleAccessToken: accessToken } : {}),
-            ...(refreshToken ? { googleRefreshToken: refreshToken } : {}),
+        await this.prisma.googleIntegration.upsert({
+          where: {
+            tenantId_email: {
+              tenantId: user.tenantId,
+              email,
+            },
+          },
+          create: {
+            tenantId: user.tenantId,
+            googleId,
+            email,
+            accessToken: accessToken || '',
+            refreshToken,
+          },
+          update: {
+            googleId,
+            ...(accessToken ? { accessToken } : {}),
+            ...(refreshToken ? { refreshToken } : {}),
           },
         });
       }
@@ -186,6 +199,7 @@ export class AuthService {
   async linkGoogleAccount(
     userId: string,
     googleId: string,
+    email: string,
     accessToken?: string,
     refreshToken?: string,
   ) {
@@ -195,12 +209,24 @@ export class AuthService {
     if (!user) throw new Error('User not found');
 
     if (user.role === 'TENANT_ADMIN' || user.role === 'SUPER_ADMIN') {
-      await this.prisma.tenant.update({
-        where: { id: user.tenantId },
-        data: {
-          googleBusinessConnected: true,
-          ...(accessToken ? { googleAccessToken: accessToken } : {}),
-          ...(refreshToken ? { googleRefreshToken: refreshToken } : {}),
+      await this.prisma.googleIntegration.upsert({
+        where: {
+          tenantId_email: {
+            tenantId: user.tenantId,
+            email,
+          },
+        },
+        create: {
+          tenantId: user.tenantId,
+          googleId,
+          email,
+          accessToken: accessToken || '',
+          refreshToken,
+        },
+        update: {
+          googleId,
+          ...(accessToken ? { accessToken } : {}),
+          ...(refreshToken ? { refreshToken } : {}),
         },
       });
     }

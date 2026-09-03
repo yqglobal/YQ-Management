@@ -439,10 +439,11 @@ export class OutboxProcessorService implements OnModuleInit {
             whatsappInstanceId: true,
             enableSmartReviews: true,
             reviewWaitThresholdMins: true,
-            googleReviewLink: true,
-            googleBusinessConnected: true,
           },
         },
+        location: {
+          select: { googlePlaceId: true }
+        }
       },
     });
 
@@ -455,7 +456,7 @@ export class OutboxProcessorService implements OnModuleInit {
       return;
 
     // Check if Smart Reviews are enabled and properly configured
-    if (!visit.tenant.enableSmartReviews || !visit.tenant.googleReviewLink) {
+    if (!visit.tenant.enableSmartReviews || !visit.location?.googlePlaceId) {
       return;
     }
 
@@ -485,14 +486,14 @@ export class OutboxProcessorService implements OnModuleInit {
             where: { tenantId: visit.tenantId, phone: { contains: cleanPhone } }
           });
           
-          if (session) {
+           if (session) {
              await this.prisma.chatSession.update({
                where: { id: session.id },
-               data: { step: 20 }
+               data: { step: 20, context: { locationId: visit.locationId } }
              });
           } else {
              await this.prisma.chatSession.create({
-               data: { tenantId: visit.tenantId, phone: cleanPhone, step: 20 }
+               data: { tenantId: visit.tenantId, phone: cleanPhone, step: 20, context: { locationId: visit.locationId } }
              });
           }
         } catch (err) {
