@@ -234,7 +234,7 @@ export default function ResourcesSettingsPage() {
 
         <QuotaWarningBanner 
           resourceType="locations" 
-          frozenCount={plan.usage.frozenCounts.locations} 
+          frozenCount={plan.frozenCounts.locations} 
           limit={typeof plan.limits === 'string' ? JSON.parse(plan.limits).maxLocations : plan.limits.maxLocations} 
         />
 
@@ -329,7 +329,7 @@ export default function ResourcesSettingsPage() {
 
         <QuotaWarningBanner 
           resourceType="services" 
-          frozenCount={plan.usage.frozenCounts.services} 
+          frozenCount={plan.frozenCounts.services} 
           limit={typeof plan.limits === 'string' ? JSON.parse(plan.limits).maxServices : plan.limits.maxServices} 
         />
 

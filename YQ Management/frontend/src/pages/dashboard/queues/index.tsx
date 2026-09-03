@@ -163,7 +163,7 @@ export default function QueuesList() {
 
         <QuotaWarningBanner 
           resourceType="queues" 
-          frozenCount={plan.usage.frozenCounts.queues} 
+          frozenCount={plan.frozenCounts.queues} 
           limit={typeof plan.limits === 'string' ? JSON.parse(plan.limits).maxQueues : plan.limits.maxQueues} 
         />
 
