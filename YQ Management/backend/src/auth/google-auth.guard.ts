@@ -8,7 +8,7 @@ export class GoogleAuthGuard extends AuthGuard('google') {
     return {
       state: req.query.intent || 'login',
       accessType: 'offline',
-      prompt: 'consent',
+      prompt: 'consent select_account',
     };
   }
 }

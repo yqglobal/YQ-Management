@@ -183,6 +183,40 @@ export class AuthService {
     }
   }
 
+  async linkGoogleAccount(
+    userId: string,
+    googleId: string,
+    accessToken?: string,
+    refreshToken?: string,
+  ) {
+    const user = await this.usersService['prisma'].user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) throw new Error('User not found');
+
+    if (user.role === 'TENANT_ADMIN' || user.role === 'SUPER_ADMIN') {
+      await this.prisma.tenant.update({
+        where: { id: user.tenantId },
+        data: {
+          googleBusinessConnected: true,
+          ...(accessToken ? { googleAccessToken: accessToken } : {}),
+          ...(refreshToken ? { googleRefreshToken: refreshToken } : {}),
+        },
+      });
+    }
+
+    // Link Google ID to the user account so they can SSO later with this account
+    // ONLY if they don't already have a googleId set (e.g. they signed up with a different Google account)
+    const updatedUser = user.googleId
+      ? user
+      : await this.prisma.user.update({
+          where: { id: userId },
+          data: { googleId },
+        });
+
+    return updatedUser;
+  }
+
   async login(user: any, ip?: string, userAgent?: string) {
     const jti = require('crypto').randomUUID();
     const payload = {

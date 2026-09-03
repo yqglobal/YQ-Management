@@ -24,43 +24,6 @@ export class GoogleService {
     );
   }
 
-  getAuthUrl(tenantId: string): string {
-    const scopes = [
-      'https://www.googleapis.com/auth/calendar.events',
-      'https://www.googleapis.com/auth/userinfo.profile',
-      'https://www.googleapis.com/auth/business.manage'
-    ];
-
-    return this.oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      prompt: 'consent',
-      scope: scopes,
-      state: tenantId,
-    });
-  }
-
-  async handleCallback(code: string, tenantId: string) {
-    this.logger.log(`Handling Google OAuth callback for tenant ${tenantId}`);
-
-    try {
-      const { tokens } = await this.oauth2Client.getToken(code);
-      
-      await this.prisma.tenant.update({
-        where: { id: tenantId },
-        data: {
-          googleBusinessConnected: true,
-          googleAccessToken: tokens.access_token,
-          googleRefreshToken: tokens.refresh_token,
-          googleTokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        },
-      });
-
-      this.logger.log(`Successfully connected Google account for tenant ${tenantId}`);
-    } catch (error) {
-      this.logger.error('Error exchanging Google OAuth code', error);
-      throw error;
-    }
-  }
 
   async syncAppointmentToCalendar(tenantId: string, appointmentDetails: any) {
     this.logger.log(`Syncing appointment to Google Calendar for tenant ${tenantId}`);

@@ -203,8 +203,14 @@ export class AuthController {
   ) {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
 
+    const intent = req.query.state || 'login';
+
     if (req.user?._oauthError) {
-      const intent = req.query.state || 'login';
+      if (intent === 'link_tenant') {
+        return res.redirect(
+          `${frontendUrl}/dashboard/settings/integrations?googleAuth=error`,
+        );
+      }
       const redirectPage = intent === 'signup' ? 'register' : 'login';
       return res.redirect(
         `${frontendUrl}/${redirectPage}?error=${req.user._oauthError}`,
@@ -236,7 +242,9 @@ export class AuthController {
       req.user.isNewUser ||
       (!personalSettings.onboardingCompleted && !isSuperAdmin);
 
-    if (isSuperAdmin) {
+    if (intent === 'link_tenant') {
+      res.redirect(`${frontendUrl}/dashboard/settings/integrations?googleAuth=success`);
+    } else if (isSuperAdmin) {
       res.redirect(`${frontendUrl}/super-admin?token=${access_token}`);
     } else if (isNewUser) {
       res.redirect(`${frontendUrl}/onboarding?token=${access_token}`);

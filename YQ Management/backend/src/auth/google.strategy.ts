@@ -3,6 +3,7 @@ import { Strategy, VerifyCallback } from 'passport-google-oauth20';
 import { Injectable } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -38,6 +39,13 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     });
   }
 
+  authorizationParams(): any {
+    return {
+      access_type: 'offline',
+      prompt: 'consent select_account',
+    };
+  }
+
   async validate(
     req: any,
     accessToken: string,
@@ -57,6 +65,27 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     }
 
     const intent = req.query.state || 'login';
+
+    if (intent === 'link_tenant') {
+      const token = req.cookies?.token;
+      if (!token) {
+        return done(new Error('Not logged in to link account'));
+      }
+      try {
+        const secret = process.env.JWT_SECRET || 'fallback-secret-for-jwt';
+        const decoded: any = jwt.verify(token, secret);
+        const user = await this.authService.linkGoogleAccount(
+          decoded.sub,
+          googleId,
+          accessToken,
+          refreshToken,
+        );
+        return done(null, user);
+      } catch (error) {
+        return done(error as Error);
+      }
+    }
+
     // Passing accessToken and refreshToken to be handled in validateOAuthLogin
     const user = await this.authService.validateOAuthLogin(
       email,

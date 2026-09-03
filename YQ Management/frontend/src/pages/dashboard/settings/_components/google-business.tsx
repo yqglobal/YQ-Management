@@ -89,7 +89,7 @@ export default function GoogleBusinessSettings() {
             ) : (
               <Button 
                 onClick={() => {
-                  window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/integrations/google/connect?tenantId=${user?.tenantId}`;
+                  window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?intent=link_tenant`;
                 }}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
