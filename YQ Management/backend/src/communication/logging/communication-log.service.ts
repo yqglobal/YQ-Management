@@ -21,7 +21,7 @@ export class CommunicationLogService {
   constructor(private readonly prisma: PrismaService) {}
 
   async log(entry: {
-    workspaceId?: string;
+    tenantId?: string;
     channel: CommunicationChannel;
     type: string;
     recipient: string;
@@ -36,7 +36,7 @@ export class CommunicationLogService {
     try {
       await this.prisma.communicationLog.create({
         data: {
-          workspaceId: entry.workspaceId,
+          tenantId: entry.tenantId,
           channel: entry.channel,
           type: entry.type,
           recipient: entry.recipient,
@@ -63,24 +63,24 @@ export class CommunicationLogService {
     }
   }
 
-  async getLogs(workspaceId: string, page = 1, limit = 50) {
+  async getLogs(tenantId: string, page = 1, limit = 50) {
     const skip = (page - 1) * limit;
     const [logs, total] = await Promise.all([
       this.prisma.communicationLog.findMany({
-        where: { workspaceId },
+        where: { tenantId },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.communicationLog.count({ where: { workspaceId } }),
+      this.prisma.communicationLog.count({ where: { tenantId } }),
     ]);
     return { logs, total, page, limit };
   }
 
-  async getFailedLogs(workspaceId?: string) {
+  async getFailedLogs(tenantId?: string) {
     return this.prisma.communicationLog.findMany({
       where: {
-        ...(workspaceId ? { workspaceId } : {}),
+        ...(tenantId ? { tenantId } : {}),
         status: CommunicationStatus.FAILED,
       },
       orderBy: { createdAt: 'desc' },

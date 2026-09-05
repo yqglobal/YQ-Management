@@ -121,9 +121,7 @@ export class SuperAdminService {
             queues: { where: { status: { not: 'CLOSED' } } },
           },
         },
-        workspaces: {
-          select: { id: true, name: true },
-        },
+
         subscriptions: {
           where: {
             status: { in: ['ACTIVE', 'TRIAL', 'PAST_DUE'] },
@@ -145,16 +143,7 @@ export class SuperAdminService {
       where: { id },
       include: {
         users: { select: { id: true, email: true, role: true } },
-        workspaces: {
-          select: {
-            id: true,
-            name: true,
-            subdomain: true,
 
-            ownerId: true,
-            _count: { select: { transactions: true } },
-          },
-        },
         transactions: {
           select: { id: true, amount: true, status: true, createdAt: true },
           orderBy: { createdAt: 'desc' },

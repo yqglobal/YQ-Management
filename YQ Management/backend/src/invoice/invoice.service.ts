@@ -28,12 +28,12 @@ export class InvoiceService {
   }
 
   async generateInvoice(tenantId: string) {
-    const workspace = await this.prisma.workspace.findUnique({
+    const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { name: true, subdomain: true },
     });
 
-    if (!workspace) {
+    if (!tenant) {
       throw new InternalServerErrorException('Workspace not found');
     }
 

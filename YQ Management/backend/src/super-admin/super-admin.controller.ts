@@ -339,7 +339,7 @@ export class SuperAdminController {
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: tenant.id,
+      tenantId: tenant.id,
     });
     return {
       success: result.success,

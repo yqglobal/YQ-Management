@@ -56,7 +56,7 @@ export class WhatsappController {
   ) {
     const targetId =
       req.user.tenantId ||
-      (req.user as any).workspaceId ||
+      (req.user as any).tenantId ||
       (req.user as any).userId;
 
     await this.checkWhatsappFeature(req.user.tenantId);
@@ -69,7 +69,7 @@ export class WhatsappController {
   async generateValidationCode(@Req() req: AuthenticatedRequest) {
     const targetId =
       req.user.tenantId ||
-      (req.user as any).workspaceId ||
+      (req.user as any).tenantId ||
       (req.user as any).userId;
     await this.checkWhatsappFeature(req.user.tenantId);
     return this.whatsappService.generateValidationCode(targetId);
@@ -84,7 +84,7 @@ export class WhatsappController {
   ) {
     const targetId =
       req.user.tenantId ||
-      (req.user as any).workspaceId ||
+      (req.user as any).tenantId ||
       (req.user as any).userId;
     await this.checkWhatsappFeature(req.user.tenantId);
     return this.whatsappService.generatePairingCode(targetId, body.phoneNumber);
@@ -99,7 +99,7 @@ export class WhatsappController {
   ) {
     const targetId =
       req.user.tenantId ||
-      (req.user as any).workspaceId ||
+      (req.user as any).tenantId ||
       (req.user as any).userId;
     return this.whatsappService.connectWithValidationCode(
       targetId,
@@ -113,7 +113,7 @@ export class WhatsappController {
   disconnect(@Req() req: AuthenticatedRequest) {
     const targetId =
       req.user.tenantId ||
-      (req.user as any).workspaceId ||
+      (req.user as any).tenantId ||
       (req.user as any).userId;
     return this.whatsappService.disconnect(targetId);
   }
@@ -127,7 +127,7 @@ export class WhatsappController {
   ) {
     const targetId =
       req.user.tenantId ||
-      (req.user as any).workspaceId ||
+      (req.user as any).tenantId ||
       (req.user as any).userId;
     return this.whatsappService.testMessage(targetId, body.phone, body.message);
   }
@@ -135,7 +135,7 @@ export class WhatsappController {
   @UseGuards(AuthGuard('jwt'))
   @Get('status')
   status(@Req() req: AuthenticatedRequest) {
-    const targetId = req.user.tenantId || (req.user as any).workspaceId;
+    const targetId = req.user.tenantId || (req.user as any).tenantId;
     if (!targetId) {
       return { state: 'unconfigured' };
     }
@@ -147,7 +147,7 @@ export class WhatsappController {
   async getCachedQr(@Req() req: AuthenticatedRequest) {
     const targetId =
       req.user.tenantId ||
-      (req.user as any).workspaceId ||
+      (req.user as any).tenantId ||
       (req.user as any).userId;
     if (!targetId) return { qr: null };
     const result = await this.whatsappService.getCachedQr(targetId);
@@ -158,7 +158,7 @@ export class WhatsappController {
   @UseGuards(AuthGuard('jwt'))
   @Get('logs')
   getLogs(@Req() req: AuthenticatedRequest) {
-    const targetId = req.user.tenantId || (req.user as any).workspaceId;
+    const targetId = req.user.tenantId || (req.user as any).tenantId;
     if (!targetId) {
       return [];
     }
@@ -229,7 +229,7 @@ export class WhatsappController {
   saveChatbotSettings(@Req() req: AuthenticatedRequest, @Body() body: any) {
     const targetId =
       req.user.tenantId ||
-      (req.user as any).workspaceId ||
+      (req.user as any).tenantId ||
       (req.user as any).userId;
     return this.whatsappService.saveChatbotSettings(targetId, body);
   }
@@ -242,7 +242,7 @@ export class WhatsappController {
   ) {
     const targetId =
       req.user.tenantId ||
-      (req.user as any).workspaceId ||
+      (req.user as any).tenantId ||
       (req.user as any).userId;
     const source = `Frontend-[Tenant-${targetId}]`;
     const { level, message, data } = body;

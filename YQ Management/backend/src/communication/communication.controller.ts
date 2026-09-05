@@ -82,7 +82,7 @@ export class CommunicationController {
       provider: 'brevo',
       providerId: result.providerId,
       errorMessage: result.error,
-      workspaceId: req.user.workspaceId,
+      tenantId: req.user.tenantId,
     });
 
     return { success: result.success, error: result.error };
@@ -105,7 +105,7 @@ export class CommunicationController {
     @Request() req: any,
     @Body() body: { phone: string; message?: string },
   ) {
-    const tenantId = req.user?.tenantId || req.user?.workspaceId;
+    const tenantId = req.user?.tenantId || req.user?.tenantId;
     const result = tenantId
       ? await this.whatsappService.sendToTenant(
           tenantId,
@@ -125,7 +125,7 @@ export class CommunicationController {
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: req.user.workspaceId,
+      tenantId: req.user.tenantId,
     });
 
     return { success: result.success, error: result.error };
@@ -177,7 +177,7 @@ export class CommunicationController {
   @Get('templates/whatsapp')
   async getWhatsAppTemplates(@Request() req: any) {
     const dbTemplates = await this.whatsappTemplateService.getTemplates(
-      req.user.workspaceId,
+      req.user.tenantId,
     );
     const defaultKeys = this.templateService.getWhatsAppTemplateKeys();
 
@@ -215,7 +215,7 @@ export class CommunicationController {
     @Body() body: UpdateTemplateDto,
   ) {
     const template = await this.whatsappTemplateService.upsertTemplate(
-      req.user.workspaceId,
+      req.user.tenantId,
       {
         key,
         name: body.name || '',
@@ -248,7 +248,7 @@ export class CommunicationController {
   @Delete('templates/whatsapp/:key')
   async resetWhatsAppTemplate(@Request() req: any, @Param('key') key: string) {
     await this.whatsappTemplateService.deleteTemplate(
-      req.user.workspaceId,
+      req.user.tenantId,
       key,
     );
     return { success: true };
@@ -262,7 +262,7 @@ export class CommunicationController {
     const page = Number(params.page) || 1;
     const limit = Number(params.limit) || 50;
     return this.communicationLogService.getLogs(
-      req.user.workspaceId,
+      req.user.tenantId,
       page,
       limit,
     );
@@ -273,6 +273,6 @@ export class CommunicationController {
   @RequirePermissions(Permission.SETTINGS_READ)
   @Get('logs/failed')
   getFailedLogs(@Request() req: any) {
-    return this.communicationLogService.getFailedLogs(req.user.workspaceId);
+    return this.communicationLogService.getFailedLogs(req.user.tenantId);
   }
 }

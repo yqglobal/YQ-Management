@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   BadRequestException,
 } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -26,7 +27,7 @@ export class AuthService {
     if (process.env.TEST_MODE === 'true') {
       return '000000';
     }
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return crypto.randomInt(100000, 1000000).toString();
   }
 
   async validateUser(email: string, pass: string): Promise<any> {
@@ -251,6 +252,9 @@ export class AuthService {
       role: user.role,
       tenantId: user.tenantId,
       personalSettings: user.personalSettings,
+      allowedPages: user.allowedPages ?? [],
+      allowedLocationIds: user.allowedLocationIds ?? [],
+      allowedServiceIds: user.allowedServiceIds ?? [],
       jti,
     };
     const access_token = this.jwtService.sign(payload);

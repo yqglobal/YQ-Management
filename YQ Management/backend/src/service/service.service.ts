@@ -33,9 +33,13 @@ export class ServiceService {
       expectedDuration?: number;
       locationId?: string;
       allowAppointments?: boolean;
+      allowProviderSelection?: boolean;
       requireManualCheckIn?: boolean;
       appointmentGranularityMins?: number;
       formConfig?: any;
+      useLocationHours?: boolean;
+      businessHoursOverride?: any;
+      exceptionDatesOverride?: any;
     },
   ) {
     const servicesCount = await this.prisma.extendedClient.service.count({
@@ -159,9 +163,13 @@ export class ServiceService {
       locationId?: string;
       queueIds?: string[];
       allowAppointments?: boolean;
+      allowProviderSelection?: boolean;
       requireManualCheckIn?: boolean;
       appointmentGranularityMins?: number;
       formConfig?: any;
+      useLocationHours?: boolean;
+      businessHoursOverride?: any;
+      exceptionDatesOverride?: any;
     },
   ) {
     const { queueIds, ...restData } = data;

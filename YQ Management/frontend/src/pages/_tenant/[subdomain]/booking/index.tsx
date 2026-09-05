@@ -12,6 +12,9 @@ import { detectCountryByTimezone } from '../../../../lib/country-codes';
 import QRCode from 'react-qr-code';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { LocationStep } from '../../../../components/booking/LocationStep';
+import { ServiceStep } from '../../../../components/booking/ServiceStep';
+import { ContactStep } from '../../../../components/booking/ContactStep';
 
 interface Service {
   id: string;
@@ -140,10 +143,12 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   // State for the per-service dynamic flow
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
   const [enlargedQrTokenId, setEnlargedQrTokenId] = useState<string | null>(null);
+  const [availableProviders, setAvailableProviders] = useState<Record<string, any[]>>({});
   const [serviceDetails, setServiceDetails] = useState<Record<string, {
     joinMode: 'immediate' | 'appointment',
     selectedDate: string,
     selectedSlot: string,
+    providerId?: string,
     queueId?: string,
     responses: Record<string, any>
   }>>({});
@@ -265,6 +270,17 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
       [currentServiceId]: { ...currentDetails, ...updates }
     }));
   };
+
+  // Fetch providers for current service if enabled
+  useEffect(() => {
+    if (currentService?.allowProviderSelection && !availableProviders[currentServiceId]) {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      fetch(`${baseUrl}/staff/available?tenantId=${tenant.id}&serviceId=${currentServiceId}`)
+        .then(res => res.ok ? res.json() : [])
+        .then(data => setAvailableProviders(prev => ({ ...prev, [currentServiceId]: data })))
+        .catch(console.error);
+    }
+  }, [currentService, currentServiceId, tenant, availableProviders]);
 
   // Fetch slots when date changes for current service
   useEffect(() => {
@@ -394,6 +410,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         const d = serviceDetails[sid] || {};
         return {
           serviceId: sid,
+          providerId: d.providerId || undefined,
           scheduledFor: d.joinMode === 'appointment' && d.selectedSlot ? d.selectedSlot : undefined,
           formResponses: d.responses || {}
         };
@@ -550,97 +567,29 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
           
           {/* STEP 1: Location Selection */}
           {step === 1 && (
-            <motion.div key="step1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 flex-1">
-              <div className="text-center mb-8">
-                <h1 className="text-2xl font-extrabold tracking-tight mb-2">Welcome to {tenant.name}</h1>
-                <p className="text-gray-500 dark:text-gray-400">Select a Location</p>
-              </div>
-
-              <form onSubmit={handleNextStepLocation} className="space-y-6">
-                <div className="space-y-3">
-                  {tenant?.locations?.map((loc: any) => (
-                    <label key={loc.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedLocationId === loc.id ? 'border-transparent shadow-md' : 'border-gray-200 dark:border-zinc-800'}`} style={selectedLocationId === loc.id ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}>
-                      <input 
-                        type="radio" 
-                        name="location"
-                        checked={selectedLocationId === loc.id} 
-                        onChange={() => setSelectedLocationId(loc.id)}
-                        className="w-5 h-5" style={{ accentColor: primaryColor }}
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-bold text-base">{loc.name}</h3>
-                        {(loc.address || loc.city) && <p className="text-sm text-gray-500 mt-1">{[loc.address, loc.city].filter(Boolean).join(', ')}</p>}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-                {errorMsg && <p className="text-red-500 text-sm font-medium text-center bg-red-50 dark:bg-red-950/30 p-3 rounded-lg">{errorMsg}</p>}
-                <button type="submit" disabled={!selectedLocationId} className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50" style={{ backgroundColor: primaryColor }}>
-                  Continue
-                </button>
-              </form>
-            </motion.div>
+            <LocationStep 
+              tenant={tenant}
+              selectedLocationId={selectedLocationId}
+              setSelectedLocationId={setSelectedLocationId}
+              onNext={handleNextStepLocation}
+              errorMsg={errorMsg}
+              primaryColor={primaryColor}
+            />
           )}
 
           {/* STEP 2: Name, Phone, Service Selection */}
           {step === 2 && (
-            <motion.div key="step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 flex-1">
-              <div className="text-center mb-8">
-                <h1 className="text-2xl font-extrabold tracking-tight mb-2">Welcome to {tenant.name}</h1>
-                <p className="text-gray-500 dark:text-gray-400">Digital Check-in</p>
-              </div>
-
-              {services.length === 0 ? (
-                <div className="bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-8 text-center flex flex-col items-center justify-center space-y-4">
-                  <div className="w-16 h-16 bg-gray-200 dark:bg-zinc-800 rounded-full flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[32px] text-gray-400">event_upcoming</span>
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Coming Soon</h2>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm max-w-[250px]">
-                    We are currently setting up our digital services. Please check back later or contact us directly.
-                  </p>
-                  {supportNumber && (
-                    <a href={`tel:${supportNumber}`} className="mt-4 px-6 py-2.5 rounded-full font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95" style={{ backgroundColor: primaryColor }}>
-                      Contact Support
-                    </a>
-                  )}
-                </div>
-              ) : (
-                <form onSubmit={handleNextStep1} className="space-y-6">
-                  <div className="space-y-3">
-                    <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wider">Select Services <span className="text-red-500">*</span></label>
-                    {services.filter(s => 
-                      (!tenant?.locations?.length || s.locationId === selectedLocationId || !s.locationId) &&
-                      (s.queues.length > 0 || s.allowAppointments)
-                    ).length === 0 ? (
-                      <p className="text-sm text-gray-500">No services available at this location right now.</p>
-                    ) : (
-                      services.filter(s => 
-                        (!tenant?.locations?.length || s.locationId === selectedLocationId || !s.locationId) &&
-                        (s.queues.length > 0 || s.allowAppointments)
-                      ).map(service => (
-                        <label key={service.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedServiceIds.includes(service.id) ? 'border-transparent shadow-md' : 'border-gray-200 dark:border-zinc-800'}`} style={selectedServiceIds.includes(service.id) ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}>
-                          <input 
-                            type="checkbox" checked={selectedServiceIds.includes(service.id)} onChange={() => toggleService(service.id)}
-                            className="w-5 h-5 rounded border-gray-300" style={{ accentColor: primaryColor }}
-                          />
-                          <div className="flex-1">
-                            <h3 className="font-bold text-base">{service.name}</h3>
-                            {service.description && <p className="text-sm text-gray-500 mt-1">{service.description}</p>}
-                          </div>
-                        </label>
-                      ))
-                    )}
-                  </div>
-
-                  {errorMsg && <p className="text-red-500 text-sm font-medium text-center bg-red-50 dark:bg-red-950/30 p-3 rounded-lg">{errorMsg}</p>}
-
-                  <button type="submit" className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95" style={{ backgroundColor: primaryColor }}>
-                    Continue
-                  </button>
-                </form>
-              )}
-            </motion.div>
+            <ServiceStep 
+              services={services}
+              tenant={tenant}
+              selectedLocationId={selectedLocationId}
+              selectedServiceIds={selectedServiceIds}
+              toggleService={toggleService}
+              onNext={handleNextStep1}
+              errorMsg={errorMsg}
+              primaryColor={primaryColor}
+              supportNumber={supportNumber}
+            />
           )}
 
           {/* STEP 3: Service-specific Details Loop */}
@@ -675,6 +624,48 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                     )}
                   </div>
                 ))}
+
+                {/* Provider Selection */}
+                {currentService?.allowProviderSelection && availableProviders[currentServiceId]?.length > 0 && (
+                  <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-zinc-800">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Select Provider (Optional)</label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateCurrentDetails({ providerId: '' })}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all ${
+                          !currentDetails.providerId
+                            ? 'border-transparent text-white shadow-md'
+                            : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300 text-gray-700 dark:text-gray-300'
+                        }`}
+                        style={!currentDetails.providerId ? { backgroundColor: primaryColor } : {}}
+                      >
+                        Anyone Available
+                      </button>
+                      {availableProviders[currentServiceId].map(provider => (
+                        <button
+                          key={provider.id}
+                          type="button"
+                          onClick={() => updateCurrentDetails({ providerId: provider.id })}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all ${
+                            currentDetails.providerId === provider.id
+                              ? 'border-transparent text-white shadow-md'
+                              : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300 text-gray-700 dark:text-gray-300'
+                          }`}
+                          style={currentDetails.providerId === provider.id ? { backgroundColor: primaryColor } : {}}
+                        >
+                          <div
+                            className="w-5 h-5 rounded-md flex items-center justify-center text-white text-[10px]"
+                            style={{ backgroundColor: provider.color || '#666' }}
+                          >
+                            {provider.name.charAt(0)}
+                          </div>
+                          {provider.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {(currentService?.queues?.filter(q => q.status === 'ACTIVE').length || 0) > 1 && (
                   <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-zinc-800">
@@ -771,42 +762,21 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
 
           {/* STEP 3.5: Contact Details */}
           {step === 3.5 && (
-            <motion.div key="step35" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6 flex-1">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-extrabold tracking-tight mb-2">Your Details</h2>
-                <p className="text-gray-500 dark:text-gray-400">Who is this booking for?</p>
-              </div>
-
-              <form onSubmit={(e) => { e.preventDefault(); if(!name.trim()) setErrorMsg('Please enter your name.'); else { setErrorMsg(''); setStep(4); } }} className="space-y-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300 uppercase tracking-wider">Your Name <span className="text-red-500">*</span></label>
-                    <input 
-                      type="text" value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" required
-                      className="w-full p-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 transition-shadow focus:border-transparent"
-                      style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">WhatsApp Number <span className="text-red-500">*</span></label>
-                    <PhoneInput international defaultCountry={defaultCountry} value={phone} onChange={(v: any) => setPhone(v)} className="PhoneInput" />
-                    <p className="text-xs text-gray-500 mt-2">Required for your tickets and live updates.</p>
-                  </div>
-                </div>
-
-                {errorMsg && <p className="text-red-500 text-sm font-medium text-center bg-red-50 dark:bg-red-950/30 p-3 rounded-lg">{errorMsg}</p>}
-
-                <div className="flex gap-3">
-                  <button type="button" onClick={() => setStep(3)} className="px-6 py-4 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
-                    Back
-                  </button>
-                  <button type="submit" disabled={!name || !phone} className="flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-50" style={{ backgroundColor: primaryColor }}>
-                    Review Booking
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+            <ContactStep
+              name={name}
+              setName={setName}
+              phone={phone}
+              setPhone={setPhone}
+              defaultCountry={defaultCountry}
+              errorMsg={errorMsg}
+              primaryColor={primaryColor}
+              onNext={(e) => { 
+                e.preventDefault(); 
+                if(!name.trim()) setErrorMsg('Please enter your name.'); 
+                else { setErrorMsg(''); setStep(4); } 
+              }}
+              onBack={() => setStep(3)}
+            />
           )}
 
           {/* STEP 4: Confirmation */}

@@ -35,7 +35,7 @@ export default function JoinPage() {
       return;
     }
 
-    if (user.workspaceId && !inviteCode) {
+    if (user.tenantId && !inviteCode) {
       router.replace('/dashboard');
       return;
     }

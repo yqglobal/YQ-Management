@@ -119,66 +119,65 @@ model Tenant {
 
   // Google Business Profile Integration
 
-  enableSmartReviews      Boolean   @default(false)
-  reviewWaitThresholdMins Int       @default(15)
+  enableSmartReviews      Boolean @default(false)
+  reviewWaitThresholdMins Int     @default(15)
 
   appointmentApprovalMode String            @default("AUTO") // AUTO, MANUAL
-  users              User[]
-  workspaces         Workspace[]
-  queues             Queue[]
-  transactions       Transaction[]
-  webhooks           WebhookEndpoint[]
-  webhookEvents      WebhookEvent[]
+  users                   User[]
+  queues                  Queue[]
+  transactions            Transaction[]
+  webhooks                WebhookEndpoint[]
+  webhookEvents           WebhookEvent[]
 
-  customers           Customer[]
-  locations           Location[]
-  services            Service[]
-  staffMembers        Staff[]
-  resources           Resource[]
-  appointments        Appointment[]
-  visits              Visit[]
-  enterpriseInquiries EnterpriseInquiry[]
-  operatingCountries  String[] @default([])
-  chatSessions        ChatSession[]
+  customers             Customer[]
+  locations             Location[]
+  services              Service[]
+  staffMembers          Staff[]
+  resources             Resource[]
+  appointments          Appointment[]
+  visits                Visit[]
+  enterpriseInquiries   EnterpriseInquiry[]
+  operatingCountries    String[]               @default([])
+  chatSessions          ChatSession[]
   customerConversations CustomerConversation[]
-  messages            Message[]
-  subscriptions       Subscription[]
-  invoices            Invoice[]
-  usages              TenantUsage[]
-  invitations         Invitation[]  // Team invitations scoped to this tenant
-  autonomousEnabled   Boolean @default(false)
-  createdAt DateTime @default(now())
-  
-  googleIntegrations  GoogleIntegration[]
+  messages              Message[]
+  subscriptions         Subscription[]
+  invoices              Invoice[]
+  usages                TenantUsage[]
+  invitations           Invitation[] // Team invitations scoped to this tenant
+  autonomousEnabled     Boolean                @default(false)
+  ownerId               String? // Primary owner's User ID — replaces Workspace.ownerId
+  createdAt             DateTime               @default(now())
+
+  googleIntegrations GoogleIntegration[]
+  communicationLogs CommunicationLog[]
+  whatsappTemplates WhatsAppTemplate[]
 }
 
 model User {
-  id               String     @id @default(uuid())
+  id               String    @id @default(uuid())
   tenantId         String
-  workspaceId      String?
-  email            String     @unique
+  email            String    @unique
   password         String?
-  googleId         String?    @unique
+  googleId         String?   @unique
   role             Role
   otpCode          String?
   otpExpiresAt     DateTime?
   personalSettings Json?
-  
+
   allowedLocationIds String[] @default([])
   allowedServiceIds  String[] @default([])
   allowedPages       String[] @default([])
-  
-  tenant           Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  workspace        Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   policyAcceptances PolicyAcceptance[]
   cookiePreferences CookiePreference[]
   sessions          UserSession[]
   tokens            Token[]
-  operatorVisits    Visit[] @relation("OperatorVisits")
+  operatorVisits    Visit[]            @relation("OperatorVisits")
 
   @@index([tenantId])
-  @@index([workspaceId])
 }
 
 model PasswordReset {
@@ -223,23 +222,22 @@ model AuditLog {
 model Queue {
   id                 String      @id @default(uuid())
   tenantId           String
-  workspaceId        String?     // DEPRECATED — kept for legacy compatibility
-  locationId         String?     // Which location this queue belongs to
+  locationId         String? // Which location this queue belongs to
   name               String
   status             QueueStatus
-  nextQueueId        String?     // For multi-step routing
-  formConfig         Json?       // Dynamic form configuration
-  tokenDisplayConfig Json?       // Display settings and token number generation config
+  nextQueueId        String? // For multi-step routing
+  formConfig         Json? // Dynamic form configuration
+  tokenDisplayConfig Json? // Display settings and token number generation config
 
-  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  location  Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  tokens    Token[]
-  visits    Visit[]
-  services  Service[]  @relation("QueueToService")
-  
-  frozenByQuota Boolean @default(false)
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  tokens   Token[]
+  visits   Visit[]
+  services Service[] @relation("QueueToService")
+
+  frozenByQuota Boolean   @default(false)
   frozenAt      DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   @@index([tenantId])
   @@index([locationId])
@@ -271,11 +269,11 @@ model Token {
   servedAt    DateTime?
   completedAt DateTime?
 
-  queue    Queue     @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  queue Queue @relation(fields: [queueId], references: [id], onDelete: Cascade)
 
   operatorId String?
   operator   User?   @relation(fields: [operatorId], references: [id])
-  
+
   reminderSent Boolean @default(false)
 
   @@index([queueId, status])
@@ -292,8 +290,8 @@ model CustomerConversation {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  messages      Message[]
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages Message[]
 
   @@unique([tenantId, customerPhone])
   @@index([tenantId, status])
@@ -312,9 +310,9 @@ model Message {
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())
 
-  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  visit          Visit?   @relation(fields: [visitId], references: [id], onDelete: Cascade)
-  conversation   CustomerConversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  visit        Visit?                @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  conversation CustomerConversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([visitId])
   @@index([tenantId, customerPhone])
@@ -324,7 +322,6 @@ model Message {
 model Transaction {
   id                  String   @id @default(uuid())
   tenantId            String
-  workspaceId         String?
   transactionRef      String   @unique
   amount              Float
   currency            String   @default("ZAR")
@@ -337,10 +334,8 @@ model Transaction {
   updatedAt           DateTime @updatedAt
 
   tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
-  @@index([workspaceId])
 }
 
 model WebhookEndpoint {
@@ -357,51 +352,32 @@ model WebhookEndpoint {
   @@index([tenantId])
 }
 
-model Workspace {
-  id                 String   @id @default(uuid())
-  tenantId           String
-  ownerId            String
-  name               String
-  subdomain          String   @unique
-  branding           Json?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  users             User[]
-  transactions      Transaction[]
-  locations         Location[]
-  communicationLogs CommunicationLog[]
-  webhookEvents     WebhookEvent[]
-
-  @@index([tenantId])
-}
 
 model Plan {
-  id              String   @id @default(uuid())
-  name            String
-  description     String?
-  type            String   @default("standard")
-  price           Float
-  currency        String   @default("ZAR")
-  interval        String   @default("monthly")
-  billingInterval String   @default("monthly")
-  trialDays       Int      @default(0)
-  features        Json?
-  limits          Json?
-  maxVisits       Int?
-  maxQueues       Int?
-  sortOrder       Int      @default(0)
-  active          Boolean  @default(true)
-  annualDiscountPercent Int @default(10)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  subscriptions   Subscription[]
+  id                    String         @id @default(uuid())
+  name                  String
+  description           String?
+  type                  String         @default("standard")
+  price                 Float
+  currency              String         @default("ZAR")
+  interval              String         @default("monthly")
+  billingInterval       String         @default("monthly")
+  trialDays             Int            @default(0)
+  features              Json?
+  limits                Json?
+  maxVisits             Int?
+  maxQueues             Int?
+  sortOrder             Int            @default(0)
+  active                Boolean        @default(true)
+  annualDiscountPercent Int            @default(10)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  subscriptions         Subscription[]
 }
 
 model Subscription {
   id                 String             @id @default(uuid())
-  tenantId        String
+  tenantId           String
   planId             String
   status             SubscriptionStatus @default(TRIAL)
   currentPeriodStart DateTime           @default(now())
@@ -420,7 +396,7 @@ model Subscription {
   updatedAt          DateTime           @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  plan      Plan      @relation(fields: [planId], references: [id])
+  plan   Plan   @relation(fields: [planId], references: [id])
 
   @@unique([tenantId])
   @@index([tenantId])
@@ -440,15 +416,15 @@ model PaymentProvider {
 }
 
 model Invoice {
-  id          String    @id @default(uuid())
-  tenantId String
-  amount      Float
-  currency    String    @default("ZAR")
-  status      String    @default("DRAFT")
-  dueDate     DateTime?
-  paidAt      DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String    @id @default(uuid())
+  tenantId  String
+  amount    Float
+  currency  String    @default("ZAR")
+  status    String    @default("DRAFT")
+  dueDate   DateTime?
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -456,23 +432,23 @@ model Invoice {
 }
 
 model TenantUsage {
-  id               String    @id @default(uuid())
-  tenantId      String
-  tokensUsed       Int       @default(0)
-  messagesSent     Int       @default(0)
-  branches         Int       @default(0)
-  whatsappMessages Int       @default(0)
-  aiRequests       Int       @default(0)
-  storageBytes     BigInt    @default(0)
-  apiCalls         Int       @default(0)
-  activeQueues     Int       @default(0)
-  queueJoins       Int       @default(0)
-  operators        Int       @default(0)
+  id               String   @id @default(uuid())
+  tenantId         String
+  tokensUsed       Int      @default(0)
+  messagesSent     Int      @default(0)
+  branches         Int      @default(0)
+  whatsappMessages Int      @default(0)
+  aiRequests       Int      @default(0)
+  storageBytes     BigInt   @default(0)
+  apiCalls         Int      @default(0)
+  activeQueues     Int      @default(0)
+  queueJoins       Int      @default(0)
+  operators        Int      @default(0)
   periodStart      DateTime
   periodEnd        DateTime
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  tenant           Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, periodStart, periodEnd])
   @@index([tenantId])
@@ -486,28 +462,31 @@ model WhatsAppTemplate {
   active      Boolean  @default(true)
   isActive    Boolean  @default(true)
   variables   Json?
-  workspaceId String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  tenantId    String?
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 model ChatSession {
-  id          String   @id @default(uuid())
-  tenantId    String
-  phone       String
-  step        Int      @default(0) // 0: Menu, 1: Book Service, 2: Book Date, 3: Book Slot, etc.
-  context     Json?    // To store temporary data (e.g. selected serviceId, date)
-  lastActive  DateTime @default(now())
-  
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  
+  id         String   @id @default(uuid())
+  tenantId   String
+  phone      String
+  step       Int      @default(0) // 0: Menu, 1: Book Service, 2: Book Date, 3: Book Slot, etc.
+  context    Json? // To store temporary data (e.g. selected serviceId, date)
+  lastActive DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
   @@unique([tenantId, phone])
   @@index([tenantId])
 }
 
 model CommunicationLog {
   id          String    @id @default(uuid())
-  workspaceId String?
   channel     String
   type        String
   recipient   String
@@ -521,16 +500,16 @@ model CommunicationLog {
   deliveredAt DateTime?
   failedAt    DateTime?
   createdAt   DateTime  @default(now())
+  tenantId    String?
 
-  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@index([workspaceId])
+  @@index([tenantId])
 }
 
 model Invitation {
   id                 String    @id @default(uuid())
-  tenantId           String    // PRIMARY scope — tenant-wide invitations
-  workspaceId        String?   // DEPRECATED — kept nullable for legacy reads only
+  tenantId           String // PRIMARY scope — tenant-wide invitations
   code               String    @unique
   email              String?
   role               Role      @default(OPERATOR)
@@ -553,7 +532,6 @@ model Invitation {
 model WebhookEvent {
   id               String                  @id @default(uuid())
   tenantId         String
-  workspaceId      String?
   transactionId    String?
   eventType        WebhookEventType
   payload          Json
@@ -567,11 +545,9 @@ model WebhookEvent {
   createdAt        DateTime                @default(now())
 
   tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([eventType])
-  @@index([workspaceId])
   @@index([transactionId])
 }
 
@@ -593,18 +569,16 @@ model Customer {
 }
 
 model Location {
-  id          String   @id @default(uuid())
-  tenantId    String
-  workspaceId String?
-  name        String
-  address     String?
-  city        String?
-  timezone    String   @default("UTC") // For timezone-aware slot generation
-  businessHours Json?
+  id             String   @id @default(uuid())
+  tenantId       String
+  name           String
+  address        String?
+  city           String?
+  timezone       String   @default("UTC") // For timezone-aware slot generation
+  businessHours  Json?
   exceptionDates Json? // e.g. ["2026-12-25"] for holidays
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   services     Service[]
   staff        Staff[]
@@ -614,73 +588,77 @@ model Location {
   queues       Queue[]
 
   tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   googleIntegrationId String?
   googlePlaceId       String?
   googleCalendarId    String?
   googleIntegration   GoogleIntegration? @relation(fields: [googleIntegrationId], references: [id], onDelete: SetNull)
 
-  frozenByQuota Boolean @default(false)
+  frozenByQuota Boolean   @default(false)
   frozenAt      DateTime?
 
   @@index([tenantId])
-  @@index([workspaceId])
   @@index([googleIntegrationId])
 }
 
 model GoogleIntegration {
-  id                String   @id @default(uuid())
-  tenantId          String
-  googleId          String
-  email             String
-  accessToken       String
-  refreshToken      String?
-  tokenExpiry       DateTime?
-  createdAt         DateTime @default(now())
+  id           String    @id @default(uuid())
+  tenantId     String
+  googleId     String
+  email        String
+  accessToken  String
+  refreshToken String?
+  tokenExpiry  DateTime?
+  createdAt    DateTime  @default(now())
 
-  tenant            Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  locations         Location[] // Locations using this specific Google account
-  
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  locations Location[] // Locations using this specific Google account
+
   @@unique([tenantId, email])
   @@index([tenantId])
 }
 
 model Service {
-  id               String   @id @default(uuid())
-  tenantId         String
-  locationId       String?
-  name             String
-  description      String?
-  expectedDuration Int      @default(30) // in minutes
-  bufferDuration   Int      @default(0)  // cleanup/prep time in minutes
-  concurrentSlots  Int      @default(1)  // how many simultaneous bookings allowed
-  minDuration      Int?
-  maxDuration      Int?
-  formConfig       Json? // Service-specific forms
+  id                         String  @id @default(uuid())
+  tenantId                   String
+  locationId                 String?
+  name                       String
+  description                String?
+  expectedDuration           Int     @default(30) // in minutes
+  bufferDuration             Int     @default(0) // cleanup/prep time in minutes
+  concurrentSlots            Int     @default(1) // how many simultaneous bookings allowed
+  minDuration                Int?
+  maxDuration                Int?
+  formConfig                 Json? // Service-specific forms
   // Future Bookings & Hybrid Queuing
-  allowAppointments          Boolean    @default(false)
-  requireManualCheckIn       Boolean    @default(false) // If true, customer must click "I have arrived"
-  appointmentGranularityMins Int        @default(15) // e.g. 15 mins increments
-  avgActualDurationMins      Int?                     // Rolling avg from completed visits (auto-updated)
+  allowAppointments          Boolean @default(false)
+  requireManualCheckIn       Boolean @default(false) // If true, customer must click "I have arrived"
+  appointmentGranularityMins Int     @default(15) // e.g. 15 mins increments
+  avgActualDurationMins      Int? // Rolling avg from completed visits (auto-updated)
 
   // Cascading Scheduling & Availability
-  useLocationHours       Boolean    @default(true)
+  useLocationHours       Boolean @default(true)
   businessHoursOverride  Json?
   exceptionDatesOverride Json?
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   visits       Visit[]
   appointments Appointment[]
-  queues       Queue[]  @relation("QueueToService")
+  queues       Queue[]       @relation("QueueToService")
   resources    Resource[]
+
+  // Provider selection during booking
+  allowProviderSelection Boolean @default(false) // Customers can pick their provider
+
+  // Staff/Provider relation
+  staff Staff[] @relation("StaffToService")
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
-  frozenByQuota Boolean @default(false)
+  frozenByQuota Boolean   @default(false)
   frozenAt      DateTime?
 
   @@index([tenantId])
@@ -688,17 +666,30 @@ model Service {
 }
 
 model Staff {
-  id         String   @id @default(uuid())
+  id         String  @id @default(uuid())
   tenantId   String
   locationId String?
-  userId     String? // Optional link to User account
+  userId     String? // Optional link to a User (Member) account
   name       String
-  status     String   @default("ACTIVE")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  title      String? // e.g. "Senior Dentist", "Lead Barber"
+  email      String? // Display email, not login
+  phone      String?
+  bio        String? // Short public-facing bio shown to customers
+  avatarUrl  String?
+  color      String? // Hex color for calendar/UI color-coding
+  status     String  @default("ACTIVE") // ACTIVE | INACTIVE | ON_LEAVE
+  capacity   Int     @default(1) // Max simultaneous active bookings
+
+  // Availability (JSON for speed; migrate to relational later if needed)
+  weeklySchedule Json? // [{day:"MONDAY",startTime:"09:00",endTime:"17:00",enabled:true}]
+  exceptionDates Json? // [{date:"2026-12-25",reason:"Christmas",allDay:true}]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   visits       Visit[]
   appointments Appointment[]
+  services     Service[]     @relation("StaffToService")
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
@@ -787,7 +778,6 @@ model Visit {
   metadata           Json?
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
-
 
   // Hybrid Queue Fields
   displayId     String? // Human-readable queue number (e.g. "CC876")
@@ -883,7 +873,6 @@ model UserSession {
   @@index([token])
 }
 
-
 model OutboxEvent {
   id          String    @id @default(uuid())
   type        String
@@ -941,7 +930,7 @@ model Blog {
   publishedAt    DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-  
+
   @@index([slug])
 }
 
@@ -952,6 +941,6 @@ model MarketingSubscriber {
   source    String   @default("WEBSITE")
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
-  
+
   @@index([email])
 }

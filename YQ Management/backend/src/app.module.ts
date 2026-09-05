@@ -34,7 +34,6 @@ import { MessagesModule } from './messages/messages.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
 import { AuditModule } from './audit/audit.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import { WorkspaceModule } from './workspace/workspace.module';
 import { VisitModule } from './visit/visit.module';
 import { AppointmentModule } from './appointment/appointment.module';
 import { LocationModule } from './location/location.module';
@@ -118,7 +117,6 @@ import { BlogsModule } from './blogs/blogs.module';
     WebhooksModule,
     AnalyticsModule,
     MessagesModule,
-    WorkspaceModule,
     AuditModule,
     VisitModule,
     AppointmentModule,

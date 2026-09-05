@@ -39,15 +39,25 @@ export class UsersService {
   }
 
   async getUsersByTenant(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true, ownerId: true },
+    });
+
+    const tenantName = tenant?.name || 'Your Team';
+    const ownerId = tenant?.ownerId ?? null;
+
     const activeUsers = await this.prisma.user.findMany({
       where: { tenantId },
       select: { id: true, email: true, role: true },
     });
 
-    // Owner is the TENANT_ADMIN with earliest account
-    const owner =
-      activeUsers.find((u) => u.role === 'TENANT_ADMIN') || activeUsers[0];
-    const ownerId = owner?.id ?? null;
+    // If ownerId not set on Tenant, fall back to first TENANT_ADMIN
+    const resolvedOwnerId =
+      ownerId ??
+      (activeUsers.find((u) => u.role === 'TENANT_ADMIN') || activeUsers[0])
+        ?.id ??
+      null;
 
     const staffList: any[] = activeUsers.map((u) => ({
       id: u.id,
@@ -55,7 +65,7 @@ export class UsersService {
       role: u.role,
       status: 'ACTIVE',
       isInvite: false,
-      isOwner: u.id === ownerId,
+      isOwner: u.id === resolvedOwnerId,
     }));
 
     const invites = await this.prisma.invitation.findMany({
@@ -68,12 +78,6 @@ export class UsersService {
       activeUsers.find(
         (u) => u.role === 'TENANT_ADMIN' || u.role === 'SUPER_ADMIN',
       ) || activeUsers[0];
-
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { name: true },
-    });
-    const tenantName = tenant?.name || 'Your Team';
 
     for (const inv of invites) {
       if (
@@ -424,15 +428,28 @@ export class UsersService {
     currentOwnerId: string,
     targetUserId: string,
   ) {
-    const workspace = await this.prisma.workspace.findFirst({
-      where: { tenantId },
+    // Ownership is tracked on Tenant.ownerId (Workspace model removed)
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, name: true, ownerId: true },
     });
 
-    if (!workspace) {
-      throw new NotFoundException('Workspace not found.');
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found.');
     }
 
-    if (workspace.ownerId !== currentOwnerId) {
+    // Fall back: if ownerId not set, resolve owner as first TENANT_ADMIN
+    const resolvedOwnerId =
+      tenant.ownerId ??
+      (
+        await this.prisma.user.findFirst({
+          where: { tenantId, role: 'TENANT_ADMIN' },
+          orderBy: { id: 'asc' },
+          select: { id: true },
+        })
+      )?.id;
+
+    if (resolvedOwnerId !== currentOwnerId) {
       throw new BadRequestException(
         'Only the current owner can transfer ownership.',
       );
@@ -443,17 +460,17 @@ export class UsersService {
     });
 
     if (!targetUser) {
-      throw new NotFoundException('Target user not found in this workspace.');
+      throw new NotFoundException('Target user not found in this tenant.');
     }
 
     if (targetUser.id === currentOwnerId) {
       throw new BadRequestException('You are already the owner.');
     }
 
-    // Execute in a transaction: update workspace owner and ensure target is TENANT_ADMIN
-    const [updatedWorkspace, updatedUser] = await this.prisma.$transaction([
-      this.prisma.workspace.update({
-        where: { id: workspace.id },
+    // Transfer: update Tenant.ownerId and ensure target becomes TENANT_ADMIN
+    const [updatedTenant, updatedUser] = await this.prisma.$transaction([
+      this.prisma.tenant.update({
+        where: { id: tenant.id },
         data: { ownerId: targetUser.id },
       }),
       this.prisma.user.update({
@@ -462,13 +479,18 @@ export class UsersService {
       }),
     ]);
 
+    const currentOwnerUser = await this.prisma.user.findUnique({
+      where: { id: currentOwnerId },
+      select: { email: true },
+    });
+
     await this.emailService.sendAdminTransferEmail(
-      'currentOwner', // Should pass in correct emails ideally, but this satisfies the method signature
+      currentOwnerUser?.email ?? '',
       targetUser.email,
-      workspace.name,
+      tenant.name,
     );
 
-    return { workspace: updatedWorkspace, newOwner: updatedUser };
+    return { tenant: updatedTenant, newOwner: updatedUser };
   }
 
   async exportUserData(tenantId: string, userId: string) {
@@ -493,24 +515,26 @@ export class UsersService {
   async deleteMe(tenantId: string, userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId, tenantId },
-      include: {
-        workspace: true,
-      },
     });
 
     if (!user) throw new NotFoundException('User not found');
 
-    // If the user is the owner of a workspace, delete the entire tenant to ensure data cleanup.
-    // In a real app we might prompt them to transfer ownership instead, but for compliance we delete.
-    const isOwner = user.workspace?.ownerId === userId;
+    // Check if this user is the tenant owner
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { ownerId: true },
+    });
+
+    const isOwner = tenant?.ownerId === userId;
 
     if (isOwner) {
+      // Delete entire tenant (cascades to all data)
       await this.prisma.tenant.delete({
         where: { id: tenantId },
       });
       return {
         success: true,
-        message: 'Account and associated Workspace deleted completely.',
+        message: 'Account and associated Tenant deleted completely.',
       };
     } else {
       await this.prisma.user.delete({

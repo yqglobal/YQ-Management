@@ -77,7 +77,7 @@ export interface CancelSubscriptionResult {
 
 export interface VerifyPaymentInput {
   paymentReference: string;
-  workspaceId: string;
+  tenantId: string;
 }
 
 export interface VerifyPaymentResult {

@@ -257,7 +257,7 @@ export class VisitService {
 
       const config = (queue.tokenDisplayConfig as any) || {};
       const prefix = config.prefix || 'Q';
-      const numberPart = Math.floor(1000 + Math.random() * 9000).toString();
+      const numberPart = require('crypto').randomInt(10000, 100000).toString();
       const displayId = `${prefix}${numberPart}`;
 
       const visit = await tx.visit.create({
@@ -301,6 +301,7 @@ export class VisitService {
     bookings: {
       serviceId: string;
       queueId?: string;
+      providerId?: string;
       scheduledFor?: string;
       formResponses?: any;
     }[];
@@ -388,7 +389,7 @@ export class VisitService {
         const q = await tx.queue.findUnique({ where: { id: queueId } });
         const config = (q?.tokenDisplayConfig as any) || {};
         const prefix = config.prefix || 'Q';
-        const numberPart = Math.floor(1000 + Math.random() * 9000).toString();
+        const numberPart = require('crypto').randomInt(10000, 100000).toString();
         const displayId = `${prefix}${numberPart}`;
 
         let scheduledTime: Date | undefined;
@@ -442,6 +443,7 @@ export class VisitService {
             queueId,
             serviceId: service.id,
             displayId,
+            assignedStaffId: booking.providerId || null,
             currentState: currentState as any,
             scheduledTime,
             priority: scheduledTime ? 10 : 0,

@@ -87,7 +87,7 @@ export class OzowProvider implements PaymentProvider {
     valid: boolean;
     eventId?: string;
     eventType?: string;
-    workspaceId?: string;
+    tenantId?: string;
     subscriptionId?: string;
     transactionId?: string;
     amount?: number;
@@ -106,7 +106,7 @@ export class OzowProvider implements PaymentProvider {
       valid: true,
       eventId: (input.headers['x-ozow-event-id'] as string) || undefined,
       eventType: (input.headers['x-ozow-event-type'] as string) || undefined,
-      workspaceId: (input.payload['workspaceId'] as string) || undefined,
+      tenantId: (input.payload['tenantId'] as string) || undefined,
       transactionId:
         (input.payload['TransactionReference'] as string) || undefined,
       amount: (input.payload['Amount'] as number) || undefined,
@@ -182,7 +182,7 @@ export class OzowProvider implements PaymentProvider {
 
   async verifyPayment(input: {
     paymentReference: string;
-    workspaceId: string;
+    tenantId: string;
   }): Promise<{
     verified: boolean;
     status: string;

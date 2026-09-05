@@ -255,7 +255,7 @@ export class TemplateService {
   }
 
   async renderWhatsAppForWorkspace(
-    workspaceId: string | null,
+    tenantId: string | null,
     templateKey: string,
     variables: TemplateVariables,
   ): Promise<string> {
@@ -265,9 +265,9 @@ export class TemplateService {
       return '';
     }
 
-    if (workspaceId) {
+    if (tenantId) {
       const customTemplate = await this.prisma.whatsAppTemplate.findFirst({
-        where: { workspaceId, key: templateKey, active: true },
+        where: { tenantId, key: templateKey, active: true },
       });
       if (customTemplate && customTemplate.content) {
         templateContent = customTemplate.content;

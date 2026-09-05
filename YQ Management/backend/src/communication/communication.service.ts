@@ -28,19 +28,19 @@ export class CommunicationService {
     private readonly communicationLogService: CommunicationLogService,
   ) {}
 
-  private async resolveTenantId(workspaceId: string): Promise<string | null> {
-    if (!workspaceId) return null;
+  private async resolveTenantId(tenantId: string): Promise<string | null> {
+    if (!tenantId) return null;
     try {
       const workspace = await this.whatsappService[
         'prisma'
-      ].workspace.findUnique({
-        where: { id: workspaceId },
-        select: { tenantId: true },
+      ].tenant.findUnique({
+        where: { id: tenantId },
+        select: { id: true },
       });
-      return workspace?.tenantId || null;
+      return workspace?.id || null;
     } catch (e) {
       this.logger.warn(
-        `Failed to resolve tenant for workspace ${workspaceId}: ${e instanceof Error ? e.message : e}`,
+        `Failed to resolve tenant for workspace ${tenantId}: ${e instanceof Error ? e.message : e}`,
       );
       return null;
     }
@@ -161,7 +161,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -190,7 +190,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -219,7 +219,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -251,7 +251,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -284,7 +284,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -293,9 +293,8 @@ export class CommunicationService {
     if (!phone) return;
 
     const body = this.templateService.renderWhatsApp('otp', { otp });
-    const tenantId = await this.resolveTenantId(payload.workspaceId);
-    const result = tenantId
-      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+    const result = payload.tenantId
+      ? await this.whatsappService.sendToTenant(payload.tenantId, phone, body)
       : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
@@ -309,12 +308,12 @@ export class CommunicationService {
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
   private async handleQueueJoined(payload: any) {
-    const { phone, name, queueName, position, tokenId, queueId, workspaceId } =
+    const { phone, name, queueName, position, tokenId, queueId, tenantId } =
       payload;
     if (!phone) return;
 
@@ -325,7 +324,6 @@ export class CommunicationService {
       position: position || '1',
       link,
     });
-    const tenantId = await this.resolveTenantId(workspaceId);
 
     let result: any = {
       success: false,
@@ -366,7 +364,7 @@ export class CommunicationService {
       provider: 'evolution',
       providerId: result.providerId,
       errorMessage: result.error,
-      workspaceId,
+      tenantId,
     });
   }
 
@@ -380,9 +378,8 @@ export class CommunicationService {
       position: String(position || '1'),
       wait_time: String(waitTime || '5'),
     });
-    const tenantId = await this.resolveTenantId(payload.workspaceId);
-    const result = tenantId
-      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+    const result = payload.tenantId
+      ? await this.whatsappService.sendToTenant(payload.tenantId, phone, body)
       : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
@@ -396,7 +393,7 @@ export class CommunicationService {
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -408,9 +405,8 @@ export class CommunicationService {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
     });
-    const tenantId = await this.resolveTenantId(payload.workspaceId);
-    const result = tenantId
-      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+    const result = payload.tenantId
+      ? await this.whatsappService.sendToTenant(payload.tenantId, phone, body)
       : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
@@ -424,7 +420,7 @@ export class CommunicationService {
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -437,9 +433,8 @@ export class CommunicationService {
       queue_name: queueName || 'the queue',
       wait_time: String(waitTime || '10'),
     });
-    const tenantId = await this.resolveTenantId(payload.workspaceId);
-    const result = tenantId
-      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+    const result = payload.tenantId
+      ? await this.whatsappService.sendToTenant(payload.tenantId, phone, body)
       : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
@@ -453,7 +448,7 @@ export class CommunicationService {
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -465,9 +460,8 @@ export class CommunicationService {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
     });
-    const tenantId = await this.resolveTenantId(payload.workspaceId);
-    const result = tenantId
-      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+    const result = payload.tenantId
+      ? await this.whatsappService.sendToTenant(payload.tenantId, phone, body)
       : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
@@ -481,7 +475,7 @@ export class CommunicationService {
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -493,9 +487,8 @@ export class CommunicationService {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
     });
-    const tenantId = await this.resolveTenantId(payload.workspaceId);
-    const result = tenantId
-      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+    const result = payload.tenantId
+      ? await this.whatsappService.sendToTenant(payload.tenantId, phone, body)
       : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
@@ -509,7 +502,7 @@ export class CommunicationService {
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -521,9 +514,8 @@ export class CommunicationService {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
     });
-    const tenantId = await this.resolveTenantId(payload.workspaceId);
-    const result = tenantId
-      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+    const result = payload.tenantId
+      ? await this.whatsappService.sendToTenant(payload.tenantId, phone, body)
       : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
@@ -537,7 +529,7 @@ export class CommunicationService {
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -551,9 +543,8 @@ export class CommunicationService {
       position: '1',
       link: `${process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001'}/customer/status/${payload.tokenId || ''}`,
     });
-    const tenantId = await this.resolveTenantId(payload.workspaceId);
-    const result = tenantId
-      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+    const result = payload.tenantId
+      ? await this.whatsappService.sendToTenant(payload.tenantId, phone, body)
       : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
@@ -567,7 +558,7 @@ export class CommunicationService {
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -579,9 +570,8 @@ export class CommunicationService {
       name: 'Customer',
       queue_name: newQueueName || 'a new queue',
     });
-    const tenantId = await this.resolveTenantId(payload.workspaceId);
-    const result = tenantId
-      ? await this.whatsappService.sendToTenant(tenantId, phone, body)
+    const result = payload.tenantId
+      ? await this.whatsappService.sendToTenant(payload.tenantId, phone, body)
       : { success: false, error: 'No tenant context for WhatsApp' };
 
     await this.communicationLogService.log({
@@ -595,7 +585,7 @@ export class CommunicationService {
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -628,7 +618,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: result.providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -659,7 +649,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: result.providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -691,7 +681,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: result.providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -725,7 +715,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: result.providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -759,7 +749,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: result.providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -790,7 +780,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: result.providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -823,7 +813,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: result.providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 
@@ -855,7 +845,7 @@ export class CommunicationService {
       provider: 'brevo',
       providerId: result.providerId,
       errorMessage: result.error,
-      workspaceId: payload.workspaceId,
+      tenantId: payload.tenantId,
     });
   }
 }

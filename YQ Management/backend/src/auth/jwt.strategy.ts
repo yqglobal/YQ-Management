@@ -46,14 +46,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         throw new UnauthorizedException('Access revoked');
       }
 
-      // Verify user actually exists in DB (handles cases where DB was reset but JWT remains in browser)
-      const userExists = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-        select: { id: true },
-      });
-      if (!userExists) {
-        throw new UnauthorizedException('User no longer exists');
-      }
+      // Removed database lookup to improve performance. 
+      // Relies purely on JWT signature and Redis blocklists for session invalidation.
     }
 
     return {
@@ -63,6 +57,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: payload.role,
       tenantId: payload.tenantId,
       personalSettings: payload.personalSettings,
+      allowedPages: payload.allowedPages ?? [],
+      allowedLocationIds: payload.allowedLocationIds ?? [],
+      allowedServiceIds: payload.allowedServiceIds ?? [],
       jti: payload.jti,
     };
   }

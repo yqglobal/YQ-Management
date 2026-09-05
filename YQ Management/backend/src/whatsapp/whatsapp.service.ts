@@ -640,14 +640,14 @@ export class WhatsappService implements OnModuleInit {
       where: { id: targetId },
     });
     if (!tenant) {
-      const ws = this.prisma.workspace?.findUnique
-        ? await this.prisma.workspace.findUnique({
+      const ws = this.prisma.tenant?.findUnique
+        ? await this.prisma.tenant.findUnique({
             where: { id: targetId },
           })
         : null;
       if (ws) {
         tenant = await this.prisma.tenant.findUnique({
-          where: { id: ws.tenantId },
+          where: { id: ws.id },
         });
       }
     }

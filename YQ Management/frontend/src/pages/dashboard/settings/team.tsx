@@ -6,62 +6,74 @@ import SecuritySettings from './_components/security';
 import AuditLogsPage from './_components/audit';
 import ComplianceSettings from './_components/compliance';
 import PrivacySettings from './_components/privacy';
+import { RolesTable } from '../../../components/settings/RolesTable';
 
 export default function TeamSettingsPage() {
-  const [activeTab, setActiveTab] = useState<'staff' | 'devices' | 'audit' | 'policies'>('staff');
+  const [activeTab, setActiveTab] = useState<'team' | 'roles' | 'security' | 'audit' | 'policies'>('team');
 
   return (
-    <SettingsLayout pageTitle="Team & Security" pageSubtitle="Manage your staff, security policies, and access control.">
+    <SettingsLayout pageTitle="Team & Access" pageSubtitle="Manage your members, providers, roles, and security policies.">
       <Head>
-        <title>Team & Security | Settings</title>
+        <title>Team & Access | Settings</title>
       </Head>
 
       <div className="flex space-x-1 border-b border-border dark:border-dark-border mb-6 overflow-x-auto">
         <button
-          onClick={() => setActiveTab('staff')}
+          onClick={() => setActiveTab('team')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === 'staff'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+            activeTab === 'team'
+              ? 'border-[#0284C7] text-[#0284C7]'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
-          Staff Management
+          Team & Providers
         </button>
         <button
-          onClick={() => setActiveTab('devices')}
+          onClick={() => setActiveTab('roles')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === 'devices'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+            activeTab === 'roles'
+              ? 'border-[#0284C7] text-[#0284C7]'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
-          Devices & Sessions
+          Roles & Permissions
+        </button>
+        <button
+          onClick={() => setActiveTab('security')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+            activeTab === 'security'
+              ? 'border-[#0284C7] text-[#0284C7]'
+              : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
+          }`}
+        >
+          Devices & Security
         </button>
         <button
           onClick={() => setActiveTab('audit')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'audit'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              ? 'border-[#0284C7] text-[#0284C7]'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
-          Audit Logs
+          Activity Logs
         </button>
         <button
           onClick={() => setActiveTab('policies')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'policies'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              ? 'border-[#0284C7] text-[#0284C7]'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
-          Compliance & Privacy
+          Compliance
         </button>
       </div>
 
       <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto">
-        {activeTab === 'staff' && <StaffSettings />}
-        {activeTab === 'devices' && <SecuritySettings />}
+        {activeTab === 'team' && <StaffSettings />}
+        {activeTab === 'roles' && <RolesTable />}
+        {activeTab === 'security' && <SecuritySettings />}
         {activeTab === 'audit' && <AuditLogsPage />}
         {activeTab === 'policies' && (
           <>

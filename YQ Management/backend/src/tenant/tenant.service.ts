@@ -29,7 +29,7 @@ export class TenantService {
         name: 'My Company',
         createdAt: { lt: twentyFourHoursAgo },
         users: { none: {} },
-        workspaces: { none: {} },
+        
         queues: { none: {} },
       },
     });
@@ -221,7 +221,7 @@ export class TenantService {
       visits,
     ] = await Promise.all([
       this.prisma.tenant.findUnique({ where: { id: tenantId } }),
-      this.prisma.workspace.findMany({ where: { tenantId } }),
+      [] /* this.prisma.workspace.findMany({ where: { tenantId } }) */,
       this.prisma.user.findMany({
         where: { tenantId },
         select: { id: true, email: true, role: true },

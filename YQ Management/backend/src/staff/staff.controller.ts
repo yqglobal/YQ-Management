@@ -11,30 +11,42 @@ import {
   Query,
 } from '@nestjs/common';
 import { StaffService } from './staff.service';
-import { CreateStaffDto } from './dto/create-staff.dto';
-import { UpdateStaffDto } from './dto/update-staff.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { Role } from '@prisma/client';
-import { WorkspaceGuard } from '../auth/workspace.guard';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
 
 @Controller('staff')
-@UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-@Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER, Role.OPERATOR)
 export class StaffController {
   constructor(private readonly staffService: StaffService) {}
 
+  /**
+   * Public endpoint: get available providers for a service on a given date.
+   * Used by the booking page — no auth required.
+   */
+  @Get('available')
+  findAvailable(
+    @Query('tenantId') tenantId: string,
+    @Query('serviceId') serviceId: string,
+    @Query('date') date: string,
+  ) {
+    return this.staffService.findAvailableForService(tenantId, serviceId, date);
+  }
+
   @Post()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER)
   create(
     @Req() req: AuthenticatedRequest,
-    @Body() createStaffDto: CreateStaffDto,
+    @Body() body: any,
   ) {
-    return this.staffService.create(req.user.tenantId, createStaffDto);
+    return this.staffService.create(req.user.tenantId, body);
   }
 
   @Get()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   findAll(
     @Req() req: AuthenticatedRequest,
     @Query('locationId') locationId?: string,
@@ -43,21 +55,53 @@ export class StaffController {
   }
 
   @Get(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.staffService.findOne(id, req.user.tenantId);
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER)
   update(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() updateStaffDto: UpdateStaffDto,
+    @Body() body: any,
   ) {
-    return this.staffService.update(id, req.user.tenantId, updateStaffDto);
+    return this.staffService.update(id, req.user.tenantId, body);
+  }
+
+  @Patch(':id/schedule')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER)
+  updateSchedule(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { weeklySchedule: any[]; exceptionDates?: any[] },
+  ) {
+    return this.staffService.updateSchedule(
+      id,
+      req.user.tenantId,
+      body.weeklySchedule,
+      body.exceptionDates,
+    );
+  }
+
+  @Patch(':id/services')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER)
+  updateServices(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { serviceIds: string[] },
+  ) {
+    return this.staffService.updateServices(id, req.user.tenantId, body.serviceIds);
   }
 
   @Delete(':id')
-  @Roles(Role.TENANT_ADMIN, Role.ADMIN) // Restrict delete to admins
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.TENANT_ADMIN, Role.ADMIN)
   remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.staffService.remove(id, req.user.tenantId);
   }

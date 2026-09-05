@@ -244,16 +244,16 @@ export class EvolutionProvider implements WhatsAppProvider {
   }
 
   async connect(
-    workspaceId: string,
+    tenantId: string,
   ): Promise<{ instanceName: string; state: string; qr?: string }> {
     if (!this.baseUrl || !this.apiKey || !this.defaultInstance) {
       return {
-        instanceName: `workspace_${workspaceId.substring(0, 8)}`,
+        instanceName: `workspace_${tenantId.substring(0, 8)}`,
         state: 'close',
       };
     }
 
-    const instanceName = `workspace_${workspaceId.substring(0, 8)}`;
+    const instanceName = `workspace_${tenantId.substring(0, 8)}`;
     let connectRes = await this.fetch('/instance/create', 'POST', {
       instanceName,
       qrcode: true,

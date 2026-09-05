@@ -20,6 +20,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   const [selectedLocId, setSelectedLocId] = useState(locationId || '');
   const [selectedQueueIds, setSelectedQueueIds] = useState<string[]>([]);
   const [allowAppointments, setAllowAppointments] = useState(false);
+  const [allowProviderSelection, setAllowProviderSelection] = useState(false);
   const [requireManualCheckIn, setRequireManualCheckIn] = useState(false);
   const [appointmentGranularityMins, setAppointmentGranularityMins] = useState(15);
   const [formConfig, setFormConfig] = useState<any[]>([]);
@@ -39,6 +40,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setExpectedDuration(service.expectedDuration?.toString() || '15');
       setSelectedLocId(service.locationId || locationId || '');
       setAllowAppointments(service.allowAppointments || false);
+      setAllowProviderSelection(service.allowProviderSelection || false);
       setRequireManualCheckIn(service.requireManualCheckIn || false);
       setAppointmentGranularityMins(service.appointmentGranularityMins || 15);
       let initialFormConfig = service.formConfig || [];
@@ -78,6 +80,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setSelectedLocId(locationId || '');
       setSelectedQueueIds([]);
       setAllowAppointments(false);
+      setAllowProviderSelection(false);
       setRequireManualCheckIn(false);
       setAppointmentGranularityMins(15);
       setFormConfig([]);
@@ -134,6 +137,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       locationId: selectedLocId,
       queueIds: selectedQueueIds,
       allowAppointments,
+      allowProviderSelection,
       requireManualCheckIn,
       appointmentGranularityMins,
       formConfig,
@@ -231,6 +235,19 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
               <div>
                 <span className="text-sm font-medium text-gray-900 dark:text-white block">Allow Appointments</span>
                 <span className="text-xs text-gray-500 dark:text-zinc-500 block">Customers can book future timeslots</span>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/5 rounded-xl cursor-pointer">
+              <input
+                type="checkbox"
+                checked={allowProviderSelection}
+                onChange={(e) => setAllowProviderSelection(e.target.checked)}
+                className="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+              />
+              <div>
+                <span className="text-sm font-medium text-gray-900 dark:text-white block">Allow Provider Selection</span>
+                <span className="text-xs text-gray-500 dark:text-zinc-500 block">Customers can pick their preferred staff member</span>
               </div>
             </label>
 

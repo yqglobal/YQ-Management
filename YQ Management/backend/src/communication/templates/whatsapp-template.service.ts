@@ -7,21 +7,21 @@ export class WhatsAppTemplateService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getTemplates(workspaceId: string) {
+  async getTemplates(tenantId: string) {
     return this.prisma.whatsAppTemplate.findMany({
-      where: { workspaceId },
+      where: { tenantId },
       orderBy: { key: 'asc' },
     });
   }
 
-  async getTemplate(workspaceId: string, key: string) {
+  async getTemplate(tenantId: string, key: string) {
     return this.prisma.whatsAppTemplate.findFirst({
-      where: { workspaceId, key },
+      where: { tenantId, key },
     });
   }
 
   async upsertTemplate(
-    workspaceId: string,
+    tenantId: string,
     data: {
       key: string;
       name: string;
@@ -31,7 +31,7 @@ export class WhatsAppTemplateService {
     },
   ) {
     const existing = await this.prisma.whatsAppTemplate.findFirst({
-      where: { workspaceId, key: data.key },
+      where: { tenantId, key: data.key },
     });
 
     if (existing) {
@@ -48,7 +48,7 @@ export class WhatsAppTemplateService {
 
     return this.prisma.whatsAppTemplate.create({
       data: {
-        workspaceId,
+        tenantId,
         key: data.key,
         name: data.name,
         content: data.content,
@@ -58,9 +58,9 @@ export class WhatsAppTemplateService {
     });
   }
 
-  async deleteTemplate(workspaceId: string, key: string) {
+  async deleteTemplate(tenantId: string, key: string) {
     const existing = await this.prisma.whatsAppTemplate.findFirst({
-      where: { workspaceId, key },
+      where: { tenantId, key },
     });
 
     if (!existing) {

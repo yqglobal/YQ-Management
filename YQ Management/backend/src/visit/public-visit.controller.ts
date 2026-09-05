@@ -240,6 +240,7 @@ export class PublicVisitController {
       bookings: {
         serviceId: string;
         queueId?: string; // Made optional so frontend can specify or we infer
+        providerId?: string;
         scheduledFor?: string;
         formResponses?: any;
       }[];

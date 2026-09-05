@@ -18,7 +18,7 @@ export interface WhatsAppProvider {
     buttons: Array<{ id: string; text: string }>,
   ): Promise<WhatsAppResult>;
   connect?(
-    workspaceId: string,
+    tenantId: string,
   ): Promise<{ instanceName: string; state: string; qr?: string }>;
   status?(instanceName: string): Promise<{ state: string }>;
   disconnect?(instanceName: string): Promise<void>;
