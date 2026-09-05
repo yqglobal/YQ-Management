@@ -42,7 +42,7 @@ export default function Footer() {
         </div>
 
         <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-white/10 text-sm text-zinc-500">
-          <p>© 2024 Qmova Inc. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Qmova Inc. All rights reserved.</p>
           <div className="flex items-center gap-6 mt-4 md:mt-0">
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500"></span>

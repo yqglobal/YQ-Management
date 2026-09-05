@@ -34,16 +34,48 @@ export class LocationService {
     });
   }
 
-  async findAll(tenantId: string) {
+  async findAll(tenantId: string, reqUser?: any) {
+    const where: any = { tenantId };
+
+    if (reqUser && (reqUser.role === 'OPERATOR' || reqUser.role === 'MANAGER')) {
+      const dbUser = await this.prisma.user.findUnique({
+        where: { id: reqUser.userId || reqUser.sub },
+      });
+      if (dbUser && dbUser.allowedLocationIds) {
+        if (dbUser.allowedLocationIds.length > 0) {
+          where.id = { in: dbUser.allowedLocationIds };
+        } else {
+          where.id = { in: [] };
+        }
+      }
+    }
+
     return this.prisma.extendedClient.location.findMany({
-      where: { tenantId },
+      where,
       include: { services: true },
     });
   }
 
-  async findOne(id: string, tenantId: string) {
+  async findOne(id: string, tenantId: string, reqUser?: any) {
+    const where: any = { id, tenantId };
+
+    if (reqUser && (reqUser.role === 'OPERATOR' || reqUser.role === 'MANAGER')) {
+      const dbUser = await this.prisma.user.findUnique({
+        where: { id: reqUser.userId || reqUser.sub },
+      });
+      if (dbUser && dbUser.allowedLocationIds) {
+        if (dbUser.allowedLocationIds.length > 0) {
+          if (!dbUser.allowedLocationIds.includes(id)) {
+            throw new NotFoundException('Location not found');
+          }
+        } else {
+          throw new NotFoundException('Location not found');
+        }
+      }
+    }
+
     const location = await this.prisma.extendedClient.location.findFirst({
-      where: { id, tenantId },
+      where,
       include: { services: true },
     });
     if (!location) throw new NotFoundException('Location not found');

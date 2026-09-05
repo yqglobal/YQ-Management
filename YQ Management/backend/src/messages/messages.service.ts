@@ -32,13 +32,12 @@ export class MessagesService {
         where: {
           tenantId,
           queue: { locationId },
-          customer: { isNot: null },
         },
-        select: { customer: { select: { phone: true } } },
+        include: { customer: true },
         distinct: ['customerId'],
       });
       const phones = visits
-        .map((v) => v.customer?.phone)
+        .map((v) => v.customer.phone)
         .filter((p): p is string => !!p);
 
       return this.prisma.customerConversation.findMany({

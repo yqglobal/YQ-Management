@@ -28,12 +28,12 @@ export class LocationController {
 
   @Get()
   findAll(@Req() req: AuthenticatedRequest) {
-    return this.locationService.findAll(req.user.tenantId);
+    return this.locationService.findAll(req.user.tenantId, req.user);
   }
 
   @Get(':id')
   findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.locationService.findOne(id, req.user.tenantId);
+    return this.locationService.findOne(id, req.user.tenantId, req.user);
   }
 
   @Patch(':id')

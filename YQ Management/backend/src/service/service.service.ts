@@ -82,9 +82,34 @@ export class ServiceService {
     return service;
   }
 
-  async findAll(tenantId: string) {
+  async findAll(tenantId: string, locationId?: string, reqUser?: any) {
+    const where: any = { tenantId };
+
+    if (locationId) {
+      where.locationId = locationId;
+    }
+
+    if (reqUser && (reqUser.role === 'OPERATOR' || reqUser.role === 'MANAGER')) {
+      const dbUser = await this.prisma.user.findUnique({
+        where: { id: reqUser.userId || reqUser.sub },
+      });
+      if (dbUser && dbUser.allowedLocationIds) {
+        if (dbUser.allowedLocationIds.length > 0) {
+          if (locationId) {
+            if (!dbUser.allowedLocationIds.includes(locationId)) {
+              where.locationId = { in: [] }; // Unauthorized access to this location
+            }
+          } else {
+            where.locationId = { in: dbUser.allowedLocationIds };
+          }
+        } else {
+          where.locationId = { in: [] };
+        }
+      }
+    }
+
     return this.prisma.extendedClient.service.findMany({
-      where: { tenantId },
+      where,
       include: { location: true, queues: true },
     });
   }

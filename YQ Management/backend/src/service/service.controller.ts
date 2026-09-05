@@ -69,8 +69,11 @@ export class ServiceController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  findAll(@Req() req: AuthenticatedRequest) {
-    return this.serviceService.findAll(req.user.tenantId);
+  findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query('locationId') locationId?: string,
+  ) {
+    return this.serviceService.findAll(req.user.tenantId, locationId, req.user);
   }
 
   @UseGuards(JwtAuthGuard)

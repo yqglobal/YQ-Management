@@ -109,7 +109,7 @@ export class TenantService {
         locations: { select: { id: true, name: true } },
         services: { select: { id: true, name: true } },
         queues: {
-          select: { id: true, name: true, services: { select: { id: true } } },
+          select: { id: true, name: true, locationId: true, services: { select: { id: true } } },
         },
         subscriptions: {
           take: 1,

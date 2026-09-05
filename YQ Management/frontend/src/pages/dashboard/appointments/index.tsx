@@ -81,8 +81,8 @@ export default function AppointmentsPage() {
   });
 
   const { data: services = [] } = useQuery({
-    queryKey: ['services'],
-    queryFn: () => fetchApi('/service').catch(() => []),
+    queryKey: ['services', activeLocationId],
+    queryFn: () => fetchApi(`/service${locParamPrefix}`).catch(() => []),
   });
 
   const isLoading = view === 'day' ? scheduleLoading : (visitsLoading || appointmentsLoading || queuesLoading);
