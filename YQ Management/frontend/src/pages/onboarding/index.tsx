@@ -211,6 +211,44 @@ export default function Onboarding() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
+  // Step 3 State
+  const [googlePlaceId, setGooglePlaceId] = useState('');
+  const [selectedIntegrationId, setSelectedIntegrationId] = useState<string>('');
+  
+  const { data: googleSettings, refetch: refetchGoogleSettings } = useQuery({
+    queryKey: ['google-business-settings-onboarding'],
+    queryFn: () => fetchApi('/integrations/google/business-profile').catch(() => null),
+    enabled: step === 3,
+  });
+
+  const saveGoogleSettingsMutation = useMutation({
+    mutationFn: async () => {
+      const locations = googleSettings?.locations || [];
+      if (locations.length > 0 && selectedIntegrationId) {
+        await fetchApi('/integrations/google/business-profile', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            locations: [{
+              id: locations[0].id,
+              googleIntegrationId: selectedIntegrationId,
+              googlePlaceId: googlePlaceId || null,
+              googleCalendarId: null
+            }]
+          })
+        });
+      }
+    },
+    onSuccess: () => {
+      updateStep(4);
+    }
+  });
+
+  useEffect(() => {
+    if (googleSettings?.googleIntegrations?.length > 0 && !selectedIntegrationId) {
+      setSelectedIntegrationId(googleSettings.googleIntegrations[0].id);
+    }
+  }, [googleSettings, selectedIntegrationId]);
+
   // Invitation State
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteInfo, setInviteInfo] = useState<{ workspaceName: string; role: string; valid: boolean } | null>(null);
@@ -250,7 +288,8 @@ export default function Onboarding() {
 
       if (router.query.googleAuth === 'success') {
         toast.success('Google account connected successfully!');
-        updateStep(4);
+        updateStep(3);
+        refetchGoogleSettings();
         // Clean up URL
         const url = new URL(window.location.href);
         url.searchParams.delete('googleAuth');
@@ -787,29 +826,84 @@ export default function Onboarding() {
                 </p>
               </header>
 
-              <div className="w-full max-w-sm mt-4 p-8 bg-surface-bright dark:bg-zinc-900 border border-border dark:border-dark-border rounded-2xl flex flex-col items-center gap-4">
+              <div className="w-full max-w-md mt-4 p-8 bg-surface-bright dark:bg-zinc-900 border border-border dark:border-dark-border rounded-2xl flex flex-col items-center gap-6">
                 <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
                   <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.9 8.2,4.73 12.2,4.73C15.29,4.73 17.1,6.7 17.1,6.7L19,4.72C19,4.72 16.56,2 12.1,2C6.42,2 2.03,6.8 2.03,12C2.03,17.05 6.16,22 12.25,22C17.6,22 21.5,18.33 21.5,12.91C21.5,11.76 21.35,11.1 21.35,11.1V11.1Z" />
                   </svg>
                 </div>
-                <p className="text-on-surface-variant dark:text-zinc-400 text-sm mb-4">
-                  You can connect multiple Google accounts later from the Settings page.
-                </p>
-                <button
-                  onClick={() => {
-                    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?intent=link_tenant_onboarding`;
-                  }}
-                  className="w-full min-h-[44px] px-8 rounded-lg font-body-md font-medium bg-blue-600 hover:bg-blue-700 text-white transition-opacity flex items-center justify-center gap-2"
-                >
-                  Connect Google Account
-                </button>
-                <button
-                  onClick={() => updateStep(4)}
-                  className="w-full mt-2 text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
-                >
-                  Skip for now
-                </button>
+                
+                {googleSettings?.googleIntegrations?.length > 0 ? (
+                  <div className="w-full flex flex-col gap-4 text-left">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-on-surface dark:text-zinc-200">Select Connected Google Account</label>
+                      <select 
+                        value={selectedIntegrationId}
+                        onChange={(e) => setSelectedIntegrationId(e.target.value)}
+                        className="w-full h-12 px-4 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-zinc-100"
+                      >
+                        <option value="">-- Select an account --</option>
+                        {googleSettings.googleIntegrations.map((int: any) => (
+                          <option key={int.id} value={int.id}>{int.email}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-on-surface dark:text-zinc-200">Google Place ID (Optional, For Reviews)</label>
+                      <input 
+                        type="text"
+                        value={googlePlaceId}
+                        onChange={(e) => setGooglePlaceId(e.target.value)}
+                        placeholder="e.g. ChIJN1t_tDeuEmsRUsoyG83frY4"
+                        className="w-full h-12 px-4 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
+                      />
+                      <p className="text-xs text-zinc-500">Need help finding this? Search for your business on Google Maps and use a Place ID finder tool.</p>
+                    </div>
+
+                    <div className="flex flex-col gap-2 pt-2">
+                      <button
+                        onClick={() => saveGoogleSettingsMutation.mutate()}
+                        disabled={saveGoogleSettingsMutation.isPending || !selectedIntegrationId}
+                        className="w-full h-12 rounded-xl font-medium bg-blue-600 hover:bg-blue-700 text-white transition-opacity disabled:opacity-50"
+                      >
+                        {saveGoogleSettingsMutation.isPending ? 'Saving...' : 'Save & Continue'}
+                      </button>
+                      <button
+                        onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?intent=link_tenant_onboarding`}
+                        className="w-full h-12 rounded-xl font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                      >
+                        Connect a different account
+                      </button>
+                      <button
+                        onClick={() => updateStep(4)}
+                        className="w-full mt-2 text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                      >
+                        Skip for now
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-4 w-full">
+                    <p className="text-on-surface-variant dark:text-zinc-400 text-sm text-center">
+                      Connect your Google Business account to enable Calendar Sync and Smart Reviews.
+                    </p>
+                    <button
+                      onClick={() => {
+                        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?intent=link_tenant_onboarding`;
+                      }}
+                      className="w-full h-12 rounded-xl font-medium bg-blue-600 hover:bg-blue-700 text-white transition-opacity"
+                    >
+                      Connect Google Account
+                    </button>
+                    <button
+                      onClick={() => updateStep(4)}
+                      className="w-full text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                    >
+                      Skip for now
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

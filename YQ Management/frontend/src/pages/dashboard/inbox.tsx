@@ -6,17 +6,21 @@ import { fetchApi } from '../../lib/api';
 import { MessageSquare, Send, Search, Phone, RefreshCw, CheckCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSocket } from '../../components/SocketProvider';
+import { useLocation } from '../../components/LocationContext';
 
 export default function InboxPage() {
+  const { activeLocationId } = useLocation();
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [search, setSearch] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
+  const locParam = activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : '';
+
   const { data: conversations = [], isLoading: isLoadingConvos } = useQuery({
-    queryKey: ['inbox-conversations'],
-    queryFn: () => fetchApi('/messages/inbox'),
+    queryKey: ['inbox-conversations', activeLocationId],
+    queryFn: () => fetchApi(`/messages/inbox${locParam}`),
     refetchInterval: 5000,
   });
 

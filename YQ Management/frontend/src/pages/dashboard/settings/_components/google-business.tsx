@@ -149,7 +149,7 @@ export default function GoogleBusinessSettings() {
                       <select 
                         value={loc.googleIntegrationId || ''}
                         onChange={(e) => handleLocationChange(index, 'googleIntegrationId', e.target.value)}
-                        className="w-full h-10 px-3 py-2 rounded-md bg-surface dark:bg-dark-surface-hover border border-border dark:border-dark-border text-sm dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full h-10 px-3 py-2 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors"
                       >
                         <option value="">-- Do not sync calendar --</option>
                         {integrations.map((int: any) => (
@@ -164,7 +164,7 @@ export default function GoogleBusinessSettings() {
                         placeholder="e.g. ChIJN1t_tDeuEmsRUsoyG83frY4"
                         value={loc.googlePlaceId || ''}
                         onChange={(e) => handleLocationChange(index, 'googlePlaceId', e.target.value)}
-                        className="bg-surface dark:bg-dark-surface-hover border-border dark:border-dark-border text-on-surface dark:text-zinc-100"
+                        className="bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus-visible:ring-blue-500"
                       />
                     </div>
                   </div>
@@ -203,7 +203,7 @@ export default function GoogleBusinessSettings() {
               type="number"
               value={reviewWaitThresholdMins}
               onChange={(e) => setReviewWaitThresholdMins(parseInt(e.target.value) || 15)}
-              className="bg-surface dark:bg-dark-surface-hover border-border dark:border-dark-border text-on-surface dark:text-zinc-100 max-w-[120px]"
+              className="bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus-visible:ring-emerald-500 max-w-[120px]"
             />
             <p className="text-xs text-on-surface-variant dark:text-zinc-400 mt-1">
               We will only ask for a review if the customer waited less than {reviewWaitThresholdMins} minutes.

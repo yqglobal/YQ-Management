@@ -7,6 +7,7 @@ import {
   Body,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -43,8 +44,11 @@ export class MessagesController {
     );
   }
   @Get('inbox')
-  async getInbox(@Req() req: AuthenticatedRequest) {
-    return this.messagesService.getInbox(req.user.tenantId);
+  async getInbox(
+    @Req() req: AuthenticatedRequest,
+    @Query('locationId') locationId?: string,
+  ) {
+    return this.messagesService.getInbox(req.user.tenantId, locationId);
   }
 
   @Get('inbox/:phone')

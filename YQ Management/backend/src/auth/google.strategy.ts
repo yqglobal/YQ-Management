@@ -15,8 +15,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     // when super() is called synchronously during DI construction.
     const clientID = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const backendUrl =
-      process.env.BACKEND_URL || 'https://api.qmova.yqbuddy.com';
+    const rawBackendUrl = process.env.BACKEND_URL || 'https://api.qmova.yqbuddy.com';
+    const backendUrl = rawBackendUrl.replace(/\/+$/, '');
     const callbackURL = `${backendUrl}/auth/google/callback`;
 
     if (!clientID || !clientSecret) {

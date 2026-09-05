@@ -25,7 +25,29 @@ export class MessagesService {
     });
   }
 
-  async getInbox(tenantId: string) {
+  async getInbox(tenantId: string, locationId?: string) {
+    if (locationId) {
+      // Filter to conversations where the customer had at least one visit at this location
+      const visits = await this.prisma.visit.findMany({
+        where: {
+          tenantId,
+          queue: { locationId },
+          customer: { isNot: null },
+        },
+        select: { customer: { select: { phone: true } } },
+        distinct: ['customerId'],
+      });
+      const phones = visits
+        .map((v) => v.customer?.phone)
+        .filter((p): p is string => !!p);
+
+      return this.prisma.customerConversation.findMany({
+        where: { tenantId, customerPhone: { in: phones } },
+        orderBy: { lastMessageAt: 'desc' },
+        take: 50,
+      });
+    }
+
     return this.prisma.customerConversation.findMany({
       where: { tenantId },
       orderBy: { lastMessageAt: 'desc' },

@@ -261,7 +261,7 @@ export default function AppointmentsPage() {
         <title>Appointments | Qmova</title>
       </Head>
 
-      <div className="max-w-7xl mx-auto space-y-5 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-5 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-wrap">
@@ -315,7 +315,7 @@ export default function AppointmentsPage() {
               </button>
               <button
                 onClick={() => setCurrentDate(new Date())}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all min-w-[170px] text-center ${
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all min-w-[140px] text-center ${
                   isToday ? 'text-primary dark:text-sky-400 font-semibold' : 'text-on-surface dark:text-white'
                 }`}
               >
@@ -333,20 +333,20 @@ export default function AppointmentsPage() {
               <Search strokeWidth={1.5} className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
               <input
                 type="text"
-                placeholder="Search name..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface dark:text-white placeholder:text-on-surface-variant w-40"
+                className="pl-9 pr-4 py-2 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface dark:text-white placeholder:text-on-surface-variant w-28 sm:w-36"
               />
             </div>
 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface dark:text-white"
+              className="px-3 py-2 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface dark:text-white max-w-[130px]"
             >
               <option value="ALL">All Statuses</option>
-              <option value="PENDING_APPROVAL">Pending Approval</option>
+              <option value="PENDING_APPROVAL">Pending</option>
               <option value="CONFIRMED">Confirmed</option>
               <option value="IN_PROGRESS">In Progress</option>
               <option value="COMPLETED">Completed</option>
@@ -356,7 +356,7 @@ export default function AppointmentsPage() {
             <select
               value={serviceFilter}
               onChange={(e) => setServiceFilter(e.target.value)}
-              className="px-3 py-2 max-w-[150px] truncate bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface dark:text-white"
+              className="px-3 py-2 max-w-[120px] truncate bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface dark:text-white"
             >
               <option value="ALL">All Services</option>
               {services.map((s: any) => (
@@ -368,7 +368,8 @@ export default function AppointmentsPage() {
               onClick={exportToCSV}
               className="flex items-center gap-2 px-3 py-2 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl text-sm hover:bg-surface-container hover:text-primary transition-colors text-on-surface dark:text-white"
             >
-              <Download strokeWidth={1.5} className="w-4 h-4" /> Export
+              <Download strokeWidth={1.5} className="w-4 h-4" />
+              <span className="hidden sm:inline">Export</span>
             </button>
           </div>
         </div>
