@@ -308,6 +308,11 @@ export class QueueService {
     }
 
     this.queueGateway.broadcastQueueUpdate(queueId, 'queue_status_changed', {
+      queueId,
+      status,
+    });
+    this.queueGateway.broadcastTenantUpdate(queue.tenantId, 'queue_status_changed', {
+      queueId,
       status,
     });
     return queue;

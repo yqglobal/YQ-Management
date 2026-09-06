@@ -56,7 +56,10 @@ export default function TVDisplay() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/queue/public/${queueId}`)
       .then(r => r.json())
       .then(data => {
-        if (data) setQueueInfo({ name: data.name, serviceName: data.service?.name });
+        if (data) {
+          setQueueInfo({ name: data.name, serviceName: data.service?.name });
+          setIsPaused(data.status === 'PAUSED');
+        }
       })
       .catch(console.error);
   }, [queueId]);
@@ -128,6 +131,12 @@ export default function TVDisplay() {
 
     const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000');
     socket.emit('joinTenantRoom', tenantId);
+
+        socket.on('queue_status_changed', (data: any) => {
+      if (queueId && data.queueId === queueId) {
+         setIsPaused(data.status === 'PAUSED');
+      }
+    });
 
     socket.on('token_serving', (data: AnyFixMe) => {
       const token: CalledToken = {
@@ -224,6 +233,15 @@ export default function TVDisplay() {
             </div>
           </div>
 
+          
+          {isPaused && (
+            <div className="bg-amber-500/20 border border-amber-500/30 text-amber-500 rounded-2xl p-6 flex flex-col items-center justify-center animate-pulse shadow-[0_0_40px_rgba(245,158,11,0.2)]">
+              <span className="material-symbols-outlined text-[48px] mb-2">pause_circle</span>
+              <h2 className="text-3xl font-bold uppercase tracking-widest">Service Temporarily Paused</h2>
+              <p className="text-xl mt-2 opacity-90">Operator is on a short break. Thank you for your patience.</p>
+            </div>
+          )}
+          
           {/* Main content / media zone */}
           <div className="flex-grow bg-zinc-900 rounded-2xl border border-zinc-800 relative overflow-hidden flex flex-col justify-end">
             <div 

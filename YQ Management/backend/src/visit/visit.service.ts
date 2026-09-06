@@ -118,7 +118,7 @@ export class VisitService {
             requireManualCheckIn: true,
           },
         },
-        queue: { select: { name: true } },
+        queue: { select: { name: true, status: true } },
         location: { select: { name: true, address: true } },
         scheduledTime: true,
         language: true,
