@@ -10,11 +10,12 @@ import { LocationModal } from '../../../components/modals/LocationModal';
 import { usePlan } from '../../../hooks/usePlan';
 import { QuotaFreezeGuard } from '../../../components/QuotaFreezeGuard';
 import { QuotaWarningBanner } from '../../../components/QuotaWarningBanner';
+import ProvidersSettings from './_components/providers';
 
 export default function ResourcesSettingsPage() {
   const queryClient = useQueryClient();
   const plan = usePlan();
-  const [activeTab, setActiveTab] = useState<'locations' | 'services' | 'resources'>('locations');
+  const [activeTab, setActiveTab] = useState<'locations' | 'services' | 'resources' | 'providers'>('locations');
 
   // --- Resources state ---
   const [newResourceName, setNewResourceName] = useState('');
@@ -203,6 +204,16 @@ export default function ResourcesSettingsPage() {
           }`}
         >
           Resources
+        </button>
+        <button
+          onClick={() => setActiveTab('providers')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'providers'
+              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
+          }`}
+        >
+          Providers
         </button>
       </div>
 
@@ -600,6 +611,10 @@ export default function ResourcesSettingsPage() {
           }}
           location={selectedLocationForEdit}
         />
+      )}
+      {/* ── Providers Section ── */}
+      {activeTab === 'providers' && (
+        <ProvidersSettings />
       )}
     </SettingsLayout>
   );

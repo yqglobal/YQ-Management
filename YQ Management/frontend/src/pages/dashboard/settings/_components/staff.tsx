@@ -10,7 +10,6 @@ import { useAuth } from '../../../../components/AuthContext';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
 import { InviteMemberModal } from '../../../../components/modals/InviteMemberModal';
-import { ProviderModal } from '../../../../components/modals/ProviderModal';
 import { UserPermissionsModal } from '../../../../components/modals/UserPermissionsModal';
 
 type Member = {
@@ -25,23 +24,6 @@ type Member = {
   allowedLocationIds?: string[];
   allowedServiceIds?: string[];
   allowedPages?: string[];
-};
-
-type Provider = {
-  id: string;
-  name: string;
-  title?: string;
-  email?: string;
-  phone?: string;
-  bio?: string;
-  color?: string;
-  status: string;
-  locationId?: string;
-  userId?: string;
-  capacity?: number;
-  weeklySchedule?: any[];
-  services?: { id: string; name: string }[];
-  location?: { id: string; name: string };
 };
 
 const ROLE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
@@ -94,18 +76,6 @@ function MemberAvatar({ email, role, isOwner }: { email: string; role: string; i
           <Shield className="w-2.5 h-2.5 text-white" />
         </div>
       )}
-    </div>
-  );
-}
-
-function ProviderAvatar({ name, color }: { name: string; color?: string }) {
-  const initial = name ? name.charAt(0).toUpperCase() : '?';
-  return (
-    <div
-      className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0"
-      style={{ backgroundColor: color || '#0284C7' }}
-    >
-      {initial}
     </div>
   );
 }
@@ -205,11 +175,8 @@ export default function StaffDirectory() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'members' | 'providers'>('members');
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
-  const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
-  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+      const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<any>(null);
 
   const isAdmin = user?.role === 'TENANT_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
@@ -228,14 +195,7 @@ export default function StaffDirectory() {
     staleTime: 30000,
   });
 
-  const { data: providers = [], isLoading: isProvidersLoading } = useQuery<Provider[]>({
-    queryKey: ['staffList'],
-    queryFn: () => fetchApi('/staff'),
-    enabled: !!(isAdmin || canManageProviders),
-    staleTime: 30000,
-  });
-
-  const deleteMember = useMutation({
+    const deleteMember = useMutation({
     mutationFn: (id: string) => fetchApi(`/users/${id}`, { method: 'DELETE' }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['staff'] }); toast.success('Removed successfully'); },
     onError: (e: Error) => toast.error(e.message || 'Failed to remove'),
@@ -260,20 +220,7 @@ export default function StaffDirectory() {
     onError: (e: Error) => toast.error(e.message || 'Failed to transfer ownership'),
   });
 
-  const deleteProviderMutation = useMutation({
-    mutationFn: (id: string) => fetchApi(`/staff/${id}`, { method: 'DELETE' }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['staffList'] }); toast.success('Provider removed'); },
-    onError: (e: Error) => toast.error(e.message || 'Failed to remove provider'),
-  });
-
-  const toggleProviderStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      fetchApi(`/staff/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['staffList'] }); toast.success('Provider updated'); },
-    onError: (e: Error) => toast.error(e.message || 'Failed to update'),
-  });
-
-  const handleRoleChange = (member: Member, newRole: string) => {
+      const handleRoleChange = (member: Member, newRole: string) => {
     if (member.isInvite) { toast.warning('Cancel and re-invite to change role.'); return; }
     if (newRole === 'TENANT_ADMIN' && !confirm(`Grant Admin privileges to ${member.email}? They'll have full control.`)) return;
     updateRoleMutation.mutate({ id: member.id, newRole });
@@ -290,26 +237,8 @@ export default function StaffDirectory() {
 
   return (
     <div className="space-y-6">
-      {/* Tab navigation */}
-      <div className="flex gap-1 bg-surface-container dark:bg-zinc-800 p-1 rounded-xl w-fit">
-        {(['members', 'providers'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
-              activeTab === tab
-                ? 'bg-white dark:bg-zinc-700 text-on-surface dark:text-white shadow-sm'
-                : 'text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-white'
-            }`}
-          >
-            {tab === 'members' ? 'Members' : 'Providers'}
-          </button>
-        ))}
-      </div>
-
-      {/* MEMBERS TAB */}
-      {activeTab === 'members' && (
-        <div className="space-y-4">
+      {/* MEMBERS SECTION */}
+      <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-bold text-on-surface dark:text-white">Team Members</h3>
@@ -446,127 +375,11 @@ export default function StaffDirectory() {
             </div>
           )}
         </div>
-      )}
-
-      {/* PROVIDERS TAB */}
-      {activeTab === 'providers' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-on-surface dark:text-white">Providers</h3>
-              <p className="text-xs text-on-surface-variant dark:text-zinc-400 mt-0.5">
-                Bookable people and resources linked to your services
-              </p>
-            </div>
-            {canManageProviders && (
-              <button
-                onClick={() => { setEditingProvider(null); setIsProviderModalOpen(true); }}
-                className="flex items-center gap-2 px-4 h-9 bg-[#0284C7] hover:bg-[#0369A1] text-white text-sm font-semibold rounded-xl transition-colors"
-              >
-                <Plus className="w-4 h-4" /> Add Provider
-              </button>
-            )}
-          </div>
-
-          {isProvidersLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-[#0284C7]" />
-            </div>
-          ) : providers.length === 0 ? (
-            <div className="text-center py-12 bg-surface-container-lowest dark:bg-zinc-800/50 rounded-2xl border border-dashed border-border dark:border-dark-border">
-              <div className="w-12 h-12 rounded-xl bg-[#0284C7]/10 flex items-center justify-center mx-auto mb-3">
-                <Briefcase className="w-6 h-6 text-[#0284C7]" />
-              </div>
-              <p className="font-semibold text-on-surface dark:text-white">No providers yet</p>
-              <p className="text-sm text-on-surface-variant dark:text-zinc-400 mt-1">Add bookable providers to enable appointment scheduling</p>
-              {canManageProviders && (
-                <button
-                  onClick={() => { setEditingProvider(null); setIsProviderModalOpen(true); }}
-                  className="mt-4 px-4 h-9 bg-[#0284C7] hover:bg-[#0369A1] text-white text-sm font-semibold rounded-xl transition-colors inline-flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" /> Add First Provider
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {(providers as Provider[]).map((provider) => (
-                <div
-                  key={provider.id}
-                  className="flex items-center gap-3 p-3.5 bg-white dark:bg-zinc-800/50 rounded-xl border border-border dark:border-dark-border hover:bg-surface-container-lowest dark:hover:bg-zinc-800 transition-colors"
-                >
-                  <ProviderAvatar name={provider.name} color={provider.color} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-on-surface dark:text-white">{provider.name}</span>
-                      {provider.title && (
-                        <span className="text-xs text-on-surface-variant dark:text-zinc-400">{provider.title}</span>
-                      )}
-                      <StatusBadge status={provider.status} />
-                    </div>
-                    <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                      {provider.services && provider.services.length > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-on-surface-variant dark:text-zinc-500">
-                          <Briefcase className="w-3 h-3" />
-                          {provider.services.slice(0, 3).map(s => s.name).join(', ')}
-                          {provider.services.length > 3 && <span>+{provider.services.length - 3} more</span>}
-                        </div>
-                      )}
-                      {provider.location && (
-                        <div className="flex items-center gap-1 text-xs text-on-surface-variant dark:text-zinc-500">
-                          <MapPin className="w-3 h-3" />
-                          {provider.location.name}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {canManageProviders && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => toggleProviderStatus.mutate({
-                          id: provider.id,
-                          status: provider.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE',
-                        })}
-                        className={`p-1.5 rounded-lg transition-colors ${
-                          provider.status === 'ACTIVE'
-                            ? 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'
-                            : 'text-zinc-400 hover:bg-surface-container-low dark:hover:bg-white/10'
-                        }`}
-                        title={provider.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                      >
-                        {provider.status === 'ACTIVE' ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                      </button>
-                      <button
-                        onClick={() => { setEditingProvider(provider); setIsProviderModalOpen(true); }}
-                        className="p-1.5 rounded-lg hover:bg-surface-container-low dark:hover:bg-white/10 text-outline transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => { if (confirm(`Remove provider ${provider.name}?`)) deleteProviderMutation.mutate(provider.id); }}
-                        className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-red-400 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Modals */}
       <InviteMemberModal
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
-      />
-
-      <ProviderModal
-        isOpen={isProviderModalOpen}
-        onClose={() => { setIsProviderModalOpen(false); setEditingProvider(null); }}
-        provider={editingProvider}
       />
 
       {permissionsModalOpen && userToEdit && (

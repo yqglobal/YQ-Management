@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
+import { usePlan } from "../../hooks/usePlan";
 import {
   X, Mail, Shield, Users, ChevronRight, Loader2, Copy, MessageSquare, User as UserIcon,
   MapPin, LayoutDashboard, Check, ChevronDown,
@@ -52,6 +53,7 @@ const DASHBOARD_PAGES = [
 
 export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
   const queryClient = useQueryClient();
+  const plan = usePlan();
 
   // State
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Role, 2: Email+Scope, 3: Result
@@ -304,7 +306,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                 </button>
                 <button
                   type="submit"
-                  disabled={inviteMutation.isPending || !email}
+                  disabled={inviteMutation.isPending || !email || plan.isAtMemberLimit}
                   className="flex-1 h-10 bg-[#0284C7] hover:bg-[#0369A1] text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {inviteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}

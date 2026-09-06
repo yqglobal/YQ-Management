@@ -9,6 +9,7 @@ export interface PlanLimits {
   maxTokens: number; // per month
   maxLocations: number;
   maxServices: number;
+  maxMembers: number;
 }
 
 export interface PlanFeatures {
@@ -33,21 +34,23 @@ export interface UsePlanResult {
   trialDaysLeft: number;
   limits: PlanLimits;
   features: PlanFeatures;
-  usage: { queues: number; tokensThisMonth: number; locations: number; services: number };
-  frozenCounts: { queues: number; locations: number; services: number };
+  usage: { queues: number; tokensThisMonth: number; locations: number; services: number; members: number };
+  frozenCounts: { queues: number; locations: number; services: number; members: number };
   trialPermanentlyUsed: boolean;
   isFeatureEnabled: (key: keyof PlanFeatures) => boolean;
   isAtQueueLimit: boolean;
   isAtTokenLimit: boolean;
+  isAtMemberLimit: boolean;
   queueUsagePct: number;
   tokenUsagePct: number;
+  memberUsagePct: number;
   subscriptionEndDate: Date | null;
   isLoading: boolean;
   canAccess: boolean; // false when expired/cancelled
   hasNoPlan: boolean; // true when status === null and user has a tenantId (needs to pick a plan)
 }
 
-const DEFAULT_LIMITS: PlanLimits = { maxQueues: 1, maxTokens: 100, maxLocations: 1, maxServices: 1 };
+const DEFAULT_LIMITS: PlanLimits = { maxQueues: 1, maxTokens: 100, maxLocations: 1, maxServices: 1, maxMembers: 2 };
 const DEFAULT_FEATURES: PlanFeatures = { whatsappNotifications: false };
 
 function guessTier(planName?: string): UsePlanResult['planTier'] {
@@ -91,6 +94,12 @@ export function usePlan(): UsePlanResult {
     staleTime: 30_000,
   });
 
+  const { data: members = [] } = useQuery({
+    queryKey: ['staff'], // the queryKey used in team.tsx for users
+    queryFn: () => fetchApi('/users').catch(() => []),
+    staleTime: 30_000,
+  });
+
   return useMemo((): UsePlanResult => {
     const status = (sub?.status as PlanStatus) ?? null;
     const plan = sub?.plan;
@@ -121,10 +130,12 @@ export function usePlan(): UsePlanResult {
     const queueCount = Array.isArray(queues) ? queues.length : 0;
     const locationCount = Array.isArray(locations) ? locations.length : 0;
     const serviceCount = Array.isArray(services) ? services.length : 0;
+    const memberCount = Array.isArray(members) ? members.filter((m: any) => m.status === 'ACTIVE' || m.isInvite).length : 0;
 
     const frozenQueues = Array.isArray(queues) ? queues.filter((q: any) => q.frozenByQuota).length : 0;
     const frozenLocations = Array.isArray(locations) ? locations.filter((l: any) => l.frozenByQuota).length : 0;
     const frozenServices = Array.isArray(services) ? services.filter((s: any) => s.frozenByQuota).length : 0;
+    const frozenMembers = Array.isArray(members) ? members.filter((m: any) => m.frozenByQuota).length : 0;
 
     const trialPermanentlyUsed = Boolean(sub?.trialEndDate && new Date(sub.trialEndDate) < new Date()) || (status === 'EXPIRED') || Boolean(sub?.metadata?.downgradedFrom);
 
@@ -136,6 +147,11 @@ export function usePlan(): UsePlanResult {
 
     const queueUsagePct = limits.maxQueues > 0 ? Math.min(100, (queueCount / Math.max(1, limits.maxQueues)) * 100) : 0;
     const tokenUsagePct = limits.maxTokens > 0 ? Math.min(100, (tokensThisMonth / Math.max(1, limits.maxTokens)) * 100) : 0;
+    const memberUsagePct = limits.maxMembers > 0 ? Math.min(100, (memberCount / Math.max(1, limits.maxMembers)) * 100) : 0;
+
+    const isAtQueueLimit = queueCount >= limits.maxQueues && limits.maxQueues > 0;
+    const isAtTokenLimit = tokensThisMonth >= limits.maxTokens && limits.maxTokens > 0;
+    const isAtMemberLimit = memberCount >= limits.maxMembers && limits.maxMembers > 0;
 
     // If status is null (no subscription found — e.g. SUPER_ADMIN or API error), grant access by default.
     // Only block access when we explicitly know the subscription is EXPIRED or CANCELLED.
@@ -154,18 +170,20 @@ export function usePlan(): UsePlanResult {
       trialDaysLeft,
       limits,
       features,
-      usage: { queues: queueCount, tokensThisMonth, locations: locationCount, services: serviceCount },
-      frozenCounts: { queues: frozenQueues, locations: frozenLocations, services: frozenServices },
+      usage: { queues: queueCount, tokensThisMonth, locations: locationCount, services: serviceCount, members: memberCount },
+      frozenCounts: { queues: frozenQueues, locations: frozenLocations, services: frozenServices, members: frozenMembers },
       trialPermanentlyUsed,
-      isFeatureEnabled: (key) => isTrialActive || features[key] === true,
-      isAtQueueLimit: queueCount >= limits.maxQueues,
-      isAtTokenLimit: tokensThisMonth >= limits.maxTokens,
+      isFeatureEnabled: (key: keyof PlanFeatures) => Boolean(features[key] && canAccess),
+      isAtQueueLimit,
+      isAtTokenLimit,
+      isAtMemberLimit,
       queueUsagePct,
       tokenUsagePct,
+      memberUsagePct,
       subscriptionEndDate,
       isLoading: subLoading,
       canAccess,
       hasNoPlan,
     };
-  }, [sub, queues, visits, locations, services, subLoading]);
+  }, [sub, queues, visits, locations, services, members, subLoading]);
 }
