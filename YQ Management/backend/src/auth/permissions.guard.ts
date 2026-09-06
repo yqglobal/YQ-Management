@@ -29,7 +29,12 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // Admins and owners bypass page permissions usually, but let's check roles
-    if (userPayload.role === 'OWNER' || userPayload.role === 'ADMIN') {
+    if (
+      userPayload.role === 'SUPER_ADMIN' ||
+      userPayload.role === 'TENANT_ADMIN' ||
+      userPayload.role === 'ADMIN' ||
+      userPayload.role === 'MANAGER'
+    ) {
       return true;
     }
 
