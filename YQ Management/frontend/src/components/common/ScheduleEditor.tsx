@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, X, Copy, Trash2, Calendar as CalendarIcon, Info } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 export type TimeSlot = { start: string; end: string };
 export type DaySchedule = TimeSlot[];
