@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ServerCrash, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 export function MaintenanceOverlay() {
   const [isMaintenance, setIsMaintenance] = useState(false);

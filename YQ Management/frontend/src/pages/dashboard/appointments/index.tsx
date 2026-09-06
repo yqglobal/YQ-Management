@@ -38,7 +38,7 @@ export default function AppointmentsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { activeLocationId } = useLocation();
-  const [selectedVisit, setSelectedVisit] = useState<any | null>(null);
+  const [selectedVisit, setSelectedVisit] = useState<AnyFixMe | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,7 +50,7 @@ export default function AppointmentsPage() {
   const [showSidebar, setShowSidebar] = useState(true);
   
   // Reschedule Confirmation State
-  const [rescheduleData, setRescheduleData] = useState<{apt: any, newTime: Date, serviceId: string | null} | null>(null);
+  const [rescheduleData, setRescheduleData] = useState<{apt: AnyFixMe, newTime: Date, serviceId: string | null} | null>(null);
 
   const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
   const locParamPrefix = activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : '';
@@ -112,10 +112,10 @@ export default function AppointmentsPage() {
   });
 
   const combinedItems = useMemo(() => {
-    const items: any[] = [];
+    const items: AnyFixMe[] = [];
     
     // Add true Appointments
-    appointmentsData.forEach((apt: any) => {
+    appointmentsData.forEach((apt: AnyFixMe) => {
       items.push({
         ...apt,
         _type: 'Appointment',
@@ -125,7 +125,7 @@ export default function AppointmentsPage() {
     });
 
     // Add Visits (Walk-ins or legacy)
-    visitsData.forEach((v: any) => {
+    visitsData.forEach((v: AnyFixMe) => {
       if (!v.appointmentId) {
         items.push({
           ...v,
@@ -137,9 +137,9 @@ export default function AppointmentsPage() {
     });
 
     // Add Tokens from Queues (Walk-ins)
-    queuesData.forEach((q: any) => {
+    queuesData.forEach((q: AnyFixMe) => {
       if (q.tokens) {
-        q.tokens.forEach((t: any) => {
+        q.tokens.forEach((t: AnyFixMe) => {
           items.push({
             ...t,
             _type: t.isAppointment ? 'Token (Scheduled)' : 'Token (Walk-in)',
@@ -163,7 +163,7 @@ export default function AppointmentsPage() {
   }, [appointmentsData, visitsData, queuesData, user]);
 
   const filteredAppointments = useMemo(() => {
-    return combinedItems.filter((apt: any) => {
+    return combinedItems.filter((apt: AnyFixMe) => {
       const searchMatch = !searchQuery ||
         apt.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         apt.customer?.phone?.includes(searchQuery) ||
@@ -220,7 +220,7 @@ export default function AppointmentsPage() {
   };
 
   const groupedAppointments = useMemo(() => {
-    const groups: Record<string, any[]> = {};
+    const groups: Record<string, AnyFixMe[]> = {};
     filteredAppointments.forEach(apt => {
       const d = apt.scheduledTime ? new Date(apt.scheduledTime) : new Date(apt.createdAt);
       const dateKey = format(d, 'yyyy-MM-dd');
@@ -359,7 +359,7 @@ export default function AppointmentsPage() {
               className="px-3 py-2 max-w-[120px] truncate bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface dark:text-white"
             >
               <option value="ALL">All Services</option>
-              {services.map((s: any) => (
+              {services.map((s: AnyFixMe) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
@@ -449,7 +449,7 @@ export default function AppointmentsPage() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border dark:divide-dark-border">
-                            {group.appointments.map((apt: any) => {
+                            {group.appointments.map((apt: AnyFixMe) => {
                               const d = apt.scheduledTime ? new Date(apt.scheduledTime) : new Date(apt.createdAt);
                               const isCancelled = apt.currentState === 'CANCELLED' || apt.currentState === 'REJECTED' || apt.currentState === 'MISSED';
                               return (

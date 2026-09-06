@@ -94,7 +94,7 @@ export default function SystemLogs() {
                     </td>
                   </tr>
                 ) : data?.data?.length > 0 ? (
-                  data.data.map((log: any) => (
+                  data.data.map((log: AnyFixMe) => (
                     <React.Fragment key={log.id}>
                       <tr className="hover:bg-gray-50 dark:hover:bg-zinc-800/30 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-zinc-400">

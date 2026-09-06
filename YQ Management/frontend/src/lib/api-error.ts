@@ -3,7 +3,7 @@ export class ApiError extends Error {
     public status: number,
     message: string,
     public path?: string,
-    public details?: any,
+    public details?: AnyFixMe,
   ) {
     super(message);
     this.name = 'ApiError';

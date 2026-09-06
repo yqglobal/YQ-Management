@@ -4,11 +4,9 @@ import { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
-import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { useTheme } from '../../../../components/ThemeProvider';
 import { Sun, Moon } from 'lucide-react';
-import { detectCountryByTimezone } from '../../../../lib/country-codes';
 import QRCode from 'react-qr-code';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -22,7 +20,7 @@ interface Service {
   description?: string;
   expectedDuration?: number;
   locationId?: string;
-  formConfig?: any[];
+  formConfig?: AnyFixMe[];
   queues: Queue[];
 }
 
@@ -32,11 +30,11 @@ interface Queue {
   status: string;
   allowAppointments: boolean;
   appointmentGranularityMins: number;
-  formConfig?: any[];
+  formConfig?: AnyFixMe[];
 }
 
 interface TenantPortalProps {
-  tenant: any;
+  tenant: AnyFixMe;
   services: Service[];
   queues: Queue[];
   error?: string;
@@ -75,7 +73,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [defaultCountry, setDefaultCountry] = useState<any>('US');
+  const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>('US');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [regionBlocked, setRegionBlocked] = useState(false);
 
@@ -104,7 +102,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
     const { locationId, serviceId, queueId } = router.query;
     
     // Auto-select location
-    if (locationId && typeof locationId === 'string' && tenant?.locations?.some((l: any) => l.id === locationId)) {
+    if (locationId && typeof locationId === 'string' && tenant?.locations?.some((l: AnyFixMe) => l.id === locationId)) {
       setSelectedLocationId(locationId);
       setStep(2); // Skip location step
     } else if (tenant?.locations && tenant.locations.length === 1) {
@@ -116,7 +114,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
 
     // Auto-select service & queue
     if (serviceId && typeof serviceId === 'string') {
-      const s = services.find((x: any) => x.id === serviceId);
+      const s = services.find((x: AnyFixMe) => x.id === serviceId);
       if (s) {
         if (s.locationId) setSelectedLocationId(s.locationId);
         setSelectedServiceIds([serviceId]);
@@ -143,14 +141,14 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   // State for the per-service dynamic flow
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
   const [enlargedQrTokenId, setEnlargedQrTokenId] = useState<string | null>(null);
-  const [availableProviders, setAvailableProviders] = useState<Record<string, any[]>>({});
+  const [availableProviders, setAvailableProviders] = useState<Record<string, AnyFixMe[]>>({});
   const [serviceDetails, setServiceDetails] = useState<Record<string, {
     joinMode: 'immediate' | 'appointment',
     selectedDate: string,
     selectedSlot: string,
     providerId?: string,
     queueId?: string,
-    responses: Record<string, any>
+    responses: Record<string, AnyFixMe>
   }>>({});
   
   const [availableSlots, setAvailableSlots] = useState<Record<string, string[]>>({});
@@ -163,8 +161,8 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  const [tokens, setTokens] = useState<any[]>([]);
-  const [statusDataMap, setStatusDataMap] = useState<Record<string, any>>({});
+  const [tokens, setTokens] = useState<AnyFixMe[]>([]);
+  const [statusDataMap, setStatusDataMap] = useState<Record<string, AnyFixMe>>({});
 
 
   // Session Restore
@@ -326,7 +324,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const formConfig = React.useMemo(() => {
     if (!currentService || !currentQueue) return [];
     // 2. Add service-specific or queue-specific custom questions
-    let customConfig: any[] = [];
+    let customConfig: AnyFixMe[] = [];
     if (currentService.formConfig && currentService.formConfig.length > 0) {
       customConfig = currentService.formConfig;
     } else if (currentQueue.formConfig && currentQueue.formConfig.length > 0) {
@@ -396,7 +394,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         }
       }
       await submitJoin();
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       setErrorMsg(err.message || 'Something went wrong.');
       setLoading(false);
     }
@@ -433,7 +431,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         throw new Error(err.message || 'Failed to complete booking.');
       }
       const data = await res.json();
-      const accessTokens = data.map((d: any) => d.accessToken).filter(Boolean);
+      const accessTokens = data.map((d: AnyFixMe) => d.accessToken).filter(Boolean);
       
       if (accessTokens.length > 0) {
         try {
@@ -446,7 +444,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
       }
 
       const tokenStr = accessTokens.join(',');
-      let queryStr = `?tokens=${tokenStr}`;
+      const queryStr = `?tokens=${tokenStr}`;
 
       let targetUrl = `/booking/status${queryStr}`;
       if (window.location.pathname.startsWith('/t/')) {
@@ -462,7 +460,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         },
         targetUrl
       );
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       setErrorMsg(err.message || 'Failed to complete booking.');
       setLoading(false);
     }
@@ -601,7 +599,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               </div>
               
               <form onSubmit={handleNextStep2} className="space-y-6">
-                {formConfig.map((field: any) => (
+                {formConfig.map((field: AnyFixMe) => (
                   <div key={field.id} className="space-y-2">
                     {field.type !== 'checkbox' && (
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -727,7 +725,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                         </div>
                         {currentDetails.selectedDate && (
                           <div className="grid grid-cols-3 gap-2 mt-4 max-h-48 overflow-y-auto pr-1 border-t border-gray-200 dark:border-zinc-800 pt-4">
-                            {loadingSlots[currentServiceId] ? <p className="col-span-3 text-sm text-center text-gray-500 py-4">Loading available times...</p> : availableSlots[currentServiceId]?.length === 0 ? <p className="col-span-3 text-sm text-center text-red-500">No times available on this date.</p> : availableSlots[currentServiceId]?.map((slotData: any) => {
+                            {loadingSlots[currentServiceId] ? <p className="col-span-3 text-sm text-center text-gray-500 py-4">Loading available times...</p> : availableSlots[currentServiceId]?.length === 0 ? <p className="col-span-3 text-sm text-center text-red-500">No times available on this date.</p> : availableSlots[currentServiceId]?.map((slotData: AnyFixMe) => {
                               const slotTime = typeof slotData === 'string' ? slotData : slotData.time;
                               const isAvailable = typeof slotData === 'string' ? true : slotData.available;
                               const isSelected = currentDetails.selectedSlot === slotTime;

@@ -1,10 +1,8 @@
 import React from 'react';
-import Head from 'next/head';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import { QRCodeSVG } from 'qrcode.react';
-import { Printer, Download, ScanLine, QrCode } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
+import { Printer, ScanLine } from 'lucide-react';
 import { getTenantUrl } from '../../../../lib/utils';
 
 export default function QRCodesSettings() {

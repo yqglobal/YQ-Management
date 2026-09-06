@@ -8,7 +8,7 @@ const Select = ({ className, children, value, onValueChange, placeholder, ...pro
   value?: string | null;
   onValueChange?: (value: string | null) => void;
   placeholder?: string;
-  [key: string]: any;
+  [key: string]: AnyFixMe;
 }) => {
   return (
     <SelectPrimitive.Root value={value} onValueChange={onValueChange}>
@@ -38,7 +38,7 @@ const SelectItem = ({ className, children, value, ...props }: {
   className?: string;
   children?: React.ReactNode;
   value: string;
-  [key: string]: any;
+  [key: string]: AnyFixMe;
 }) => {
   return (
     <SelectPrimitive.Item

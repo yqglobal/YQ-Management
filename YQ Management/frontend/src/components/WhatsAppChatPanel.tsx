@@ -51,7 +51,7 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
     try {
       const data = await fetchApi(`/messages/token/${tokenId}`);
       if (Array.isArray(data)) {
-        const mapped = data.map((m: any) => ({
+        const mapped = data.map((m: AnyFixMe) => ({
           id: m.id,
           body: m.body,
           fromMe: m.sender === 'OPERATOR',
@@ -60,7 +60,7 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
         setMessages(mapped);
       }
       setError(null);
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       setError(e?.message || 'Unable to load messages. Ensure WhatsApp is connected.');
     }
   }, [tokenId]);
@@ -81,7 +81,7 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
 
   useEffect(() => {
     if (!socket) return;
-    const handler = (payload: any) => {
+    const handler = (payload: AnyFixMe) => {
       if (payload.type === 'MESSAGE_DELETED') {
         setMessages(prev => prev.filter(m => m.id !== payload.messageId));
       }
@@ -101,7 +101,7 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
     
     try {
       await fetchApi(`/messages/inbox/${msgId}`, { method: 'DELETE' });
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       toast.error(e?.message || 'Failed to delete message');
       setMessages(previous); // Revert
     }
@@ -131,7 +131,7 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
         body: JSON.stringify({ text }),
       });
       await fetchMessages();
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       toast.error(e?.message || 'Failed to send message');
       setMessages(prev => prev.filter(m => m.id !== optimistic.id));
     } finally {
@@ -159,10 +159,10 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
   messages.forEach(msg => {
     const d = dateSeparator(msg.timestamp);
     if (d !== lastDate) {
-      (groupedMessages as any[]).push({ type: 'date', label: d });
+      (groupedMessages as AnyFixMe[]).push({ type: 'date', label: d });
       lastDate = d;
     }
-    (groupedMessages as any[]).push({ type: 'msg', msg });
+    (groupedMessages as AnyFixMe[]).push({ type: 'msg', msg });
   });
 
   return (
@@ -231,7 +231,7 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
           </div>
         )}
 
-        {!loading && (groupedMessages as any[]).map((item: any, i: number) => {
+        {!loading && (groupedMessages as AnyFixMe[]).map((item: AnyFixMe, i: number) => {
           if (item.type === 'date') {
             return (
               <div key={`date-${i}`} className="flex justify-center">

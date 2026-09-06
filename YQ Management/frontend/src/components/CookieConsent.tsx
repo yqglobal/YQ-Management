@@ -34,7 +34,7 @@ export default function CookieConsent() {
     saveConsent(preferences);
   };
 
-  const saveConsent = async (prefs: any) => {
+  const saveConsent = async (prefs: AnyFixMe) => {
     localStorage.setItem('qmova_cookie_consent', JSON.stringify(prefs));
     setPreferences(prefs);
     setShowBanner(false);

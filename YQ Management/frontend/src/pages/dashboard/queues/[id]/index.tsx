@@ -1,12 +1,12 @@
 import { getTenantUrl } from "../../../../lib/utils";
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../../../components/AdminLayout';
-import { Settings, ArrowLeft, Loader2, ListOrdered, Save, Calendar, CheckSquare, Settings2, ShieldAlert, MonitorPlay, Check, X as XIcon, User, Copy, Monitor, ExternalLink, Link2, MessageSquare } from 'lucide-react';
+import { Loader2, ShieldAlert, Copy, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchApi, getBackendUrl } from '../../../../lib/api';
+import { fetchApi } from '../../../../lib/api';
 import { useSocket } from '../../../../components/SocketProvider';
 import { toast } from 'sonner';
 import { WhatsAppChatPanel } from '../../../../components/WhatsAppChatPanel';
@@ -18,10 +18,10 @@ export default function QueueDetails() {
   const { id } = router.query;
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'board' | 'general' | 'token' | 'appointments' | 'links'>('board');
-  const [selectedToken, setSelectedToken] = useState<any | null>(null);
+  const [selectedToken, setSelectedToken] = useState<AnyFixMe | null>(null);
   const queryClient = useQueryClient();
 
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<AnyFixMe>({});
 
   // FIX (1B): Use fetchApi (credentials: include) instead of raw fetch with localStorage token
   const { data: queue = null, isLoading } = useQuery({
@@ -53,7 +53,7 @@ export default function QueueDetails() {
     if (queue) {
       setFormData({
         name: queue.name,
-        serviceIds: queue.services?.map((s: any) => s.id) || [],
+        serviceIds: queue.services?.map((s: AnyFixMe) => s.id) || [],
         tokenDisplayConfig: queue.tokenDisplayConfig || { prefix: '', format: 'SEQUENTIAL' },
         formConfig: queue.formConfig || { requireEmail: false, requirePhone: false, customFields: [] },
       });
@@ -96,7 +96,7 @@ export default function QueueDetails() {
   }, [id, user?.tenantId, queryClient, socket]);
 
   const updateQueueMutation = useMutation({
-    mutationFn: (data: any) => fetchApi(`/queue/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    mutationFn: (data: AnyFixMe) => fetchApi(`/queue/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queue', id] });
       queryClient.invalidateQueries({ queryKey: ['queues'] });
@@ -299,7 +299,7 @@ export default function QueueDetails() {
                 </div>
                 <button 
                   onClick={() => advanceTurnMutation.mutate()}
-                  disabled={advanceTurnMutation.isPending || tokens.filter((t: any) => t.currentState === 'WAITING').length === 0}
+                  disabled={advanceTurnMutation.isPending || tokens.filter((t: AnyFixMe) => t.currentState === 'WAITING').length === 0}
                   className="min-h-[44px] px-8 bg-primary hover:bg-primary-container text-white rounded-xl font-body-md font-semibold transition-colors shadow-sm disabled:opacity-50"
                 >
                   {advanceTurnMutation.isPending ? 'Calling...' : 'Call Next Patient'}
@@ -307,7 +307,7 @@ export default function QueueDetails() {
               </div>
 
               <div className={`grid gap-6 ${selectedToken ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
-                {tokens.map((token: any) => (
+                {tokens.map((token: AnyFixMe) => (
                   <div
                     key={token.id}
                     onClick={() => setSelectedToken(selectedToken?.id === token.id ? null : token)}
@@ -374,7 +374,7 @@ export default function QueueDetails() {
                               defaultValue=""
                             >
                               <option value="" disabled>Select Queue</option>
-                              {allQueues?.filter((q: any) => q.id !== queue.id).map((q: any) => (
+                              {allQueues?.filter((q: AnyFixMe) => q.id !== queue.id).map((q: AnyFixMe) => (
                                 <option key={q.id} value={q.id}>{q.name}</option>
                               ))}
                             </select>
@@ -485,7 +485,7 @@ export default function QueueDetails() {
                   <div>
                     <label className="block font-body-md font-medium text-on-surface dark:text-white mb-2">Linked Service(s)</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {tenant?.services?.map((service: any) => (
+                      {tenant?.services?.map((service: AnyFixMe) => (
                         <label key={service.id} className="flex items-center gap-3 p-3 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 hover:bg-surface-container-low dark:hover:bg-white/5 cursor-pointer transition-colors">
                           <input
                             type="checkbox"
@@ -634,7 +634,7 @@ export default function QueueDetails() {
   );
 }
 
-function TabButton({ active, onClick, icon, label }: any) {
+function TabButton({ active, onClick, icon, label }: AnyFixMe) {
   return (
     <button 
       onClick={onClick}

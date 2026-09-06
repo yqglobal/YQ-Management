@@ -21,7 +21,7 @@ type Provider = {
   locationId?: string;
   userId?: string;
   capacity?: number;
-  weeklySchedule?: any[];
+  weeklySchedule?: AnyFixMe[];
   services?: { id: string; name: string }[];
   location?: { id: string; name: string };
 };

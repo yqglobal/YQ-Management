@@ -1,6 +1,6 @@
 import { getTenantUrl } from "../../../../lib/utils";
 import React, { useState, useEffect } from 'react';
-import { Save, Loader2, Building2, Copy, ExternalLink, MonitorPlay } from 'lucide-react';
+import { Save, Loader2, Copy, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../../../components/AuthContext';
 import { fetchApi } from '../../../../lib/api';
 import { toast } from 'sonner';
@@ -28,7 +28,7 @@ export default function WorkspaceSettingsPage() {
   useEffect(() => {
     if (user?.tenantId && isAdmin) {
       // Use /tenant/me to get planFeatures correctly
-      fetchApi('/tenant/me').then((currentTenant: any) => {
+      fetchApi('/tenant/me').then((currentTenant: AnyFixMe) => {
         if (currentTenant) {
           setTenantName(currentTenant.name || '');
           setTenantSubdomain(currentTenant.subdomain || '');
@@ -53,7 +53,7 @@ export default function WorkspaceSettingsPage() {
         await refetch();
         toast.success('Workspace settings saved successfully');
       }
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       if (err?.status === 409 || err?.message?.includes('taken')) {
         setSubdomainError(err.message || 'This subdomain is already taken. Please choose another.');
       } else {

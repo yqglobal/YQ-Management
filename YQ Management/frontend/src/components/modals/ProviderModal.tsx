@@ -27,7 +27,7 @@ const DEFAULT_SCHEDULE = DAYS.map(day => ({
 interface ProviderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  provider?: any; // If passed, we're editing
+  provider?: AnyFixMe; // If passed, we're editing
 }
 
 export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps) {
@@ -78,7 +78,7 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
       setLinkedUserId(provider.userId || '');
       setStatus(provider.status || 'ACTIVE');
       setCapacity(provider.capacity ?? 1);
-      setSelectedServiceIds(provider.services?.map((s: any) => s.id) || []);
+      setSelectedServiceIds(provider.services?.map((s: AnyFixMe) => s.id) || []);
       if (provider.weeklySchedule && Array.isArray(provider.weeklySchedule)) {
         setSchedule(provider.weeklySchedule);
       }
@@ -86,7 +86,7 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
   }, [provider]);
 
   const mutation = useMutation({
-    mutationFn: (data: any) =>
+    mutationFn: (data: AnyFixMe) =>
       isEditing
         ? fetchApi(`/staff/${provider.id}`, { method: 'PATCH', body: JSON.stringify(data) })
         : fetchApi('/staff', { method: 'POST', body: JSON.stringify(data) }),
@@ -115,7 +115,7 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
     );
   };
 
-  const updateDay = (dayIndex: number, field: string, value: any) => {
+  const updateDay = (dayIndex: number, field: string, value: AnyFixMe) => {
     setSchedule(prev => prev.map((slot, i) =>
       i === dayIndex ? { ...slot, [field]: value } : slot
     ));
@@ -240,7 +240,7 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
                   className="w-full px-3 py-2.5 rounded-xl border border-border dark:border-dark-border bg-white dark:bg-zinc-800 text-sm outline-none focus:border-[#0284C7] transition-colors text-on-surface dark:text-white"
                 >
                   <option value="">All / Floating</option>
-                  {(locations as any[]).map((loc: any) => (
+                  {(locations as AnyFixMe[]).map((loc: AnyFixMe) => (
                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                   ))}
                 </select>
@@ -254,9 +254,9 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
                   className="w-full px-3 py-2.5 rounded-xl border border-border dark:border-dark-border bg-white dark:bg-zinc-800 text-sm outline-none focus:border-[#0284C7] transition-colors text-on-surface dark:text-white"
                 >
                   <option value="">None (external provider)</option>
-                  {(members as any[])
-                    .filter((m: any) => !m.isInvite)
-                    .map((m: any) => (
+                  {(members as AnyFixMe[])
+                    .filter((m: AnyFixMe) => !m.isInvite)
+                    .map((m: AnyFixMe) => (
                       <option key={m.id} value={m.id}>{m.email}</option>
                     ))}
                 </select>
@@ -265,13 +265,13 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
           </section>
 
           {/* Services */}
-          {(services as any[]).length > 0 && (
+          {(services as AnyFixMe[]).length > 0 && (
             <section className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant dark:text-zinc-400 flex items-center gap-2">
                 <Briefcase className="w-3 h-3" /> Services They Provide
               </h3>
               <div className="flex flex-wrap gap-2">
-                {(services as any[]).map((svc: any) => (
+                {(services as AnyFixMe[]).map((svc: AnyFixMe) => (
                   <button
                     key={svc.id} type="button"
                     onClick={() => toggleService(svc.id)}

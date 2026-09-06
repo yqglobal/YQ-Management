@@ -1,7 +1,7 @@
 import { getTenantUrl } from "../../lib/utils";
 import { useAuth } from "../AuthContext";
 import React, { useState, useEffect } from 'react';
-import { Copy, MapPin, Globe, Code, CheckCircle2, Download } from 'lucide-react';
+import { Copy, MapPin, Globe, Code, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SharePanelProps {

@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Loader2, UserPlus, QrCode } from 'lucide-react';
+import { X, Loader2, QrCode } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/router';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
-import { CreateCustomerModal } from './CreateCustomerModal';
 import { usePlan } from '../../hooks/usePlan';
 import { QuotaExhaustedModal } from '../QuotaExhaustedModal';
 import PhoneInput from 'react-phone-number-input';
@@ -32,13 +31,13 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [notes, setNotes] = useState('');
-  const [defaultCountry, setDefaultCountry] = useState<any>('US');
+  const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>('US');
   
   const queryClient = useQueryClient();
   const plan = usePlan();
 
   const createCustomerMutation = useMutation({
-    mutationFn: (data: any) => fetchApi('/customer', { method: 'POST', body: JSON.stringify(data) })
+    mutationFn: (data: AnyFixMe) => fetchApi('/customer', { method: 'POST', body: JSON.stringify(data) })
   });
 
   const { data: locations = [] } = useQuery({
@@ -89,7 +88,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) =>
+    mutationFn: (data: AnyFixMe) =>
       fetchApi('/appointments', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['visits'] });
@@ -121,7 +120,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
     if (!isBlockMode && !name) return;
     
     try {
-      const service = services.find((s: any) => s.id === serviceId);
+      const service = services.find((s: AnyFixMe) => s.id === serviceId);
       const duration = service?.expectedDuration || 15;
       
       let scheduledStart: Date;
@@ -229,7 +228,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                         international
                         defaultCountry={defaultCountry}
                         value={phone}
-                        onChange={(v: any) => setPhone(v || '')}
+                        onChange={(v: AnyFixMe) => setPhone(v || '')}
                         className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-indigo-500"
                       />
                     </div>
@@ -272,7 +271,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                   required
                 >
                   <option value="">Select a location</option>
-                  {locations.map((l: any) => (
+                  {locations.map((l: AnyFixMe) => (
                     <option key={l.id} value={l.id}>{l.name}</option>
                   ))}
                 </select>
@@ -292,8 +291,8 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                 >
                   <option value="">Select a service</option>
                   {services
-                    .filter((s: any) => !s.locationId || s.locationId === locationId)
-                    .map((s: any) => (
+                    .filter((s: AnyFixMe) => !s.locationId || s.locationId === locationId)
+                    .map((s: AnyFixMe) => (
                     <option key={s.id} value={s.id}>{s.name} ({s.expectedDuration} min)</option>
                   ))}
                 </select>
@@ -309,11 +308,11 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                 >
                   <option value="">No specific queue</option>
                   {(() => {
-                    const selectedService = services.find((s: any) => s.id === serviceId);
+                    const selectedService = services.find((s: AnyFixMe) => s.id === serviceId);
                     if (!selectedService || !selectedService.queues) return null;
                     return selectedService.queues
-                      .filter((q: any) => q.allowAppointments && (!q.locationId || q.locationId === locationId) && q.status === 'ACTIVE')
-                      .map((q: any) => (
+                      .filter((q: AnyFixMe) => q.allowAppointments && (!q.locationId || q.locationId === locationId) && q.status === 'ACTIVE')
+                      .map((q: AnyFixMe) => (
                       <option key={q.id} value={q.id}>{q.name}</option>
                     ));
                   })()}

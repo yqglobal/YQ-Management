@@ -1,7 +1,6 @@
 import React from 'react';
 import Head from 'next/head';
 import AdminLayout from '../../components/AdminLayout';
-import { Monitor, QrCode } from 'lucide-react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
@@ -42,7 +41,7 @@ export default function DisplayPicker() {
               No queues available. Please create a queue first.
             </div>
           ) : (
-            queues.map((queue: any) => (
+            queues.map((queue: AnyFixMe) => (
               <div key={queue.id} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-[24px] p-6 hover:border-outline-variant transition-all shadow-sm flex flex-col justify-between group">
                 <div className="mb-6">
                   <div className="flex items-center justify-between gap-3 mb-4">

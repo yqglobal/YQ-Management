@@ -6,17 +6,17 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
 import { CreateCustomerModal } from '../../../components/modals/CreateCustomerModal';
 
-function avgWaitMinutes(visits: any[]): string {
-  const completed = visits.filter((v: any) => v.completedAt && v.createdAt);
+function avgWaitMinutes(visits: AnyFixMe[]): string {
+  const completed = visits.filter((v: AnyFixMe) => v.completedAt && v.createdAt);
   if (!completed.length) return '—';
-  const avg = completed.reduce((sum: number, v: any) => {
+  const avg = completed.reduce((sum: number, v: AnyFixMe) => {
     return sum + (new Date(v.completedAt).getTime() - new Date(v.createdAt).getTime());
   }, 0) / completed.length;
   const mins = Math.round(avg / 60000);
   return mins < 1 ? '<1 min' : `${mins} min`;
 }
 
-function lastVisitLabel(visits: any[]): string {
+function lastVisitLabel(visits: AnyFixMe[]): string {
   if (!visits.length) return '—';
   const sorted = [...visits].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const d = new Date(sorted[0].createdAt);
@@ -38,8 +38,8 @@ export default function RecordsPage() {
     queryFn: () => fetchApi('/visits').catch(() => []),
   });
 
-  const peopleMap = new Map<string, any>();
-  (visits as any[]).forEach((v) => {
+  const peopleMap = new Map<string, AnyFixMe>();
+  (visits as AnyFixMe[]).forEach((v) => {
     if (v.customer?.id) {
       if (!peopleMap.has(v.customer.id)) {
         peopleMap.set(v.customer.id, { ...v.customer, visits: [v] });
@@ -63,8 +63,8 @@ export default function RecordsPage() {
 
     if (sortBy === 'visits') list.sort((a, b) => b.visits.length - a.visits.length);
     else if (sortBy === 'recent') list.sort((a, b) => {
-      const la = a.visits.reduce((max: number, v: any) => Math.max(max, new Date(v.createdAt).getTime()), 0);
-      const lb = b.visits.reduce((max: number, v: any) => Math.max(max, new Date(v.createdAt).getTime()), 0);
+      const la = a.visits.reduce((max: number, v: AnyFixMe) => Math.max(max, new Date(v.createdAt).getTime()), 0);
+      const lb = b.visits.reduce((max: number, v: AnyFixMe) => Math.max(max, new Date(v.createdAt).getTime()), 0);
       return lb - la;
     });
     else list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -100,8 +100,8 @@ export default function RecordsPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {[
             { label: 'Total Customers', value: peopleMap.size, icon: Users },
-            { label: 'Total Visits', value: (visits as any[]).length, icon: BarChart2 },
-            { label: 'Avg. Visits / Customer', value: peopleMap.size ? ((visits as any[]).length / peopleMap.size).toFixed(1) : '0', icon: Clock },
+            { label: 'Total Visits', value: (visits as AnyFixMe[]).length, icon: BarChart2 },
+            { label: 'Avg. Visits / Customer', value: peopleMap.size ? ((visits as AnyFixMe[]).length / peopleMap.size).toFixed(1) : '0', icon: Clock },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-1">
@@ -165,7 +165,7 @@ export default function RecordsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border dark:divide-dark-border">
-                  {people.map((person: any) => (
+                  {people.map((person: AnyFixMe) => (
                     <tr key={person.id} className="hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors group">
                       <td className="p-4">
                         <div className="flex items-center gap-3">

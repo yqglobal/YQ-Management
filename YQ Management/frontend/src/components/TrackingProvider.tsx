@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { fetchApi } from '../lib/api';
 
 interface TrackingContextType {
-  trackAction: (actionName: string, details?: Record<string, any>) => void;
+  trackAction: (actionName: string, details?: Record<string, AnyFixMe>) => void;
 }
 
 const TrackingContext = createContext<TrackingContextType>({
@@ -15,7 +15,7 @@ export const useTracking = () => useContext(TrackingContext);
 export const TrackingProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
-  const trackAction = useCallback(async (actionName: string, details: Record<string, any> = {}) => {
+  const trackAction = useCallback(async (actionName: string, details: Record<string, AnyFixMe> = {}) => {
     try {
       await fetchApi('/audit/log', {
         method: 'POST',
@@ -25,7 +25,7 @@ export const TrackingProvider = ({ children }: { children: React.ReactNode }) =>
           details: { ...details, url: window.location.href }
         })
       });
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       // Silently fail so tracing doesn't block the UI or spam console on network errors
     }
   }, [router.pathname]);

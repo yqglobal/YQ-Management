@@ -34,7 +34,7 @@ export default async function handler(
       signal: AbortSignal.timeout(20000),
     });
     results.backend = { status: backendRes.status, ok: backendRes.ok };
-  } catch (err: any) {
+  } catch (err: AnyFixMe) {
     results.backend = { status: err.message || 'error', ok: false };
   }
 
@@ -48,7 +48,7 @@ export default async function handler(
     // For a keep-alive ping, this is still a success (the server is not sleeping).
     const isAwake = evoRes.ok || evoRes.status === 401 || evoRes.status === 403;
     results.evolutionApi = { status: evoRes.status, ok: isAwake };
-  } catch (err: any) {
+  } catch (err: AnyFixMe) {
     results.evolutionApi = { status: err.message || 'error', ok: false };
   }
 

@@ -1,10 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Layers } from 'lucide-react';
 
 interface ServiceStepProps {
-  services: any[];
-  tenant: any;
+  services: AnyFixMe[];
+  tenant: AnyFixMe;
   selectedLocationId: string | null;
   selectedServiceIds: string[];
   toggleService: (serviceId: string) => void;
@@ -25,7 +24,7 @@ export const ServiceStep: React.FC<ServiceStepProps> = ({
   primaryColor,
   supportNumber,
 }) => {
-  const filteredServices = services.filter((s: any) => !s.locationId || s.locationId === selectedLocationId);
+  const filteredServices = services.filter((s: AnyFixMe) => !s.locationId || s.locationId === selectedLocationId);
 
   return (
     <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6 flex-1">
@@ -44,7 +43,7 @@ export const ServiceStep: React.FC<ServiceStepProps> = ({
               )}
             </div>
           ) : (
-            filteredServices.map((service: any) => {
+            filteredServices.map((service: AnyFixMe) => {
               const isSelected = selectedServiceIds.includes(service.id);
               return (
                 <label key={service.id} className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected ? 'border-transparent shadow-md' : 'border-gray-200 dark:border-zinc-800'}`} style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}>

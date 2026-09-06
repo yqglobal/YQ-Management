@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { fetchApi, AuthStorage } from '../lib/api';
 
 interface AuthContextType {
-  user: any;
+  user: AnyFixMe;
   loading: boolean;
   logout: () => void;
   refetch: () => Promise<void>;
@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AnyFixMe>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       await fetchApi('/auth/logout', { method: 'POST' });
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       console.warn(`Logout error: ${e?.message || 'Unknown error'}`);
     }
     setUser(null);
@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const data = await fetchApi('/auth/me');
       setUser(data);
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       if (err?.status === 401 || err?.status === 403) {
         setUser(null);
       }

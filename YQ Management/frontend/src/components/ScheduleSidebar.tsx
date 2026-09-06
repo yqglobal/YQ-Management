@@ -1,9 +1,9 @@
 import React from 'react';
 
 interface ScheduleSidebarProps {
-  services: any[];
-  appointments: any[];
-  visits: any[];
+  services: AnyFixMe[];
+  appointments: AnyFixMe[];
+  visits: AnyFixMe[];
 }
 
 function CapacityBar({ used, total, label }: { used: number; total: number; label: string }) {
@@ -46,8 +46,8 @@ export function ScheduleSidebar({
         {services.length > 0 && (
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant px-1">Capacity Today</p>
-            {services.slice(0, 5).map((svc: any) => {
-              const svcAppointments = appointments.filter((a: any) => a.serviceId === svc.id);
+            {services.slice(0, 5).map((svc: AnyFixMe) => {
+              const svcAppointments = appointments.filter((a: AnyFixMe) => a.serviceId === svc.id);
               // Estimate capacity: 9 hours ÷ duration
               const totalSlots = Math.floor((9 * 60) / (svc.expectedDuration || 30));
               return (
@@ -69,7 +69,7 @@ export function ScheduleSidebar({
             <p className="text-[10px] text-sky-600 dark:text-sky-400 font-medium uppercase tracking-wide">Booked</p>
           </div>
           <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-2.5 text-center">
-            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{visits.filter((v: any) => !v.appointmentId).length}</p>
+            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{visits.filter((v: AnyFixMe) => !v.appointmentId).length}</p>
             <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium uppercase tracking-wide">Walk-ins</p>
           </div>
         </div>

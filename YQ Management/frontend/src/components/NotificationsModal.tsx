@@ -11,9 +11,7 @@ import {
   Trash2,
   X,
   ExternalLink,
-  CheckCircle2,
-  Sparkles,
-  Info
+  Sparkles
 } from 'lucide-react';
 import { fetchApi } from '../lib/api';
 import { useAuth } from './AuthContext';
@@ -69,7 +67,7 @@ export function useNotifications() {
 
     // 1. WhatsApp Connectivity & Health Alert
     try {
-      const waStatus: any = await fetchApi('/whatsapp/status');
+      const waStatus: AnyFixMe = await fetchApi('/whatsapp/status');
       if (waStatus?.state !== 'open' && waStatus?.state !== 'connected') {
         liveList.push({
           id: 'wa-offline-alert',
@@ -105,10 +103,10 @@ export function useNotifications() {
 
     // 2. Queues Activity & Bottlenecks
     try {
-      const queues: any = await fetchApi('/queue');
+      const queues: AnyFixMe = await fetchApi('/queue');
       if (Array.isArray(queues) && queues.length > 0) {
-        let totalWaiting = 0;
-        queues.forEach((q: any) => {
+        const totalWaiting = 0;
+        queues.forEach((q: AnyFixMe) => {
           if (q.status === 'PAUSED') {
             liveList.push({
               id: `queue-paused-${q.id}`,

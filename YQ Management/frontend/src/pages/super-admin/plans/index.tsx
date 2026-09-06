@@ -3,14 +3,13 @@ import Head from 'next/head';
 import SuperAdminLayout from '../../../components/SuperAdminLayout';
 import { fetchApi } from '../../../lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Package, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Copy, ChevronDown } from 'lucide-react';
-import { format } from 'date-fns';
+import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function SuperAdminPlans() {
   const queryClient = useQueryClient();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [editingPlan, setEditingPlan] = useState<AnyFixMe>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -46,18 +45,18 @@ export default function SuperAdminPlans() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => fetchApi('/super-admin/plans', { method: 'POST', body: JSON.stringify(data) }),
+    mutationFn: (data: AnyFixMe) => fetchApi('/super-admin/plans', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-plans'] });
       setShowCreateModal(false);
       resetForm();
       toast.success('Plan created successfully');
     },
-    onError: (error: any) => toast.error(error.message || 'Failed to create plan'),
+    onError: (error: AnyFixMe) => toast.error(error.message || 'Failed to create plan'),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: AnyFixMe }) =>
       fetchApi(`/super-admin/plans/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-plans'] });
@@ -66,7 +65,7 @@ export default function SuperAdminPlans() {
       setShowCreateModal(false);
       toast.success('Plan updated successfully');
     },
-    onError: (error: any) => toast.error(error.message || 'Failed to update plan'),
+    onError: (error: AnyFixMe) => toast.error(error.message || 'Failed to update plan'),
   });
 
   const deleteMutation = useMutation({
@@ -75,7 +74,7 @@ export default function SuperAdminPlans() {
       queryClient.invalidateQueries({ queryKey: ['super-admin-plans'] });
       toast.success('Plan deleted');
     },
-    onError: (error: any) => toast.error(error.message || 'Failed to delete plan'),
+    onError: (error: AnyFixMe) => toast.error(error.message || 'Failed to delete plan'),
   });
 
   const toggleStatusMutation = useMutation({
@@ -85,7 +84,7 @@ export default function SuperAdminPlans() {
       queryClient.invalidateQueries({ queryKey: ['super-admin-plans'] });
       toast.success('Plan status updated');
     },
-    onError: (error: any) => toast.error(error.message || 'Failed to update status'),
+    onError: (error: AnyFixMe) => toast.error(error.message || 'Failed to update status'),
   });
 
   const duplicateMutation = useMutation({
@@ -95,7 +94,7 @@ export default function SuperAdminPlans() {
       queryClient.invalidateQueries({ queryKey: ['super-admin-plans'] });
       toast.success('Plan duplicated');
     },
-    onError: (error: any) => toast.error(error.message || 'Failed to duplicate plan'),
+    onError: (error: AnyFixMe) => toast.error(error.message || 'Failed to duplicate plan'),
   });
 
   const resetForm = () => {
@@ -117,7 +116,7 @@ export default function SuperAdminPlans() {
     }
   };
 
-  const openEdit = (plan: any) => {
+  const openEdit = (plan: AnyFixMe) => {
     setEditingPlan(plan);
     setFormData({
       name: plan.name,
@@ -167,7 +166,7 @@ export default function SuperAdminPlans() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {plans?.map((plan: any) => (
+            {plans?.map((plan: AnyFixMe) => (
               <div key={plan.id} className={`bg-white dark:bg-zinc-950 rounded-2xl border p-6 transition-colors ${
                 plan.active
                   ? 'border-gray-200 dark:border-white/10'
@@ -275,21 +274,21 @@ export default function SuperAdminPlans() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-500 dark:text-zinc-400 mb-1">Max Locations</label>
-                    <input type="number" value={(formData.limits as any).maxLocations ?? 1} onChange={(e) => setFormData({ ...formData, limits: { ...formData.limits, maxLocations: Number(e.target.value) } })} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                    <input type="number" value={(formData.limits as AnyFixMe).maxLocations ?? 1} onChange={(e) => setFormData({ ...formData, limits: { ...formData.limits, maxLocations: Number(e.target.value) } })} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-500 dark:text-zinc-400 mb-1">Max Staff</label>
-                    <input type="number" value={(formData.limits as any).maxStaff ?? 5} onChange={(e) => setFormData({ ...formData, limits: { ...formData.limits, maxStaff: Number(e.target.value) } })} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                    <input type="number" value={(formData.limits as AnyFixMe).maxStaff ?? 5} onChange={(e) => setFormData({ ...formData, limits: { ...formData.limits, maxStaff: Number(e.target.value) } })} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-500 dark:text-zinc-400 mb-1">Original Price (before discount)</label>
-                    <input type="number" value={(formData as any).originalPrice ?? 0} onChange={(e) => setFormData({ ...formData, originalPrice: Number(e.target.value) } as any)} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                    <input type="number" value={(formData as AnyFixMe).originalPrice ?? 0} onChange={(e) => setFormData({ ...formData, originalPrice: Number(e.target.value) } as AnyFixMe)} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-500 dark:text-zinc-400 mb-1">Annual Discount %</label>
-                    <input type="number" min="0" max="100" value={(formData as any).annualDiscountPercent ?? 10} onChange={(e) => setFormData({ ...formData, annualDiscountPercent: Number(e.target.value) } as any)} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                    <input type="number" min="0" max="100" value={(formData as AnyFixMe).annualDiscountPercent ?? 10} onChange={(e) => setFormData({ ...formData, annualDiscountPercent: Number(e.target.value) } as AnyFixMe)} className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
                   </div>
                 </div>
                 
@@ -346,11 +345,11 @@ export default function SuperAdminPlans() {
                       <button
                         type="button"
                         role="switch"
-                        aria-checked={!!(formData.features as any)?.[key]}
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData({ ...formData, features: { ...formData.features, [key]: !(formData.features as any)?.[key] } }); }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-950 ${(formData.features as any)?.[key] ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-zinc-700'}`}
+                        aria-checked={!!(formData.features as AnyFixMe)?.[key]}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFormData({ ...formData, features: { ...formData.features, [key]: !(formData.features as AnyFixMe)?.[key] } }); }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-950 ${(formData.features as AnyFixMe)?.[key] ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-zinc-700'}`}
                       >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(formData.features as any)?.[key] ? 'translate-x-6' : 'translate-x-1'}`} />
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(formData.features as AnyFixMe)?.[key] ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
                     </div>
                   ))}

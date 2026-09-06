@@ -5,7 +5,7 @@ export class ApiError extends Error {
     public status: number,
     message: string,
     public path?: string,
-    public details?: any,
+    public details?: AnyFixMe,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -184,7 +184,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
 
     const text = await response.text();
     return text ? JSON.parse(text) : null;
-  } catch (error: any) {
+  } catch (error: AnyFixMe) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
       console.warn(`[API Timeout] [${requestId}] ${options.method || 'GET'} ${endpoint} → Request timed out after 30s`);

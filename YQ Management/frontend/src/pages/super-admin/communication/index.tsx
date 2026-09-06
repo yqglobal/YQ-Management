@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import SuperAdminLayout from '../../../components/SuperAdminLayout';
 import { fetchApi } from '../../../lib/api';
 import { useQuery } from '@tanstack/react-query';
@@ -100,7 +101,7 @@ export default function SuperAdminCommunication() {
       } else {
         toast.error(res.error || 'Failed to send test email');
       }
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       toast.error(e.message || 'Error executing email test transmission');
     }
     setSendingTestEmail(false);
@@ -128,7 +129,7 @@ export default function SuperAdminCommunication() {
       } else {
         toast.error(res.error || 'WhatsApp transmission unsuccessful');
       }
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       toast.error(e.message || 'Error calling WhatsApp provider endpoint');
     }
     setSendingTestWa(false);
@@ -395,7 +396,7 @@ export default function SuperAdminCommunication() {
                 <p className="text-xs text-zinc-400 mt-1">Available system notification layouts.</p>
               </div>
               <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
-                {emailTemplates?.map((template: any) => (
+                {emailTemplates?.map((template: AnyFixMe) => (
                   <div key={template.key} className="p-3.5 rounded-2xl border border-gray-800 bg-black/40 hover:border-indigo-500/60 transition-colors">
                     <p className="font-bold text-sm text-white">{template.name}</p>
                     <div className="flex items-center justify-between mt-2">
@@ -541,7 +542,7 @@ export default function SuperAdminCommunication() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
-                    {whatsappInstances?.map((instance: any) => (
+                    {whatsappInstances?.map((instance: AnyFixMe) => (
                       <tr key={instance.id} className="hover:bg-zinc-800/30 transition-colors">
                         <td className="px-4 py-3 font-medium text-white">{instance.name}</td>
                         <td className="px-4 py-3 font-mono text-xs">{instance.instanceId || 'None'}</td>
@@ -692,18 +693,18 @@ export default function SuperAdminCommunication() {
                 When businesses check out on plans, the backend generates an SHA512 HMAC verification signature with your private key (<code className="text-amber-300 font-mono">000c8b...</code>), redirects to Ozow Pay, and automatically processes webhooks to activate workspaces instantly upon bank clearance.
               </p>
               <div className="pt-2 flex flex-wrap gap-4">
-                <a
+                <Link
                   href="/dashboard/settings/billing"
                   className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-600/30 transition-all flex items-center gap-2"
                 >
                   <CreditCard className="w-4 h-4" /> Open Tenant Checkout Simulator
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/super-admin/plans"
                   className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center gap-2"
                 >
                   Manage Subscription Plans
-                </a>
+                </Link>
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@ import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
-import { Box, Plus, Trash2, Loader2, MapPin, Pencil, Check, X, Layers, Clock } from 'lucide-react';
+import { Box, Plus, Trash2, Loader2, MapPin, Pencil, Check, X, Layers,  } from 'lucide-react';
 import { toast } from 'sonner';
 import { ServiceModal } from '../../../components/modals/ServiceModal';
 import { LocationModal } from '../../../components/modals/LocationModal';
@@ -29,11 +29,11 @@ export default function ResourcesSettingsPage() {
 
   // --- Locations state ---
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [selectedLocationForEdit, setSelectedLocationForEdit] = useState<any>(null);
+  const [selectedLocationForEdit, setSelectedLocationForEdit] = useState<AnyFixMe>(null);
 
   // --- Services state ---
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
-  const [selectedServiceForEdit, setSelectedServiceForEdit] = useState<any>(null);
+  const [selectedServiceForEdit, setSelectedServiceForEdit] = useState<AnyFixMe>(null);
   const [serviceSearchQuery, setServiceSearchQuery] = useState('');
   const [selectedServiceLocationId, setSelectedServiceLocationId] = useState('all');
   const [serviceSort, setServiceSort] = useState('name-asc');
@@ -54,11 +54,11 @@ export default function ResourcesSettingsPage() {
   });
 
   const filteredServices = React.useMemo(() => {
-    return services.filter((s: any) => {
+    return services.filter((s: AnyFixMe) => {
       const matchLoc = selectedServiceLocationId === 'all' || s.locationId === selectedServiceLocationId;
       const matchSearch = !serviceSearchQuery || s.name.toLowerCase().includes(serviceSearchQuery.toLowerCase());
       return matchLoc && matchSearch;
-    }).sort((a: any, b: any) => {
+    }).sort((a: AnyFixMe, b: AnyFixMe) => {
       if (serviceSort === 'name-asc') return a.name.localeCompare(b.name);
       if (serviceSort === 'name-desc') return b.name.localeCompare(a.name);
       return 0;
@@ -76,11 +76,11 @@ export default function ResourcesSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['resources'] });
       toast.success('Resource added');
     },
-    onError: (err: any) => toast.error(err.message || 'Failed to add resource')
+    onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to add resource')
   });
 
   const updateResourceMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => fetchApi(`/resource/${id}`, {
+    mutationFn: ({ id, data }: { id: string; data: AnyFixMe }) => fetchApi(`/resource/${id}`, {
       method: 'PATCH', body: JSON.stringify(data)
     }),
     onSuccess: () => {
@@ -88,7 +88,7 @@ export default function ResourcesSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['resources'] });
       toast.success('Resource updated');
     },
-    onError: (err: any) => toast.error(err.message || 'Failed to update resource')
+    onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to update resource')
   });
 
   const deleteResourceMutation = useMutation({
@@ -106,7 +106,7 @@ export default function ResourcesSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['tenant', 'me'] });
       toast.success('Location deleted');
     },
-    onError: (err: any) => toast.error(err.message || 'Failed to delete location')
+    onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to delete location')
   });
 
   // Service mutations
@@ -118,7 +118,7 @@ export default function ResourcesSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['services'] });
       toast.success('Service updated');
     },
-    onError: (err: any) => toast.error(err.message || 'Failed to update service')
+    onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to update service')
   });
 
   const deleteServiceMutation = useMutation({
@@ -127,7 +127,7 @@ export default function ResourcesSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['services'] });
       toast.success('Service deleted');
     },
-    onError: (err: any) => toast.error(err.message || 'Failed to delete service')
+    onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to delete service')
   });
 
   const handleCreateResource = (e: React.FormEvent) => {
@@ -136,11 +136,11 @@ export default function ResourcesSettingsPage() {
     createResourceMutation.mutate({ name: newResourceName, type: newResourceType, serviceIds: newResourceServiceIds });
   };
 
-  const startEditResource = (res: any) => {
+  const startEditResource = (res: unknown) => {
     setEditingResourceId(res.id);
     setEditResourceName(res.name || '');
     setEditResourceType(res.type || 'Counter');
-    setEditResourceServiceIds(res.services?.map((s: any) => s.id) || []);
+    setEditResourceServiceIds(res.services?.map((s: AnyFixMe) => s.id) || []);
   };
 
   const handleUpdateResource = (id: string) => {
@@ -154,12 +154,7 @@ export default function ResourcesSettingsPage() {
     createLocationMutation.mutate({ name: newLocName, address: newLocAddress || undefined, city: newLocCity || undefined });
   };
 
-  const startEditLocation = (loc: any) => {
-    setEditingLocId(loc.id);
-    setEditLocName(loc.name || '');
-    setEditLocAddress(loc.address || '');
-    setEditLocCity(loc.city || '');
-  };
+  
 
   const handleUpdateLocation = (id: string) => {
     if (!editLocName.trim()) return;
@@ -263,14 +258,14 @@ export default function ResourcesSettingsPage() {
                 Create Location
               </button>
             </div>
-            {(locations as any[]).length === 0 ? (
+            {(locations as AnyFixMe[]).length === 0 ? (
               <div className="text-center p-8 border border-dashed border-border dark:border-dark-border rounded-xl">
                 <MapPin className="w-8 h-8 text-outline mx-auto mb-2 opacity-50" />
                 <p className="text-on-surface-variant text-sm font-medium">No locations added yet</p>
                 <p className="text-xs text-outline mt-1">Add your first business location above to complete setup.</p>
               </div>
             ) : (
-              (locations as any[]).map((loc: any) => (
+              (locations as AnyFixMe[]).map((loc: { id: string; name: string }) => (
                 <QuotaFreezeGuard key={loc.id} isFrozen={loc.frozenByQuota} resourceName="location">
                 <div className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-zinc-800 rounded-xl gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -361,7 +356,7 @@ export default function ResourcesSettingsPage() {
                className="bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
              >
                <option value="all">All Locations</option>
-               {locations.map((loc: any) => (
+               {locations.map((loc: { id: string; name: string }) => (
                  <option key={loc.id} value={loc.id}>{loc.name}</option>
                ))}
              </select>
@@ -387,7 +382,7 @@ export default function ResourcesSettingsPage() {
                 No services found.
               </p>
             ) : (
-              (filteredServices as any[]).map((service: any) => (
+              (filteredServices as AnyFixMe[]).map((service: AnyFixMe) => (
                 <QuotaFreezeGuard key={service.id} isFrozen={service.frozenByQuota} resourceName="service">
                 <div className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-zinc-800 rounded-xl gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -464,14 +459,14 @@ export default function ResourcesSettingsPage() {
                }}
              >
                <option value="">+ Add Service</option>
-               {services.map((s: any) => (
+               {services.map((s: AnyFixMe) => (
                  <option key={s.id} value={s.id} disabled={newResourceServiceIds.includes(s.id)}>{s.name}</option>
                ))}
              </select>
              {newResourceServiceIds.length > 0 && (
                <div className="flex flex-wrap gap-1 mt-2 absolute -bottom-8 left-0">
                  {newResourceServiceIds.map(sid => {
-                   const srv = services.find((s: any) => s.id === sid);
+                   const srv = services.find((s: AnyFixMe) => s.id === sid);
                    return srv ? (
                      <span key={sid} className="text-[10px] bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded flex items-center gap-1">
                        {srv.name} <X className="w-3 h-3 cursor-pointer hover:text-blue-800" onClick={() => setNewResourceServiceIds(newResourceServiceIds.filter(id => id !== sid))} />
@@ -492,14 +487,14 @@ export default function ResourcesSettingsPage() {
           <div className="flex items-center justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-outline" /></div>
         ) : (
           <div className="space-y-3">
-            {(resources as any[]).length === 0 ? (
+            {(resources as AnyFixMe[]).length === 0 ? (
               <div className="text-center p-8 border border-dashed border-border dark:border-dark-border rounded-xl">
                 <Box className="w-8 h-8 text-outline mx-auto mb-2 opacity-50" />
                 <p className="text-on-surface-variant text-sm font-medium">No resources found</p>
                 <p className="text-xs text-outline mt-1">Add counters, rooms, or equipment above.</p>
               </div>
             ) : (
-              (resources as any[]).map((res: any) => (
+              (resources as AnyFixMe[]).map((res: unknown) => (
                 <div key={res.id} className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-zinc-800 rounded-xl gap-3">
                   {editingResourceId === res.id ? (
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -523,14 +518,14 @@ export default function ResourcesSettingsPage() {
                           }}
                         >
                           <option value="">+ Link Service</option>
-                          {services.map((s: any) => (
+                          {services.map((s: AnyFixMe) => (
                             <option key={s.id} value={s.id} disabled={editResourceServiceIds.includes(s.id)}>{s.name}</option>
                           ))}
                         </select>
                         {editResourceServiceIds.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {editResourceServiceIds.map(sid => {
-                              const srv = services.find((s: any) => s.id === sid);
+                              const srv = services.find((s: AnyFixMe) => s.id === sid);
                               return srv ? (
                                 <span key={sid} className="text-[10px] bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded flex items-center gap-1">
                                   {srv.name} <X className="w-3 h-3 cursor-pointer hover:text-blue-800" onClick={() => setEditResourceServiceIds(editResourceServiceIds.filter(id => id !== sid))} />

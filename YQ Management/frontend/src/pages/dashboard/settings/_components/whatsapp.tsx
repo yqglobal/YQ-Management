@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Head from 'next/head';
 import useWhatsapp from '../../../../hooks/useWhatsapp';
 import { useAuth } from '../../../../components/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
-import { Send, MessageSquare, QrCode, Loader2, AlertCircle, CheckCircle2, Phone, RefreshCw, Terminal, Smartphone } from 'lucide-react';
+import { Send, QrCode, Loader2, CheckCircle2, Phone, RefreshCw, Terminal, Smartphone } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import PhoneInput from '../../../../components/PhoneInput';
 import { toast } from 'sonner';
@@ -26,7 +25,7 @@ export default function WhatsAppSettingsPage() {
   const [testMessage, setTestMessage] = useState('Test message from Qmova');
   const [qrCountdown, setQrCountdown] = useState<number>(60);
   
-  const logToBackend = (level: string, message: string, data?: any) => {
+  const logToBackend = (level: string, message: string, data?: AnyFixMe) => {
     fetchApi('/whatsapp/frontend-log', {
       method: 'POST',
       body: JSON.stringify({ level, message, data })
@@ -42,7 +41,7 @@ export default function WhatsAppSettingsPage() {
   });
 
   const updateTenantMutation = useMutation({
-    mutationFn: (data: any) => fetchApi(`/tenant/${tenant?.id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    mutationFn: (data: AnyFixMe) => fetchApi(`/tenant/${tenant?.id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant', 'me'] });
       toast.success('Settings saved');
@@ -92,7 +91,7 @@ export default function WhatsAppSettingsPage() {
   useEffect(() => {
     if (tenant && isWhatsAppConnected !== undefined) {
       if (isWhatsAppConnected !== tenant.whatsappConnected) {
-        queryClient.setQueryData(['tenant', 'me'], (old: any) => {
+        queryClient.setQueryData(['tenant', 'me'], (old: AnyFixMe) => {
           if (!old) return old;
           return { ...old, whatsappConnected: isWhatsAppConnected };
         });
@@ -123,7 +122,7 @@ export default function WhatsAppSettingsPage() {
       logToBackend('info', 'WhatsApp connected successfully');
     }
     if (connectMutation.isError) {
-      const err: any = connectMutation.error;
+      const err: AnyFixMe = connectMutation.error;
       console.error('[WhatsApp] Connect mutation error effect:', err);
       toast.error(err?.details?.message || err?.message || 'Failed to connect to WhatsApp');
       logToBackend('error', 'Failed to connect to WhatsApp', err);
@@ -262,13 +261,13 @@ export default function WhatsAppSettingsPage() {
                       onClick={async () => {
                         try {
                           logToBackend('info', 'User requested pairing code', { phone: `${pairingCountryCode}${pairingPhoneNumber}` });
-                          const res: any = await pairingCodeMutation.mutateAsync(`${pairingCountryCode}${pairingPhoneNumber}`);
+                          const res: AnyFixMe = await pairingCodeMutation.mutateAsync(`${pairingCountryCode}${pairingPhoneNumber}`);
                           if (res?.pairingCode) {
                             setPairingCode(res.pairingCode);
                             logToBackend('info', 'Pairing code received successfully');
                           }
                           await statusQuery.refetch();
-                        } catch (e: any) {
+                        } catch (e: AnyFixMe) {
                           logToBackend('error', 'Failed to generate pairing code', e);
                           toast.error(e?.message || 'Failed to generate pairing code');
                         }
@@ -415,7 +414,7 @@ export default function WhatsAppSettingsPage() {
                           toast.success('Test message sent successfully');
                           logToBackend('info', 'Test message sent successfully');
                         },
-                        onError: (err: any) => {
+                        onError: (err: AnyFixMe) => {
                           toast.error(err?.message || 'Failed to send test message');
                           logToBackend('error', 'Failed to send test message', err);
                         }
@@ -447,7 +446,7 @@ export default function WhatsAppSettingsPage() {
             </div>
             <div ref={logsContainerRef} className="p-4 h-64 overflow-y-auto font-data-mono text-[12px] text-[#7EE787] space-y-2">
               {logs?.length > 0 ? (
-                logs.map((log: any, i: number) => (
+                logs.map((log: AnyFixMe, i: number) => (
                   <div key={i} className="flex gap-4 hover:bg-white/5 p-1 rounded transition-colors">
                     <span className="text-gray-500 whitespace-nowrap shrink-0">
                       {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 })}

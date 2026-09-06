@@ -27,7 +27,7 @@ export default function Login() {
       localStorage.setItem('qmova_invite_code', trimmed);
       document.cookie = `qmova_invite_code=${trimmed}; path=/; max-age=86400; SameSite=Lax`;
       fetchApi(`/workspace/invite-preview/${trimmed}`)
-        .then((res: any) => {
+        .then((res: AnyFixMe) => {
           if (res?.valid) {
             setInvitePreview({ workspaceName: res.workspaceName, role: res.role, code: res.code });
             if (res.email && !email) {
@@ -81,7 +81,7 @@ export default function Login() {
           router.push(isSuper ? '/super-admin' : '/dashboard');
         }
       }
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
@@ -99,7 +99,7 @@ export default function Login() {
         body: JSON.stringify({ email, purpose: 'login' }),
       });
       setResendSuccess('A new verification code has been sent to your email.');
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       setError(err.message || 'Failed to resend OTP');
     } finally {
       setResending(false);
@@ -127,7 +127,7 @@ export default function Login() {
       } else {
         router.push(isSuper ? '/super-admin' : '/dashboard');
       }
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       setError(err.message || 'Invalid OTP');
     } finally {
       setLoading(false);

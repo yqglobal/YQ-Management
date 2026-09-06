@@ -29,7 +29,7 @@ export default function ForgotPassword() {
         body: JSON.stringify({ email, purpose: 'reset' }),
       });
       setSuccessMsg('A new verification code has been sent to your email.');
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       setError(err.message || 'Failed to resend OTP');
     } finally {
       setResending(false);
@@ -47,7 +47,7 @@ export default function ForgotPassword() {
         body: JSON.stringify({ email })
       });
       setStep('otp');
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       setError(err.message || 'Failed to request password reset');
     } finally {
       setLoading(false);
@@ -72,7 +72,7 @@ export default function ForgotPassword() {
       });
       setSuccessMsg('Password reset successfully. Redirecting to login...');
       setTimeout(() => router.push('/login'), 2000);
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       setError(err.message || 'Failed to reset password');
     } finally {
       setLoading(false);

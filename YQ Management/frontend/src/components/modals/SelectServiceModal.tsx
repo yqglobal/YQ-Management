@@ -14,7 +14,7 @@ interface SelectServiceModalProps {
 }
 
 export function SelectServiceModal({ isOpen, onClose, tenantId, onSelect, baseUrl, portalUrl, isCustomDomain, onCopy }: SelectServiceModalProps) {
-  const [services, setServices] = useState<any[]>([]);
+  const [services, setServices] = useState<AnyFixMe[]>([]);
   const [selectedServiceId, setSelectedServiceId] = useState<string>('');
   const [selectedQueueId, setSelectedQueueId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -111,7 +111,7 @@ export function SelectServiceModal({ isOpen, onClose, tenantId, onSelect, baseUr
                     className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all dark:text-white"
                   >
                     <option value="">All Queues in Service</option>
-                    {queues.map((q: any) => (
+                    {queues.map((q: AnyFixMe) => (
                       <option key={q.id} value={q.id}>{q.name}</option>
                     ))}
                   </select>

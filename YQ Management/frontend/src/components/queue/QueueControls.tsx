@@ -108,7 +108,7 @@ export function QueueControls({ queueId, servingToken }: QueueControlsProps) {
               <span className="text-sm font-medium text-red-700 dark:text-red-400">Confirm Skip Token</span>
             </div>
             <p className="text-gray-300 text-sm mb-4">
-              This will mark token <strong>{(servingToken as any)?.displayId || servingToken?.id.split('-')[0]}</strong> as completed and skip it. This action cannot be undone.
+              This will mark token <strong>{(servingToken as AnyFixMe)?.displayId || servingToken?.id.split('-')[0]}</strong> as completed and skip it. This action cannot be undone.
             </p>
             <div className="flex gap-2">
               <Button

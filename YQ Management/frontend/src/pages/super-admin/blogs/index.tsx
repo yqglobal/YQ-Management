@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 export default function SuperAdminBlogs() {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingBlog, setEditingBlog] = useState<any>(null);
+  const [editingBlog, setEditingBlog] = useState<AnyFixMe>(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -31,23 +31,23 @@ export default function SuperAdminBlogs() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => fetchApi('/super-admin/blogs', { method: 'POST', body: JSON.stringify(data) }),
+    mutationFn: (data: AnyFixMe) => fetchApi('/super-admin/blogs', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-blogs'] });
       toast.success('Blog created');
       closeModal();
     },
-    onError: (err: any) => toast.error(err.message || 'Failed to create blog'),
+    onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to create blog'),
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { id: string; payload: any }) => fetchApi(`/super-admin/blogs/${data.id}`, { method: 'PATCH', body: JSON.stringify(data.payload) }),
+    mutationFn: (data: { id: string; payload: AnyFixMe }) => fetchApi(`/super-admin/blogs/${data.id}`, { method: 'PATCH', body: JSON.stringify(data.payload) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-blogs'] });
       toast.success('Blog updated');
       closeModal();
     },
-    onError: (err: any) => toast.error(err.message || 'Failed to update blog'),
+    onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to update blog'),
   });
 
   const deleteMutation = useMutation({
@@ -56,7 +56,7 @@ export default function SuperAdminBlogs() {
       queryClient.invalidateQueries({ queryKey: ['super-admin-blogs'] });
       toast.success('Blog deleted');
     },
-    onError: (err: any) => toast.error(err.message || 'Failed to delete blog'),
+    onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to delete blog'),
   });
 
   const openCreateModal = () => {
@@ -67,7 +67,7 @@ export default function SuperAdminBlogs() {
     setShowCreateModal(true);
   };
 
-  const openEditModal = async (blog: any) => {
+  const openEditModal = async (blog: AnyFixMe) => {
     try {
       const fullBlog = await fetchApi(`/super-admin/blogs/${blog.id}`);
       setEditingBlog(fullBlog);
@@ -160,7 +160,7 @@ export default function SuperAdminBlogs() {
                   </td>
                 </tr>
               ) : (
-                blogs?.map((blog: any) => (
+                blogs?.map((blog: AnyFixMe) => (
                   <tr key={blog.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="p-4">
                       <div className="font-medium text-gray-900 dark:text-white">{blog.title}</div>

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { Calendar, Clock, User, ChevronRight, CheckCircle2, ArrowLeft, AlertCircle } from 'lucide-react';
+import { ChevronRight, CheckCircle2, ArrowLeft, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function PublicBookingPage() {
   const router = useRouter();
   const { tenantId } = router.query;
   const [step, setStep] = useState(1);
-  const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedService, setSelectedService] = useState<AnyFixMe>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', phone: '' });

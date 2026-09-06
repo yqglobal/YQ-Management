@@ -3,8 +3,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useAuth } from '../components/AuthContext';
 import { fetchApi } from '../lib/api';
-import { Building2, Users, Loader2, ArrowRight, Check, AlertCircle, Mail, MessageSquare } from 'lucide-react';
-import { useShareInvite } from '../hooks/useShareInvite';
+import { Loader2, ArrowRight, Check, AlertCircle } from 'lucide-react';
 import { Logo } from '../components/Logo';
 
 type JoinStatus = 'loading' | 'ready' | 'joining' | 'success' | 'error';
@@ -67,7 +66,7 @@ export default function JoinPage() {
       document.cookie = 'qmova_invite_code=; path=/; max-age=0; SameSite=Lax';
       await refetch();
       setTimeout(() => router.push('/dashboard'), 1500);
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       setStatus('error');
       setError(err.message || 'Invalid or expired invitation code');
     }

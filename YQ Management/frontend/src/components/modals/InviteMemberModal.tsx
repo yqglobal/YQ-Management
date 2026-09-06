@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { usePlan } from "../../hooks/usePlan";
 import {
   X, Mail, Shield, Users, ChevronRight, Loader2, Copy, MessageSquare, User as UserIcon,
-  MapPin, LayoutDashboard, Check, ChevronDown,
+  MapPin, LayoutDashboard, Check, 
 } from 'lucide-react';
 
 interface InviteMemberModalProps {
@@ -60,9 +60,9 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
   const [email, setEmail] = useState('');
   const [selectedRole, setSelectedRole] = useState('OPERATOR');
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
-  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [selectedServiceIds] = useState<string[]>([]);
   const [selectedPages, setSelectedPages] = useState<string[]>(['queues', 'service-desk', 'check-in']);
-  const [inviteResult, setInviteResult] = useState<any>(null);
+  const [inviteResult, setInviteResult] = useState<AnyFixMe>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
 
@@ -72,18 +72,14 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
     enabled: isOpen,
   });
 
-  const { data: services = [] } = useQuery({
-    queryKey: ['services'],
-    queryFn: () => fetchApi('/service'),
-    enabled: isOpen,
-  });
+  
 
   const inviteMutation = useMutation({
-    mutationFn: (data: any) => fetchApi('/users', {
+    mutationFn: (data: Record<string, unknown>) => fetchApi('/users', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-    onSuccess: (res: any) => {
+    onSuccess: (res: unknown) => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       setInviteResult(res);
       setStep(3);
@@ -112,7 +108,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
         body: JSON.stringify({ email, code: inviteResult.inviteCode, role: selectedRole }),
       });
       toast.success('Invitation email sent!');
-    } catch (e: any) {
+    } catch (e: Error | unknown) {
       toast.error(e.message || 'Failed to send email');
     } finally {
       setSendingEmail(false);
@@ -246,7 +242,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                     <span className="text-zinc-400 font-normal normal-case ml-1">(leave empty = all branches)</span>
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {(locations as any[]).map((loc: any) => (
+                    {(locations as AnyFixMe[]).map((loc: { id: string; name: string }) => (
                       <button
                         key={loc.id}
                         type="button"

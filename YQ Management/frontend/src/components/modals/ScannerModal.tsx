@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import {
-  ScanLine, CheckCircle2, Check, XCircle, RefreshCcw, Camera, AlertTriangle, Clock, UserX, Lock, DoorClosed, MapPinOff, Building2, WifiOff, Smartphone, PlayCircle, StopCircle, Ticket, User, Keyboard, Loader2, ChevronDown, X
+  ScanLine, CheckCircle2, Check, XCircle, RefreshCcw, PlayCircle, StopCircle, Loader2, X
 } from 'lucide-react';
 import { fetchApi } from '../../lib/api';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
-import { detectCountryByTimezone } from '../../lib/country-codes';
 import { useLocation } from '../LocationContext';
 
 type ScannerStatus = 'idle' | 'scanning' | 'processing' | 'approved' | 'rejected' | 'error';
@@ -40,7 +39,7 @@ const SCANNER_CONFIG = {
   rememberLastUsedCamera: true,
 };
 
-export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boolean; onClose: () => void; onScanSuccess: (data: any) => void }) {
+export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boolean; onClose: () => void; onScanSuccess: (data: AnyFixMe) => void }) {
   if (!isOpen) return null;
 
   const { activeLocationId } = useLocation();
@@ -56,7 +55,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
   const [manualProcessing, setManualProcessing] = useState(false);
   const [lookupTab, setLookupTab] = useState<'token' | 'phone'>('token');
 
-  const [defaultCountry, setDefaultCountry] = useState<any>('US');
+  const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>('US');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -287,7 +286,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
       setScannerStatus('scanning');
       resetIdleTimer();
 
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       console.error('Final scanner initialization error:', err);
       setError('Failed to initialize camera scanner. Please check permissions or select a different camera.');
       setScannerStatus('error');
@@ -407,7 +406,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
       await fetchApi(`/visits/${validationResult.tokenId}/checkin`, { method: 'POST' });
       setValidationResult((prev) => prev ? { ...prev, checkedIn: true, status: 'WAITING' } : prev);
       onScanSuccess({ ...validationResult, checkedIn: true, status: 'WAITING' });
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       alert(e.message || 'Failed to check in');
     }
   }, [validationResult?.tokenId]);
@@ -437,7 +436,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
         queueId: latest?.queueId,
       });
       setScannerStatus('approved');
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       setValidationResult({
         valid: false,
         status: 'Not Found',
@@ -586,7 +585,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
                         onCountryChange={(country) => { if (country) setDefaultCountry(country); }}
                         value={manualPhone}
                         onChange={(value) => setManualPhone(value || '')}
-                        onKeyDown={(e: any) => { if (e.key === 'Enter') lookupByPhone(); }}
+                        onKeyDown={(e: AnyFixMe) => { if (e.key === 'Enter') lookupByPhone(); }}
                         className="h-12 w-full rounded-xl bg-surface-container dark:bg-dark-canvas border border-border dark:border-dark-border px-4 focus-within:ring-1 focus-within:ring-primary outline-none"
                         placeholder="e.g. +91 98765 43210"
                       />

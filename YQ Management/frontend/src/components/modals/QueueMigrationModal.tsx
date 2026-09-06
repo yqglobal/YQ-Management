@@ -6,8 +6,8 @@ import { AlertCircle, Link as LinkIcon, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface QueueMigrationModalProps {
-  unlinkedQueues: any[];
-  services: any[];
+  unlinkedQueues: AnyFixMe[];
+  services: AnyFixMe[];
   onComplete: () => void;
   tenantId: string;
   onCreateService?: () => void;
@@ -44,7 +44,7 @@ export function QueueMigrationModal({ unlinkedQueues, services, onComplete, tena
       toast.success('Queues successfully linked!');
       queryClient.invalidateQueries({ queryKey: ['tenant'] });
       onComplete();
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       toast.error(err.message || 'Failed to update queues');
     } finally {
       setIsSubmitting(false);

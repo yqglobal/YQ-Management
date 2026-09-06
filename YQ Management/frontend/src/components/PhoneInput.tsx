@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { countryCodes, getCountryByCode, getCountryByAbbr, detectCountryByTimezone, detectCountryCode } from '../lib/country-codes';
+import { countryCodes, getCountryByCode, detectCountryCode } from '../lib/country-codes';
 
 interface PhoneInputProps {
   value: string;

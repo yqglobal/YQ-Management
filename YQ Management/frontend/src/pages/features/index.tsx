@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '../../components/AuthContext';
 import { Logo } from '../../components/Logo';
 import { motion } from 'framer-motion';
-import { Activity, CalendarDays, MessageSquare, MonitorSmartphone, Bell, Scan, Ticket, Star } from 'lucide-react';
+import { Activity, CalendarDays, MessageSquare, Bell, Scan, Ticket, Star } from 'lucide-react';
 
 export default function FeaturesPage() {
   const { user } = useAuth();

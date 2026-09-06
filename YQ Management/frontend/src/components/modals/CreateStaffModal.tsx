@@ -18,7 +18,7 @@ export function CreateStaffModal({ isOpen, onClose, locationId }: CreateStaffMod
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
-    mutationFn: (data: any) =>
+    mutationFn: (data: AnyFixMe) =>
       fetchApi('/staff', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staffList'] });

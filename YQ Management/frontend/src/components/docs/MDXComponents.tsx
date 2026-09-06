@@ -10,7 +10,7 @@ export const MDXComponents = {
   VersionHistory,
   RelatedDocs,
   // You can override standard tags too
-  a: (props: any) => (
+  a: (props: AnyFixMe) => (
     <a {...props} className="text-indigo-400 hover:text-indigo-300 hover:underline" />
   ),
 };

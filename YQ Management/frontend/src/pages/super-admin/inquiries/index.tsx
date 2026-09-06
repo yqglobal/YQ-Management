@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Head from 'next/head';
 import SuperAdminLayout from '../../../components/SuperAdminLayout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
-import { Loader2, Mail, Phone, Building2, User, Clock, CheckCircle2, ChevronRight, XCircle } from 'lucide-react';
+import { Loader2, Mail, Phone, Building2, User, Clock, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function InquiriesPage() {
@@ -54,7 +54,7 @@ export default function InquiriesPage() {
           </div>
         ) : (
           <div className="grid gap-6">
-            {inquiries?.map((inquiry: any) => (
+            {inquiries?.map((inquiry: AnyFixMe) => (
               <div key={inquiry.id} className="bg-white dark:bg-zinc-900/50 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-sm">
                 <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                   

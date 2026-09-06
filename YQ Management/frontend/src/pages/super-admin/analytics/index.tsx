@@ -12,37 +12,27 @@ import {
   DollarSign,
   Globe,
   Navigation,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
   BarChart3,
   Layers,
   Sparkles,
   Smartphone,
   Tv,
   QrCode,
-  Calendar,
   ShieldCheck,
-  Zap,
-  ExternalLink
+  Zap
 } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
+  ResponsiveContainer
 } from 'recharts';
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: AnyFixMe) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 p-3 rounded-xl shadow-xl text-xs">
@@ -51,7 +41,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             ? format(new Date(label), 'MMM d, yyyy')
             : label}
         </p>
-        {payload.map((entry: any, idx: number) => (
+        {payload.map((entry: AnyFixMe, idx: number) => (
           <p key={idx} style={{ color: entry.color || '#6366f1' }} className="font-semibold">
             {entry.name}: <span className="font-mono font-bold">{entry.value}</span>
           </p>
@@ -76,17 +66,17 @@ export default function SuperAdminAnalytics() {
 
   const financials = data?.financials || { realMRR: 0, realARR: 0, arpu: 0, planTiers: [] };
   const operational = data?.operational || { avgWaitMins: 0, peakWindow: 'N/A' };
-  const geographyData: any[] = data?.geography || [];
-  const rawTraffic: any[] = data?.trafficPages || [];
+  const geographyData: AnyFixMe[] = data?.geography || [];
+  const rawTraffic: AnyFixMe[] = data?.trafficPages || [];
 
-  const iconsMap: Record<string, any> = {
+  const iconsMap: Record<string, AnyFixMe> = {
     '/dashboard/queues': Activity,
     '/dashboard/check-in': QrCode,
     '/dashboard/display-picker': Tv,
     '/dashboard/settings/whatsapp': Smartphone,
     '/dashboard/history': BarChart3,
   };
-  const trafficPages = rawTraffic.map((t: any) => ({
+  const trafficPages = rawTraffic.map((t: AnyFixMe) => ({
     ...t,
     icon: iconsMap[t.page] || Navigation,
   }));
@@ -127,7 +117,7 @@ export default function SuperAdminAnalytics() {
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as AnyFixMe)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
@@ -236,7 +226,7 @@ export default function SuperAdminAnalytics() {
                   </h3>
                   {topTenants.length > 0 ? (
                     <div className="divide-y divide-gray-100 dark:divide-white/5">
-                      {topTenants.map((tenant: any, i: number) => (
+                      {topTenants.map((tenant: AnyFixMe, i: number) => (
                         <div key={tenant.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3.5 gap-2 group hover:bg-gray-50/50 dark:hover:bg-white/[0.02] px-2 rounded-xl transition-all">
                           <div className="flex items-center gap-3">
                             <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-xs font-black text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-500/20">
@@ -348,7 +338,7 @@ export default function SuperAdminAnalytics() {
                     <Layers className="w-5 h-5 text-amber-500" /> Subscription Tier Adoption
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {financials.planTiers.map((plan: any, idx: number) => (
+                    {financials.planTiers.map((plan: AnyFixMe, idx: number) => (
                       <div key={idx} className={`p-5 rounded-xl border ${plan.color} transition-all`}>
                         <p className="text-xs font-bold uppercase tracking-wider mb-1">{plan.tier}</p>
                         <p className="text-3xl font-black font-mono">{plan.count}</p>

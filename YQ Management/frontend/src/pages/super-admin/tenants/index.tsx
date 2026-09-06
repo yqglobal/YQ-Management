@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import SuperAdminLayout from '../../../components/SuperAdminLayout';
 import { fetchApi } from '../../../lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, MoreVertical, Search, Users, QrCode, ArrowUpRight, Trash2, CreditCard, Filter, ArrowUp, ArrowDown } from 'lucide-react';
+import { Building2, MoreVertical, Search, QrCode, ArrowUpRight, Trash2, CreditCard, Filter, ArrowUp, ArrowDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -40,13 +40,13 @@ export default function SuperAdminTenants() {
   };
 
   const filteredAndSortedTenants = (tenants || [])
-    .filter((t: any) => {
+    .filter((t: AnyFixMe) => {
       if (statusFilter === 'ALL') return true;
       if (statusFilter === 'ACTIVE') return t.subscriptionStatus === 'ACTIVE';
       if (statusFilter === 'TRIAL') return !t.subscriptionStatus || t.subscriptionStatus === 'TRIAL';
       return t.subscriptionStatus === statusFilter;
     })
-    .sort((a: any, b: any) => {
+    .sort((a: AnyFixMe, b: AnyFixMe) => {
       let valA, valB;
       if (sortBy === 'name') {
         valA = (a.name || '').toLowerCase();
@@ -110,7 +110,7 @@ export default function SuperAdminTenants() {
               <span className="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider hidden sm:inline">Sort:</span>
               <select
                 value={sortBy}
-                onChange={(e: any) => setSortBy(e.target.value)}
+                onChange={(e: AnyFixMe) => setSortBy(e.target.value)}
                 className="bg-gray-50 dark:bg-zinc-950 border border-gray-200 dark:border-white/10 text-gray-800 dark:text-zinc-200 text-xs font-medium rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="joined">Joined Date</option>
@@ -161,14 +161,14 @@ export default function SuperAdminTenants() {
                         <div className="space-y-1">
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No businesses found</h3>
                           <p className="text-sm text-gray-500 dark:text-zinc-400 max-w-sm mx-auto">
-                            We couldn't find any businesses matching your search or filter criteria. Try adjusting your filters.
+                            We couldn&apos;t find any businesses matching your search or filter criteria. Try adjusting your filters.
                           </p>
                         </div>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  filteredAndSortedTenants.map((tenant: any) => {
+                  filteredAndSortedTenants.map((tenant: AnyFixMe) => {
                     const isMenuOpen = showActions === tenant.id;
                     return (
                       <tr

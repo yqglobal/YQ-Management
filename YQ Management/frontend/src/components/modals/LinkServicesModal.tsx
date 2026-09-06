@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 interface LinkServicesModalProps {
   isOpen: boolean;
   onClose: () => void;
-  queue: any;
+  queue: AnyFixMe;
 }
 
 export function LinkServicesModal({ isOpen, onClose, queue }: LinkServicesModalProps) {
@@ -17,7 +17,7 @@ export function LinkServicesModal({ isOpen, onClose, queue }: LinkServicesModalP
 
   useEffect(() => {
     if (queue && queue.services) {
-      setSelectedServiceIds(queue.services.map((s: any) => s.id));
+      setSelectedServiceIds(queue.services.map((s: AnyFixMe) => s.id));
     }
   }, [queue, isOpen]);
 
@@ -28,7 +28,7 @@ export function LinkServicesModal({ isOpen, onClose, queue }: LinkServicesModalP
   });
 
   const saveMutation = useMutation({
-    mutationFn: (data: any) => fetchApi(`/queue/${queue.id}`, {
+    mutationFn: (data: AnyFixMe) => fetchApi(`/queue/${queue.id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
@@ -76,7 +76,7 @@ export function LinkServicesModal({ isOpen, onClose, queue }: LinkServicesModalP
             {services.length === 0 ? (
               <p className="text-sm text-center p-4 text-on-surface-variant">No services found. Create a service first.</p>
             ) : (
-              services.map((service: any) => (
+              services.map((service: AnyFixMe) => (
                 <label key={service.id} className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedServiceIds.includes(service.id) ? 'bg-primary/10 border-primary/20' : 'hover:bg-surface-container dark:hover:bg-white/5'}`}>
                   <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors shrink-0 ${selectedServiceIds.includes(service.id) ? 'bg-primary border-primary text-on-primary' : 'border-border dark:border-dark-border bg-transparent'}`}>
                     {selectedServiceIds.includes(service.id) && <Check strokeWidth={2.5} className="w-3.5 h-3.5" />}

@@ -5,7 +5,7 @@ import { GetServerSideProps } from 'next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import { t } from '../../../../lib/i18n';
-import { Bell, MapPin, Clock, Info, XCircle, CalendarCheck } from 'lucide-react';
+import { MapPin, Clock, Info, XCircle, CalendarCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
 
@@ -23,12 +23,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 };
 
-export default function TenantStatusPage({ tenant, tokenId }: { tenant: any, tokenId: string }) {
+export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe, tokenId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const primaryColor = tenant.branding?.primaryColor || '#4f46e5';
 
-  const { data: statusData, isLoading, error } = useQuery<any, any>({
+  const { data: statusData, isLoading, error } = useQuery<AnyFixMe, AnyFixMe>({
     queryKey: ['token-status', tokenId],
     queryFn: () => fetchApi(`/public-visit/${tokenId}`),
     enabled: !!tokenId,

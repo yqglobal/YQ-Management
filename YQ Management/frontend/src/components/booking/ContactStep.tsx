@@ -7,7 +7,7 @@ interface ContactStepProps {
   setName: (name: string) => void;
   phone: string;
   setPhone: (phone: string) => void;
-  defaultCountry: any;
+  defaultCountry: AnyFixMe;
   errorMsg: string;
   primaryColor: string;
   onNext: (e: React.FormEvent) => void;
@@ -37,7 +37,7 @@ export const ContactStep: React.FC<ContactStepProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">WhatsApp Number <span className="text-red-500">*</span></label>
-            <PhoneInput international defaultCountry={defaultCountry} value={phone} onChange={(v: any) => setPhone(v)} className="PhoneInput" />
+            <PhoneInput international defaultCountry={defaultCountry} value={phone} onChange={(v: AnyFixMe) => setPhone(v)} className="PhoneInput" />
             <p className="text-xs text-gray-500 mt-2">Required for your tickets and live updates.</p>
           </div>
         </div>

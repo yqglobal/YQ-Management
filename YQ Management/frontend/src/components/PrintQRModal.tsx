@@ -3,14 +3,14 @@ import { useAuth } from "./AuthContext";
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { X, Printer, Check, QrCode, Layers } from 'lucide-react';
+import { X, Printer, QrCode, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Queue {
   id: string;
   name: string;
   status: string;
-  [key: string]: any;
+  [key: string]: AnyFixMe;
 }
 
 interface PrintQRModalProps {

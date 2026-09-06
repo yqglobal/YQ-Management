@@ -32,7 +32,7 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
   const [trialAgreed, setTrialAgreed] = useState(false);
   const [activatingTrialPlanId, setActivatingTrialPlanId] = useState<string | null>(null);
   const paymentFormRef = useRef<HTMLFormElement | null>(null);
-  const [paymentData, setPaymentData] = useState<any>(null);
+  const [paymentData, setPaymentData] = useState<AnyFixMe>(null);
   const [showForcedTrial, setShowForcedTrial] = useState(false);
 
   const ozowFields = useMemo<Array<string>>(
@@ -88,9 +88,9 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
     }
   }, [paymentData]);
 
-  const nonEnterprisePlans = (plans as any[]).filter((p: any) => !p.name.toLowerCase().includes('enterprise'));
-  const freePlan = nonEnterprisePlans.find((p: any) => p.price === 0);
-  const paidPlans = nonEnterprisePlans.filter((p: any) => p.price > 0);
+  const nonEnterprisePlans = (plans as AnyFixMe[]).filter((p: AnyFixMe) => !p.name.toLowerCase().includes('enterprise'));
+  const freePlan = nonEnterprisePlans.find((p: AnyFixMe) => p.price === 0);
+  const paidPlans = nonEnterprisePlans.filter((p: AnyFixMe) => p.price > 0);
 
   const handleStartTrial = (planId: string) => {
     if (!trialAgreed) {
@@ -101,7 +101,7 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
     trialMutation.mutate(planId);
   };
 
-  const handlePurchase = (plan: any) => {
+  const handlePurchase = (plan: AnyFixMe) => {
     subscribeMutation.mutate({ planId: plan.id, billingInterval });
   };
 
@@ -247,12 +247,12 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
             )}
 
             {/* Paid plans */}
-            {paidPlans.map((plan: any) => {
+            {paidPlans.map((plan: AnyFixMe) => {
               const isPopular = plan.name.toLowerCase().includes('standard') || plan.name.toLowerCase().includes('pro');
               const displayPrice = billingInterval === 'yearly' && plan.billingInterval === 'monthly'
                 ? Math.floor(plan.price * 12 * 0.9)
                 : plan.price;
-              const isPurchasing = subscribeMutation.isPending && (subscribeMutation.variables as any)?.planId === plan.id;
+              const isPurchasing = subscribeMutation.isPending && (subscribeMutation.variables as AnyFixMe)?.planId === plan.id;
 
               return (
                 <div
@@ -329,7 +329,7 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
                         : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
                     }`}
                   >
-                    {isPurchasing || (!!paymentData && (subscribeMutation.variables as any)?.planId === plan.id)
+                    {isPurchasing || (!!paymentData && (subscribeMutation.variables as AnyFixMe)?.planId === plan.id)
                       ? <><Loader2 className="w-4 h-4 animate-spin" /> {paymentData ? 'Redirecting...' : 'Processing...'}</>
                       : <><Shield className="w-4 h-4" /> Get {plan.name} <ArrowRight className="w-3.5 h-3.5" /></>
                     }

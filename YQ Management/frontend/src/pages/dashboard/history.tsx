@@ -6,9 +6,9 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const exportCsv = (data: any[]) => {
+const exportCsv = (data: AnyFixMe[]) => {
   if (!data.length) return;
-  const rows: Record<string, any>[] = data.map(record => ({
+  const rows: Record<string, AnyFixMe>[] = data.map(record => ({
     'Visit ID': record.id,
     'Customer Name': record.customer?.name || 'Unknown',
     'Customer Phone': record.customer?.phone || '',
@@ -42,11 +42,11 @@ export default function HistoryPage() {
   const analytics = useMemo(() => {
     if (!history.length) return { totalServed: 0, avgWaitTime: 0, chartData: [] };
 
-    let totalWaitMs = 0;
+    const totalWaitMs = 0;
     let completedCount = 0;
     const dateCounts: Record<string, number> = {};
 
-    history.forEach((record: any) => {
+    history.forEach((record: AnyFixMe) => {
       // For Chart Volume
       const dateStr = new Date(record.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       dateCounts[dateStr] = (dateCounts[dateStr] || 0) + 1;
@@ -176,7 +176,7 @@ export default function HistoryPage() {
                     <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">No past records found.</td>
                   </tr>
                 ) : (
-                  history.slice(0, 50).map((record: any) => (
+                  history.slice(0, 50).map((record: AnyFixMe) => (
                     <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
                       <td className="px-6 py-4 font-medium text-gray-700 dark:text-zinc-300">{record.customer?.name || 'Walk-in'}</td>
                       <td className="px-6 py-4 text-gray-900 dark:text-white">{record.service?.name || 'Unknown Service'}</td>

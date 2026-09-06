@@ -34,7 +34,7 @@ export default function TVDisplay() {
     voice: 'female',
     template: 'Ticket number {{token}}, please proceed to {{resource}}',
   });
-  const [branding, setBranding] = useState<any>(null);
+  const [branding, setBranding] = useState<AnyFixMe>(null);
   const [tenantName, setTenantName] = useState<string>('Qmova');
   const [tenantSubdomain, setTenantSubdomain] = useState<string>('');
   const [queueInfo, setQueueInfo] = useState<{name: string, serviceName?: string} | null>(null);
@@ -129,7 +129,7 @@ export default function TVDisplay() {
     const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000');
     socket.emit('joinTenantRoom', tenantId);
 
-    socket.on('token_serving', (data: any) => {
+    socket.on('token_serving', (data: AnyFixMe) => {
       const token: CalledToken = {
         id: data.token?.id || data.id || data,
         displayId: data.token?.displayId || data.displayId,
@@ -142,7 +142,7 @@ export default function TVDisplay() {
 
       // Play chime
       try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const audioCtx = new (window.AudioContext || (window as AnyFixMe).webkitAudioContext)();
         // Two-tone chime
         [440, 550].forEach((freq, i) => {
           const osc = audioCtx.createOscillator();

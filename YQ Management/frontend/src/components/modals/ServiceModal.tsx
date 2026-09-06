@@ -4,13 +4,13 @@ import { X, Loader2, Plus } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
-import { ScheduleEditor, WeeklySchedule } from '../common/ScheduleEditor';
+import { ScheduleEditor } from '../common/ScheduleEditor';
 
 interface ServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   locationId?: string;
-  service?: any; // If provided, modal is in EDIT mode
+  service?: AnyFixMe; // If provided, modal is in EDIT mode
 }
 
 export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceModalProps) {
@@ -23,11 +23,11 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   const [allowProviderSelection, setAllowProviderSelection] = useState(false);
   const [requireManualCheckIn, setRequireManualCheckIn] = useState(false);
   const [appointmentGranularityMins, setAppointmentGranularityMins] = useState(15);
-  const [formConfig, setFormConfig] = useState<any[]>([]);
+  const [formConfig, setFormConfig] = useState<AnyFixMe[]>([]);
 
   // Cascading Availability States
   const [useLocationHours, setUseLocationHours] = useState(true);
-  const [businessHoursOverride, setBusinessHoursOverride] = useState<any>(null);
+  const [businessHoursOverride, setBusinessHoursOverride] = useState<AnyFixMe>(null);
   const [exceptionDatesOverride, setExceptionDatesOverride] = useState<string[]>([]);
   const [newExceptionDate, setNewExceptionDate] = useState('');
 
@@ -45,19 +45,19 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setAppointmentGranularityMins(service.appointmentGranularityMins || 15);
       let initialFormConfig = service.formConfig || [];
       if (initialFormConfig.length === 0 && service.queues && service.queues.length > 0) {
-        const queueWithConfig = service.queues.find((q: any) => q.formConfig && q.formConfig.length > 0);
+        const queueWithConfig = service.queues.find((q: AnyFixMe) => q.formConfig && q.formConfig.length > 0);
         if (queueWithConfig) {
           initialFormConfig = queueWithConfig.formConfig;
         }
       }
       setFormConfig(initialFormConfig);
       if (service.queues) {
-        setSelectedQueueIds(service.queues.map((q: any) => q.id));
+        setSelectedQueueIds(service.queues.map((q: AnyFixMe) => q.id));
       }
       setUseLocationHours(service.useLocationHours ?? true);
       
       if (service.businessHoursOverride) {
-        const newHours: any = {
+        const newHours: AnyFixMe = {
           monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: []
         };
         Object.keys(service.businessHoursOverride).forEach(day => {
@@ -103,7 +103,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: AnyFixMe) => {
       if (service) {
         return fetchApi(`/service/${service.id}`, { method: 'PATCH', body: JSON.stringify(data) });
       } else {
@@ -182,7 +182,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
                 className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
               >
                 <option value="">All Locations (Global Service)</option>
-                {locations.map((loc: any) => (
+                {locations.map((loc: AnyFixMe) => (
                   <option key={loc.id} value={loc.id}>{loc.name}</option>
                 ))}
               </select>
@@ -351,7 +351,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Linked Queues</label>
               <div className="bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl p-3 max-h-40 overflow-y-auto space-y-2">
-                {queues.map((q: any) => (
+                {queues.map((q: AnyFixMe) => (
                   <label key={q.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer">
                     <input
                       type="checkbox"

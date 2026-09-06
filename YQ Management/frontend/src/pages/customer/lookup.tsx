@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 
 export default function CustomerLookup() {
   const [phone, setPhone] = useState('');
-  const [visits, setVisits] = useState<any[]>([]);
+  const [visits, setVisits] = useState<AnyFixMe[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
@@ -37,7 +37,7 @@ export default function CustomerLookup() {
       const data = await response.json();
       setVisits(data);
       setSearched(true);
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       setError(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
@@ -58,7 +58,7 @@ export default function CustomerLookup() {
       
       // Refresh the list
       handleSearch();
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       alert(err.message || 'Failed to cancel ticket');
     }
   };

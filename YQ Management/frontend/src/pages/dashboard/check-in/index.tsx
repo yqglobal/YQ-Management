@@ -8,29 +8,15 @@ import {
   Check,
   XCircle,
   RefreshCcw,
-  Camera,
   AlertTriangle,
-  Clock,
-  UserX,
-  Lock,
-  DoorClosed,
-  MapPinOff,
-  Building2,
-  WifiOff,
-  Smartphone,
   PlayCircle,
   StopCircle,
-  Ticket,
-  User,
-  Keyboard,
   Loader2,
-  ChevronDown,
 } from 'lucide-react';
 import { fetchApi } from '../../../lib/api';
 import { useQuery } from '@tanstack/react-query';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
-import { detectCountryByTimezone } from '../../../lib/country-codes';
 
 type ScannerStatus = 'idle' | 'scanning' | 'processing' | 'approved' | 'rejected' | 'error';
 
@@ -94,7 +80,7 @@ export default function AdminScanner() {
   const [manualProcessing, setManualProcessing] = useState(false);
   const [lookupTab, setLookupTab] = useState<'token' | 'phone'>('token');
 
-  const [defaultCountry, setDefaultCountry] = useState<any>('US');
+  const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>('US');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -332,7 +318,7 @@ export default function AdminScanner() {
       setScannerStatus('scanning');
       resetIdleTimer();
 
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       console.error('Final scanner initialization error:', err);
       setError('Failed to initialize camera scanner. Please check permissions or select a different camera.');
       setScannerStatus('error');
@@ -449,7 +435,7 @@ export default function AdminScanner() {
       await fetchApi(`/visits/${validationResult.tokenId}/checkin`, { method: 'POST' });
       setValidationResult((prev) => prev ? { ...prev, checkedIn: true, status: 'WAITING' } : prev);
       alert('Checked in successfully!');
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       alert(e.message || 'Failed to check in');
     }
   }, [validationResult?.tokenId]);
@@ -467,7 +453,7 @@ export default function AdminScanner() {
       const results = await fetchApi(`/public-visit/by-phone?phone=${encodeURIComponent(manualPhone.trim())}`);
       if (!results || results.length === 0) throw new Error('No active tickets found for this phone number');
       
-      const mappedResults: ValidationResult[] = results.map((result: any) => ({
+      const mappedResults: ValidationResult[] = results.map((result: AnyFixMe) => ({
         valid: true,
         status: result.currentState,
         tokenId: result.id,
@@ -495,7 +481,7 @@ export default function AdminScanner() {
         });
       }
       setScannerStatus('approved');
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       setValidationResult({
         valid: false,
         status: 'Not Found',
@@ -672,7 +658,7 @@ export default function AdminScanner() {
                       }}
                       value={manualPhone}
                       onChange={(value) => setManualPhone(value || '')}
-                      onKeyDown={(e: any) => { if (e.key === 'Enter') lookupByPhone(); }}
+                      onKeyDown={(e: AnyFixMe) => { if (e.key === 'Enter') lookupByPhone(); }}
                       className="h-12 w-full rounded-xl bg-surface-container dark:bg-dark-canvas border border-border dark:border-dark-border px-4 text-base focus-within:ring-1 focus-within:ring-primary focus-within:border-primary outline-none transition-all placeholder:text-outline text-on-surface dark:text-white"
                       placeholder="e.g. +91 98765 43210"
                     />

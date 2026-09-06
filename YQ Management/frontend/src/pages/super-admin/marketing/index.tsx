@@ -17,13 +17,13 @@ export default function SuperAdminMarketing() {
   });
 
   const sendMutation = useMutation({
-    mutationFn: (payload: any) => fetchApi('/super-admin/marketing/send', { method: 'POST', body: JSON.stringify(payload) }),
+    mutationFn: (payload: AnyFixMe) => fetchApi('/super-admin/marketing/send', { method: 'POST', body: JSON.stringify(payload) }),
     onSuccess: (data) => {
       toast.success(`Successfully sent emails to ${data.count || 0} recipients.`);
       setSubject('');
       setHtmlContent('');
     },
-    onError: (err: any) => toast.error(err.message || 'Failed to send campaign'),
+    onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to send campaign'),
   });
 
   const handleSend = (e: React.FormEvent) => {

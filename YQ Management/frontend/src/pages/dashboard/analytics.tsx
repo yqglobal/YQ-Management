@@ -40,14 +40,14 @@ export default function Analytics() {
   };
 
   const chartData = useMemo(() => {
-    return (rawChartData || []).map((d: any) => ({ time: d.timeLabel, visits: d.volume }));
+    return (rawChartData || []).map((d: AnyFixMe) => ({ time: d.timeLabel, visits: d.volume }));
   }, [rawChartData]);
 
   // ── Customer map ──────────────────────────────
   const { people, totalVisits } = useMemo(() => {
     let list = [...customers];
 
-    let totalVisitsCount = list.reduce((sum, p) => sum + (p.totalVisits || 0), 0);
+    const totalVisitsCount = list.reduce((sum, p) => sum + (p.totalVisits || 0), 0);
 
     if (customerSearch) {
       const q = customerSearch.toLowerCase();
@@ -318,7 +318,7 @@ export default function Analytics() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border dark:divide-dark-border">
-                        {people.map((person: any) => (
+                        {people.map((person: AnyFixMe) => (
                           <tr key={person.id} className="hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors">
                             <td className="p-4">
                               <div className="flex items-center gap-3">

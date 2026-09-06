@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { Save, Plus, GripVertical, Trash2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Select, SelectItem } from '../../components/ui/select';
 import { Card, CardContent } from '../../components/ui/card';
 import { toast } from 'sonner';
 
@@ -165,7 +164,7 @@ export function SettingsPanel({
                 className="w-full bg-white dark:bg-black/50 border border-gray-300 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm dark:shadow-none appearance-none"
               >
                 <option value="">None (End of flow)</option>
-                {allQueues.filter((q: any) => q.id !== queueId).map((q: any) => (
+                {allQueues.filter((q: AnyFixMe) => q.id !== queueId).map((q: AnyFixMe) => (
                   <option key={q.id} value={q.id}>{q.name}</option>
                 ))}
               </select>

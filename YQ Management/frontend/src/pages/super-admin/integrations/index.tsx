@@ -1,7 +1,7 @@
 import React from 'react';
 import Head from 'next/head';
 import SuperAdminLayout from '../../../components/SuperAdminLayout';
-import { Settings, Server, Globe, Key } from 'lucide-react';
+import { Globe, Key } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
 

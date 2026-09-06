@@ -7,7 +7,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
 import { toast } from 'sonner';
 import { useRouter } from 'next/router';
-import { motion, AnimatePresence } from 'framer-motion';
 import { usePlan } from '../../../hooks/usePlan';
 import { QuotaExhaustedModal } from '../../../components/QuotaExhaustedModal';
 import Link from 'next/link';
@@ -24,7 +23,7 @@ export default function QueuesList() {
   const { activeLocationId } = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
-  const [linkModalQueue, setLinkModalQueue] = useState<any>(null);
+  const [linkModalQueue, setLinkModalQueue] = useState<AnyFixMe>(null);
   const [newQueueName, setNewQueueName] = useState('');
   const [selectedLocationId, setSelectedLocationId] = useState('');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
@@ -45,9 +44,9 @@ export default function QueuesList() {
     let q = queues;
     if (user && user.role === 'OPERATOR') {
       if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
-        q = q.filter((queue: any) => {
+        q = q.filter((queue: AnyFixMe) => {
           if (queue.services && queue.services.length > 0) {
-            return queue.services.some((svc: any) => user.allowedServiceIds!.includes(svc.id));
+            return queue.services.some((svc: AnyFixMe) => user.allowedServiceIds!.includes(svc.id));
           }
           return false;
         });
@@ -214,7 +213,7 @@ export default function QueuesList() {
 
           {!isLoading && filteredQueues.length > 0 && (
             <div className="grid grid-cols-1 divide-y divide-border dark:divide-dark-border">
-              {filteredQueues.map((queue: any, i: number) => (
+              {filteredQueues.map((queue: AnyFixMe, i: number) => (
                 <QuotaFreezeGuard key={queue.id} isFrozen={queue.frozenByQuota} resourceName="queue">
                   <div
                     className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors"
@@ -302,7 +301,7 @@ export default function QueuesList() {
                   className="w-full bg-canvas dark:bg-black/50 border border-border dark:border-dark-border rounded-xl px-4 py-3 text-on-surface dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all"
                 >
                   <option value="">No specific location</option>
-                  {locations.map((loc: any) => (
+                  {locations.map((loc: AnyFixMe) => (
                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                   ))}
                 </select>
@@ -323,7 +322,7 @@ export default function QueuesList() {
                        </button>
                     </div>
                   ) : (
-                    services.map((service: any) => (
+                    services.map((service: AnyFixMe) => (
                       <label key={service.id} className="flex items-center gap-3 p-2 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
                         <input
                           type="checkbox"

@@ -69,7 +69,7 @@ export default function SecuritySettings() {
             ) : sessions.length === 0 ? (
               <div className="p-8 text-center text-outline font-body-sm">No active sessions found.</div>
             ) : (
-              sessions.map((session: any) => (
+              sessions.map((session: AnyFixMe) => (
                 <div key={session.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 gap-4 hover:bg-surface-container-lowest dark:hover:bg-white/5 transition-colors">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-surface-container-low dark:bg-white/10 flex items-center justify-center text-on-surface dark:text-white shrink-0 mt-0.5">

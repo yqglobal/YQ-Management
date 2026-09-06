@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { Home, Sun, Maximize, Scan, Volume2, VolumeX } from 'lucide-react';
-import Link from 'next/link';
+import { Sun, Maximize, Scan, Volume2, VolumeX } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '@/lib/api';
 import { io } from 'socket.io-client';
@@ -24,7 +23,7 @@ export default function QueueDisplay() {
   const queueName = queue?.name || 'Loading...';
   const joinUrl = typeof window !== 'undefined' ? `${window.location.origin}/booking?queueId=${id}` : '';
 
-  const displayConfig = (queue?.tokenDisplayConfig as any) || {};
+  const displayConfig = (queue?.tokenDisplayConfig as AnyFixMe) || {};
   const showName = displayConfig.showName !== false;
   const showTokenNumber = displayConfig.showTokenNumber !== false;
 
@@ -34,8 +33,8 @@ export default function QueueDisplay() {
     enabled: !!id,
   });
 
-  const serving = tokens.find((t: any) => t.currentState === 'IN_SERVICE');
-  const waiting = tokens.filter((t: any) => t.currentState === 'WAITING' || t.currentState === 'CHECKED_IN');
+  const serving = tokens.find((t: AnyFixMe) => t.currentState === 'IN_SERVICE');
+  const waiting = tokens.filter((t: AnyFixMe) => t.currentState === 'WAITING' || t.currentState === 'CHECKED_IN');
 
   const speak = (text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -232,7 +231,7 @@ export default function QueueDisplay() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">
-                 {waiting.map((ticket: any, i: number) => (
+                 {waiting.map((ticket: AnyFixMe, i: number) => (
                    <div key={ticket.id} className="bg-white/5 border border-white/5 rounded-xl p-4 flex items-center justify-between">
                      <div className="flex items-center gap-4">
                        <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">

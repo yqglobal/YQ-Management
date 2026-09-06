@@ -8,11 +8,11 @@ interface DowngradeWarningModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  targetPlan: any;
+  targetPlan: AnyFixMe;
 }
 
 export function DowngradeWarningModal({ isOpen, onClose, onConfirm, targetPlan }: DowngradeWarningModalProps) {
-  const [preview, setPreview] = useState<any>(null);
+  const [preview, setPreview] = useState<AnyFixMe>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

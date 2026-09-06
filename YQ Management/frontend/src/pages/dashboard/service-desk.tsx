@@ -4,7 +4,7 @@ import Head from 'next/head';
 import AdminLayout from '../../components/AdminLayout';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { fetchApi, getBackendUrl } from '../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { WelcomeModal } from '../../components/modals/WelcomeModal';
 import { CreateVisitModal } from '../../components/modals/CreateVisitModal';
 import { ScannerModal } from '../../components/modals/ScannerModal';
@@ -20,7 +20,7 @@ export default function ServiceDeskToday() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { activeLocationId } = useLocation();
-  const [selectedVisit, setSelectedVisit] = useState<any | null>(null);
+  const [selectedVisit, setSelectedVisit] = useState<AnyFixMe | null>(null);
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
@@ -93,7 +93,7 @@ export default function ServiceDeskToday() {
 
     socket.emit('joinTenantRoom', tenant.id);
 
-    const handleVisitEvent = (payload: any) => {
+    const handleVisitEvent = (payload: AnyFixMe) => {
       console.log('Real-time visit event:', payload);
       // Invalidate queries to fetch the latest state
       queryClient.invalidateQueries({ queryKey: ['visits', 'today', activeLocationId] });
@@ -124,9 +124,9 @@ export default function ServiceDeskToday() {
     let q = queues;
     if (user && user.role === 'OPERATOR') {
       if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
-        q = q.filter((queue: any) => {
+        q = q.filter((queue: AnyFixMe) => {
           if (queue.services && queue.services.length > 0) {
-            return queue.services.some((svc: any) => user.allowedServiceIds!.includes(svc.id));
+            return queue.services.some((svc: AnyFixMe) => user.allowedServiceIds!.includes(svc.id));
           }
           return false;
         });
@@ -139,7 +139,7 @@ export default function ServiceDeskToday() {
     let v = visits;
     if (user && user.role === 'OPERATOR') {
       if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
-        v = v.filter((visit: any) => user.allowedServiceIds!.includes(visit.serviceId));
+        v = v.filter((visit: AnyFixMe) => user.allowedServiceIds!.includes(visit.serviceId));
       }
     }
     return v;
@@ -149,7 +149,7 @@ export default function ServiceDeskToday() {
     let a = pendingAppointments;
     if (user && user.role === 'OPERATOR') {
       if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
-        a = a.filter((appt: any) => user.allowedServiceIds!.includes(appt.serviceId));
+        a = a.filter((appt: AnyFixMe) => user.allowedServiceIds!.includes(appt.serviceId));
       }
     }
     return a;
@@ -162,8 +162,8 @@ export default function ServiceDeskToday() {
     }
   }, [activeLocationId, selectedVisit]);
 
-  const queueTokens = filteredQueues.flatMap((q: any) => 
-    (q.tokens || []).map((t: any) => ({
+  const queueTokens = filteredQueues.flatMap((q: AnyFixMe) => 
+    (q.tokens || []).map((t: AnyFixMe) => ({
       ...t,
       isToken: true,
       customer: { name: t.customerName, phone: t.phone },
@@ -175,7 +175,7 @@ export default function ServiceDeskToday() {
   );
 
   const waitingVisitsUnsorted = [
-    ...filteredVisits.filter((v: any) => v.currentState === 'WAITING' || v.currentState === 'CHECKED_IN'),
+    ...filteredVisits.filter((v: AnyFixMe) => v.currentState === 'WAITING' || v.currentState === 'CHECKED_IN'),
     ...queueTokens
   ];
   
@@ -184,9 +184,9 @@ export default function ServiceDeskToday() {
   );
 
   const inServiceVisitsUnsorted = [
-    ...filteredVisits.filter((v: any) => v.currentState === 'IN_SERVICE'),
-    ...filteredQueues.flatMap((q: any) => 
-      (q.tokens || []).filter((t: any) => t.status === 'SERVING').map((t: any) => ({
+    ...filteredVisits.filter((v: AnyFixMe) => v.currentState === 'IN_SERVICE'),
+    ...filteredQueues.flatMap((q: AnyFixMe) => 
+      (q.tokens || []).filter((t: AnyFixMe) => t.status === 'SERVING').map((t: AnyFixMe) => ({
         ...t,
         isToken: true,
         customer: { name: t.customerName, phone: t.phone },
@@ -262,7 +262,7 @@ export default function ServiceDeskToday() {
     }
   };
 
-  const displayPool = waitingVisits.filter((v: any) => 
+  const displayPool = waitingVisits.filter((v: AnyFixMe) => 
     v.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     v.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -301,7 +301,7 @@ export default function ServiceDeskToday() {
             <div className="mb-6 relative z-10 space-y-3">
               <h3 className="font-label-caps text-label-caps text-outline uppercase tracking-wider">Pending Approvals</h3>
               <div className="relative">
-                {filteredAppointments.map((apt: any, index: number) => (
+                {filteredAppointments.map((apt: AnyFixMe, index: number) => (
                   <div 
                     key={apt.id} 
                     className="p-4 bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-amber-200 dark:border-amber-900/50 flex flex-col gap-3 transition-all"
@@ -351,8 +351,8 @@ export default function ServiceDeskToday() {
           )}
 
           <div className="space-y-4 mb-8">
-            {filteredQueues.length > 0 ? filteredQueues.map((q: any) => {
-              const loc = tenant?.locations?.find((l: any) => l.id === q.locationId);
+            {filteredQueues.length > 0 ? filteredQueues.map((q: AnyFixMe) => {
+              const loc = tenant?.locations?.find((l: AnyFixMe) => l.id === q.locationId);
               return (
               <div key={q.id} className="flex flex-col gap-2 p-3 border border-border dark:border-dark-border rounded-xl bg-surface-container-low dark:bg-inverse-surface shadow-sm">
                 <div className="flex items-center justify-between gap-3">
@@ -384,7 +384,7 @@ export default function ServiceDeskToday() {
           <div className="mt-4 pt-6 border-t border-border dark:border-dark-border">
             <h3 className="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-4">Active Allocations</h3>
             <div className="flex flex-col gap-3">
-              {inServiceVisits.map((v: any) => (
+              {inServiceVisits.map((v: AnyFixMe) => (
                 <div key={v.id} onClick={() => setSelectedVisit(v)} className="flex items-center gap-3 p-3 bg-surface-container dark:bg-inverse-surface rounded-lg border border-border dark:border-dark-border cursor-pointer hover:border-primary transition-colors">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></div>
                   <div className="flex-1 min-w-0">
@@ -490,7 +490,7 @@ export default function ServiceDeskToday() {
             )}
             
             <AnimatePresence mode="popLayout">
-              {displayPool.map((v: any, index: number) => {
+              {displayPool.map((v: AnyFixMe, index: number) => {
                 const waitTimeMs = v.waitingStart ? Date.now() - new Date(v.waitingStart).getTime() : 0;
                 const waitTimeMins = Math.floor(waitTimeMs / 60000);
                 const isUrgent = waitTimeMins > 15;
@@ -593,7 +593,7 @@ export default function ServiceDeskToday() {
                     className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded text-xs py-0.5 px-1 max-w-[100px] outline-none"
                   >
                     <option value="">Unassigned</option>
-                    {resources.map((r: any) => (
+                    {resources.map((r: AnyFixMe) => (
                       <option key={r.id} value={r.id}>{r.name}</option>
                     ))}
                   </select>
@@ -650,7 +650,7 @@ export default function ServiceDeskToday() {
         onClose={() => setIsScannerOpen(false)}
         onScanSuccess={(data) => {
           setIsScannerOpen(false);
-          const found = visits.find((v:any) => v.id === data.tokenId) || queueTokens.find((t:any) => t.id === data.tokenId);
+          const found = visits.find((v: AnyFixMe) => v.id === data.tokenId) || queueTokens.find((t: AnyFixMe) => t.id === data.tokenId);
           if (found) {
             setSelectedVisit(found);
           } else {

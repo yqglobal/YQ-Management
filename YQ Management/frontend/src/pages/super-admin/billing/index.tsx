@@ -3,8 +3,8 @@ import Head from 'next/head';
 import SuperAdminLayout from '../../../components/SuperAdminLayout';
 import { fetchApi } from '../../../lib/api';
 import { useQuery } from '@tanstack/react-query';
-import { CreditCard, ArrowUpRight, ArrowDownRight, CheckCircle2, XCircle, Clock } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { CreditCard, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { format } from 'date-fns';
 
 export default function SuperAdminBilling() {
   const { data: transactions, isLoading } = useQuery({
@@ -56,7 +56,7 @@ export default function SuperAdminBilling() {
                     </td>
                   </tr>
                 ) : (
-                  transactions?.map((tx: any) => (
+                  transactions?.map((tx: AnyFixMe) => (
                     <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="font-mono text-xs font-medium text-gray-900 dark:text-zinc-200">{tx.transactionRef}</div>

@@ -15,7 +15,6 @@ import { toast } from 'sonner';
 import { QueueMigrationModal } from './modals/QueueMigrationModal';
 import { ServiceModal } from './modals/ServiceModal';
 import { useSocket } from '../components/SocketProvider';
-import { AccessDeniedOverlay } from './AccessDeniedOverlay';
 import { PlanGateModal } from './PlanGateModal';
 import { PlanWelcomeModal } from './PlanWelcomeModal';
 
@@ -61,14 +60,14 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   useEffect(() => {
     if (!socket || !user?.tenantId) return;
     
-    const handleAppointment = (data: any) => {
+    const handleAppointment = (data: AnyFixMe) => {
       toast.success(`New Appointment!`, {
         description: `${data.appointment?.customerName || 'A customer'} booked an appointment.`,
         duration: 8000,
       });
     };
 
-    const handleToken = (data: any) => {
+    const handleToken = (data: AnyFixMe) => {
       toast.info(`New Walk-in`, {
         description: `${data.token?.customerName || 'A customer'} joined the queue.`,
         duration: 5000,
@@ -95,7 +94,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     enabled: !!user,
   });
 
-  const hasAcceptedPolicies = isLoadingPolicies || !user || (acceptedPolicies.some((p: any) => p.policy.type === 'TERMS_OF_SERVICE') && acceptedPolicies.some((p: any) => p.policy.type === 'PRIVACY_POLICY'));
+  const hasAcceptedPolicies = isLoadingPolicies || !user || (acceptedPolicies.some((p: AnyFixMe) => p.policy.type === 'TERMS_OF_SERVICE') && acceptedPolicies.some((p: AnyFixMe) => p.policy.type === 'PRIVACY_POLICY'));
 
   const handleLocationSelect = (id: string) => {
     setActiveLocationId(id);
@@ -104,7 +103,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   const activeLocation = activeLocationId === 'all' 
     ? { id: 'all', name: 'All Locations' }
-    : locations.find((l: any) => l.id === activeLocationId) || locations[0];
+    : locations.find((l: AnyFixMe) => l.id === activeLocationId) || locations[0];
 
   const navItems = [
     { label: 'Service Desk', href: '/dashboard/service-desk', icon: 'desktop_windows', pageId: 'service-desk' },
@@ -204,7 +203,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   // Derive unlinked queues for the transition modal
   const hasQueuePermissions = user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN';
-  const unlinkedQueues = tenant?.queues?.filter((q: any) => !q.services || q.services.length === 0) || [];
+  const unlinkedQueues = tenant?.queues?.filter((q: AnyFixMe) => !q.services || q.services.length === 0) || [];
   const services = tenant?.services || [];
 
   return (
@@ -366,7 +365,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                       </button>
                     )}
                     {locations.length > 0 ? (
-                      locations.map((loc: any) => (
+                      locations.map((loc: AnyFixMe) => (
                         <button 
                           key={loc.id}
                           onClick={() => handleLocationSelect(loc.id)} 
@@ -794,12 +793,12 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
             
             <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
               {(() => {
-                const displayQueues = tenant?.queues?.filter((q: any) => 
+                const displayQueues = tenant?.queues?.filter((q: AnyFixMe) => 
                   !activeLocationId || activeLocationId === 'all' || q.locationId === activeLocationId
                 ) || [];
                 
                 return displayQueues.length > 0 ? (
-                  displayQueues.map((q: any) => (
+                  displayQueues.map((q: AnyFixMe) => (
                     <button
                       key={q.id}
                       onClick={() => {

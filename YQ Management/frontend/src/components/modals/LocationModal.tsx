@@ -9,7 +9,7 @@ import { ScheduleEditor, WeeklySchedule } from '../common/ScheduleEditor';
 interface LocationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  location?: any; // If provided, we are editing. If null, we are creating.
+  location?: AnyFixMe; // If provided, we are editing. If null, we are creating.
 }
 
 const DEFAULT_HOURS: WeeklySchedule = {
@@ -39,7 +39,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
         setCity(location.city || '');
 
         if (location.businessHours) {
-          const newHours: any = { ...DEFAULT_HOURS };
+          const newHours: AnyFixMe = { ...DEFAULT_HOURS };
           Object.keys(location.businessHours).forEach(day => {
             const val = location.businessHours[day];
             if (Array.isArray(val)) {
@@ -64,7 +64,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
   }, [location, isOpen]);
 
   const saveMutation = useMutation({
-    mutationFn: (data: any) => {
+    mutationFn: (data: AnyFixMe) => {
       if (location) {
         return fetchApi(`/location/${location.id}`, { method: 'PATCH', body: JSON.stringify(data) });
       } else {
@@ -76,7 +76,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
       toast.success(`Location ${location ? 'updated' : 'created'} successfully`);
       onClose();
     },
-    onError: (err: any) => toast.error(err.message || 'Failed to save location'),
+    onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to save location'),
   });
 
   if (!isOpen || typeof document === 'undefined') return null;

@@ -7,7 +7,7 @@ export function WhatsAppStatusIndicator() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['whatsapp-status'],
     queryFn: () => fetchApi('/whatsapp/status'),
-    refetchInterval: (query: any) => (query.state.error ? false : 10000),
+    refetchInterval: (query: AnyFixMe) => (query.state.error ? false : 10000),
     retry: false,
   });
 

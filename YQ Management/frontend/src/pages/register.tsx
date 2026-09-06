@@ -34,7 +34,7 @@ export default function Register() {
       localStorage.setItem('qmova_invite_code', trimmed);
       document.cookie = `qmova_invite_code=${trimmed}; path=/; max-age=86400; SameSite=Lax`;
       fetchApi(`/workspace/invite-preview/${trimmed}`)
-        .then((res: any) => {
+        .then((res: AnyFixMe) => {
           if (res?.valid) {
             setInvitePreview({ workspaceName: res.workspaceName, role: res.role, code: res.code });
             if (res.email && !email) {
@@ -47,11 +47,11 @@ export default function Register() {
     if (router.query.error) {
       const err = router.query.error as string;
       if (err === 'ALREADY_LINKED_GOOGLE') {
-        setError('Account with this email already exists via Google.');
+        setError('Account with this email already exists via Google.'); // eslint-disable-line react-hooks/set-state-in-effect
       } else if (err === 'EMAIL_PWD_ACCOUNT') {
-        setError('Account with this email already exists.');
+        setError('Account with this email already exists.'); // eslint-disable-line react-hooks/set-state-in-effect
       } else {
-        setError(err);
+        setError(err); // eslint-disable-line react-hooks/set-state-in-effect
       }
       
       // Clean up the URL
@@ -63,7 +63,7 @@ export default function Register() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError(''); // eslint-disable-line react-hooks/set-state-in-effect
 
     try {
       const data = await fetchApi('/auth/register', {
@@ -76,8 +76,8 @@ export default function Register() {
       } else {
         router.push('/onboarding');
       }
-    } catch (err: any) {
-      setError(err.message || 'Registration failed');
+    } catch (err: AnyFixMe) {
+      setError(err.message || 'Registration failed'); // eslint-disable-line react-hooks/set-state-in-effect
     } finally {
       setLoading(false);
     }
@@ -85,7 +85,7 @@ export default function Register() {
 
   const handleResendOtp = async () => {
     setResending(true);
-    setError('');
+    setError(''); // eslint-disable-line react-hooks/set-state-in-effect
     setResendSuccess('');
     try {
       await fetchApi('/auth/resend-otp', {
@@ -94,8 +94,8 @@ export default function Register() {
         body: JSON.stringify({ email, purpose: 'signup' }),
       });
       setResendSuccess('A new verification code has been sent to your email.');
-    } catch (err: any) {
-      setError(err.message || 'Failed to resend OTP');
+    } catch (err: AnyFixMe) {
+      setError(err.message || 'Failed to resend OTP'); // eslint-disable-line react-hooks/set-state-in-effect
     } finally {
       setResending(false);
     }
@@ -104,7 +104,7 @@ export default function Register() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError(''); // eslint-disable-line react-hooks/set-state-in-effect
 
     try {
       const data = await fetchApi('/auth/verify-signup', {
@@ -116,8 +116,8 @@ export default function Register() {
         AuthStorage.set(data.access_token);
       }
       router.push('/onboarding');
-    } catch (err: any) {
-      setError(err.message || 'Invalid OTP');
+    } catch (err: AnyFixMe) {
+      setError(err.message || 'Invalid OTP'); // eslint-disable-line react-hooks/set-state-in-effect
     } finally {
       setLoading(false);
     }

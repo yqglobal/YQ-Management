@@ -3,7 +3,6 @@ import Head from 'next/head';
 import SuperAdminLayout from '../../../components/SuperAdminLayout';
 import { fetchApi } from '../../../lib/api';
 import { useQuery } from '@tanstack/react-query';
-import { CreditCard, ArrowUpRight, ArrowDownRight, CheckCircle2, XCircle, Clock, RefreshCw } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 export default function SuperAdminSubscriptions() {
@@ -43,9 +42,9 @@ export default function SuperAdminSubscriptions() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Total', value: metrics.total || subscriptions.length, color: 'text-indigo-600 dark:text-indigo-400' },
-            { label: 'Active', value: metrics.active || subscriptions.filter((s: any) => s.status === 'ACTIVE').length, color: 'text-emerald-600 dark:text-emerald-400' },
-            { label: 'On Trial', value: metrics.trial || subscriptions.filter((s: any) => s.status === 'TRIAL').length, color: 'text-blue-600 dark:text-blue-400' },
-            { label: 'Past Due', value: metrics.pastDue || subscriptions.filter((s: any) => s.status === 'PAST_DUE').length, color: 'text-red-600 dark:text-red-400' },
+            { label: 'Active', value: metrics.active || subscriptions.filter((s: AnyFixMe) => s.status === 'ACTIVE').length, color: 'text-emerald-600 dark:text-emerald-400' },
+            { label: 'On Trial', value: metrics.trial || subscriptions.filter((s: AnyFixMe) => s.status === 'TRIAL').length, color: 'text-blue-600 dark:text-blue-400' },
+            { label: 'Past Due', value: metrics.pastDue || subscriptions.filter((s: AnyFixMe) => s.status === 'PAST_DUE').length, color: 'text-red-600 dark:text-red-400' },
           ].map((stat, i) => (
             <div key={i} className="bg-white dark:bg-zinc-950 rounded-xl p-4 border border-gray-200 dark:border-white/10">
               <p className="text-xs font-medium text-gray-400 dark:text-zinc-500 uppercase">{stat.label}</p>
@@ -78,7 +77,7 @@ export default function SuperAdminSubscriptions() {
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-400 dark:text-zinc-500">No subscriptions found.</td>
                   </tr>
                 ) : (
-                  subscriptions.map((sub: any) => (
+                  subscriptions.map((sub: AnyFixMe) => (
                     <tr key={sub.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900 dark:text-white">
                         {sub.tenant?.name || 'Unknown'}

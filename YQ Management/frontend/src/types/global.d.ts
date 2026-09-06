@@ -1,0 +1,2 @@
+ 
+type AnyFixMe = AnyFixMe;

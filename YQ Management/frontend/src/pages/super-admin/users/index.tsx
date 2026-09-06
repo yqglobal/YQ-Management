@@ -3,7 +3,7 @@ import Head from 'next/head';
 import SuperAdminLayout from '../../../components/SuperAdminLayout';
 import { fetchApi } from '../../../lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Search, MoreVertical, CheckCircle2, XCircle, Shield, Mail, Trash2, Ban, UserCheck, ArrowUpRight, Pencil, ShieldOff } from 'lucide-react';
+import { Users, Search, MoreVertical, Shield, Trash2, Ban, Pencil } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -13,7 +13,7 @@ export default function SuperAdminUsers() {
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showActions, setShowActions] = useState<string | null>(null);
-  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editingUser, setEditingUser] = useState<AnyFixMe>(null);
   const [newUser, setNewUser] = useState({ email: '', role: 'TENANT_ADMIN', tenantId: '' });
 
   const { data: users, isLoading } = useQuery({
@@ -22,24 +22,24 @@ export default function SuperAdminUsers() {
   });
 
   const createUserMutation = useMutation({
-    mutationFn: (data: any) => fetchApi('/super-admin/users', { method: 'POST', body: JSON.stringify(data) }),
+    mutationFn: (data: AnyFixMe) => fetchApi('/super-admin/users', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-users'] });
       setShowAddModal(false);
       setNewUser({ email: '', role: 'TENANT_ADMIN', tenantId: '' });
       toast.success('User created successfully');
     },
-    onError: (error: any) => toast.error(error.message || 'Failed to create user'),
+    onError: (error: AnyFixMe) => toast.error(error.message || 'Failed to create user'),
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: AnyFixMe }) =>
       fetchApi(`/super-admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-users'] });
       toast.success('User updated successfully');
     },
-    onError: (error: any) => toast.error(error.message || 'Failed to update user'),
+    onError: (error: AnyFixMe) => toast.error(error.message || 'Failed to update user'),
   });
 
   const deleteUserMutation = useMutation({
@@ -48,7 +48,7 @@ export default function SuperAdminUsers() {
       queryClient.invalidateQueries({ queryKey: ['super-admin-users'] });
       toast.success('User deleted');
     },
-    onError: (error: any) => toast.error(error.message || 'Failed to delete user'),
+    onError: (error: AnyFixMe) => toast.error(error.message || 'Failed to delete user'),
   });
 
   const handleCreateUser = () => {
@@ -146,7 +146,7 @@ export default function SuperAdminUsers() {
                     </td>
                   </tr>
                 ) : (
-                  users.map((user: any) => (
+                  users.map((user: AnyFixMe) => (
                     <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">

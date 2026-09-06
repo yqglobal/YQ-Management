@@ -3,7 +3,7 @@ import { PremiumFeatureGate } from '../../../../components/PremiumFeatureGate';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import { toast } from 'sonner';
-import { Volume2, Save, Loader2, PlayCircle } from 'lucide-react';
+import { Save, Loader2, PlayCircle } from 'lucide-react';
 
 export default function AnnouncementsSettings() {
   const queryClient = useQueryClient();
@@ -32,7 +32,7 @@ export default function AnnouncementsSettings() {
   }, [tenant]);
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => fetchApi(`/tenant/${tenant?.id}`, {
+    mutationFn: (data: AnyFixMe) => fetchApi(`/tenant/${tenant?.id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),

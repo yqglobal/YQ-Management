@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useQuery } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import QRCode from 'react-qr-code';
 import { Sun, Moon } from 'lucide-react';
 
@@ -68,7 +68,7 @@ export default function StatusPage() {
   });
 
   const activeTokens = tokens || localTokens;
-  const [visits, setVisits] = useState<any[]>([]);
+  const [visits, setVisits] = useState<AnyFixMe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -119,7 +119,7 @@ export default function StatusPage() {
         throw new Error(data.message || 'Failed to send OTP');
       }
       setOtpSent(true);
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       setRecoveryError(err.message);
     } finally {
       setIsRecovering(false);
@@ -148,7 +148,7 @@ export default function StatusPage() {
       } else {
         setRecoveryError('No active tickets found for this number.');
       }
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       setRecoveryError(err.message);
     } finally {
       setIsRecovering(false);
@@ -282,7 +282,7 @@ export default function StatusPage() {
             <p className="text-sm text-gray-500">Bookmark this page to track your status</p>
           </div>
           
-          {visits.map((visit: any) => {
+          {visits.map((visit: AnyFixMe) => {
             const isDone = visit.currentState === 'COMPLETED' || visit.currentState === 'NO_SHOW' || visit.currentState === 'CANCELLED';
             const isServing = visit.currentState === 'SERVING';
             const isAppointment = visit.appointmentId != null || visit.scheduledTime != null;

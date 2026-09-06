@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import Head from 'next/head';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import { toast } from 'sonner';
-import { Webhook, Plus, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import { PremiumFeatureGate } from '../../../../components/PremiumFeatureGate';
 
 export default function WebhooksSettingsPage() {
@@ -27,7 +26,7 @@ export default function WebhooksSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
       toast.success('Webhook added successfully');
     },
-    onError: (err: any) => {
+    onError: (err: AnyFixMe) => {
       setWebhookError(err.message || 'Failed to add webhook');
       toast.error('Failed to add webhook');
     }
@@ -128,7 +127,7 @@ export default function WebhooksSettingsPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {webhooks.map((webhook: any) => (
+                  {webhooks.map((webhook: AnyFixMe) => (
                     <div key={webhook.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-black/50 border border-border dark:border-dark-border rounded-xl gap-4 hover:bg-surface-container-lowest dark:hover:bg-white/5 transition-colors">
                       <div className="flex flex-col">
                         <span className="font-data-mono text-[13px] text-on-surface dark:text-white font-semibold">{webhook.url}</span>

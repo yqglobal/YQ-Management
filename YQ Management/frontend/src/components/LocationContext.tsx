@@ -6,7 +6,7 @@ import { useAuth } from './AuthContext';
 interface LocationContextType {
   activeLocationId: string | null;
   setActiveLocationId: (id: string | null) => void;
-  allowedLocations: any[];
+  allowedLocations: AnyFixMe[];
   isLoading: boolean;
 }
 
@@ -41,7 +41,7 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
     
     // Operators/Managers see only assigned locations
     if (user?.allowedLocationIds && user.allowedLocationIds.length > 0) {
-      return tenant.locations.filter((loc: any) => user.allowedLocationIds.includes(loc.id));
+      return tenant.locations.filter((loc: AnyFixMe) => user.allowedLocationIds.includes(loc.id));
     }
     
     // Default fallback (no locations assigned)

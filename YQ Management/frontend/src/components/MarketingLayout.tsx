@@ -1,5 +1,4 @@
 import React from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
 import { useAuth } from './AuthContext';
 import { User, Menu, X } from 'lucide-react';

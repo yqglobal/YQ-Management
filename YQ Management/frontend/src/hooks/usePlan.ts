@@ -130,19 +130,19 @@ export function usePlan(): UsePlanResult {
     const queueCount = Array.isArray(queues) ? queues.length : 0;
     const locationCount = Array.isArray(locations) ? locations.length : 0;
     const serviceCount = Array.isArray(services) ? services.length : 0;
-    const memberCount = Array.isArray(members) ? members.filter((m: any) => m.status === 'ACTIVE' || m.isInvite).length : 0;
+    const memberCount = Array.isArray(members) ? members.filter((m: { status?: string; isInvite?: boolean; frozenByQuota?: boolean }) => m.status === 'ACTIVE' || m.isInvite).length : 0;
 
-    const frozenQueues = Array.isArray(queues) ? queues.filter((q: any) => q.frozenByQuota).length : 0;
-    const frozenLocations = Array.isArray(locations) ? locations.filter((l: any) => l.frozenByQuota).length : 0;
-    const frozenServices = Array.isArray(services) ? services.filter((s: any) => s.frozenByQuota).length : 0;
-    const frozenMembers = Array.isArray(members) ? members.filter((m: any) => m.frozenByQuota).length : 0;
+    const frozenQueues = Array.isArray(queues) ? queues.filter((q: { frozenByQuota?: boolean }) => q.frozenByQuota).length : 0;
+    const frozenLocations = Array.isArray(locations) ? locations.filter((l: { frozenByQuota?: boolean }) => l.frozenByQuota).length : 0;
+    const frozenServices = Array.isArray(services) ? services.filter((s: { frozenByQuota?: boolean }) => s.frozenByQuota).length : 0;
+    const frozenMembers = Array.isArray(members) ? members.filter((m: { status?: string; isInvite?: boolean; frozenByQuota?: boolean }) => m.frozenByQuota).length : 0;
 
     const trialPermanentlyUsed = Boolean(sub?.trialEndDate && new Date(sub.trialEndDate) < new Date()) || (status === 'EXPIRED') || Boolean(sub?.metadata?.downgradedFrom);
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const tokensThisMonth = Array.isArray(visits)
-      ? visits.filter((v: any) => v.createdAt && new Date(v.createdAt) >= monthStart).length
+      ? visits.filter((v: { createdAt?: string }) => v.createdAt && new Date(v.createdAt) >= monthStart).length
       : 0;
 
     const queueUsagePct = limits.maxQueues > 0 ? Math.min(100, (queueCount / Math.max(1, limits.maxQueues)) * 100) : 0;

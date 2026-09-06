@@ -1,10 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { useSocket } from '../components/SocketProvider';
 
-import { getBackendUrl } from '../lib/api';
 
 export function useWhatsapp() {
   const qc = useQueryClient();
@@ -14,11 +13,11 @@ export function useWhatsapp() {
   useEffect(() => {
     if (!user?.tenantId || !socket) return;
 
-    const handleConnectionUpdate = (payload: any) => {
+    const handleConnectionUpdate = (payload: AnyFixMe) => {
       console.log('[WhatsApp Socket] Received connection update:', payload);
       
       // Instantly update the status query cache
-      qc.setQueryData(['whatsapp-status'], (old: any) => {
+      qc.setQueryData(['whatsapp-status'], (old: AnyFixMe) => {
         return {
           ...old,
           instanceName: payload.instanceName || old?.instanceName,
@@ -59,7 +58,7 @@ export function useWhatsapp() {
   const statusQuery = useQuery({
     queryKey: ['whatsapp-status'],
     queryFn: () => fetchApi('/whatsapp/status'),
-    refetchInterval: (data: any) => {
+    refetchInterval: (data: AnyFixMe) => {
       // Fast polling (1.5s) when waiting for QR scan so the UI updates instantly
       // even if WebSockets are blocked by proxies/firewalls.
       if (data?.qr || data?.state === 'connecting') return 1500;
@@ -121,7 +120,7 @@ export function useWhatsapp() {
   });
 
   const testMutation = useMutation({
-    mutationFn: (data: any) => fetchApi('/whatsapp/test', { method: 'POST', body: JSON.stringify(data) }),
+    mutationFn: (data: AnyFixMe) => fetchApi('/whatsapp/test', { method: 'POST', body: JSON.stringify(data) }),
   });
 
   return {

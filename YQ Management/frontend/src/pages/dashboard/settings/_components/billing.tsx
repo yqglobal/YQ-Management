@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import Head from 'next/head';
-import { CheckCircle2, AlertCircle, Loader2, Zap, Building2, ArrowRight, Sparkles, Crown, CreditCard, Shield } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, Zap, ArrowRight, Sparkles, Crown, CreditCard, Shield } from 'lucide-react';
 import { fetchApi } from '../../../../lib/api';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
@@ -47,7 +46,7 @@ export default function BillingSettings() {
   const [paymentData, setPaymentData] = useState<OzowPaymentData | null>(null);
   const [billingInterval, setBillingInterval] = useState('monthly');
   const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
-  const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<AnyFixMe>(null);
   const [enterpriseForm, setEnterpriseForm] = useState({ name: '', companyName: '', email: '', phone: '', message: '' });
   const ozowFields = useMemo<Array<keyof OzowPaymentData>>(
     () => ['siteCode', 'countryCode', 'currencyCode', 'amount', 'transactionReference', 'bankReference', 'cancelUrl', 'errorUrl', 'successUrl', 'notifyUrl', 'isTest', 'hashCheck'],
@@ -103,7 +102,7 @@ export default function BillingSettings() {
 
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isDowngradeModalOpen, setIsDowngradeModalOpen] = useState(false);
-  const [selectedPlanForDowngrade, setSelectedPlanForDowngrade] = useState<any>(null);
+  const [selectedPlanForDowngrade, setSelectedPlanForDowngrade] = useState<AnyFixMe>(null);
   const [selectedBillingInterval, setSelectedBillingInterval] = useState('monthly');
 
   const enterpriseMutation = useMutation({
@@ -135,7 +134,7 @@ export default function BillingSettings() {
       setIsDowngradeModalOpen(false);
       setSelectedPlanForDowngrade(null);
     },
-    onError: (error: any) => {
+    onError: (error: AnyFixMe) => {
       toast.error(error.response?.data?.message || 'Failed to downgrade subscription.');
       setIsDowngradeModalOpen(false);
     }
@@ -156,7 +155,7 @@ export default function BillingSettings() {
 
   const { usage } = usePlan();
 
-  const handleUpgradeClick = (plan: any) => {
+  const handleUpgradeClick = (plan: AnyFixMe) => {
     // If it's a downgrade
     if (currentSub?.plan?.price > plan.price) {
       setSelectedPlanForDowngrade(plan);
@@ -219,7 +218,7 @@ export default function BillingSettings() {
       toast.success(immediate ? 'Trial cancelled successfully.' : 'Plan cancellation requested. You will retain access until the end of the billing period.');
       // Refresh page data
       window.location.reload();
-    } catch (error: any) {
+    } catch (error: AnyFixMe) {
       toast.error(error.response?.data?.message || 'Failed to cancel subscription.');
     }
   };

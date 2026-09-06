@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import Head from 'next/head';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
-import { Shield, Activity, ChevronDown, ChevronUp, Loader2, Search, Filter } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, Search, Filter } from 'lucide-react';
 import { useAuth } from '../../../../components/AuthContext';
 
 export default function AuditLogs() {
@@ -101,7 +100,7 @@ export default function AuditLogs() {
                 </td>
               </tr>
             ) : data?.data?.length > 0 ? (
-              data.data.map((log: any) => (
+              data.data.map((log: AnyFixMe) => (
                 <React.Fragment key={log.id}>
                   <tr className="hover:bg-surface-container-lowest dark:hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-on-surface-variant dark:text-outline">

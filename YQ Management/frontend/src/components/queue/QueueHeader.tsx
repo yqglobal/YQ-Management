@@ -1,9 +1,8 @@
 import React from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, Scan, Settings, QrCode, Share2, Users } from 'lucide-react';
+import { ExternalLink, Scan, Settings, QrCode, Share2, Users } from 'lucide-react';
 import { useAuth } from '../AuthContext';
-import { Button } from '../../components/ui/button';
 
 interface QueueHeaderProps {
   queueName: string;

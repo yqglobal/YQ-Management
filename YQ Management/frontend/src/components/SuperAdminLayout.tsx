@@ -11,7 +11,6 @@ import {
   Package,
   TrendingUp,
   Mail,
-  ChevronDown,
   Menu,
   X,
   Bell,

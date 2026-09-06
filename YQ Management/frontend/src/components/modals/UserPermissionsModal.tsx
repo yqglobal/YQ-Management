@@ -8,8 +8,8 @@ import { toast } from 'sonner';
 interface UserPermissionsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userToEdit?: any; // If editing an existing user or invite
-  onSuccess?: (res: any) => void;
+  userToEdit?: AnyFixMe; // If editing an existing user or invite
+  onSuccess?: (res: AnyFixMe) => void;
 }
 
 export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }: UserPermissionsModalProps) {
@@ -70,7 +70,7 @@ export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }:
   };
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => fetchApi('/users', { method: 'POST', body: JSON.stringify(data) }),
+    mutationFn: (data: AnyFixMe) => fetchApi('/users', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       toast.success('User invited successfully');
@@ -81,7 +81,7 @@ export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }:
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => fetchApi(`/users/${userToEdit.id}/permissions`, { method: 'POST', body: JSON.stringify(data) }),
+    mutationFn: (data: AnyFixMe) => fetchApi(`/users/${userToEdit.id}/permissions`, { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       toast.success('Permissions updated successfully');
@@ -110,7 +110,7 @@ export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }:
     }
   };
 
-  const toggleSelection = (setter: any, list: string[], id: string) => {
+  const toggleSelection = (setter: AnyFixMe, list: string[], id: string) => {
     if (list.includes(id)) {
       setter(list.filter(item => item !== id));
     } else {
@@ -177,7 +177,7 @@ export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }:
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-3 text-sm">Allowed Locations</h3>
                     <div className="grid grid-cols-2 gap-3">
-                      {locations.map((loc: any) => (
+                      {locations.map((loc: AnyFixMe) => (
                         <label key={loc.id} className="flex items-center gap-2 p-3 border border-gray-200 dark:border-white/10 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">
                           <input 
                             type="checkbox" 
@@ -194,7 +194,7 @@ export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }:
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-3 text-sm mt-6">Allowed Services</h3>
                     <div className="grid grid-cols-2 gap-3">
-                      {services.map((svc: any) => (
+                      {services.map((svc: AnyFixMe) => (
                         <label key={svc.id} className="flex items-center gap-2 p-3 border border-gray-200 dark:border-white/10 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">
                           <input 
                             type="checkbox" 

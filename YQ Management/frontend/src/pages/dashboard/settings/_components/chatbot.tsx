@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import Head from 'next/head';
 import { FeatureGuard } from '../../../../components/guards/FeatureGuard';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import { toast } from 'sonner';
-import { Bot, Save, Loader2, Sparkles, MessageSquare, Zap } from 'lucide-react';
+import { Bot, Save, Loader2, Sparkles, Zap } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 
 export default function ChatbotSettings() {
@@ -41,7 +40,7 @@ export default function ChatbotSettings() {
   }, [tenant]);
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => fetchApi(`/tenant/${tenant?.id}`, {
+    mutationFn: (data: AnyFixMe) => fetchApi(`/tenant/${tenant?.id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
@@ -136,7 +135,7 @@ export default function ChatbotSettings() {
                           className="w-full h-[44px] px-4 bg-white dark:bg-black/50 border border-border dark:border-dark-border rounded-lg font-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-[#8b5cf6] focus:border-[#8b5cf6] shadow-sm appearance-none"
                         >
                           <option value="Support Team">Support Team (Default)</option>
-                          {staffList.map((staff: any) => (
+                          {staffList.map((staff: AnyFixMe) => (
                             <option key={staff.id} value={staff.name || staff.email}>
                               {staff.name || staff.email}
                             </option>

@@ -51,7 +51,7 @@ export default function ProfileSettingsPage() {
 
       await refetch();
       toast.success('Profile settings saved successfully');
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       toast.error(err.message || 'Failed to save settings');
     } finally {
       setSavingPersonal(false);

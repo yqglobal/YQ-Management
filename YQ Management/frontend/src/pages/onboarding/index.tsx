@@ -3,7 +3,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
-import { QrCode, Loader2, ArrowRight, Store, Activity, Pizza, Briefcase, Check, Keyboard, Copy, CheckCircle2, Users, Shield, Scissors, Landmark, Truck } from 'lucide-react';
+import { QrCode, Loader2, Store, Activity, Pizza, Briefcase, Check, Keyboard, Copy, CheckCircle2, Users, Scissors, Landmark, Truck } from 'lucide-react';
 import { Logo } from '../../components/Logo';
 import { QRCodeSVG } from 'qrcode.react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -277,7 +277,7 @@ export default function Onboarding() {
         const trimmed = code.trim().toUpperCase();
         setInviteCode(trimmed);
         fetchApi(`/workspace/invite-preview/${trimmed}`)
-          .then((res: any) => {
+          .then((res: AnyFixMe) => {
             if (res?.valid) {
               setInviteInfo(res);
               if (!companyName) setCompanyName(res.workspaceName);
@@ -385,7 +385,7 @@ export default function Onboarding() {
       document.cookie = 'qmova_invite_code=; path=/; max-age=0; SameSite=Lax';
       toast.success(`You have successfully joined ${inviteInfo?.workspaceName || 'the workspace'}!`);
       router.push('/dashboard');
-    } catch (err: any) {
+    } catch (err: AnyFixMe) {
       toast.error(err.message || 'Failed to join workspace');
     } finally {
       setJoiningWorkspace(false);
@@ -458,7 +458,7 @@ export default function Onboarding() {
         method: 'POST',
         body: JSON.stringify(data)
       }),
-    onSuccess: (data: any) => {
+    onSuccess: (data: AnyFixMe) => {
       if (data?.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {
@@ -843,7 +843,7 @@ export default function Onboarding() {
                         className="w-full h-12 px-4 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-zinc-100"
                       >
                         <option value="">-- Select an account --</option>
-                        {googleSettings.googleIntegrations.map((int: any) => (
+                        {googleSettings.googleIntegrations.map((int: AnyFixMe) => (
                           <option key={int.id} value={int.id}>{int.email}</option>
                         ))}
                       </select>
@@ -1142,7 +1142,7 @@ export default function Onboarding() {
                 {isPlansLoading ? (
                   <div className="col-span-2 flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
                 ) : (
-                  plans.filter((p: any) => !p.name.toLowerCase().includes('enterprise')).map((plan: any) => {
+                  plans.filter((p: AnyFixMe) => !p.name.toLowerCase().includes('enterprise')).map((plan: AnyFixMe) => {
                     const isPopular = plan.name.toLowerCase().includes('standard') || plan.name.toLowerCase().includes('pro');
                     return (
                       <div key={plan.id} className={`relative flex flex-col p-6 rounded-3xl ${isPopular ? 'bg-gradient-to-br from-primary-container to-primary/10 dark:from-sky-900/40 dark:to-sky-800/10 border-2 border-primary dark:border-sky-500 shadow-md transform md:-translate-y-2' : 'bg-surface-container-lowest dark:bg-zinc-900 border border-border dark:border-dark-border shadow-sm'}`}>

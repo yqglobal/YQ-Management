@@ -3,9 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import { toast } from 'sonner';
 import { Save, Plus, GripVertical, Trash2, MessagesSquare, FormInput, PhoneCall, LayoutTemplate, Loader2 } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
-import { Card, CardContent } from '../../../../components/ui/card';
 import { FeatureNudge } from '../../../../components/FeatureNudge';
 import { usePlan } from '../../../../hooks/usePlan';
 
@@ -52,13 +49,13 @@ export default function CustomerExperienceSettings() {
     queryFn: () => fetchApi('/tenant/me'),
   });
 
-  const [config, setConfig] = useState<any>({
+  const [config, setConfig] = useState<AnyFixMe>({
     portal: { welcomeTitle: '', welcomeMessage: '', supportContact: '' },
     globalIntakeForm: [],
     feedback: { enabled: false, questions: [] },
   });
 
-  const [brandingConfig, setBrandingConfig] = useState<any>({
+  const [brandingConfig, setBrandingConfig] = useState<AnyFixMe>({
     enabled: true,
     logoUrl: '',
     primaryColor: '#4f46e5'
@@ -82,7 +79,7 @@ export default function CustomerExperienceSettings() {
   }, [tenant]);
 
   const saveSettingsMutation = useMutation({
-    mutationFn: (data: { newConfig: any, branding: any }) => fetchApi(`/tenant/${tenant.id}`, {
+    mutationFn: (data: { newConfig: AnyFixMe, branding: AnyFixMe }) => fetchApi(`/tenant/${tenant.id}`, {
       method: 'PATCH',
       body: JSON.stringify({ customerExperience: data.newConfig, branding: data.branding }),
     }),
@@ -98,7 +95,7 @@ export default function CustomerExperienceSettings() {
   };
 
   const handleAddField = (path: 'globalIntakeForm' | 'feedback.questions') => {
-    setConfig((prev: any) => {
+    setConfig((prev: AnyFixMe) => {
       const newField = { id: `field_${Date.now()}`, type: 'text', label: 'New Question', required: false };
       if (path === 'globalIntakeForm') {
         return { ...prev, globalIntakeForm: [...prev.globalIntakeForm, newField] };
@@ -109,7 +106,7 @@ export default function CustomerExperienceSettings() {
   };
 
   const handleUpdateField = (path: 'globalIntakeForm' | 'feedback.questions', index: number, updates: Partial<FormField>) => {
-    setConfig((prev: any) => {
+    setConfig((prev: AnyFixMe) => {
       if (path === 'globalIntakeForm') {
         const newArr = [...prev.globalIntakeForm];
         newArr[index] = { ...newArr[index], ...updates };
@@ -123,7 +120,7 @@ export default function CustomerExperienceSettings() {
   };
 
   const handleRemoveField = (path: 'globalIntakeForm' | 'feedback.questions', index: number) => {
-    setConfig((prev: any) => {
+    setConfig((prev: AnyFixMe) => {
       if (path === 'globalIntakeForm') {
         const newArr = [...prev.globalIntakeForm];
         newArr.splice(index, 1);
@@ -153,7 +150,7 @@ export default function CustomerExperienceSettings() {
                   onChange={(e) => {
                     const t = PRESET_TEMPLATES.find(t => t.name === e.target.value);
                     if (t) {
-                      setConfig((prev: any) => ({ ...prev, globalIntakeForm: t.fields }));
+                      setConfig((prev: AnyFixMe) => ({ ...prev, globalIntakeForm: t.fields }));
                     }
                     e.target.value = "";
                   }}

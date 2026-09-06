@@ -49,9 +49,9 @@ const STATUS_COLORS: StatusColors = {
 // ------- Types -------
 interface ScheduleViewData {
   date: string;
-  appointments: any[];
-  visits: any[];
-  services: any[];
+  appointments: AnyFixMe[];
+  visits: AnyFixMe[];
+  services: AnyFixMe[];
   serviceStats: Array<{
     serviceId: string;
     effectiveDurationMins: number;
@@ -69,8 +69,8 @@ interface RowConfig {
   expectedDuration: number;
   effectiveDurationMins: number;
   bufferDuration: number;
-  appointments: any[];
-  walkins: any[];
+  appointments: AnyFixMe[];
+  walkins: AnyFixMe[];
   gaps: Array<{ start: string; end: string; durationMins: number }>;
   slots: Array<{ time: string; available: boolean }>;
 }
@@ -165,7 +165,7 @@ function AppointmentCard({
   isDraggable,
   onClick,
 }: {
-  apt: any;
+  apt: AnyFixMe;
   leftPx: number;
   widthPx: number;
   topPx: number;
@@ -232,10 +232,10 @@ export function MatrixCalendar({
   rowDensity = 'normal',
 }: {
   scheduleData?: ScheduleViewData;
-  appointments?: any[];
-  services?: any[];
+  appointments?: AnyFixMe[];
+  services?: AnyFixMe[];
   currentDate?: Date;
-  onReschedule?: (apt: any, newTime: Date, serviceId: string | null) => void;
+  onReschedule?: (apt: AnyFixMe, newTime: Date, serviceId: string | null) => void;
   showEmptySlots?: boolean;
   showIdleGaps?: boolean;
   showBufferZones?: boolean;
@@ -274,7 +274,7 @@ export function MatrixCalendar({
   );
 
   // Group appointments by service
-  const apptsByService = new Map<string, any[]>();
+  const apptsByService = new Map<string, AnyFixMe[]>();
   effectiveAppointments.forEach((apt) => {
     const key = apt.serviceId || 'unassigned';
     if (!apptsByService.has(key)) apptsByService.set(key, []);
@@ -282,10 +282,10 @@ export function MatrixCalendar({
   });
 
   // Group walk-in visits by service
-  const walkinsByService = new Map<string, any[]>();
+  const walkinsByService = new Map<string, AnyFixMe[]>();
   effectiveVisits
-    .filter((v: any) => !v.appointmentId)
-    .forEach((v: any) => {
+    .filter((v: AnyFixMe) => !v.appointmentId)
+    .forEach((v: AnyFixMe) => {
       const key = v.serviceId || 'unassigned';
       if (!walkinsByService.has(key)) walkinsByService.set(key, []);
       walkinsByService.get(key)!.push({ ...v, _type: 'Visit' });
@@ -293,7 +293,7 @@ export function MatrixCalendar({
 
   const serviceColors = ['bg-indigo-100 text-indigo-700', 'bg-sky-100 text-sky-700', 'bg-emerald-100 text-emerald-700', 'bg-violet-100 text-violet-700', 'bg-amber-100 text-amber-700'];
 
-  const rows: RowConfig[] = effectiveServices.map((svc: any, idx: number) => {
+  const rows: RowConfig[] = effectiveServices.map((svc: AnyFixMe, idx: number) => {
     const stat = serviceStatsMap.get(svc.id);
     return {
       id: svc.id,
@@ -334,7 +334,7 @@ export function MatrixCalendar({
   }
 
   // --- Overlap detection for vertical stacking ---
-  function computeItemLanes(items: any[], getDuration: (item: any) => number) {
+  function computeItemLanes(items: AnyFixMe[], getDuration: (item: AnyFixMe) => number) {
     // Returns an array of lane indices (0-based row within the timeline row)
     const lanes: number[] = new Array(items.length).fill(0);
     const laneEnds: number[] = [];
@@ -427,7 +427,7 @@ export function MatrixCalendar({
                 new Date(a.scheduledStart || a.scheduledTime || a.createdAt).getTime() -
                 new Date(b.scheduledStart || b.scheduledTime || b.createdAt).getTime()
               ),
-              ...(showWalkins ? row.walkins.sort((a: any, b: any) =>
+              ...(showWalkins ? row.walkins.sort((a: AnyFixMe, b: AnyFixMe) =>
                 new Date(a.waitingStart || a.createdAt).getTime() -
                 new Date(b.waitingStart || b.createdAt).getTime()
               ) : []),
@@ -521,7 +521,7 @@ export function MatrixCalendar({
                     const buffer = row.bufferDuration || 0;
 
                     // Get booked time ranges
-                    const bookedRanges = row.appointments.map((apt: any) => {
+                    const bookedRanges = row.appointments.map((apt: AnyFixMe) => {
                       const start = minutesFromMidnight(apt.scheduledStart || apt.scheduledTime || apt.createdAt);
                       const durMins = apt.scheduledStart && apt.scheduledEnd
                         ? (new Date(apt.scheduledEnd).getTime() - new Date(apt.scheduledStart).getTime()) / 60000

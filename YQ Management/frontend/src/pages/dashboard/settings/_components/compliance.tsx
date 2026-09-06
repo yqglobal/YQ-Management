@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import Head from 'next/head';
 import { useAuth } from '../../../../components/AuthContext';
-import { Shield, Download, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Download, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { fetchApi } from '../../../../lib/api';
 import { useRouter } from 'next/router';
 

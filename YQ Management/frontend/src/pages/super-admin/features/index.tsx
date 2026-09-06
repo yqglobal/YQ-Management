@@ -3,7 +3,7 @@ import Head from 'next/head';
 import SuperAdminLayout from '../../../components/SuperAdminLayout';
 import { fetchApi } from '../../../lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Layers, Check, X, Loader2, ToggleLeft, ToggleRight, Hash, Infinity } from 'lucide-react';
+import { Layers, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Canonical feature definitions
@@ -54,19 +54,19 @@ export default function SuperAdminFeatures() {
   });
 
   const updatePlanMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: AnyFixMe }) =>
       fetchApi(`/super-admin/plans/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-plans'] });
       setSavingKey(null);
     },
-    onError: (err: any) => {
+    onError: (err: AnyFixMe) => {
       toast.error(err.message || 'Failed to update plan');
       setSavingKey(null);
     },
   });
 
-  const toggleFeature = (plan: any, featureKey: string) => {
+  const toggleFeature = (plan: AnyFixMe, featureKey: string) => {
     const currentFeatures = plan.features || {};
     const newVal = !currentFeatures[featureKey];
     setSavingKey(`${plan.id}-${featureKey}`);
@@ -80,7 +80,7 @@ export default function SuperAdminFeatures() {
     );
   };
 
-  const updateLimit = (plan: any, limitKey: string, value: number | null) => {
+  const updateLimit = (plan: AnyFixMe, limitKey: string, value: number | null) => {
     const currentLimits = plan.limits || {};
     setSavingKey(`${plan.id}-${limitKey}`);
     updatePlanMutation.mutate({
@@ -89,7 +89,7 @@ export default function SuperAdminFeatures() {
     });
   };
 
-  const activePlans = (plans as any[]).filter((p: any) => p.active);
+  const activePlans = (plans as AnyFixMe[]).filter((p: AnyFixMe) => p.active);
 
   return (
     <SuperAdminLayout pageTitle="Features" pageSubtitle="Control which features are available on each plan">
@@ -128,7 +128,7 @@ export default function SuperAdminFeatures() {
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-white/5">
                       <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider w-72">Feature</th>
-                      {activePlans.map((plan: any) => (
+                      {activePlans.map((plan: AnyFixMe) => (
                         <th key={plan.id} className="px-6 py-4 text-center min-w-[120px]">
                           <div className="font-bold text-gray-900 dark:text-white text-sm">{plan.name}</div>
                           <div className="text-xs text-gray-400 dark:text-zinc-500">{plan.currency} {plan.price?.toFixed(0)}/{plan.billingInterval?.slice(0,1)}</div>
@@ -150,7 +150,7 @@ export default function SuperAdminFeatures() {
                             </div>
                           </div>
                         </td>
-                        {activePlans.map((plan: any) => {
+                        {activePlans.map((plan: AnyFixMe) => {
                           const enabled = !!(plan.features || {})[feat.key];
                           const loading = savingKey === `${plan.id}-${feat.key}` && updatePlanMutation.isPending;
                           return (
@@ -180,7 +180,7 @@ export default function SuperAdminFeatures() {
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-white/5">
                       <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider w-72">Limit</th>
-                      {activePlans.map((plan: any) => (
+                      {activePlans.map((plan: AnyFixMe) => (
                         <th key={plan.id} className="px-6 py-4 text-center min-w-[140px]">
                           <div className="font-bold text-gray-900 dark:text-white text-sm">{plan.name}</div>
                         </th>
@@ -196,7 +196,7 @@ export default function SuperAdminFeatures() {
                             <p className="font-semibold text-sm text-gray-900 dark:text-white">{lim.label}</p>
                           </div>
                         </td>
-                        {activePlans.map((plan: any) => {
+                        {activePlans.map((plan: AnyFixMe) => {
                           const val = (plan.limits || {})[lim.key];
                           const isUnlimited = val === 0 || val === null || val === undefined;
                           const loading = savingKey === `${plan.id}-${lim.key}` && updatePlanMutation.isPending;

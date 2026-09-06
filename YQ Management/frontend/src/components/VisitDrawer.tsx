@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { X, Play, CheckCircle2, Clock, Calendar, User, Hash, MoreVertical, XCircle, RotateCcw } from 'lucide-react';
+import React from 'react';
+import { X, Play, CheckCircle2, Calendar, Hash, MoreVertical } from 'lucide-react';
 import { fetchApi } from '../lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface VisitDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  visit: any | null;
+  visit: AnyFixMe | null;
 }
 
 export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {

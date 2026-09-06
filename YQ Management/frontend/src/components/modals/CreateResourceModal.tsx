@@ -19,7 +19,7 @@ export function CreateResourceModal({ isOpen, onClose, locationId }: CreateResou
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
-    mutationFn: (data: any) =>
+    mutationFn: (data: AnyFixMe) =>
       fetchApi('/resource', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resources'] });

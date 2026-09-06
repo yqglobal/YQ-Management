@@ -1,5 +1,4 @@
 import React from 'react';
-import Head from 'next/head';
 import Sidebar from './Sidebar';
 import TableOfContents from './TableOfContents';
 import MarketingLayout from '../MarketingLayout';

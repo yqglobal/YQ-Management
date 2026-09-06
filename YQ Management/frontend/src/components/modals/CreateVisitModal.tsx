@@ -42,18 +42,18 @@ export function CreateVisitModal({ isOpen, onClose, defaultLocationId }: CreateV
   
   const locations = (user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN')
     ? allLocations
-    : allLocations.filter((l: any) => user?.allowedLocationIds?.includes(l.id));
+    : allLocations.filter((l: AnyFixMe) => user?.allowedLocationIds?.includes(l.id));
 
   const services = (user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN')
     ? allServices
-    : allServices.filter((s: any) => user?.allowedServiceIds?.includes(s.id));
+    : allServices.filter((s: AnyFixMe) => user?.allowedServiceIds?.includes(s.id));
 
   const createCustomerMutation = useMutation({
-    mutationFn: (data: any) => fetchApi('/customer', { method: 'POST', body: JSON.stringify(data) })
+    mutationFn: (data: AnyFixMe) => fetchApi('/customer', { method: 'POST', body: JSON.stringify(data) })
   });
 
   const createVisitMutation = useMutation({
-    mutationFn: (data: any) => fetchApi('/visits', { method: 'POST', body: JSON.stringify(data) }),
+    mutationFn: (data: AnyFixMe) => fetchApi('/visits', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['visits'] });
       toast.success('Walk-in visit created successfully');
@@ -185,7 +185,7 @@ export function CreateVisitModal({ isOpen, onClose, defaultLocationId }: CreateV
                     required
                   >
                     <option value="">Select location...</option>
-                    {locations.map((l: any) => (
+                    {locations.map((l: AnyFixMe) => (
                       <option key={l.id} value={l.id}>{l.name}</option>
                     ))}
                   </select>
@@ -202,8 +202,8 @@ export function CreateVisitModal({ isOpen, onClose, defaultLocationId }: CreateV
                   >
                     <option value="">Select service...</option>
                     {services
-                      .filter((s: any) => !s.locationId || s.locationId === locationId)
-                      .map((s: any) => (
+                      .filter((s: AnyFixMe) => !s.locationId || s.locationId === locationId)
+                      .map((s: AnyFixMe) => (
                       <option key={s.id} value={s.id}>{s.name} ({s.expectedDuration} min)</option>
                     ))}
                   </select>

@@ -107,7 +107,7 @@ export function getSidebar(): SidebarSection[] {
     const isRootItem = slugParts.length === 1;
     
     let sectionSlug = 'root';
-    let itemSlug = doc.slug;
+    const itemSlug = doc.slug;
     let sectionTitle = 'Overview';
 
     if (!isRootItem) {

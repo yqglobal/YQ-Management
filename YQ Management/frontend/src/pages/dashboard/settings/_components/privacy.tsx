@@ -84,7 +84,7 @@ export default function PrivacySettings() {
                 </button>
               </div>
             ) : (
-              acceptedPolicies.map((acceptance: any) => (
+              acceptedPolicies.map((acceptance: AnyFixMe) => (
                 <div key={acceptance.id} className="flex justify-between items-center p-6 hover:bg-surface-container-lowest dark:hover:bg-white/5 transition-colors gap-4">
                   <div>
                     <h4 className="font-body-md font-bold text-on-surface dark:text-white capitalize">

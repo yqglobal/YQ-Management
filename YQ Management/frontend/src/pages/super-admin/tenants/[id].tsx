@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import SuperAdminLayout from '../../../components/SuperAdminLayout';
 import { fetchApi } from '../../../lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Building2, CreditCard, Users, QrCode, Trash2, Activity, MapPin, Phone, Mail, Globe, AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowLeft, CreditCard, Users, Trash2, Activity, Globe, AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -159,7 +159,7 @@ export default function SuperAdminTenantDetail() {
                     <td colSpan={5} className="px-6 py-8 text-center text-gray-400 dark:text-zinc-500">No workspaces found.</td>
                   </tr>
                 ) : (
-                  tenant.workspaces?.map((ws: any) => (
+                  tenant.workspaces?.map((ws: AnyFixMe) => (
                     <tr key={ws.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{ws.name}</td>
                       <td className="px-6 py-4 font-mono text-sm text-gray-500 dark:text-zinc-400">{ws.subdomain || '-'}</td>
@@ -200,7 +200,7 @@ export default function SuperAdminTenantDetail() {
                     <td colSpan={2} className="px-6 py-8 text-center text-gray-400 dark:text-zinc-500">No users found.</td>
                   </tr>
                 ) : (
-                  tenant.users?.map((user: any) => (
+                  tenant.users?.map((user: AnyFixMe) => (
                     <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{user.email}</td>
                       <td className="px-6 py-4">
@@ -240,7 +240,7 @@ export default function SuperAdminTenantDetail() {
                     <td colSpan={3} className="px-6 py-8 text-center text-gray-400 dark:text-zinc-500">No transactions found.</td>
                   </tr>
                 ) : (
-                  tenant.transactions?.map((tx: any) => (
+                  tenant.transactions?.map((tx: AnyFixMe) => (
                     <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{tx.currency} {tx.amount.toFixed(2)}</td>
                       <td className="px-6 py-4">
@@ -298,7 +298,7 @@ export default function SuperAdminTenantDetail() {
                   className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                 >
                   <option value="">-- Choose a plan --</option>
-                  {plans?.map((plan: any) => (
+                  {plans?.map((plan: AnyFixMe) => (
                     <option key={plan.id} value={plan.id}>
                       {plan.name} ({plan.currency} {plan.price})
                     </option>

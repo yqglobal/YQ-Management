@@ -39,7 +39,7 @@ export default function InboxPage() {
 
   useEffect(() => {
     if (!socket) return;
-    const handler = (payload: any) => {
+    const handler = (payload: AnyFixMe) => {
       if (payload.type === 'MESSAGE_DELETED') {
         queryClient.invalidateQueries({ queryKey: ['inbox-messages', selectedPhone] });
         queryClient.invalidateQueries({ queryKey: ['inbox-conversations'] });
@@ -57,7 +57,7 @@ export default function InboxPage() {
       await fetchApi(`/messages/inbox/${msgId}`, { method: 'DELETE' });
       toast.success('Message deleted');
       // Query invalidate will handle UI update via websocket or refetch
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       toast.error(e?.message || 'Failed to delete message');
     }
   };
@@ -72,7 +72,7 @@ export default function InboxPage() {
       queryClient.invalidateQueries({ queryKey: ['inbox-messages', selectedPhone] });
       queryClient.invalidateQueries({ queryKey: ['inbox-conversations'] });
     },
-    onError: (err: any) => toast.error(err.message || 'Failed to send message')
+    onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to send message')
   });
 
   const handleSend = (e?: React.FormEvent) => {
@@ -81,7 +81,7 @@ export default function InboxPage() {
     sendMutation.mutate(input.trim());
   };
 
-  const filteredConversations = conversations.filter((c: any) => 
+  const filteredConversations = conversations.filter((c: AnyFixMe) => 
     c.customerPhone.includes(search)
   );
 
@@ -113,7 +113,7 @@ export default function InboxPage() {
             ) : filteredConversations.length === 0 ? (
               <div className="p-4 text-center text-sm text-on-surface-variant">No active conversations.</div>
             ) : (
-              filteredConversations.map((c: any) => (
+              filteredConversations.map((c: AnyFixMe) => (
                 <button
                   key={c.id}
                   onClick={() => setSelectedPhone(c.customerPhone)}
@@ -166,7 +166,7 @@ export default function InboxPage() {
                 ) : messages.length === 0 ? (
                   <div className="text-center text-sm text-on-surface-variant py-8">No messages yet.</div>
                 ) : (
-                  messages.map((m: any) => {
+                  messages.map((m: AnyFixMe) => {
                     const isOperator = m.sender === 'OPERATOR';
                     return (
                       <div key={m.id} className={`flex ${isOperator ? 'justify-end' : 'justify-start'} group/msg`}>

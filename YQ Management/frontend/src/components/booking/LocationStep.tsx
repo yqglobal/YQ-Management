@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 interface LocationStepProps {
-  tenant: any;
+  tenant: AnyFixMe;
   selectedLocationId: string | null;
   setSelectedLocationId: (id: string) => void;
   onNext: (e: React.FormEvent) => void;
@@ -27,7 +27,7 @@ export const LocationStep: React.FC<LocationStepProps> = ({
 
       <form onSubmit={onNext} className="space-y-6">
         <div className="space-y-3">
-          {tenant?.locations?.map((loc: any) => (
+          {tenant?.locations?.map((loc: AnyFixMe) => (
             <label key={loc.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedLocationId === loc.id ? 'border-transparent shadow-md' : 'border-gray-200 dark:border-zinc-800'}`} style={selectedLocationId === loc.id ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}>
               <input 
                 type="radio" 

@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 interface CreateCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (customer: any) => void;
+  onSuccess?: (customer: AnyFixMe) => void;
 }
 
 export function CreateCustomerModal({ isOpen, onClose, onSuccess }: CreateCustomerModalProps) {

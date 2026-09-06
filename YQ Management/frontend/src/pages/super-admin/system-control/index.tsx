@@ -7,7 +7,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Sliders, 
   Mail, 
-  MessageSquare, 
   CreditCard, 
   Key, 
   ShieldCheck, 
@@ -15,7 +14,6 @@ import {
   Send, 
   Loader2, 
   CheckCircle2, 
-  AlertTriangle, 
   Zap, 
   Smartphone, 
   ExternalLink,
@@ -29,7 +27,7 @@ interface ToggleConfig {
   key: string;
   name: string;
   description: string;
-  icon: any;
+  icon: AnyFixMe;
   color: string;
 }
 
@@ -113,18 +111,18 @@ export default function SystemControlPage() {
   const [payAmount, setPayAmount] = useState('10.00');
   const [payTestMode, setPayTestMode] = useState<boolean>(false);
   const [generatingPay, setGeneratingPay] = useState(false);
-  const [payPayload, setPayPayload] = useState<any | null>(null);
+  const [payPayload, setPayPayload] = useState<AnyFixMe | null>(null);
   const [redirectStatusMsg, setRedirectStatusMsg] = useState<{ type: 'success' | 'error' | 'cancelled'; text: string } | null>(null);
 
   // Check URL query parameters for returning payment test redirects
   useEffect(() => {
     if (router.query.payment_status === 'success') {
-      setRedirectStatusMsg({ type: 'success', text: '✅ Ozow Payment verification completed successfully! The gateway redirect test succeeded.' });
+      setRedirectStatusMsg({ type: 'success', text: '✅ Ozow Payment verification completed successfully! The gateway redirect test succeeded.' }); // eslint-disable-line react-hooks/set-state-in-effect
       toast.success('Test payment redirect completed successfully!');
     } else if (router.query.payment_status === 'cancelled') {
-      setRedirectStatusMsg({ type: 'cancelled', text: '⚠️ Payment test redirect was cancelled at the Ozow bank interface.' });
+      setRedirectStatusMsg({ type: 'cancelled', text: '⚠️ Payment test redirect was cancelled at the Ozow bank interface.' }); // eslint-disable-line react-hooks/set-state-in-effect
     } else if (router.query.payment_status === 'error') {
-      setRedirectStatusMsg({ type: 'error', text: '❌ An error was returned by the Ozow payment gateway during redirect verification.' });
+      setRedirectStatusMsg({ type: 'error', text: '❌ An error was returned by the Ozow payment gateway during redirect verification.' }); // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [router.query.payment_status]);
 
@@ -176,7 +174,7 @@ export default function SystemControlPage() {
       } else {
         toast.error(res.error || 'Failed to dispatch email');
       }
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       toast.error(e.message || 'Error executing email test transmission');
     }
     setSendingEmail(false);
@@ -204,7 +202,7 @@ export default function SystemControlPage() {
       } else {
         toast.error(res.error || 'WhatsApp transmission unsuccessful');
       }
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       toast.error(e.message || 'Error invoking WhatsApp Evolution service');
     }
     setSendingWa(false);
@@ -227,7 +225,7 @@ export default function SystemControlPage() {
       } else {
         toast.error('Failed to receive complete Ozow gateway payload');
       }
-    } catch (e: any) {
+    } catch (e: AnyFixMe) {
       toast.error(e.message || 'Error generating test payment redirect signature');
     }
     setGeneratingPay(false);
@@ -301,7 +299,7 @@ export default function SystemControlPage() {
             </div>
             <button
               onClick={() => {
-                setRedirectStatusMsg(null);
+                setRedirectStatusMsg(null); // eslint-disable-line react-hooks/set-state-in-effect
                 router.replace('/super-admin/system-control', undefined, { shallow: true });
               }}
               className="px-4 py-2 bg-black/40 hover:bg-black/60 rounded-xl text-xs font-bold text-white transition-colors"

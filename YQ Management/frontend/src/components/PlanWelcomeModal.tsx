@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePlan } from '../hooks/usePlan';
 
 // Maps a PlanFeatures key → display info shown in the welcome modal
-const FEATURE_DISPLAY: Record<string, { icon: React.FC<any>; label: string; color: string; bgColor: string }> = {
+const FEATURE_DISPLAY: Record<string, { icon: React.FC<AnyFixMe>; label: string; color: string; bgColor: string }> = {
   whatsappNotifications: { icon: MessageSquare, label: 'WhatsApp Notifications', color: 'text-emerald-600', bgColor: 'bg-emerald-50 dark:bg-emerald-500/10' },
   whatsappChat:          { icon: MessageSquare, label: 'WhatsApp Live Chat',      color: 'text-emerald-700', bgColor: 'bg-emerald-50 dark:bg-emerald-500/10' },
   whatsappChatbot:       { icon: Zap,           label: 'AI WhatsApp Chatbot',     color: 'text-violet-600',  bgColor: 'bg-violet-50 dark:bg-violet-500/10' },

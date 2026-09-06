@@ -3,8 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import {
   Plus, Trash2, Shield, User as UserIcon, Loader2, AlertTriangle,
-  MoreVertical, RotateCcw, CheckCircle, Clock, MapPin, Briefcase,
-  Edit2, ToggleLeft, ToggleRight, ChevronDown,
+  MoreVertical, RotateCcw, CheckCircle, Clock, MapPin, 
 } from 'lucide-react';
 import { useAuth } from '../../../../components/AuthContext';
 import { useRouter } from 'next/router';
@@ -177,10 +176,10 @@ export default function StaffDirectory() {
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
       const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState<any>(null);
+  const [userToEdit, setUserToEdit] = useState<AnyFixMe>(null);
 
   const isAdmin = user?.role === 'TENANT_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
-  const canManageProviders = isAdmin || user?.role === 'MANAGER';
+  
 
   React.useEffect(() => {
     if (user && !isAdmin) {
