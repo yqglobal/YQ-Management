@@ -9,9 +9,12 @@ import { QRCodeSVG } from 'qrcode.react';
 import PhoneInput from '../../../../components/PhoneInput';
 import { toast } from 'sonner';
 import { FeatureGuard } from '../../../../components/guards/FeatureGuard';
+import { FeatureNudge } from '../../../../components/FeatureNudge';
+import { usePlan } from '../../../../hooks/usePlan';
 
 export default function WhatsAppSettingsPage() {
   const { user } = useAuth();
+  const plan = usePlan();
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrCodeType, setQrCodeType] = useState<'base64' | 'text' | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
@@ -170,6 +173,17 @@ export default function WhatsAppSettingsPage() {
           <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline">Connect your WhatsApp account to send automated queue notifications.</p>
         </div>
       </div>
+
+      {/* Feature nudge: chatbot available but not enabled */}
+      {plan.isFeatureEnabled('whatsappChatbot') && !tenant?.chatbotEnabled && (
+        <FeatureNudge
+          featureKey="whatsappChatbot_enable"
+          message="🤖 Your plan includes the AI WhatsApp Chatbot — let it handle bookings automatically 24/7!"
+          ctaLabel="Configure Chatbot"
+          ctaHref="/dashboard/settings/chatbot"
+          className="mb-4"
+        />
+      )}
 
       <div className="space-y-12">
         {/* Connection Status Section */}

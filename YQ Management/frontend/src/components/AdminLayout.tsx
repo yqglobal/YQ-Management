@@ -17,6 +17,7 @@ import { ServiceModal } from './modals/ServiceModal';
 import { useSocket } from '../components/SocketProvider';
 import { AccessDeniedOverlay } from './AccessDeniedOverlay';
 import { PlanGateModal } from './PlanGateModal';
+import { PlanWelcomeModal } from './PlanWelcomeModal';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -217,6 +218,8 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
         <PlanGateModal mode="expired" />
       )}
       {!hasAcceptedPolicies && !!user?.tenantId && user?.personalSettings?.onboardingCompleted !== false && <AdvancedPoliciesModal />}
+      {/* Plan welcome: shown once per plan activation/change */}
+      {!plan.isLoading && plan.canAccess && !!user?.tenantId && <PlanWelcomeModal />}
       <DashboardTour />
 
       {/* Mobile overlay */}

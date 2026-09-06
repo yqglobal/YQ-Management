@@ -6,6 +6,8 @@ import { Save, Plus, GripVertical, Trash2, MessagesSquare, FormInput, PhoneCall,
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Card, CardContent } from '../../../../components/ui/card';
+import { FeatureNudge } from '../../../../components/FeatureNudge';
+import { usePlan } from '../../../../hooks/usePlan';
 
 interface FormField {
   id: string;
@@ -42,6 +44,7 @@ const PRESET_TEMPLATES = [
 
 export default function CustomerExperienceSettings() {
   const queryClient = useQueryClient();
+  const plan = usePlan();
   const [activeTab, setActiveTab] = useState<'portal' | 'intake' | 'feedback'>('portal');
 
   const { data: tenant = null, isLoading } = useQuery({
@@ -268,6 +271,17 @@ export default function CustomerExperienceSettings() {
           Save Changes
         </button>
       </div>
+
+      {/* Feature nudge: show branding nudge if plan has it but no logo configured */}
+      {plan.isFeatureEnabled('customBranding') && !brandingConfig.logoUrl && (
+        <FeatureNudge
+          featureKey="customBranding_logo"
+          message="✨ Your plan includes Custom Branding — add your logo and brand colors to impress customers!"
+          ctaLabel="Set Up Branding"
+          ctaHref="/dashboard/settings/experience"
+          className="mb-6"
+        />
+      )}
 
       <div className="flex items-center gap-2 mb-6 border-b border-border dark:border-dark-border pb-2">
         <button 
