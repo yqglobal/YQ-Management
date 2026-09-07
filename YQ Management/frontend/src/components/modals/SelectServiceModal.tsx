@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Loader2 } from 'lucide-react';
+import { fetchApi } from '../../lib/api';
 
 interface SelectServiceModalProps {
   isOpen: boolean;
@@ -21,13 +22,9 @@ export function SelectServiceModal({ isOpen, onClose, tenantId, onSelect, baseUr
 
   useEffect(() => {
     if (isOpen && tenantId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLoading(true);
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/service/tenant/${tenantId}`, {
-        headers: {
-          'Authorization': `Bearer ${document.cookie.split('token=')[1]?.split(';')[0]}`,
-        }
-      })
-        .then(res => res.json())
+      fetchApi('/service')
         .then(data => {
           setServices(Array.isArray(data) ? data : []);
           setIsLoading(false);
