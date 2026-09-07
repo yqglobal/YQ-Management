@@ -10,6 +10,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import useWhatsapp from '../../hooks/useWhatsapp';
 import { motion, AnimatePresence } from 'framer-motion';
 import Confetti from 'react-confetti';
+import { useAuth } from '../../components/AuthContext';
+import Link from 'next/link';
 
 import { countryCodes as allCountryCodes } from '../../lib/country-codes';
 
@@ -167,6 +169,7 @@ const BUSINESS_TEMPLATES = [
 
 export default function Onboarding() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [selectedType, setSelectedType] = useState<string>('general');
@@ -546,6 +549,36 @@ export default function Onboarding() {
   };
   const totalSteps = inviteCode ? 2 : 5;
   const currentStepProgress = inviteCode ? (step === 1 ? 1 : 2) : step;
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-surface dark:bg-[#0a0a0a] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (user?.personalSettings?.onboardingCompleted && step !== 6 && !showConfetti) {
+    return (
+      <div className="min-h-screen bg-surface dark:bg-[#0a0a0a] flex flex-col items-center justify-center p-4">
+        <Head>
+          <title>Workspace Ready | Qmova</title>
+        </Head>
+        <div className="w-full max-w-md bg-card dark:bg-dark-card rounded-[2.5rem] border border-border dark:border-dark-border shadow-sm p-8 text-center">
+          <div className="w-20 h-20 bg-primary/10 dark:bg-sky-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-10 h-10 text-primary dark:text-sky-500" />
+          </div>
+          <h1 className="text-2xl font-bold text-on-surface dark:text-white mb-3">You're already set up!</h1>
+          <p className="text-on-surface-variant dark:text-outline mb-8">
+            Your workspace has already been created and onboarding is complete.
+          </p>
+          <Link href="/dashboard" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-primary-hover dark:bg-sky-500 dark:hover:bg-sky-600 text-white font-medium rounded-full transition-colors w-full">
+            Go to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-surface dark:bg-[#0a0a0a] flex flex-col items-center justify-center p-4 relative overflow-x-hidden font-sans selection:bg-primary/20">
