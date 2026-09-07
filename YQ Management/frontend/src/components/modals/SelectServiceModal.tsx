@@ -48,7 +48,13 @@ export function SelectServiceModal({ isOpen, onClose, tenantId, onSelect, baseUr
     const base = isCustomDomain ? `${portalUrl}/tv/${tenantId}` : `${baseUrl}/tv/${tenantId}`;
     const params = new URLSearchParams();
     if (selectedServiceId) params.append('serviceId', selectedServiceId);
-    if (selectedQueueId) params.append('queueId', selectedQueueId);
+    if (selectedQueueId) {
+      params.append('queueId', selectedQueueId);
+      const q = queues.find((q: AnyFixMe) => q.id === selectedQueueId);
+      if (q && q.locationId) {
+        params.append('locationId', q.locationId);
+      }
+    }
     
     const finalUrl = params.toString() ? `${base}?${params.toString()}` : base;
     return finalUrl;
