@@ -340,7 +340,8 @@ export class AuthController {
       onboardingCompleted?: boolean;
     },
   ) {
-    let currentSettings = req.user.personalSettings || {};
+    const user = await this.usersService['prisma'].user.findUnique({ where: { id: req.user.sub } });
+    let currentSettings = (user?.personalSettings as any) || {};
 
     if (body.theme !== undefined)
       currentSettings = { ...currentSettings, theme: body.theme };
