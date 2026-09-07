@@ -95,6 +95,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   });
 
   const hasAcceptedPolicies = isLoadingPolicies || !user || (acceptedPolicies.some((p: AnyFixMe) => p.policy.type === 'TERMS_OF_SERVICE') && acceptedPolicies.some((p: AnyFixMe) => p.policy.type === 'PRIVACY_POLICY'));
+  const [planWelcomeDismissed, setPlanWelcomeDismissed] = useState(false);
 
   const handleLocationSelect = (id: string) => {
     setActiveLocationId(id);
@@ -218,8 +219,8 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
       )}
       {!hasAcceptedPolicies && !!user?.tenantId && user?.personalSettings?.onboardingCompleted !== false && <AdvancedPoliciesModal />}
       {/* Plan welcome: shown once per plan activation/change */}
-      {!plan.isLoading && plan.canAccess && !!user?.tenantId && <PlanWelcomeModal />}
-      <DashboardTour />
+      {hasAcceptedPolicies && !plan.isLoading && plan.canAccess && !!user?.tenantId && <PlanWelcomeModal onDismiss={() => setPlanWelcomeDismissed(true)} />}
+      {hasAcceptedPolicies && planWelcomeDismissed && <DashboardTour canStart={true} />}
 
       {/* Mobile overlay */}
       {mobileOpen && (

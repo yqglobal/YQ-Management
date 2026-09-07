@@ -32,11 +32,14 @@ export default function ServiceDeskToday() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const hasSeenIntro = localStorage.getItem('hasSeenIntro');
-      if (!hasSeenIntro) {
-        setIsWelcomeModalOpen(true);
-        localStorage.setItem('hasSeenIntro', 'true');
-      }
+      const t = setTimeout(() => {
+        const hasSeenIntro = localStorage.getItem('hasSeenIntro');
+        if (!hasSeenIntro) {
+          setIsWelcomeModalOpen(true);
+          localStorage.setItem('hasSeenIntro', 'true');
+        }
+      }, 5000);
+      return () => clearTimeout(t);
     }
   }, []);
 

@@ -577,7 +577,7 @@ export default function QueueDetails() {
                 icon: 'monitor',
                 title: 'TV Lobby Display',
                 description: 'Open this URL on a TV or screen share to show a live calling board for your lobby.',
-                url: `${tenantUrl}/tv/${tenantId}?serviceId=${queue?.serviceId || ''}&queueId=${queue?.id || ''}`,
+                url: `${tenantUrl}/tv/${tenantId}?queueId=${queue?.id || ''}&locationId=${queue?.locationId || ''}`,
               },
             ];
             return (

@@ -180,6 +180,7 @@ export class VisitService {
         service: { select: { name: true, expectedDuration: true } },
         location: { select: { name: true, address: true } },
         tenant: { select: { name: true } },
+        queue: { select: { status: true } },
       },
     });
   }

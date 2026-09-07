@@ -4,8 +4,11 @@ import AdminLayout from '../../components/AdminLayout';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
+import { useAuth } from '../../components/AuthContext';
+import { getTenantUrl } from '../../lib/utils';
 
 export default function DisplayPicker() {
+  const { user } = useAuth();
   const { data: queues = [], isLoading } = useQuery({
     queryKey: ['queues'],
     queryFn: () => fetchApi('/queue'),
@@ -59,7 +62,7 @@ export default function DisplayPicker() {
                 </div>
                 
                 <Link 
-                  href={`/dashboard/locations/${queue.id}/display`}
+                  href={getTenantUrl(user?.tenant?.subdomain || '', `/tv/${user?.tenantId}?queueId=${queue.id}&locationId=${queue.locationId || ''}`)}
                   target="_blank"
                   className="w-full flex items-center justify-center gap-2 h-[44px] bg-primary dark:bg-sky-600 hover:bg-primary-fixed-variant dark:hover:bg-sky-500 text-white rounded-xl font-body-md font-semibold transition-colors shadow-sm group-hover:shadow-md"
                 >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { fetchApi } from '../../lib/api';
@@ -176,6 +176,30 @@ export default function Onboarding() {
   const [selectedCountryIso, setSelectedCountryIso] = useState('ZA');
   const [countryCode, setCountryCode] = useState('+27');
   
+  const [paymentData, setPaymentData] = useState<AnyFixMe>(null);
+  const paymentFormRef = useRef<HTMLFormElement>(null);
+  const ozowFields = useMemo<Array<string>>(
+    () => ['siteCode', 'countryCode', 'currencyCode', 'amount', 'transactionReference', 'bankReference', 'cancelUrl', 'errorUrl', 'successUrl', 'notifyUrl', 'isTest', 'hashCheck'],
+    [],
+  );
+
+  useEffect(() => {
+    if (paymentData) {
+      const submitTimer = window.setTimeout(() => {
+        try {
+          paymentFormRef.current?.requestSubmit();
+        } catch {
+          try {
+            paymentFormRef.current?.submit();
+          } catch (submitError) {
+            console.error('Auto-submit failed', submitError);
+          }
+        }
+      }, 100);
+      return () => window.clearTimeout(submitTimer);
+    }
+  }, [paymentData]);
+
   useEffect(() => {
     import('../../lib/country-codes').then(({ detectCountryByTimezone, getCountryByAbbr }) => {
       // 1. Primary robust detection via free IP geolocation
@@ -407,7 +431,7 @@ export default function Onboarding() {
           body: JSON.stringify({ 
             name: `${s.name} Service`, 
             locationId: location.id,
-            description: 'Created during setup',
+            description: '',
             formConfig: s.formConfig
           }),
         });
@@ -459,8 +483,8 @@ export default function Onboarding() {
         body: JSON.stringify(data)
       }),
     onSuccess: (data: AnyFixMe) => {
-      if (data?.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+      if (data?.checkoutUrl || data?.paymentUrl) {
+        setPaymentData(data);
       } else {
         toast.error('Could not initiate checkout');
       }
@@ -620,7 +644,7 @@ export default function Onboarding() {
                         const c = COUNTRY_CODES.find(x => x.country === iso);
                         if (c) setCountryCode(c.code);
                       }}
-                      className="bg-surface-container-lowest dark:bg-black/20 text-on-surface dark:text-white font-medium px-4 border-r border-border dark:border-dark-border focus:outline-none cursor-pointer text-sm"
+                      className="bg-surface-container-lowest dark:bg-black/20 text-on-surface dark:text-white font-medium px-4 border-r border-border dark:border-dark-border focus:outline-none cursor-pointer text-sm w-[140px] truncate"
                     >
                       {COUNTRY_CODES.map((c, i) => (
                         <option key={`${c.country}-${c.code}-${i}`} value={c.country}>
@@ -1212,6 +1236,14 @@ export default function Onboarding() {
                 )}
               </div>
 
+              {/* Hidden auto-submit form for Ozow */}
+              {paymentData && (
+                <form ref={paymentFormRef} action={paymentData.checkoutUrl || paymentData.paymentUrl} method="POST" target="_self" className="hidden">
+                  {ozowFields.map(field => (
+                    <input key={field} type="hidden" name={field.charAt(0).toUpperCase() + field.slice(1)} value={String(paymentData[field] ?? '')} />
+                  ))}
+                </form>
+              )}
               
             </motion.div>
           )}

@@ -234,7 +234,7 @@ export default function TVDisplay() {
           </div>
 
           
-          {isPaused && (
+          {queueInfo?.status === 'PAUSED' && (
             <div className="bg-amber-500/20 border border-amber-500/30 text-amber-500 rounded-2xl p-6 flex flex-col items-center justify-center animate-pulse shadow-[0_0_40px_rgba(245,158,11,0.2)]">
               <span className="material-symbols-outlined text-[48px] mb-2">pause_circle</span>
               <h2 className="text-3xl font-bold uppercase tracking-widest">Service Temporarily Paused</h2>

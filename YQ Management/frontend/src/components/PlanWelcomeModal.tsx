@@ -37,7 +37,7 @@ function getWelcomeStorageKey(subscriptionId: string | null | undefined, planNam
   return `plan_welcomed_${subscriptionId || 'none'}_${planName || 'free'}`;
 }
 
-export function PlanWelcomeModal() {
+export function PlanWelcomeModal({ onDismiss }: { onDismiss?: () => void }) {
   const plan = usePlan();
   const [visible, setVisible] = useState(false);
   const [storageKey, setStorageKey] = useState('');
@@ -57,12 +57,15 @@ export function PlanWelcomeModal() {
       // Small delay so the modal appears after the dashboard loads
       const t = setTimeout(() => setVisible(true), 1500);
       return () => clearTimeout(t);
+    } else {
+      if (onDismiss) onDismiss();
     }
   }, [plan.isLoading, plan.planName, plan.status]);
 
   const dismiss = () => {
     if (storageKey) localStorage.setItem(storageKey, '1');
     setVisible(false);
+    if (onDismiss) onDismiss();
   };
 
   if (!visible) return null;

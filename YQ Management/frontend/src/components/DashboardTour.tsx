@@ -24,16 +24,18 @@ const STEPS: Step[] = [
   },
 ];
 
-export function DashboardTour() {
+export function DashboardTour({ canStart = true }: { canStart?: boolean }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    if (!canStart) return;
     const hasSeenTour = localStorage.getItem('yq_has_seen_tour');
     if (!hasSeenTour) {
       setIsOpen(true);
     }
-  }, []);
+  }, [canStart]);
+
 
   useEffect(() => {
     if (!isOpen) return;

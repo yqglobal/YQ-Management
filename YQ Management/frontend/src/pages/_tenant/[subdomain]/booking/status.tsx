@@ -313,6 +313,12 @@ export default function StatusPage() {
                     <p className="text-amber-700 dark:text-amber-400 font-bold text-sm">Please proceed to {visit.location?.name || 'the service desk'}</p>
                   </div>
                 )}
+                
+                {visit.queue?.status === 'PAUSED' && !isDone && !isServing && (
+                  <div className="bg-orange-100 dark:bg-orange-900/40 border border-orange-500 rounded-xl p-3 text-center mb-4 animate-pulse">
+                    <p className="text-orange-700 dark:text-orange-400 font-bold text-sm">Service temporarily paused. Operator is on a short break.</p>
+                  </div>
+                )}
 
                 {!isDone && !isServing && (
                   <div className="flex justify-between items-center bg-gray-50 dark:bg-zinc-950 p-4 rounded-xl border border-gray-100 dark:border-zinc-800">

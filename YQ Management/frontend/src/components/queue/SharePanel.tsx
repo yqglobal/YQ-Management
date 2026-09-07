@@ -6,9 +6,10 @@ import { toast } from 'sonner';
 
 interface SharePanelProps {
   queueId: string;
+  locationId?: string;
 }
 
-export function SharePanel({ queueId }: SharePanelProps) {
+export function SharePanel({ queueId, locationId }: SharePanelProps) {
   const [publicUrl, setPublicUrl] = useState('');
   const [tvDisplayUrl, setTvDisplayUrl] = useState('');
 
@@ -18,7 +19,7 @@ export function SharePanel({ queueId }: SharePanelProps) {
     // Only access window on the client side
     const subdomain = user?.tenant?.subdomain || '';
     setPublicUrl(getTenantUrl(subdomain, `/booking?queueId=${queueId}`));
-    setTvDisplayUrl(getTenantUrl(subdomain, `/tv/${user?.tenant?.id}?queueId=${queueId}`));
+    setTvDisplayUrl(getTenantUrl(subdomain, `/tv/${user?.tenant?.id}?queueId=${queueId}${locationId ? `&locationId=${locationId}` : ''}`));
   }, [queueId, user?.tenant?.id, user?.tenant?.subdomain]);
 
   const iframeCode = `<iframe src="${publicUrl}" width="100%" height="600px" style="border:none;border-radius:12px;background:#fff;"></iframe>`;
