@@ -558,6 +558,12 @@ export default function Onboarding() {
     );
   }
 
+  useEffect(() => {
+    if (user?.personalSettings?.onboardingCompleted && step !== 6 && !showConfetti) {
+      router.replace('/dashboard');
+    }
+  }, [user?.personalSettings?.onboardingCompleted, step, showConfetti, router]);
+
   if (user?.personalSettings?.onboardingCompleted && step !== 6 && !showConfetti) {
     return (
       <div className="min-h-screen bg-surface dark:bg-[#0a0a0a] flex flex-col items-center justify-center p-4">
@@ -570,11 +576,9 @@ export default function Onboarding() {
           </div>
           <h1 className="text-2xl font-bold text-on-surface dark:text-white mb-3">You're already set up!</h1>
           <p className="text-on-surface-variant dark:text-outline mb-8">
-            Your workspace has already been created and onboarding is complete.
+            Your workspace has already been created and onboarding is complete. Redirecting you to the dashboard...
           </p>
-          <Link href="/dashboard" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-primary-hover dark:bg-sky-500 dark:hover:bg-sky-600 text-white font-medium rounded-full transition-colors w-full">
-            Go to Dashboard
-          </Link>
+          <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
         </div>
       </div>
     );

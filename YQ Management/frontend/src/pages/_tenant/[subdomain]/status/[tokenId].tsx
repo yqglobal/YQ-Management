@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -26,7 +27,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe, tokenId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const primaryColor = tenant.branding?.primaryColor || '#4f46e5';
+  const isBrandingEnabled = tenant?.planFeatures?.customBranding !== false && tenant?.branding?.enabled !== false;
+  const primaryColor = isBrandingEnabled ? (tenant.branding?.primaryColor || '#4f46e5') : '#4f46e5';
 
   const { data: statusData, isLoading, error } = useQuery<AnyFixMe, AnyFixMe>({
     queryKey: ['token-status', tokenId],
@@ -128,13 +130,13 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
         {/* Header */}
         <header className="flex items-center justify-between py-4 mb-6">
           <div className="flex items-center gap-2">
-            {tenant?.planFeatures?.customBranding === false ? (
+            {!isBrandingEnabled ? (
               <>
-                <img src="/qmova-light-logo.png" alt="Qmova" className="h-8 max-w-[140px] object-contain dark:hidden" />
-                <img src="/qmova-dark-logo.png" alt="Qmova" className="h-8 max-w-[140px] object-contain hidden dark:block" />
+                <Image src="/qmova-light-logo.png" alt="Qmova" width={140} height={32} className="h-8 w-auto max-w-[140px] object-contain dark:hidden" priority />
+                <Image src="/qmova-dark-logo.png" alt="Qmova" width={140} height={32} className="h-8 w-auto max-w-[140px] object-contain hidden dark:block" priority />
               </>
             ) : tenant.branding?.logoUrl ? (
-              <img src={tenant.branding.logoUrl} alt={tenant.name} className="h-8 max-w-[140px] object-contain" />
+              <Image src={tenant.branding.logoUrl} alt={tenant.name} width={140} height={32} className="h-8 w-auto max-w-[140px] object-contain" priority />
             ) : (
               <div 
                 className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-xs shadow-lg shrink-0"
@@ -316,12 +318,13 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
 
       </div>
 
-      {(!tenant?.branding || !tenant?.planFeatures?.customBranding) && (
+        {/* Powered by Qmova */}
+        {!isBrandingEnabled && (
         <div className="mt-8 pb-4 text-center z-10 relative">
           <a href="https://qmova.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
             <span>Powered by</span>
-            <img src="/qmova-light-logo.png" alt="Qmova" className="h-[18px] object-contain dark:hidden" />
-            <img src="/qmova-dark-logo.png" alt="Qmova" className="h-[18px] object-contain hidden dark:block" />
+            <Image src="/qmova-light-logo.png" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain dark:hidden" />
+            <Image src="/qmova-dark-logo.png" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain hidden dark:block" />
           </a>
         </div>
       )}

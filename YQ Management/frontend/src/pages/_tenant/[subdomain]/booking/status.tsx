@@ -3,7 +3,9 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import QRCode from 'react-qr-code';
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
+const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
 import { Sun, Moon } from 'lucide-react';
 
 const baseUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') : 'http://localhost:3000';
@@ -155,8 +157,9 @@ export default function StatusPage() {
     }
   };
 
-  const primaryColor = tenant?.branding?.primaryColor || '#4f46e5';
-  const logoUrl = tenant?.branding?.logoUrl;
+  const isBrandingEnabled = tenant?.planFeatures?.customBranding !== false && tenant?.branding?.enabled !== false;
+  const primaryColor = isBrandingEnabled ? (tenant?.branding?.primaryColor || '#4f46e5') : '#4f46e5';
+  const logoUrl = isBrandingEnabled ? tenant?.branding?.logoUrl : null;
   const supportNumber = tenant?.customerCareNumber || tenant?.phone;
 
   if (isLoading) {
@@ -258,7 +261,12 @@ export default function StatusPage() {
       <header className="w-full max-w-md sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800 p-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           {logoUrl ? (
-            <img src={logoUrl} alt={tenant?.name} className="h-8 object-contain" />
+            <Image src={logoUrl} alt={tenant?.name} width={140} height={32} className="h-8 w-auto object-contain" priority />
+          ) : !isBrandingEnabled ? (
+            <>
+              <Image src="/qmova-light-logo.png" alt="Qmova" width={140} height={32} className="h-8 w-auto max-w-[140px] object-contain dark:hidden" priority />
+              <Image src="/qmova-dark-logo.png" alt="Qmova" width={140} height={32} className="h-8 w-auto max-w-[140px] object-contain hidden dark:block" priority />
+            </>
           ) : (
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: primaryColor }}>
               {tenant?.name?.substring(0, 2).toUpperCase() || 'YQ'}
@@ -370,12 +378,12 @@ export default function StatusPage() {
         )}
 
         {/* Branding Fallback (Powered by Qmova) */}
-        {!tenant?.branding && (
+        {!isBrandingEnabled && (
           <div className="mt-8 pb-4 text-center">
             <a href="https://qmova.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
               <span>Powered by</span>
-              <img src="/qmova-light-logo.png" alt="Qmova" className="h-[18px] object-contain dark:hidden" />
-              <img src="/qmova-dark-logo.png" alt="Qmova" className="h-[18px] object-contain hidden dark:block" />
+              <Image src="/qmova-light-logo.png" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain dark:hidden" />
+              <Image src="/qmova-dark-logo.png" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain hidden dark:block" />
             </a>
           </div>
         )}

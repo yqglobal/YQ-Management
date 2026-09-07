@@ -64,7 +64,7 @@ export const ServiceStep: React.FC<ServiceStepProps> = ({
                         </span>
                       )}
                     </div>
-                    {service.description && (
+                    {service.description && service.description !== 'Created during setup' && (
                       <p className="text-sm text-gray-500 mt-1 line-clamp-2">{service.description}</p>
                     )}
                   </div>

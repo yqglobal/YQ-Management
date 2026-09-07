@@ -7,7 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import 'react-phone-number-input/style.css';
 import { useTheme } from '../../../../components/ThemeProvider';
 import { Sun, Moon } from 'lucide-react';
-import QRCode from 'react-qr-code';
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
+const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { LocationStep } from '../../../../components/booking/LocationStep';
@@ -195,8 +197,9 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
 
 
 
-  const primaryColor = tenant?.branding?.primaryColor || '#4f46e5';
-  const logoUrl = tenant?.branding?.logoUrl;
+  const isBrandingEnabled = tenant?.planFeatures?.customBranding !== false && tenant?.branding?.enabled !== false;
+  const primaryColor = isBrandingEnabled ? (tenant?.branding?.primaryColor || '#4f46e5') : '#4f46e5';
+  const logoUrl = isBrandingEnabled ? tenant?.branding?.logoUrl : null;
   const baseUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') : 'http://localhost:3000';
 
   // Find the queue for a given service (always use the first ACTIVE one linked)
@@ -536,13 +539,13 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               ←
             </button>
           )}
-          {tenant?.planFeatures?.customBranding === false ? (
+          {!isBrandingEnabled ? (
             <>
-              <img src="/qmova-light-logo.png" alt="Qmova" className="h-8 max-w-[140px] object-contain dark:hidden" />
-              <img src="/qmova-dark-logo.png" alt="Qmova" className="h-8 max-w-[140px] object-contain hidden dark:block" />
+              <Image src="/qmova-light-logo.png" alt="Qmova" width={140} height={32} className="h-8 w-auto object-contain dark:hidden" priority />
+              <Image src="/qmova-dark-logo.png" alt="Qmova" width={140} height={32} className="h-8 w-auto object-contain hidden dark:block" priority />
             </>
           ) : logoUrl ? (
-            <img src={logoUrl} alt={tenant.name} className="h-8 max-w-[140px] object-contain" />
+            <Image src={logoUrl} alt={tenant.name} width={140} height={32} className="h-8 w-auto object-contain" priority />
           ) : (
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: primaryColor }}>
               {tenant.name.substring(0, 2).toUpperCase()}
@@ -1020,12 +1023,12 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         )}
 
         {/* Branding Fallback (Powered by Qmova) */}
-        {(!tenant?.branding || !tenant?.planFeatures?.customBranding) && (
+        {!isBrandingEnabled && (
           <div className="mt-8 pb-4 text-center">
             <a href="https://qmova.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
               <span>Powered by</span>
-              <img src="/qmova-light-logo.png" alt="Qmova" className="h-[18px] object-contain dark:hidden" />
-              <img src="/qmova-dark-logo.png" alt="Qmova" className="h-[18px] object-contain hidden dark:block" />
+              <Image src="/qmova-light-logo.png" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain dark:hidden" />
+              <Image src="/qmova-dark-logo.png" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain hidden dark:block" />
             </a>
           </div>
         )}

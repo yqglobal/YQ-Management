@@ -27,7 +27,12 @@ export function getTenantUrl(subdomain: string, path: string = '') {
   
   try {
     const url = new URL(baseDomain);
-    url.hostname = `${subdomain}.${url.hostname}`;
+    
+    // Only prepend the subdomain if the hostname doesn't already start with it
+    if (!url.hostname.startsWith(`${subdomain}.`)) {
+      url.hostname = `${subdomain}.${url.hostname}`;
+    }
+    
     return `${url.protocol}//${url.hostname}${url.port ? `:${url.port}` : ''}${path}`;
   } catch (e) {
     return '';

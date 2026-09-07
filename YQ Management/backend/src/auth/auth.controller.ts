@@ -389,8 +389,49 @@ export class AuthController {
           });
           if (tenant) {
             const dataToUpdate: any = {};
+            const updatedName = body.companyName || tenant.name;
             if (body.companyName) dataToUpdate.name = body.companyName;
             if (body.subdomain) dataToUpdate.subdomain = body.subdomain;
+
+            let ce: any = tenant.customerExperience || {};
+            let ceNeedsUpdate = false;
+            
+            if (!ce.portal) {
+              ce.portal = {};
+              ceNeedsUpdate = true;
+            }
+            if (!ce.portal.welcomeTitle) {
+              ce.portal.welcomeTitle = `Welcome to ${updatedName}`;
+              ceNeedsUpdate = true;
+            }
+            if (!ce.portal.welcomeMessage) {
+              ce.portal.welcomeMessage = "Please enter your details to proceed...";
+              ceNeedsUpdate = true;
+            }
+            if (!ce.portal.supportContact) {
+              ce.portal.supportContact = req.user.email;
+              ceNeedsUpdate = true;
+            }
+            if (!ce.feedback) {
+              ce.feedback = {
+                enabled: true,
+                questions: [
+                  { id: 'fb_q1_rating', type: 'rating', label: 'How was your experience today?', required: true },
+                  { id: 'fb_q2_comments', type: 'textarea', label: 'Any additional feedback?', required: false }
+                ]
+              };
+              ceNeedsUpdate = true;
+            } else if (!ce.feedback.questions || ce.feedback.questions.length === 0) {
+              ce.feedback.questions = [
+                { id: 'fb_q1_rating', type: 'rating', label: 'How was your experience today?', required: true },
+                { id: 'fb_q2_comments', type: 'textarea', label: 'Any additional feedback?', required: false }
+              ];
+              ceNeedsUpdate = true;
+            }
+
+            if (ceNeedsUpdate) {
+              dataToUpdate.customerExperience = ce;
+            }
 
             await this.usersService['prisma'].tenant.update({
               where: { id: req.user.tenantId },

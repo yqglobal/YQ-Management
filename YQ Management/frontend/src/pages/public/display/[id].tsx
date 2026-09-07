@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '@/lib/api';
 import { io } from 'socket.io-client';
 import QRCode from 'react-qr-code';
+import { getTenantUrl } from '@/lib/utils';
 
 export default function QueueDisplay() {
   const router = useRouter();
@@ -21,7 +22,15 @@ export default function QueueDisplay() {
   });
 
   const queueName = queue?.name || 'Loading...';
-  const joinUrl = typeof window !== 'undefined' ? `${window.location.origin}/booking?queueId=${id}` : '';
+  
+  let joinUrl = '';
+  if (typeof window !== 'undefined') {
+    if (queue?.tenant?.subdomain) {
+      joinUrl = `${getTenantUrl(queue.tenant.subdomain, '/booking')}?queueId=${id}`;
+    } else {
+      joinUrl = `${window.location.origin}/booking?queueId=${id}`;
+    }
+  }
 
   const displayConfig = (queue?.tokenDisplayConfig as AnyFixMe) || {};
   const showName = displayConfig.showName !== false;

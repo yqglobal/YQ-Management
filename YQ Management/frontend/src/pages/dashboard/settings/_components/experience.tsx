@@ -367,35 +367,37 @@ export default function CustomerExperienceSettings() {
             <div>
               <h3 className="font-body-lg text-body-lg font-semibold text-on-surface dark:text-white mb-6 border-b border-border dark:border-dark-border pb-4 mt-4">Portal Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Welcome Title</label>
-                <input
-                  type="text"
-                  value={config.portal.welcomeTitle}
-                  onChange={(e) => setConfig({ ...config, portal: { ...config.portal, welcomeTitle: e.target.value } })}
-                  placeholder="e.g. Welcome to Acme Clinic"
-                  className="w-full h-[44px] bg-white dark:bg-zinc-800 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-[#D97706] focus:border-[#D97706] outline-none text-on-surface dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Support Contact</label>
-                <input
-                  type="text"
-                  value={config.portal.supportContact}
-                  onChange={(e) => setConfig({ ...config, portal: { ...config.portal, supportContact: e.target.value } })}
-                  placeholder="e.g. support@acme.com"
-                  className="w-full h-[44px] bg-white dark:bg-zinc-800 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-[#D97706] focus:border-[#D97706] outline-none text-on-surface dark:text-white"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Welcome Message</label>
-                <textarea
-                  value={config.portal.welcomeMessage}
-                  onChange={(e) => setConfig({ ...config, portal: { ...config.portal, welcomeMessage: e.target.value } })}
-                  placeholder="Please enter your details to proceed..."
-                  className="w-full min-h-[120px] bg-white dark:bg-zinc-800 border border-border dark:border-dark-border rounded-lg p-4 font-body-md text-body-md focus:ring-1 focus:ring-[#D97706] focus:border-[#D97706] outline-none text-on-surface dark:text-white"
-                />
-              </div>
+                <div>
+                  <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Welcome Title</label>
+                  <input
+                    type="text"
+                    value={config.portal.welcomeTitle}
+                    onChange={(e) => setConfig({ ...config, portal: { ...config.portal, welcomeTitle: e.target.value } })}
+                    placeholder={`e.g. Welcome to ${tenant?.name || 'Acme Clinic'}`}
+                    className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-sm text-body-sm text-on-surface dark:text-white outline-none focus:border-primary transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Support Contact</label>
+                  <input
+                    type="text"
+                    value={config.portal.supportContact}
+                    onChange={(e) => setConfig({ ...config, portal: { ...config.portal, supportContact: e.target.value } })}
+                    placeholder={`e.g. ${tenant?.users?.[0]?.email || 'support@acme.com'}`}
+                    className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-sm text-body-sm text-on-surface dark:text-white outline-none focus:border-primary transition-colors"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Welcome Message</label>
+                  <textarea
+                    value={config.portal.welcomeMessage}
+                    onChange={(e) => setConfig({ ...config, portal: { ...config.portal, welcomeMessage: e.target.value } })}
+                    placeholder="e.g. Please enter your details to proceed..."
+                    className="w-full h-[120px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg p-4 font-body-sm text-body-sm text-on-surface dark:text-white outline-none focus:border-primary transition-colors resize-none"
+                  />
+                </div>
               </div>
             </div>
           </div>

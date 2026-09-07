@@ -73,6 +73,7 @@ export function SelectServiceModal({ isOpen, onClose, tenantId, onSelect, baseUr
         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/5">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">TV Lobby Display</h2>
           <button
+            type="button"
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 transition-colors"
           >
@@ -126,6 +127,7 @@ export function SelectServiceModal({ isOpen, onClose, tenantId, onSelect, baseUr
 
         <div className="p-6 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-zinc-900/50 flex justify-end gap-3">
           <button
+            type="button"
             onClick={onClose}
             className="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 rounded-xl transition-colors"
           >
@@ -134,6 +136,7 @@ export function SelectServiceModal({ isOpen, onClose, tenantId, onSelect, baseUr
           <div className="flex gap-2">
             {onCopy && (
               <button
+                type="button"
                 onClick={handleCopy}
                 disabled={isLoading}
                 className="px-5 py-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-white/10 text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
@@ -142,6 +145,7 @@ export function SelectServiceModal({ isOpen, onClose, tenantId, onSelect, baseUr
               </button>
             )}
             <button
+              type="button"
               onClick={handleOpen}
               disabled={isLoading}
               className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
