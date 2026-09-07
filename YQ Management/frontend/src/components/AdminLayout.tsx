@@ -694,7 +694,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
         </div>
       </nav>
 
-      <main className={`ml-0 md:ml-sidebar-w flex-1 flex flex-col bg-canvas dark:bg-dark-canvas relative min-w-0 ${settingsMode ? 'pt-[108px]' : 'pt-header-h'}`}>
+      <main className={`ml-0 md:ml-sidebar-w w-full md:w-[calc(100%-256px)] flex-1 flex flex-col bg-canvas dark:bg-dark-canvas relative min-w-0 ${settingsMode ? 'pt-[108px]' : 'pt-header-h'}`}>
         <div className={`flex-1 w-full min-w-0 relative flex flex-col ${noPadding ? '' : 'p-margin-mobile md:p-margin-desktop'}`}>
            {isAccessDenied ? null : children}
         </div>

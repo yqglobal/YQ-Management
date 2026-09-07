@@ -7,6 +7,8 @@ import {
   UseGuards,
   Req,
   Param,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { TenantService } from './tenant.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -72,6 +74,28 @@ export class TenantController {
       throw new Error('Forbidden: You can only update your own tenant.');
     }
     return this.tenantService.updateTenant(id, body);
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
+  @Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
+  @Post(':id/logo')
+  @UseInterceptors(require('@nestjs/platform-express').FileInterceptor('logo'))
+  async uploadLogo(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (req.user.role !== Role.SUPER_ADMIN && id !== req.user.tenantId) {
+      throw new Error('Forbidden: You can only update your own tenant.');
+    }
+    if (!file) {
+      const { BadRequestException } = require('@nestjs/common');
+      throw new BadRequestException('No file provided');
+    }
+    
+    // Get base URL for returning full URL
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    return this.tenantService.uploadLogo(id, file, baseUrl);
   }
 
   // Public endpoint for customer portal subdomain routing

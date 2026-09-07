@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import { toast } from 'sonner';
-import { Save, Plus, GripVertical, Trash2, MessagesSquare, FormInput, PhoneCall, LayoutTemplate, Loader2 } from 'lucide-react';
+import { Save, Plus, GripVertical, Trash2, MessagesSquare, FormInput, PhoneCall, LayoutTemplate, Loader2, Upload } from 'lucide-react';
 import { FeatureNudge } from '../../../../components/FeatureNudge';
 import { usePlan } from '../../../../hooks/usePlan';
 
@@ -88,6 +88,25 @@ export default function CustomerExperienceSettings() {
       toast.success('Customer Experience settings saved!');
     },
     onError: () => toast.error('Failed to save settings'),
+  });
+
+  const uploadLogoMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('logo', file);
+      const res = await fetchApi(`/tenant/${tenant.id}/logo`, {
+        method: 'POST',
+        body: formData,
+      });
+      return res;
+    },
+    onSuccess: (data) => {
+      if (data && data.logoUrl) {
+        setBrandingConfig(prev => ({ ...prev, logoUrl: data.logoUrl }));
+        toast.success('Logo uploaded successfully');
+      }
+    },
+    onError: () => toast.error('Failed to upload logo'),
   });
 
   const handleSave = () => {
@@ -337,11 +356,34 @@ export default function CustomerExperienceSettings() {
                   <div>
                     <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide flex items-center justify-between">
                       <span>Logo URL</span>
+                      <label className={`text-primary hover:text-primary-600 dark:hover:text-primary-400 font-body-sm flex items-center gap-1 cursor-pointer transition-colors ${!brandingConfig.enabled || uploadLogoMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {uploadLogoMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                        Upload Logo
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          disabled={!brandingConfig.enabled || uploadLogoMutation.isPending}
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              uploadLogoMutation.mutate(e.target.files[0]);
+                            }
+                          }}
+                        />
+                      </label>
                     </label>
                     <input
                       type="url"
                       value={brandingConfig.logoUrl}
-                      onChange={(e) => setBrandingConfig({ ...brandingConfig, logoUrl: e.target.value })}
+                      onChange={(e) => {
+                        let url = e.target.value;
+                        const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
+                        if (driveMatch && driveMatch[1]) {
+                          url = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+                          toast.success('Google Drive link converted to direct image URL');
+                        }
+                        setBrandingConfig({ ...brandingConfig, logoUrl: url });
+                      }}
                       disabled={!brandingConfig.enabled}
                       className="w-full h-[44px] bg-white dark:bg-zinc-800 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-[#D97706] focus:border-[#D97706] outline-none transition-shadow text-on-surface dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="https://example.com/logo.png"

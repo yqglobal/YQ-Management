@@ -247,4 +247,38 @@ export class TenantService {
       visits,
     };
   }
+
+  async uploadLogo(tenantId: string, file: Express.Multer.File, baseUrl: string) {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) throw new NotFoundException('Tenant not found');
+
+    const sharp = require('sharp');
+    const fs = require('fs');
+    const path = require('path');
+
+    const uploadDir = path.join(process.cwd(), 'uploads', 'logos');
+    await fs.promises.mkdir(uploadDir, { recursive: true });
+
+    const filename = `tenant-${tenantId}-${Date.now()}.webp`;
+    const filepath = path.join(uploadDir, filename);
+
+    // Resize to max 256x256, maintain aspect ratio, convert to webp to save space
+    await sharp(file.buffer)
+      .resize({ width: 256, height: 256, fit: 'inside' })
+      .webp({ quality: 80 })
+      .toFile(filepath);
+
+    const logoUrl = `${baseUrl}/uploads/logos/${filename}`;
+    
+    // Update tenant branding
+    const branding = tenant.branding ? (typeof tenant.branding === 'string' ? JSON.parse(tenant.branding) : tenant.branding) : {};
+    branding.logoUrl = logoUrl;
+    
+    await this.prisma.tenant.update({
+      where: { id: tenantId },
+      data: { branding },
+    });
+
+    return { logoUrl };
+  }
 }
