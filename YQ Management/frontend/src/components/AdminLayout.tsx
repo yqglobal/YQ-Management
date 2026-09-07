@@ -322,12 +322,23 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                     <button
                       onClick={() => {
                         setPreviewOpen(false);
+                        const locParam = activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : '';
+                        window.open(getTenantUrl(tenant?.subdomain || '', `/tv/${tenant?.id}${locParam}`), '_blank');
+                      }}
+                      className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors text-on-surface"
+                    >
+                      <span className="material-symbols-outlined text-[18px] text-primary">live_tv</span>
+                      Global TV Display
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPreviewOpen(false);
                         setTvModalOpen(true);
                       }}
                       className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors text-on-surface"
                     >
                       <span className="material-symbols-outlined text-[18px] text-primary">tv</span>
-                      TV Display
+                      Specific Queue TV
                     </button>
                     <a
                       href={tenant?.subdomain ? getTenantUrl(tenant.subdomain, `/booking${activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : ''}`) : '#'}
@@ -793,6 +804,21 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
             <p className="text-sm text-on-surface-variant dark:text-zinc-400 mb-6">Choose a queue to display on the TV.</p>
             
             <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+              <button
+                onClick={() => {
+                  setTvModalOpen(false);
+                  const locParam = activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : '';
+                  window.open(getTenantUrl(tenant?.subdomain || '', `/tv/${tenant?.id}${locParam}`), '_blank');
+                }}
+                className="w-full text-left px-4 py-3 rounded-xl border border-border dark:border-dark-border hover:border-primary hover:bg-primary/5 transition-colors font-medium flex justify-between items-center group mb-4"
+              >
+                <div className="flex items-center gap-2 text-primary font-bold">
+                  <span className="material-symbols-outlined text-[18px]">live_tv</span>
+                  All Services (Global Display)
+                </div>
+                <span className="material-symbols-outlined text-[18px] text-primary opacity-0 group-hover:opacity-100 transition-opacity">open_in_new</span>
+              </button>
+
               {(() => {
                 const displayQueues = tenant?.queues?.filter((q: AnyFixMe) => 
                   !activeLocationId || activeLocationId === 'all' || q.locationId === activeLocationId
@@ -908,7 +934,7 @@ function AdvancedPoliciesModal() {
             <div className="space-y-4 text-sm bg-surface-container-lowest dark:bg-black/10 p-5 rounded-2xl border border-border dark:border-dark-border">
               <p><strong>1. Acceptance of Terms:</strong> By accessing and using Qmova, you agree to be bound by these Terms of Service and all applicable laws and regulations.</p>
               <p><strong>2. Use License:</strong> Permission is granted to temporarily use the materials and services on Qmova for personal, non-commercial transitory viewing only.</p>
-              <p><strong>3. Disclaimer:</strong> The materials on Qmova are provided on an 'as is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all other warranties including, without limitation, implied warranties or conditions of merchantability.</p>
+              <p><strong>3. Disclaimer:</strong> The materials on Qmova are provided on an &apos;as is&apos; basis. We make no warranties, expressed or implied, and hereby disclaim and negate all other warranties including, without limitation, implied warranties or conditions of merchantability.</p>
               <p><strong>4. Limitations:</strong> In no event shall Qmova or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on Qmova.</p>
               <p><strong>5. Governing Law:</strong> These terms and conditions are governed by and construed in accordance with the laws of the applicable jurisdiction.</p>
             </div>
