@@ -223,6 +223,7 @@ function LinkRow({ icon, title, description, url, onCopy, onCustomClick }: {
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
         <button
+          type="button"
           onClick={onCopy}
           className="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-container dark:bg-white/5 hover:bg-surface-container-high dark:hover:bg-white/10 border border-border dark:border-dark-border transition-colors text-on-surface-variant"
           title="Copy Link"
@@ -231,6 +232,7 @@ function LinkRow({ icon, title, description, url, onCopy, onCustomClick }: {
         </button>
         {onCustomClick ? (
            <button
+             type="button"
              onClick={onCustomClick}
              className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30 border border-primary/20 transition-colors text-primary"
              title="Open Options"

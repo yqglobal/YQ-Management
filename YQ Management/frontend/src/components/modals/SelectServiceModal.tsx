@@ -154,6 +154,7 @@ export function SelectServiceModal({ isOpen, onClose, tenantId, onSelect, baseUr
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
