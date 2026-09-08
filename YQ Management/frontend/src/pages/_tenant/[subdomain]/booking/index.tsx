@@ -97,47 +97,74 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
     });
   }, [ipCountry, tenant]);
 
-  // Auto-select location/service/queue based on URL query params
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
+
+  // Auto-select location/service/queue based on URL query params & Session Restore
   useEffect(() => {
-    if (!tenant || !router.isReady) return;
+    if (!tenant || !router.isReady || hasAutoSelected) return;
+
+    let restored = false;
+    try {
+      const saved = sessionStorage.getItem('bookingState');
+      if (saved) {
+        const s = JSON.parse(saved);
+        if (s.step) setStep(s.step);
+        if (s.selectedLocationId) setSelectedLocationId(s.selectedLocationId);
+        if (s.name) setName(s.name);
+        if (s.phone) setPhone(s.phone);
+        if (s.selectedServiceIds) setSelectedServiceIds(s.selectedServiceIds);
+        if (s.currentServiceIndex !== undefined) setCurrentServiceIndex(s.currentServiceIndex);
+        if (s.serviceDetails) setServiceDetails(s.serviceDetails);
+        restored = true;
+      }
+    } catch (e) {}
 
     const { locationId, serviceId, queueId } = router.query;
     
-    // Auto-select location
-    if (locationId && typeof locationId === 'string' && tenant?.locations?.some((l: AnyFixMe) => l.id === locationId)) {
-      setSelectedLocationId(locationId);
-      setStep(2); // Skip location step
-    } else if (tenant?.locations && tenant.locations.length === 1) {
-      setSelectedLocationId(tenant.locations[0].id);
-      setStep(2); // Skip location step
-    } else if (!tenant?.locations || tenant.locations.length === 0) {
-      setStep(2); // Skip location step if none exist
-    }
-
-    // Auto-select service & queue
-    if (serviceId && typeof serviceId === 'string') {
-      const s = services.find((x: AnyFixMe) => x.id === serviceId);
-      if (s) {
-        if (s.locationId) setSelectedLocationId(s.locationId);
-        setSelectedServiceIds([serviceId]);
-        if (queueId && typeof queueId === 'string') {
-          const hasQueues = s && s.queues && s.queues.filter(q => q.status === 'ACTIVE').length > 0;
-          setServiceDetails(prev => ({
-            ...prev,
-            [serviceId]: { 
-              ...(prev[serviceId] || {}), 
-              joinMode: hasQueues ? 'immediate' : 'appointment',
-              selectedDate: '',
-              selectedSlot: '',
-              responses: {},
-              queueId 
-            }
-          }));
+    // Explicit URL params override restored state
+    if (locationId || serviceId) {
+      // Auto-select location
+      if (locationId && typeof locationId === 'string' && tenant?.locations?.some((l: AnyFixMe) => l.id === locationId)) {
+        setSelectedLocationId(locationId);
+        setStep(2); // Skip location step
+      }
+      
+      // Auto-select service & queue
+      if (serviceId && typeof serviceId === 'string') {
+        const s = services.find((x: AnyFixMe) => x.id === serviceId);
+        if (s) {
+          if (s.locationId) setSelectedLocationId(s.locationId);
+          setSelectedServiceIds([serviceId]);
+          if (queueId && typeof queueId === 'string') {
+            const hasQueues = s && s.queues && s.queues.filter(q => q.status === 'ACTIVE').length > 0;
+            setServiceDetails(prev => ({
+              ...prev,
+              [serviceId]: { 
+                ...(prev[serviceId] || {}), 
+                joinMode: hasQueues ? 'immediate' : 'appointment',
+                selectedDate: '',
+                selectedSlot: '',
+                responses: {},
+                queueId 
+              }
+            }));
+          }
+          setStep(3); // Jump straight to service details
         }
-        setStep(3); // Jump straight to service details
+      }
+    } else if (!restored) {
+      // Apply defaults only if no state was restored
+      if (tenant?.locations && tenant.locations.length === 1) {
+        setSelectedLocationId(tenant.locations[0].id);
+        setStep(2); // Skip location step
+      } else if (!tenant?.locations || tenant.locations.length === 0) {
+        setStep(2); // Skip location step if none exist
       }
     }
-  }, [tenant, router.query, router.isReady]);
+
+    setHasAutoSelected(true);
+    setIsRestored(true);
+  }, [tenant, router.query, router.isReady, hasAutoSelected]);
 
   
   // State for the per-service dynamic flow
@@ -167,33 +194,18 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const [statusDataMap, setStatusDataMap] = useState<Record<string, AnyFixMe>>({});
 
 
-  // Session Restore
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = sessionStorage.getItem('bookingState');
-        if (saved) {
-          const s = JSON.parse(saved);
-          if (s.step) setStep(s.step);
-          if (s.selectedLocationId) setSelectedLocationId(s.selectedLocationId);
-          if (s.name) setName(s.name);
-          if (s.phone) setPhone(s.phone);
-          if (s.selectedServiceIds) setSelectedServiceIds(s.selectedServiceIds);
-          if (s.currentServiceIndex) setCurrentServiceIndex(s.currentServiceIndex);
-          if (s.serviceDetails) setServiceDetails(s.serviceDetails);
-        }
-      } catch (e) {}
-    }
-  }, []);
+  const [isRestored, setIsRestored] = useState(false);
+
+  // Session Restore handled in the auto-select effect above
 
   // Session Save
   useEffect(() => {
-    if (typeof window !== 'undefined' && step < 5) {
+    if (isRestored && typeof window !== 'undefined' && step < 5) {
       sessionStorage.setItem('bookingState', JSON.stringify({
         step, selectedLocationId, name, phone, selectedServiceIds, currentServiceIndex, serviceDetails
       }));
     }
-  }, [step, selectedLocationId, name, phone, selectedServiceIds, currentServiceIndex, serviceDetails]);
+  }, [isRestored, step, selectedLocationId, name, phone, selectedServiceIds, currentServiceIndex, serviceDetails]);
 
 
 
@@ -459,7 +471,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
       router.push(
         {
           pathname: '/_tenant/[subdomain]/booking/status',
-          query: queryObj,
+          query: { subdomain: router.query.subdomain as string, tokens: tokenStr },
         },
         targetUrl
       );
@@ -755,7 +767,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                 {errorMsg && <p className="text-red-500 text-sm font-medium text-center bg-red-50 dark:bg-red-950/30 p-3 rounded-lg">{errorMsg}</p>}
 
                 <button type="submit" className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95" style={{ backgroundColor: primaryColor }}>
-                  {currentServiceIndex < selectedServiceIds.length - 1 ? 'Next Service' : 'Complete Booking'}
+                  {currentServiceIndex < selectedServiceIds.length - 1 ? 'Next Service' : 'Continue'}
                 </button>
               </form>
             </motion.div>
