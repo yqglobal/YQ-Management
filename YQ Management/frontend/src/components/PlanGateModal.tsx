@@ -191,7 +191,11 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
             <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className={`grid grid-cols-1 md:grid-cols-2 ${
+            (freePlan ? 1 : 0) + paidPlans.length === 1 ? 'max-w-sm mx-auto' : 
+            (freePlan ? 1 : 0) + paidPlans.length === 2 ? 'max-w-2xl mx-auto' : 
+            'lg:grid-cols-3'
+          } gap-5 w-full`}>
             {/* Free Trial card first */}
             {freePlan && (
               <div className="relative flex flex-col p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-white/20 transition-all group">

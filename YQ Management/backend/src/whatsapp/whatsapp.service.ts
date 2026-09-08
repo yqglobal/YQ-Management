@@ -1527,9 +1527,51 @@ export class WhatsappService implements OnModuleInit {
         return { ignored: true };
       }
 
+      // 1) ALWAYS LOG INCOMING MESSAGE TO INBOX, REGARDLESS OF CHATBOT SETTINGS
+      const conversation = await this.prisma.customerConversation.upsert({
+        where: {
+          tenantId_customerPhone: {
+            tenantId: tenant.id,
+            customerPhone: phone,
+          },
+        },
+        update: {
+          lastMessageAt: new Date(),
+          unreadCount: { increment: 1 },
+          status: 'OPEN',
+        },
+        create: {
+          tenantId: tenant.id,
+          customerPhone: phone,
+          status: 'OPEN',
+          unreadCount: 1,
+        },
+      });
+
+      await this.prisma.message.create({
+        data: {
+          tenantId: tenant.id,
+          customerPhone: phone,
+          conversationId: conversation.id,
+          body: rawText,
+          sender: 'CUSTOMER',
+          isRead: false,
+        },
+      });
+
+      this.redisService.client.publish(
+        'queue_events',
+        JSON.stringify({
+          type: 'NEW_INBOX_MESSAGE',
+          tenantId: tenant.id,
+          phone,
+        }),
+      );
+
+      // 2) GATING FOR CHATBOT
       if (!tenant.chatbotEnabled) {
         this.logger.debug(`Chatbot disabled for tenant ${tenant.id}`);
-        return { ignored: true };
+        return { handled: true, action: 'logged_only' };
       }
 
       const subscription = tenant.subscriptions?.[0];
@@ -1551,7 +1593,7 @@ export class WhatsappService implements OnModuleInit {
         this.logger.debug(
           `Chatbot blocked by subscription plan for tenant ${tenant.id}`,
         );
-        return { ignored: true };
+        return { handled: true, action: 'logged_only' };
       }
 
       // Delegate to chatbot state machine
@@ -1559,57 +1601,33 @@ export class WhatsappService implements OnModuleInit {
         this.prisma,
         async (jidToSend, textToSend) => {
           await this.sendMessage(instanceName, jidToSend, textToSend);
+          
+          // Log outgoing bot message to Inbox
+          await this.prisma.message.create({
+            data: {
+              tenantId: tenant.id,
+              customerPhone: phone,
+              conversationId: conversation.id,
+              body: textToSend,
+              sender: 'SYSTEM', // Treating Bot as SYSTEM to show badge in UI
+              isRead: true,
+            },
+          });
+          
+          this.redisService.client.publish(
+            'queue_events',
+            JSON.stringify({
+              type: 'NEW_INBOX_MESSAGE',
+              tenantId: tenant.id,
+              phone,
+            }),
+          );
         },
         this.serviceService,
         this.appointmentService,
       );
-      const botResult = await bot.process(tenant, phone, jid, rawText);
-
-      // If the bot says human is handling it (or they just requested a human), log the message!
-      if (botResult.isHumanPaused) {
-        // Upsert CustomerConversation
-        const conversation = await this.prisma.customerConversation.upsert({
-          where: {
-            tenantId_customerPhone: {
-              tenantId: tenant.id,
-              customerPhone: phone,
-            },
-          },
-          update: {
-            lastMessageAt: new Date(),
-            unreadCount: { increment: 1 },
-            status: 'OPEN',
-          },
-          create: {
-            tenantId: tenant.id,
-            customerPhone: phone,
-            status: 'OPEN',
-            unreadCount: 1,
-          },
-        });
-
-        // Store the incoming message for the Inbox UI
-        await this.prisma.message.create({
-          data: {
-            tenantId: tenant.id,
-            customerPhone: phone,
-            conversationId: conversation.id,
-            body: rawText,
-            sender: 'CUSTOMER',
-            isRead: false,
-          },
-        });
-
-        // Notify any open dashboard websockets about a new inbox message
-        this.redisService.client.publish(
-          'queue_events',
-          JSON.stringify({
-            type: 'NEW_INBOX_MESSAGE',
-            tenantId: tenant.id,
-            phone,
-          }),
-        );
-      }
+      
+      await bot.process(tenant, phone, jid, rawText);
 
       return { handled: true, action: 'chatbot' };
     } catch (e) {

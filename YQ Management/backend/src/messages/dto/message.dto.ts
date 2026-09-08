@@ -15,4 +15,12 @@ export class SendMessageDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  media?: string;
+
+  @IsOptional()
+  @IsString()
+  mediaType?: string;
 }

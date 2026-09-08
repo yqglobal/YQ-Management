@@ -119,7 +119,7 @@ export class MessagesService {
     return message;
   }
 
-  async sendInboxMessage(tenantId: string, phone: string, text: string) {
+  async sendInboxMessage(tenantId: string, phone: string, text: string, media?: string, mediaType?: string) {
     // Upsert conversation to keep it active
     const conversation = await this.prisma.customerConversation.upsert({
       where: { tenantId_customerPhone: { tenantId, customerPhone: phone } },
@@ -132,17 +132,23 @@ export class MessagesService {
       },
     });
 
+    const bodyText = media ? (text ? `[Media Attachment] ${text}` : '[Media Attachment]') : text;
+
     const message = await this.prisma.message.create({
       data: {
         tenantId,
         customerPhone: phone,
         conversationId: conversation.id,
-        body: text,
+        body: bodyText,
         sender: 'OPERATOR',
       },
     });
 
-    await this.notificationsService.sendWhatsAppMessage(phone, text, tenantId, message.id);
+    if (media && mediaType) {
+      await this.whatsappService.sendMediaToTenant(tenantId, phone, media, mediaType, text);
+    } else {
+      await this.notificationsService.sendWhatsAppMessage(phone, text, tenantId, message.id);
+    }
 
     this.redisService.client.publish(
       'queue_events',

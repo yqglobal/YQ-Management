@@ -69,6 +69,8 @@ export class MessagesController {
       req.user.tenantId,
       phone,
       body.text,
+      body.media,
+      body.mediaType,
     );
   }
 

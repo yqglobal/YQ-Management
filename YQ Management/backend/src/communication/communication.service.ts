@@ -292,7 +292,7 @@ export class CommunicationService {
     const { phone, otp } = payload;
     if (!phone) return;
 
-    const body = this.templateService.renderWhatsApp('otp', { otp });
+    const body = await this.templateService.renderWhatsAppForWorkspace(payload.tenantId, 'otp', { otp });
     const result = payload.tenantId
       ? await this.whatsappService.sendToTenant(payload.tenantId, phone, body)
       : { success: false, error: 'No tenant context for WhatsApp' };
@@ -318,7 +318,7 @@ export class CommunicationService {
     if (!phone) return;
 
     const link = `${process.env.APP_URL ? (process.env.APP_URL.startsWith('http') ? process.env.APP_URL : 'https://' + process.env.APP_URL) : 'http://localhost:3001'}/customer/status/${tokenId}`;
-    const body = this.templateService.renderWhatsApp('queue_joined', {
+    const body = await this.templateService.renderWhatsAppForWorkspace(payload.tenantId, 'queue_joined', {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
       position: position || '1',
@@ -372,7 +372,7 @@ export class CommunicationService {
     const { phone, name, queueName, position, waitTime } = payload;
     if (!phone) return;
 
-    const body = this.templateService.renderWhatsApp('position_update', {
+    const body = await this.templateService.renderWhatsAppForWorkspace(payload.tenantId, 'position_update', {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
       position: String(position || '1'),
@@ -401,7 +401,7 @@ export class CommunicationService {
     const { phone, name, queueName } = payload;
     if (!phone) return;
 
-    const body = this.templateService.renderWhatsApp('now_serving', {
+    const body = await this.templateService.renderWhatsAppForWorkspace(payload.tenantId, 'now_serving', {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
     });
@@ -428,7 +428,7 @@ export class CommunicationService {
     const { phone, name, queueName, waitTime } = payload;
     if (!phone) return;
 
-    const body = this.templateService.renderWhatsApp('delay', {
+    const body = await this.templateService.renderWhatsAppForWorkspace(payload.tenantId, 'delay', {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
       wait_time: String(waitTime || '10'),
@@ -456,7 +456,7 @@ export class CommunicationService {
     const { phone, name, queueName } = payload;
     if (!phone) return;
 
-    const body = this.templateService.renderWhatsApp('queue_closed', {
+    const body = await this.templateService.renderWhatsAppForWorkspace(payload.tenantId, 'queue_closed', {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
     });
@@ -483,7 +483,7 @@ export class CommunicationService {
     const { phone, name, queueName } = payload;
     if (!phone) return;
 
-    const body = this.templateService.renderWhatsApp('queue_cancelled', {
+    const body = await this.templateService.renderWhatsAppForWorkspace(payload.tenantId, 'queue_cancelled', {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
     });
@@ -510,7 +510,7 @@ export class CommunicationService {
     const { phone, name, queueName } = payload;
     if (!phone) return;
 
-    const body = this.templateService.renderWhatsApp('feedback', {
+    const body = await this.templateService.renderWhatsAppForWorkspace(payload.tenantId, 'feedback', {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
     });
@@ -537,7 +537,7 @@ export class CommunicationService {
     const { phone, name, queueName } = payload;
     if (!phone) return;
 
-    const body = this.templateService.renderWhatsApp('queue_joined', {
+    const body = await this.templateService.renderWhatsAppForWorkspace(payload.tenantId, 'queue_joined', {
       name: name || 'Customer',
       queue_name: queueName || 'the queue',
       position: '1',
@@ -566,7 +566,7 @@ export class CommunicationService {
     const { phone, newQueueName } = payload;
     if (!phone) return;
 
-    const body = this.templateService.renderWhatsApp('queue_cancelled', {
+    const body = await this.templateService.renderWhatsAppForWorkspace(payload.tenantId, 'queue_cancelled', {
       name: 'Customer',
       queue_name: newQueueName || 'a new queue',
     });
