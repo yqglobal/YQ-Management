@@ -583,17 +583,17 @@ export default function ServiceDeskToday() {
                 </div>
               </div>
               
-              <div className="flex items-center justify-between mt-1 pt-2 border-t border-border/50 text-xs">
+              <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-border/50 text-xs">
                 <div className="flex items-center gap-1 text-outline">
                   <span className="font-medium text-on-surface dark:text-white">Service:</span>
-                  <span className="truncate max-w-[100px]">{selectedVisit.service?.name || 'General'}</span>
+                  <span className="truncate max-w-full">{selectedVisit.service?.name || 'General'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-on-surface dark:text-white">Provider:</span>
                   <select 
                     value={selectedVisit.resourceId || ''}
                     onChange={(e) => updateVisitMutation.mutate({ id: selectedVisit.id, resourceId: e.target.value })}
-                    className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded text-xs py-0.5 px-1 max-w-[100px] outline-none"
+                    className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded text-xs py-1 px-2 flex-1 outline-none"
                   >
                     <option value="">Unassigned</option>
                     {resources.map((r: AnyFixMe) => (
