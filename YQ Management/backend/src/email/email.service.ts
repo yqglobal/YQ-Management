@@ -491,10 +491,27 @@ export class EmailService {
     );
   }
 
-  async sendSubscriptionCancelledEmail(email: string, planName: string) {
+  async sendSubscriptionAssignedEmail(email: string, planName: string, isFree: boolean) {
+    const subject = 'Your Qmova Plan Has Been Assigned';
+    const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Plan Assigned Successfully</h2>
+    <p style="color: #4b5563; line-height: 1.6;">An administrator has assigned the <strong>${planName}</strong> plan to your workspace.</p>
+    ${isFree ? `<p style="color: #4b5563; line-height: 1.6;">This subscription has been granted to you for free, and you will not be billed.</p>` : ''}
+    <p style="color: #4b5563; line-height: 1.6;">Enjoy the premium features of Qmova. You can review your billing details in the dashboard settings.</p>
+    ${generateButtonHtml('View Billing', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}
+    <p style="color: #4b5563; line-height: 1.6; font-size: 14px; margin-top: 20px;">If you have any questions, please reach out to our support team.</p>`;
+    await this.sendEmail(
+      email,
+      subject,
+      'Subscription Assigned',
+      `You have been granted access to the ${planName} plan`,
+      content,
+    );
+  }
+
+  async sendSubscriptionCancelledEmail(email: string, planName: string, cancelledByAdmin: boolean = false) {
     const subject = 'Subscription Cancelled';
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Subscription Cancelled</h2>
-    <p style="color: #4b5563; line-height: 1.6;">Your subscription to the <strong>${planName}</strong> plan has been cancelled.</p>
+    <p style="color: #4b5563; line-height: 1.6;">${cancelledByAdmin ? `An administrator has cancelled your subscription to the <strong>${planName}</strong> plan.` : `Your subscription to the <strong>${planName}</strong> plan has been cancelled.`}</p>
     <p style="color: #4b5563; line-height: 1.6;">You will continue to have access until the end of your current billing period. If this was a mistake, you can always renew your plan from the billing settings.</p>
     ${generateButtonHtml('Manage Billing', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
     await this.sendEmail(

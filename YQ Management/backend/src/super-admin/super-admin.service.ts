@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class SuperAdminService {
+  private readonly logger = new Logger(SuperAdminService.name);
   private systemToggles: Record<string, boolean> = {
     keepAliveBackend: true,
     keepAliveWhatsapp: true,
@@ -14,7 +16,10 @@ export class SuperAdminService {
     automatedWebhooks: true,
   };
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly emailService: EmailService
+  ) {}
 
   getSystemToggles() {
     return this.systemToggles;
@@ -612,7 +617,11 @@ export class SuperAdminService {
     });
   }
 
-  async assignPlanToTenant(tenantId: string, planId: string) {
+  async assignPlanToTenant(
+    tenantId: string,
+    planId: string,
+    options?: { billingInterval?: string; customEndDate?: string; isFree?: boolean }
+  ) {
     const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
     if (!plan) throw new Error('Plan not found');
 
@@ -622,16 +631,73 @@ export class SuperAdminService {
       data: { status: 'CANCELLED', cancellationDate: new Date() },
     });
 
+    const isFree = options?.isFree ?? false;
+    const interval = options?.billingInterval || plan.billingInterval || 'MONTHLY';
+    
+    let currentPeriodEnd = new Date();
+    if (options?.customEndDate) {
+      currentPeriodEnd = new Date(options.customEndDate);
+    } else {
+      const periodMs = interval === 'YEARLY' ? 365 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+      currentPeriodEnd = new Date(Date.now() + periodMs);
+    }
+
     // Create new subscription
-    return this.prisma.subscription.create({
+    const sub = await this.prisma.subscription.create({
       data: {
         tenantId,
         planId,
         status: 'ACTIVE',
+        billingInterval: interval,
         currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // simplistic next billing 30 days
+        currentPeriodEnd,
+        nextBillingDate: isFree ? null : currentPeriodEnd, // No billing if free
+        metadata: { assignedByAdmin: true, isFree },
       },
     });
+
+    try {
+      const owner = await this.prisma.user.findFirst({
+        where: { tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+        select: { email: true },
+      });
+      if (owner?.email) {
+        await this.emailService.sendSubscriptionAssignedEmail(owner.email, plan.name, isFree);
+      }
+    } catch (e) {
+      this.logger.error(`Failed to send assigned email`, e);
+    }
+
+    return sub;
+  }
+
+  async cancelTenantPlan(tenantId: string) {
+    const activeSub = await this.prisma.subscription.findFirst({
+      where: { tenantId, status: { in: ['ACTIVE', 'TRIAL'] } },
+      include: { plan: true },
+    });
+
+    if (!activeSub) {
+      throw new Error('No active subscription found to cancel');
+    }
+
+    const updatedSub = await this.prisma.subscription.update({
+      where: { id: activeSub.id },
+      data: { status: 'CANCELLED', cancellationDate: new Date() },
+    });
+
+    try {
+      const owner = await this.prisma.user.findFirst({
+        where: { tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+        select: { email: true },
+      });
+      if (owner?.email) {
+        await this.emailService.sendSubscriptionCancelledEmail(owner.email, activeSub.plan?.name || 'Your Plan', true);
+      }
+    } catch (e) {
+      this.logger.error(`Failed to send cancellation email`, e);
+    }
+
+    return updatedSub;
   }
 }

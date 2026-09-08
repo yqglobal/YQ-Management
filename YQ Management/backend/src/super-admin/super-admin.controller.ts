@@ -175,10 +175,20 @@ export class SuperAdminController {
   async assignPlan(
     @Req() req: any,
     @Param('id') tenantId: string,
-    @Body() body: { planId: string },
+    @Body() body: { planId: string; billingInterval?: string; customEndDate?: string; isFree?: boolean },
   ) {
     this.checkSuperAdmin(req);
-    return this.superAdminService.assignPlanToTenant(tenantId, body.planId);
+    return this.superAdminService.assignPlanToTenant(tenantId, body.planId, {
+      billingInterval: body.billingInterval,
+      customEndDate: body.customEndDate,
+      isFree: body.isFree,
+    });
+  }
+
+  @Post('tenants/:id/cancel-plan')
+  async cancelPlan(@Req() req: any, @Param('id') tenantId: string) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.cancelTenantPlan(tenantId);
   }
 
   @Post('plans/:id/duplicate')

@@ -22,6 +22,9 @@ export default function SuperAdminTenantDetail() {
 
   const [showAssignPlanModal, setShowAssignPlanModal] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState('');
+  const [billingInterval, setBillingInterval] = useState('MONTHLY');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [isFree, setIsFree] = useState(false);
 
   const { data: plans, isLoading: plansLoading } = useQuery({
     queryKey: ['super-admin-plans', 'ACTIVE'],
@@ -29,13 +32,23 @@ export default function SuperAdminTenantDetail() {
   });
 
   const assignPlanMutation = useMutation({
-    mutationFn: (planId: string) => fetchApi(`/super-admin/tenants/${id}/assign-plan`, { method: 'POST', body: JSON.stringify({ planId }) }),
+    mutationFn: (data: { planId: string; billingInterval: string; customEndDate: string; isFree: boolean }) => 
+      fetchApi(`/super-admin/tenants/${id}/assign-plan`, { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
       toast.success('Plan assigned successfully');
       setShowAssignPlanModal(false);
       queryClient.invalidateQueries({ queryKey: ['super-admin-tenant', id] });
     },
     onError: () => toast.error('Failed to assign plan'),
+  });
+
+  const cancelPlanMutation = useMutation({
+    mutationFn: () => fetchApi(`/super-admin/tenants/${id}/cancel-plan`, { method: 'POST' }),
+    onSuccess: () => {
+      toast.success('Plan cancelled successfully');
+      queryClient.invalidateQueries({ queryKey: ['super-admin-tenant', id] });
+    },
+    onError: () => toast.error('Failed to cancel plan'),
   });
 
   const deleteTenantMutation = useMutation({
@@ -46,6 +59,12 @@ export default function SuperAdminTenantDetail() {
     },
     onError: () => toast.error('Failed to remove tenant'),
   });
+
+  const handleCancelPlan = () => {
+    if (confirm("Are you sure you want to cancel this tenant's active plan?")) {
+      cancelPlanMutation.mutate();
+    }
+  };
 
   const handleDelete = () => {
     if (confirm('Are you sure you want to remove this tenant? This action cannot be undone.')) {
@@ -271,6 +290,17 @@ export default function SuperAdminTenantDetail() {
           >
             <CreditCard className="w-4 h-4" /> Assign Plan
           </button>
+          
+          {(tenant.subscriptionStatus === 'ACTIVE' || tenant.subscriptionStatus === 'TRIAL') && (
+            <button 
+              onClick={handleCancelPlan}
+              disabled={cancelPlanMutation.isPending}
+              className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+            >
+              <XCircle className="w-4 h-4" /> Cancel Plan
+            </button>
+          )}
+
           <button className="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2" onClick={handleDelete}>
             <Trash2 className="w-4 h-4" /> Remove Business
           </button>
@@ -305,7 +335,44 @@ export default function SuperAdminTenantDetail() {
                   ))}
                 </select>
               )}
-              <p className="text-xs text-gray-500 dark:text-zinc-400">
+              
+              <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mt-4">Billing Interval</label>
+              <select
+                value={billingInterval}
+                onChange={(e) => setBillingInterval(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+              >
+                <option value="MONTHLY">Monthly</option>
+                <option value="YEARLY">Yearly</option>
+                <option value="CUSTOM">Custom Expiry</option>
+              </select>
+
+              {billingInterval === 'CUSTOM' && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300">Custom Expiry Date</label>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none mt-1"
+                  />
+                </div>
+              )}
+
+              <div className="mt-4 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isFreeToggle"
+                  checked={isFree}
+                  onChange={(e) => setIsFree(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                />
+                <label htmlFor="isFreeToggle" className="text-sm font-medium text-gray-700 dark:text-zinc-300">
+                  Grant for Free (Do not bill this tenant)
+                </label>
+              </div>
+
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-4">
                 This will immediately cancel any existing active or trial subscriptions and grant access to the selected plan.
               </p>
             </div>
@@ -319,9 +386,9 @@ export default function SuperAdminTenantDetail() {
               </button>
               <button 
                 onClick={() => {
-                  if (selectedPlanId) assignPlanMutation.mutate(selectedPlanId);
+                  if (selectedPlanId) assignPlanMutation.mutate({ planId: selectedPlanId, billingInterval, customEndDate, isFree });
                 }}
-                disabled={!selectedPlanId || assignPlanMutation.isPending}
+                disabled={!selectedPlanId || assignPlanMutation.isPending || (billingInterval === 'CUSTOM' && !customEndDate)}
                 className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
               >
                 {assignPlanMutation.isPending ? 'Assigning...' : 'Confirm Assignment'}

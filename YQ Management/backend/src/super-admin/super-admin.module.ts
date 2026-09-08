@@ -4,9 +4,10 @@ import { SuperAdminService } from './super-admin.service';
 import { PaymentsModule } from '../payments/payments.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [PaymentsModule, PrismaModule, WhatsappModule],
+  imports: [PaymentsModule, PrismaModule, WhatsappModule, EmailModule],
   controllers: [SuperAdminController],
   providers: [SuperAdminService],
   exports: [SuperAdminService],
