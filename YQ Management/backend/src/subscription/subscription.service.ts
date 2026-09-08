@@ -441,13 +441,17 @@ export class SubscriptionService {
       where: { tenantId },
     });
 
-    if (
-      existing &&
-      existing.status !== SubscriptionStatus.EXPIRED &&
-      existing.status !== SubscriptionStatus.CANCELLED
-    ) {
+    if (existing) {
+      if (
+        existing.status !== SubscriptionStatus.EXPIRED &&
+        existing.status !== SubscriptionStatus.CANCELLED
+      ) {
+        throw new BillingException(
+          'Workspace already has an active subscription',
+        );
+      }
       throw new BillingException(
-        'Workspace already has an active subscription',
+        'Trial has already been used for this workspace. Please select a paid plan.',
       );
     }
 

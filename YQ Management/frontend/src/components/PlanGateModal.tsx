@@ -89,7 +89,7 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
   }, [paymentData]);
 
   const nonEnterprisePlans = (plans as AnyFixMe[]).filter((p: AnyFixMe) => !p.name.toLowerCase().includes('enterprise'));
-  const freePlan = nonEnterprisePlans.find((p: AnyFixMe) => p.price === 0);
+  const freePlan = mode === 'expired' ? null : nonEnterprisePlans.find((p: AnyFixMe) => p.price === 0);
   const paidPlans = nonEnterprisePlans.filter((p: AnyFixMe) => p.price > 0);
 
   const handleStartTrial = (planId: string) => {
@@ -115,7 +115,7 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px] animate-pulse pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-600/10 rounded-full blur-[100px] animate-pulse pointer-events-none" style={{ animationDelay: '1s' }} />
 
-      <div className="relative z-10 w-full max-w-4xl mx-4 max-h-[95vh] overflow-y-auto flex flex-col gap-8 py-8 px-4 md:px-6">
+      <div className="relative z-10 w-full max-w-4xl mx-4 max-h-[95vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] flex flex-col gap-8 py-8 px-4 md:px-6">
         {!showForcedTrial && (
           <button onClick={() => setShowForcedTrial(true)} className="absolute top-4 right-4 md:top-6 md:right-6 p-2 text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-all border border-white/5" title="Close">
             <span className="material-symbols-outlined text-[20px]">close</span>
@@ -127,21 +127,27 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 mb-6 shadow-xl shadow-amber-500/10">
               <span className="material-symbols-outlined text-[32px]">warning</span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Trial Will Start Automatically</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+              {mode === 'expired' ? 'Action Required' : 'Trial Will Start Automatically'}
+            </h2>
             <p className="text-zinc-400 mb-8 leading-relaxed">
-              If you don't select a plan now, your 14-day free trial will begin immediately. The platform remains locked without an active plan or trial.
+              {mode === 'expired' 
+                ? 'Your trial plan has expired. You must select a paid plan to continue using the platform.'
+                : "If you don't select a plan now, your 14-day free trial will begin immediately. The platform remains locked without an active plan or trial."}
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
               <button onClick={() => setShowForcedTrial(false)} className="w-full h-12 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold transition-all">
                 Choose a Plan
               </button>
-              <button 
-                onClick={() => { setTrialAgreed(true); freePlan && handleStartTrial(freePlan.id); }} 
-                disabled={trialMutation.isPending} 
-                className="w-full h-12 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
-              >
-                {trialMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Accept Trial'}
-              </button>
+              {mode !== 'expired' && (
+                <button 
+                  onClick={() => { setTrialAgreed(true); freePlan && handleStartTrial(freePlan.id); }} 
+                  disabled={trialMutation.isPending} 
+                  className="w-full h-12 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
+                >
+                  {trialMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Accept Trial'}
+                </button>
+              )}
             </div>
           </div>
         ) : (
