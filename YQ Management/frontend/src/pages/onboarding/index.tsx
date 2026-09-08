@@ -11,7 +11,6 @@ import useWhatsapp from '../../hooks/useWhatsapp';
 import { motion, AnimatePresence } from 'framer-motion';
 import Confetti from 'react-confetti';
 import { useAuth } from '../../components/AuthContext';
-import Link from 'next/link';
 
 import { countryCodes as allCountryCodes } from '../../lib/country-codes';
 
@@ -298,6 +297,27 @@ export default function Onboarding() {
   };
 
   useEffect(() => {
+
+  // --- Premium UI: Data Prefilling ---
+  useEffect(() => {
+    if (user && !localStorage.getItem('onboarding_form_data')) {
+      if (user.name && !fullName) setFullName(user.name);
+      if (user.tenant?.name && !companyName) {
+        setCompanyName(user.tenant.name);
+      } else if (user.email && !companyName) {
+        const domain = user.email.split('@')[1];
+        if (domain && !['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com'].includes(domain.toLowerCase())) {
+          const companyStr = domain.split('.')[0];
+          setCompanyName(companyStr.charAt(0).toUpperCase() + companyStr.slice(1));
+        }
+      }
+      if (user.phone && !phone) {
+        setPhone(user.phone);
+      }
+    }
+  }, [user]);
+  // ------------------------------------
+
     if (typeof window !== 'undefined') {
       const code = (router.query.inviteCode || router.query.code || localStorage.getItem('qmova_invite_code')) as string;
       if (typeof code === 'string' && code.trim()) {
@@ -574,7 +594,7 @@ export default function Onboarding() {
           <div className="w-20 h-20 bg-primary/10 dark:bg-sky-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="w-10 h-10 text-primary dark:text-sky-500" />
           </div>
-          <h1 className="text-2xl font-bold text-on-surface dark:text-white mb-3">You're already set up!</h1>
+          <h1 className="text-2xl font-bold text-on-surface dark:text-white mb-3">You&apos;re already set up!</h1>
           <p className="text-on-surface-variant dark:text-outline mb-8">
             Your workspace has already been created and onboarding is complete. Redirecting you to the dashboard...
           </p>
@@ -586,12 +606,20 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-surface dark:bg-[#0a0a0a] flex flex-col items-center justify-center p-4 relative overflow-x-hidden font-sans selection:bg-primary/20">
-      {showConfetti && <Confetti width={typeof window !== 'undefined' ? window.innerWidth : 1000} height={typeof window !== 'undefined' ? window.innerHeight : 1000} recycle={false} numberOfPieces={500} gravity={0.15} />}
+      
+      {/* Premium UI Background Glows */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px] dark:bg-sky-500/20 mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-[30%] -right-[10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '10s' }} />
+        <div className="absolute -bottom-[20%] left-[20%] w-[60%] h-[60%] rounded-full bg-sky-400/10 blur-[120px] dark:bg-sky-400/10 mix-blend-screen animate-pulse" style={{ animationDuration: '12s' }} />
+      </div>
+
+      {showConfetti && <Confetti width={typeof window !== 'undefined' ? window.innerWidth : 1000} height={typeof window !== 'undefined' ? window.innerHeight : 1000} recycle={false} numberOfPieces={500} gravity={0.15} zIndex={100} />}
       <Head>
         <title>Onboarding | Qmova</title>
       </Head>
 
-      <main className="w-full max-w-2xl bg-card dark:bg-dark-card rounded-[2.5rem] border border-border dark:border-dark-border shadow-sm p-8 md:p-12 relative overflow-hidden my-12">
+      <main className="w-full max-w-2xl bg-white/70 dark:bg-[#121212]/80 backdrop-blur-3xl rounded-[2.5rem] border border-white/40 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-8 md:p-12 relative z-10 overflow-hidden my-12">
         {/* Progress Tracker */}
         <div className="flex gap-2 mb-10 w-full max-w-[200px] mx-auto">
           {Array.from({ length: totalSteps }).map((_, i) => (
@@ -621,8 +649,8 @@ export default function Onboarding() {
                 </h1>
                 <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline max-w-lg mx-auto">
                   {inviteCode
-                    ? "Let's save your personal profile details before entering your workspace."
-                    : "Let's start by getting to know you and your business."}
+                    ? "Let&apos;s save your personal profile details before entering your workspace."
+                    : "Let&apos;s start by getting to know you and your business."}
                 </p>
               </header>
 
@@ -633,7 +661,7 @@ export default function Onboarding() {
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant"
+                    className="w-full h-[56px] px-4 rounded-xl border border-white/40 dark:border-white/10 bg-white/50 dark:bg-black/40 backdrop-blur-md focus:bg-white dark:focus:bg-black focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-300 font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant shadow-inner"
                     placeholder="Jane Doe"
                   />
                 </div>
@@ -657,7 +685,7 @@ export default function Onboarding() {
                         type="text"
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
-                        className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant"
+                        className="w-full h-[56px] px-4 rounded-xl border border-white/40 dark:border-white/10 bg-white/50 dark:bg-black/40 backdrop-blur-md focus:bg-white dark:focus:bg-black focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-300 font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant shadow-inner"
                         placeholder="Acme Corp"
                       />
                       {companyName.length > 0 && (
@@ -672,7 +700,7 @@ export default function Onboarding() {
 
                 <div className="space-y-2">
                   <label className="font-body-md font-medium text-on-surface dark:text-white block">Phone Number</label>
-                  <div className="flex h-[56px] rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 overflow-hidden focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-shadow">
+                  <div className="flex h-[56px] rounded-xl border border-white/40 dark:border-white/10 bg-white/50 dark:bg-black/40 backdrop-blur-md overflow-hidden focus-within:bg-white dark:focus-within:bg-black focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-300 shadow-inner">
                     <select
                       value={selectedCountryIso}
                       onChange={(e) => {
@@ -704,7 +732,7 @@ export default function Onboarding() {
                   <select
                     value={timezone}
                     onChange={(e) => setTimezone(e.target.value)}
-                    className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white"
+                    className="w-full h-[56px] px-4 rounded-xl border border-white/40 dark:border-white/10 bg-white/50 dark:bg-black/40 backdrop-blur-md focus:bg-white dark:focus:bg-black focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-300 font-body-lg text-on-surface dark:text-white shadow-inner"
                   >
                     {Intl.supportedValuesOf('timeZone').map((tz) => (
                       <option key={tz} value={tz}>{tz}</option>
@@ -714,14 +742,14 @@ export default function Onboarding() {
               </div>
 
               <div className="pt-8 mt-2 border-t border-border dark:border-dark-border flex justify-end">
-                <button
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => savePersonalInfoMutation.mutate()}
                   disabled={savePersonalInfoMutation.isPending || !fullName || (!inviteCode && !companyName)}
                   className="w-full sm:w-auto min-h-[44px] px-8 rounded-lg font-body-md font-medium bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {savePersonalInfoMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue'}
                   {!savePersonalInfoMutation.isPending && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           )}
@@ -740,7 +768,7 @@ export default function Onboarding() {
                   Operating Model Selection
                 </h1>
                 <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline max-w-lg mx-auto">
-                  What kind of business are you running? We'll tailor your queues.
+                  What kind of business are you running? We&apos;ll tailor your queues.
                 </p>
               </header>
 
@@ -749,7 +777,7 @@ export default function Onboarding() {
                   const Icon = template.icon;
                   const isSelected = selectedType === template.id;
                   return (
-                    <label 
+                    <motion.label whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       key={template.id}
                       onClick={() => setSelectedType(template.id)}
                       className={`relative flex cursor-pointer rounded-2xl border p-5 transition-all ${
@@ -781,7 +809,7 @@ export default function Onboarding() {
                           </div>
                         </div>
                       </div>
-                    </label>
+                    </motion.label>
                   );
                 })}
               </div>
@@ -794,7 +822,7 @@ export default function Onboarding() {
                       type="text"
                       value={locationName}
                       onChange={(e) => setLocationName(e.target.value)}
-                      className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white"
+                      className="w-full h-[56px] px-4 rounded-xl border border-white/40 dark:border-white/10 bg-white/50 dark:bg-black/40 backdrop-blur-md focus:bg-white dark:focus:bg-black focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-300 font-body-lg text-on-surface dark:text-white shadow-inner"
                       placeholder="e.g., Downtown Clinic, Main Branch"
                     />
                   </div>
@@ -804,13 +832,13 @@ export default function Onboarding() {
                       type="text"
                       value={locationAddress}
                       onChange={(e) => setLocationAddress(e.target.value)}
-                      className="w-full h-[56px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant"
+                      className="w-full h-[56px] px-4 rounded-xl border border-white/40 dark:border-white/10 bg-white/50 dark:bg-black/40 backdrop-blur-md focus:bg-white dark:focus:bg-black focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-300 font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant shadow-inner"
                       placeholder="e.g., 123 Main St, Cityville"
                     />
                   </div>
                 </div>
                 
-                <label className="flex items-center gap-4 p-4 rounded-xl border border-border dark:border-dark-border bg-surface-bright dark:bg-zinc-900 cursor-pointer">
+                <motion.label whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="flex items-center gap-4 p-4 rounded-xl border border-border dark:border-dark-border bg-surface-bright dark:bg-zinc-900 cursor-pointer">
                   <div className="flex items-center justify-center w-6 h-6">
                     <input 
                       type="checkbox" 
@@ -823,13 +851,13 @@ export default function Onboarding() {
                     <p className="font-body-md font-bold text-on-surface dark:text-white">Enable Walk-in Waitlist</p>
                     <p className="font-body-sm text-on-surface-variant dark:text-outline mt-0.5">Uncheck if you operate strictly by appointment.</p>
                   </div>
-                </label>
+                </motion.label>
 
                 <div className="space-y-3">
                   <label className="font-label-caps text-label-caps text-outline uppercase tracking-wider block">Which services do you offer?</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {BUSINESS_TEMPLATES.find(t => t.id === selectedType)?.services.map(s => (
-                      <label key={s.name} className="flex items-center gap-3 p-3 bg-canvas dark:bg-black/50 hover:bg-surface-variant dark:hover:bg-zinc-800 border border-border dark:border-dark-border rounded-xl cursor-pointer transition-colors">
+                      <motion.label whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} key={s.name} className="flex items-center gap-3 p-3 bg-canvas dark:bg-black/50 hover:bg-surface-variant dark:hover:bg-zinc-800 border border-border dark:border-dark-border rounded-xl cursor-pointer transition-colors">
                         <input 
                           type="checkbox" 
                           checked={selectedServices.includes(s.name)} 
@@ -843,28 +871,28 @@ export default function Onboarding() {
                           className="w-4 h-4 text-primary dark:text-sky-500 rounded border-border dark:border-dark-border focus:ring-primary dark:focus:ring-sky-500" 
                         />
                         <span className="font-body-md font-medium text-on-surface dark:text-white">{s.name}</span>
-                      </label>
+                      </motion.label>
                     ))}
                   </div>
                 </div>
               </div>
 
               <div className="pt-8 border-t border-border dark:border-dark-border flex flex-col-reverse sm:flex-row justify-between items-center gap-4">
-                <button
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => updateStep(1)}
                   className="w-full sm:w-auto min-h-[44px] px-6 py-2 rounded-lg font-body-md font-medium text-on-surface-variant dark:text-outline hover:bg-surface-container-high dark:hover:bg-white/5 transition-colors"
                 >
                   Back
-                </button>
-                <button
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={handleSetupQueues}
                   disabled={setupQueuesMutation.isPending}
                   className="w-full sm:w-auto min-h-[44px] px-8 rounded-lg font-body-md font-medium bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {setupQueuesMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Initialize Workspace'}
                   {!setupQueuesMutation.isPending && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           )}
@@ -923,25 +951,25 @@ export default function Onboarding() {
                     </div>
 
                     <div className="flex flex-col gap-2 pt-2">
-                      <button
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                         onClick={() => saveGoogleSettingsMutation.mutate()}
                         disabled={saveGoogleSettingsMutation.isPending || !selectedIntegrationId}
                         className="w-full h-12 rounded-xl font-medium bg-blue-600 hover:bg-blue-700 text-white transition-opacity disabled:opacity-50"
                       >
                         {saveGoogleSettingsMutation.isPending ? 'Saving...' : 'Save & Continue'}
-                      </button>
-                      <button
+                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                         onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?intent=link_tenant_onboarding`}
                         className="w-full h-12 rounded-xl font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
                       >
                         Connect a different account
-                      </button>
-                      <button
+                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                         onClick={() => updateStep(4)}
                         className="w-full mt-2 text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
                       >
                         Skip for now
-                      </button>
+                      </motion.button>
                     </div>
                   </div>
                 ) : (
@@ -949,20 +977,20 @@ export default function Onboarding() {
                     <p className="text-on-surface-variant dark:text-zinc-400 text-sm text-center">
                       Connect your Google Business account to enable Calendar Sync and Smart Reviews.
                     </p>
-                    <button
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       onClick={() => {
                         window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?intent=link_tenant_onboarding`;
                       }}
                       className="w-full h-12 rounded-xl font-medium bg-blue-600 hover:bg-blue-700 text-white transition-opacity"
                     >
                       Connect Google Account
-                    </button>
-                    <button
+                    </motion.button>
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       onClick={() => updateStep(4)}
                       className="w-full text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
                     >
                       Skip for now
-                    </button>
+                    </motion.button>
                   </div>
                 )}
               </div>
@@ -1021,7 +1049,7 @@ export default function Onboarding() {
                             <p className="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-4">Pairing Code</p>
                             <div className="flex items-center justify-center gap-3 mb-4">
                               <code className="text-3xl font-data-mono font-bold text-on-surface dark:text-white tracking-[0.2em]">{pairingCode}</code>
-                              <button
+                              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                                 onClick={() => {
                                   navigator.clipboard.writeText(pairingCode);
                                   setPairingCopied(true);
@@ -1030,7 +1058,7 @@ export default function Onboarding() {
                                 className="p-2 bg-surface-container-low dark:bg-white/10 rounded-lg text-on-surface-variant dark:text-outline hover:text-on-surface transition-colors"
                               >
                                 {pairingCopied ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
-                              </button>
+                              </motion.button>
                             </div>
                             <p className="font-body-sm text-on-surface-variant dark:text-outline">Open WhatsApp Settings → Linked Devices and enter this code within 60s.</p>
                           </div>
@@ -1045,44 +1073,44 @@ export default function Onboarding() {
                               maxLength={15}
                               className="w-full h-[56px] bg-canvas dark:bg-black/50 border border-border dark:border-dark-border rounded-xl px-4 font-data-mono text-center tracking-wider text-on-surface dark:text-white focus:outline-none focus:border-[#25D366] focus:ring-1 focus:ring-[#25D366] transition-shadow"
                             />
-                            <button
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                               onClick={() => generatePairingCodeMutation.mutate(pairingPhoneNumber)}
                               disabled={generatePairingCodeMutation.isPending || pairingPhoneNumber.length < 7}
                               className="w-full flex items-center justify-center gap-2 h-[56px] bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 rounded-xl font-body-md font-semibold transition-colors disabled:opacity-50"
                             >
                               {generatePairingCodeMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Keyboard className="w-5 h-5" />}
                               {generatePairingCodeMutation.isPending ? 'Generating...' : 'Generate Pairing Code'}
-                            </button>
+                            </motion.button>
                           </div>
                         )}
 
-                        <button
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                           onClick={() => { setConnectionMode('qr'); setPairingCode(null); setPairingPhoneNumber(''); }}
                           className="mt-6 font-body-sm text-outline hover:text-on-surface dark:hover:text-white font-medium transition-colors border-b border-transparent hover:border-outline"
                         >
                           Use QR code instead
-                        </button>
+                        </motion.button>
                       </div>
                     ) : (
                       <>
                         <div className="w-24 h-24 bg-[#25D366]/10 text-[#25D366] rounded-3xl flex items-center justify-center mx-auto mb-8 border border-[#25D366]/20">
                           <QrCode className="w-10 h-10" />
                         </div>
-                        <button
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                           onClick={handleConnectWhatsApp}
                           disabled={connectWhatsAppMutation.isPending}
                           className="w-full flex items-center justify-center gap-2 h-[56px] bg-[#25D366] hover:bg-[#1DA851] text-white rounded-xl font-body-md font-semibold transition-colors disabled:opacity-50 shadow-sm"
                         >
                           {connectWhatsAppMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <QrCode className="w-5 h-5" />}
                           {connectWhatsAppMutation.isPending ? 'Generating QR Code...' : 'Connect via QR Code'}
-                        </button>
-                        <button
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                           onClick={() => setConnectionMode('code')}
                           className="w-full mt-4 flex items-center justify-center gap-2 h-[56px] bg-surface-bright dark:bg-black/20 border border-border dark:border-dark-border text-on-surface dark:text-white rounded-xl font-body-md font-semibold transition-colors hover:bg-surface-container-low dark:hover:bg-white/5"
                         >
                           <Keyboard className="w-5 h-5 text-outline" />
                           Connect via Pairing Code
-                        </button>
+                        </motion.button>
                       </>
                     )}
                   </>
@@ -1095,31 +1123,31 @@ export default function Onboarding() {
                     <p className="font-body-md text-on-surface-variant dark:text-outline max-w-sm mx-auto mb-8">
                       Your account is successfully linked and ready to send notifications.
                     </p>
-                    <button
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       onClick={() => updateStep(5)}
                       className="w-full h-[56px] bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 rounded-xl font-body-md font-semibold transition-colors flex items-center justify-center gap-2"
                     >
                       Continue <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                    </button>
+                    </motion.button>
                   </div>
                 )}
               </div>
 
               {whatsappStatus?.state !== 'open' && (
                 <div className="w-full pt-8 mt-4 border-t border-border dark:border-dark-border flex flex-col-reverse sm:flex-row justify-between items-center gap-4">
-                  <button
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() => updateStep(2)}
                     className="w-full sm:w-auto min-h-[44px] px-6 py-2 rounded-lg font-body-md font-medium text-on-surface-variant dark:text-outline hover:bg-surface-container-high dark:hover:bg-white/5 transition-colors"
                   >
                     Back
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     onClick={() => updateStep(5)}
                     className="w-full sm:w-auto min-h-[44px] px-8 rounded-lg font-body-md font-medium border border-border dark:border-dark-border text-on-surface dark:text-white hover:bg-surface-container-lowest dark:hover:bg-white/5 transition-colors"
                   >
                     Skip for now
-                  </button>
+                  </motion.button>
                 </div>
               )}
             </motion.div>
@@ -1163,21 +1191,21 @@ export default function Onboarding() {
               </div>
 
               <div className="w-full pt-8 border-t border-border dark:border-dark-border flex flex-col-reverse sm:flex-row justify-between items-center gap-4">
-                <button
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => updateStep(1)}
                   className="w-full sm:w-auto min-h-[44px] px-6 py-2 rounded-lg font-body-md font-medium text-on-surface-variant dark:text-outline hover:bg-surface-container-high dark:hover:bg-white/5 transition-colors"
                 >
                   Edit Profile
-                </button>
-                <button
+                </motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={handleConfirmJoinWorkspace}
                   disabled={joiningWorkspace}
                   className="w-full sm:w-auto min-h-[44px] px-8 rounded-lg font-body-md font-medium bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {joiningWorkspace ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Join Workspace'}
                   {!joiningWorkspace && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           )}
@@ -1237,7 +1265,7 @@ export default function Onboarding() {
                         </ul>
                         
                         {plan.price === 0 && (
-                          <label className="flex items-start gap-3 mt-4 mb-3 cursor-pointer">
+                          <motion.label whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="flex items-start gap-3 mt-4 mb-3 cursor-pointer">
                             <input 
                               type="checkbox" 
                               checked={trialAgreed}
@@ -1247,9 +1275,9 @@ export default function Onboarding() {
                             <span className="text-sm text-on-surface-variant dark:text-outline leading-tight">
                               I confirm and agree to start my 14-day free trial.
                             </span>
-                          </label>
+                          </motion.label>
                         )}
-                        <button
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                           onClick={() => {
                             if (plan.price === 0) {
                               if (!trialAgreed) {
@@ -1265,7 +1293,7 @@ export default function Onboarding() {
                           className={`w-full py-3 px-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 ${isPopular ? 'bg-primary hover:bg-primary-container text-white' : 'bg-surface-container-high dark:bg-white/10 text-on-surface dark:text-white hover:bg-surface-container-highest dark:hover:bg-white/20'} disabled:opacity-50`}
                         >
                           {subscribeMutation.isPending && subscribeMutation.variables?.planId === plan.id ? <Loader2 className="w-5 h-5 animate-spin" /> : (plan.price === 0 ? 'Start 14-Day Free Trial' : 'Upgrade Now')}
-                        </button>
+                        </motion.button>
 
                       </div>
                     );
