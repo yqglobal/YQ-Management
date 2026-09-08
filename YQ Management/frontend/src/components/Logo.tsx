@@ -21,22 +21,20 @@ export const Logo: React.FC<LogoProps> = ({
     <div className={`relative flex items-center ${className}`} style={{ width, height }}>
       {/* Light Mode Logo */}
       <Image
-        src="/qmova-light-logo.png"
+        src="/qmova-light-logo.webp"
         alt="Qmova Logo"
         width={width}
         height={height}
-        unoptimized
         style={{ objectFit: 'contain', width: 'auto', height: 'auto' }}
         className={forceTheme === 'light' ? 'block' : forceTheme === 'dark' ? 'hidden' : 'block dark:hidden'}
         priority
       />
       {/* Dark Mode Logo */}
       <Image
-        src="/qmova-dark-logo.png"
+        src="/qmova-dark-logo.webp"
         alt="Qmova Logo"
         width={width}
         height={height}
-        unoptimized
         style={{ objectFit: 'contain', width: 'auto', height: 'auto' }}
         className={forceTheme === 'dark' ? 'block' : forceTheme === 'light' ? 'hidden' : 'hidden dark:block'}
         priority

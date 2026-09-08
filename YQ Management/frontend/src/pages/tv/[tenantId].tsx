@@ -6,6 +6,7 @@ import { Volume2, VolumeX } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { Logo } from '../../components/Logo';
 import { getTenantUrl } from '../../lib/utils';
+import Image from 'next/image';
 
 interface CalledToken {
   id: string;
@@ -210,7 +211,7 @@ export default function TVDisplay() {
           <div className="flex items-center justify-between px-6 py-4 bg-zinc-900 rounded-2xl border border-zinc-800">
             <div className="flex items-center gap-4">
               {branding?.logoUrl ? (
-                <img src={branding.logoUrl} alt="Logo" className="h-12 max-w-[200px] object-contain" />
+                <Image src={branding.logoUrl} alt="Logo" width={200} height={48} className="h-12 w-auto object-contain" unoptimized />
               ) : (
                 <Logo width={140} height={22} forceTheme="dark" />
               )}

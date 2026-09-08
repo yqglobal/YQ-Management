@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import { getBackendUrl } from '../lib/api';
 import { useAuth } from './AuthContext';
 
@@ -24,33 +24,43 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // We only want a persistent dashboard socket if the user is logged in
     if (!user) return;
 
-    const baseUrl = typeof window !== 'undefined'
-      ? (process.env.NEXT_PUBLIC_API_URL || getBackendUrl())
-      : getBackendUrl();
+    let socketInstance: Socket | null = null;
 
-    const socketInstance = io(baseUrl, {
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      timeout: 20000,
-    });
+    const initSocket = async () => {
+      const { io } = await import('socket.io-client');
+      
+      const baseUrl = typeof window !== 'undefined'
+        ? (process.env.NEXT_PUBLIC_API_URL || getBackendUrl())
+        : getBackendUrl();
 
-    socketInstance.on('connect', () => {
-      setIsConnected(true);
-      if (user.tenantId) {
-        socketInstance.emit('joinTenantRoom', user.tenantId);
-      }
-    });
+      socketInstance = io(baseUrl, {
+        transports: ['websocket', 'polling'],
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000,
+      });
 
-    socketInstance.on('disconnect', () => {
-      setIsConnected(false);
-    });
+      socketInstance.on('connect', () => {
+        setIsConnected(true);
+        if (user.tenantId) {
+          socketInstance?.emit('joinTenantRoom', user.tenantId);
+        }
+      });
 
-    setSocket(socketInstance);
+      socketInstance.on('disconnect', () => {
+        setIsConnected(false);
+      });
+
+      setSocket(socketInstance);
+    };
+
+    initSocket();
 
     return () => {
-      socketInstance.disconnect();
+      if (socketInstance) {
+        socketInstance.disconnect();
+      }
       setSocket(null);
     };
   }, [user?.id, user?.tenantId]);

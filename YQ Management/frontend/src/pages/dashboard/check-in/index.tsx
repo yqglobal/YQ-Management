@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import AdminLayout from '../../../components/AdminLayout';
-import { Html5Qrcode } from 'html5-qrcode';
+import type { Html5Qrcode } from 'html5-qrcode';
 import {
   ScanLine,
   CheckCircle2,
@@ -206,6 +206,7 @@ export default function AdminScanner() {
     setError(null);
 
     try {
+      const { Html5Qrcode } = await import('html5-qrcode');
       const html5QrCode = new Html5Qrcode('reader');
       const config = { ...SCANNER_CONFIG };
 

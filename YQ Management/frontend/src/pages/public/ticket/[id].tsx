@@ -6,6 +6,7 @@ import { fetchApi } from '../../../lib/api';
 import { motion } from 'framer-motion';
 import { QrCode, Clock, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import Image from 'next/image';
 
 export default function DigitalTicket() {
   const router = useRouter();
@@ -165,7 +166,7 @@ export default function DigitalTicket() {
           whileTap={{ scale: 0.98 }}
           className="w-full mt-6 bg-zinc-900 border border-zinc-800 text-white rounded-2xl py-4 font-semibold text-sm flex items-center justify-center gap-2 shadow-xl hover:bg-zinc-800 transition-colors"
         >
-          <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" className="w-4 h-4 filter invert opacity-80" alt="Apple" />
+          <Image src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" width={16} height={16} className="w-4 h-4 filter invert opacity-80" alt="Apple" unoptimized />
           Add to Apple Wallet
         </motion.button>
       </motion.div>

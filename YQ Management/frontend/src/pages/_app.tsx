@@ -10,7 +10,8 @@ import { setApiRouter } from '../lib/api';
 import { useRouter } from 'next/router';
 
 import CookieConsent from '../components/CookieConsent';
-import { GlobalCommandPalette } from '../components/GlobalCommandPalette';
+import dynamic from 'next/dynamic';
+const GlobalCommandPalette = dynamic(() => import('../components/GlobalCommandPalette').then(mod => mod.GlobalCommandPalette), { ssr: false });
 import { Toaster } from 'sonner';
 
 import { LocationProvider } from '../components/LocationContext';

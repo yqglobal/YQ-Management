@@ -12,11 +12,13 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
 import { usePlan } from '../hooks/usePlan';
 import { toast } from 'sonner';
-import { QueueMigrationModal } from './modals/QueueMigrationModal';
-import { ServiceModal } from './modals/ServiceModal';
+import dynamic from 'next/dynamic';
 import { useSocket } from '../components/SocketProvider';
-import { PlanGateModal } from './PlanGateModal';
-import { PlanWelcomeModal } from './PlanWelcomeModal';
+
+const QueueMigrationModal = dynamic(() => import('./modals/QueueMigrationModal').then(mod => mod.QueueMigrationModal), { ssr: false });
+const ServiceModal = dynamic(() => import('./modals/ServiceModal').then(mod => mod.ServiceModal), { ssr: false });
+const PlanGateModal = dynamic(() => import('./PlanGateModal').then(mod => mod.PlanGateModal), { ssr: false });
+const PlanWelcomeModal = dynamic(() => import('./PlanWelcomeModal').then(mod => mod.PlanWelcomeModal), { ssr: false });
 
 interface AdminLayoutProps {
   children: React.ReactNode;
