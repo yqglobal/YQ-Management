@@ -46,9 +46,10 @@ export default function ServiceDeskToday() {
   const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
   const locParamPrefix = activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : '';
 
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { data: visits = [], isLoading } = useQuery({
-    queryKey: ['visits', 'today', activeLocationId],
-    queryFn: () => fetchApi(`/visits?scope=today${locParam}`).catch(() => []),
+    queryKey: ['visits', 'today', activeLocationId, tz],
+    queryFn: () => fetchApi(`/visits?scope=today${locParam}&tz=${encodeURIComponent(tz)}`).catch(() => []),
   });
 
   const { data: tenant } = useQuery({

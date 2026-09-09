@@ -33,13 +33,17 @@ export class AppointmentController {
   @Get('schedule-view')
   getScheduleView(
     @Req() req: AuthenticatedRequest,
-    @Query('date') date: string,
+    @Query('date') date?: string,
+    @Query('start') start?: string,
+    @Query('end') end?: string,
     @Query('locationId') locationId?: string,
   ) {
     const targetDate = date || new Date().toISOString().split('T')[0];
     return this.appointmentService.getScheduleView(
       req.user.tenantId,
       targetDate,
+      start,
+      end,
       locationId,
     );
   }

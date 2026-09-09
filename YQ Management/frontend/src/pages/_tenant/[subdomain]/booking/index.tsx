@@ -22,6 +22,8 @@ interface Service {
   description?: string;
   expectedDuration?: number;
   locationId?: string;
+  dateSelectionType?: string;
+  maxDaysInAdvance?: number;
   formConfig?: AnyFixMe[];
   queues: Queue[];
 }
@@ -137,11 +139,12 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
           setSelectedServiceIds([serviceId]);
           if (queueId && typeof queueId === 'string') {
             const hasQueues = s && s.queues && s.queues.filter(q => q.status === 'ACTIVE').length > 0;
+            const defaultJoinMode = (!s.allowAppointments || hasQueues) ? 'immediate' : 'appointment';
             setServiceDetails(prev => ({
               ...prev,
               [serviceId]: { 
                 ...(prev[serviceId] || {}), 
-                joinMode: hasQueues ? 'immediate' : 'appointment',
+                joinMode: defaultJoinMode,
                 selectedDate: '',
                 selectedSlot: '',
                 responses: {},
@@ -274,7 +277,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   
   const hasQueues = currentService && currentService.queues && currentService.queues.filter(q => q.status === 'ACTIVE').length > 0;
   const currentDetails = serviceDetails[currentServiceId] || {
-    joinMode: hasQueues ? 'immediate' : 'appointment', selectedDate: '', selectedSlot: '', responses: {}
+    joinMode: (!currentService?.allowAppointments || hasQueues) ? 'immediate' : 'appointment', selectedDate: '', selectedSlot: '', responses: {}
   };
 
   const updateCurrentDetails = (updates: Partial<typeof currentDetails>) => {
@@ -331,10 +334,31 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   // Initially fetch for current month when switching to a service in appointment mode
   useEffect(() => {
     if (currentServiceId && currentDetails.joinMode === 'appointment') {
-      const initDate = currentDetails.selectedDate ? new Date(currentDetails.selectedDate) : new Date();
-      fetchAvailableDates(currentServiceId, initDate);
+      if (currentService?.dateSelectionType === 'slider') {
+        const today = new Date();
+        fetchAvailableDates(currentServiceId, today);
+        const nextMonth = new Date();
+        nextMonth.setMonth(today.getMonth() + 1);
+        fetchAvailableDates(currentServiceId, nextMonth);
+      } else {
+        const initDate = currentDetails.selectedDate ? new Date(currentDetails.selectedDate) : new Date();
+        fetchAvailableDates(currentServiceId, initDate);
+      }
     }
-  }, [currentServiceId, currentDetails.joinMode]);
+  }, [currentServiceId, currentDetails.joinMode, currentService?.dateSelectionType]);
+
+  const sliderDates = React.useMemo(() => {
+    if (!currentService || currentService.dateSelectionType !== 'slider') return [];
+    const maxDays = currentService.maxDaysInAdvance || 30;
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i < maxDays; i++) {
+      const d = new Date();
+      d.setDate(today.getDate() + i);
+      dates.push(d);
+    }
+    return dates;
+  }, [currentService]);
 
   const formConfig = React.useMemo(() => {
     if (!currentService || !currentQueue) return [];
@@ -698,7 +722,13 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                   </div>
                 )}
 
-                {currentService?.allowAppointments && (
+                {!currentService?.allowAppointments ? (
+                  <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-zinc-800">
+                    <div className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 p-4 rounded-xl text-sm font-medium">
+                      Walk-in Only - Added to queue instantly.
+                    </div>
+                  </div>
+                ) : (
                   <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-zinc-800">
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">When do you want to visit?</label>
                     <div className="flex gap-2">
@@ -709,34 +739,81 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                     {currentDetails.joinMode === 'appointment' && (
                       <div className="space-y-3 mt-4">
                         <div className="w-full relative">
-                          <DatePicker
-                            selected={currentDetails.selectedDate ? new Date(currentDetails.selectedDate) : null}
-                            onChange={(date: Date | null) => {
-                              if (date) {
-                                // Adjust timezone offset manually so it formats correctly
+                          {currentService.dateSelectionType === 'slider' ? (
+                            <div className="flex overflow-x-auto pb-4 gap-3 snap-x scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                              {sliderDates.map((date) => {
+                                const m = date.getMonth() + 1;
+                                const y = date.getFullYear();
+                                const key = `${currentServiceId}-${m}-${y}`;
                                 const tzOffset = date.getTimezoneOffset() * 60000;
                                 const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
-                                updateCurrentDetails({ selectedDate: localISOTime, selectedSlot: '' });
-                              } else {
-                                updateCurrentDetails({ selectedDate: '', selectedSlot: '' });
-                              }
-                            }}
-                            onMonthChange={(date) => fetchAvailableDates(currentServiceId, date)}
-                            filterDate={(date) => {
-                              // Filter out dates that are not in our availableDates cache for this month
-                              const m = date.getMonth() + 1;
-                              const y = date.getFullYear();
-                              const key = `${currentServiceId}-${m}-${y}`;
-                              if (!availableDatesMap[key]) return true; // If not loaded yet, let them click, but API slot load might fail. Better to show a loader on the whole calendar if loadingDates is true
-                              
-                              const tzOffset = date.getTimezoneOffset() * 60000;
-                              const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
-                              return availableDatesMap[key].includes(localISOTime);
-                            }}
-                            minDate={new Date()}
-                            inline
-                            calendarClassName="custom-calendar-container border border-gray-200 dark:border-zinc-800 rounded-xl w-full"
-                          />
+                                
+                                const isAvailable = availableDatesMap[key]?.includes(localISOTime);
+                                if (availableDatesMap[key] && !isAvailable) return null; // Hide unavailable dates
+                                
+                                const isSelected = currentDetails.selectedDate === localISOTime;
+                                
+                                return (
+                                  <button
+                                    key={localISOTime}
+                                    type="button"
+                                    onClick={() => updateCurrentDetails({ selectedDate: localISOTime, selectedSlot: '' })}
+                                    className={`flex-none w-[72px] p-3 rounded-2xl border-2 snap-center transition-all flex flex-col items-center justify-center ${isSelected ? 'border-transparent text-white shadow-md' : 'border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-gray-300'}`}
+                                    style={isSelected ? { backgroundColor: primaryColor } : {}}
+                                  >
+                                    <span className="text-xs font-semibold uppercase opacity-80">{date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                                    <span className="text-2xl font-bold my-1">{date.getDate()}</span>
+                                    <span className="text-[10px] font-medium opacity-80 uppercase">{date.toLocaleDateString('en-US', { month: 'short' })}</span>
+                                  </button>
+                                );
+                              })}
+                              {sliderDates.length > 0 && sliderDates.every(date => {
+                                const m = date.getMonth() + 1;
+                                const y = date.getFullYear();
+                                const key = `${currentServiceId}-${m}-${y}`;
+                                const tzOffset = date.getTimezoneOffset() * 60000;
+                                const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
+                                return availableDatesMap[key] && !availableDatesMap[key].includes(localISOTime);
+                              }) && (
+                                <p className="text-sm text-gray-500 w-full text-center py-4">No dates available in the next {currentService.maxDaysInAdvance || 30} days.</p>
+                              )}
+                            </div>
+                          ) : (
+                            <DatePicker
+                              selected={currentDetails.selectedDate ? new Date(currentDetails.selectedDate) : null}
+                              onChange={(date: Date | null) => {
+                                if (date) {
+                                  // Adjust timezone offset manually so it formats correctly
+                                  const tzOffset = date.getTimezoneOffset() * 60000;
+                                  const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
+                                  updateCurrentDetails({ selectedDate: localISOTime, selectedSlot: '' });
+                                } else {
+                                  updateCurrentDetails({ selectedDate: '', selectedSlot: '' });
+                                }
+                              }}
+                              onMonthChange={(date) => fetchAvailableDates(currentServiceId, date)}
+                              filterDate={(date) => {
+                                // Filter out dates that are not in our availableDates cache for this month
+                                const m = date.getMonth() + 1;
+                                const y = date.getFullYear();
+                                const key = `${currentServiceId}-${m}-${y}`;
+                                if (!availableDatesMap[key]) return true; // If not loaded yet, let them click, but API slot load might fail. Better to show a loader on the whole calendar if loadingDates is true
+                                
+                                const tzOffset = date.getTimezoneOffset() * 60000;
+                                const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
+                                return availableDatesMap[key].includes(localISOTime);
+                              }}
+                              minDate={new Date()}
+                              maxDate={(() => {
+                                const maxDays = currentService.maxDaysInAdvance ?? 30;
+                                const d = new Date();
+                                d.setDate(d.getDate() + maxDays);
+                                return d;
+                              })()}
+                              inline
+                              calendarClassName="custom-calendar-container border border-gray-200 dark:border-zinc-800 rounded-xl w-full"
+                            />
+                          )}
                         </div>
                         {currentDetails.selectedDate && (
                           <div className="grid grid-cols-3 gap-2 mt-4 max-h-48 overflow-y-auto pr-1 border-t border-gray-200 dark:border-zinc-800 pt-4">

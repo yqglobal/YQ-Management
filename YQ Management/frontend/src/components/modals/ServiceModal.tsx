@@ -19,10 +19,12 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   const [expectedDuration, setExpectedDuration] = useState('15');
   const [selectedLocId, setSelectedLocId] = useState(locationId || '');
   const [selectedQueueIds, setSelectedQueueIds] = useState<string[]>([]);
-  const [allowAppointments, setAllowAppointments] = useState(false);
+  const [allowAppointments, setAllowAppointments] = useState(true);
   const [allowProviderSelection, setAllowProviderSelection] = useState(false);
   const [requireManualCheckIn, setRequireManualCheckIn] = useState(false);
   const [appointmentGranularityMins, setAppointmentGranularityMins] = useState(15);
+  const [dateSelectionType, setDateSelectionType] = useState('calendar');
+  const [maxDaysInAdvance, setMaxDaysInAdvance] = useState(30);
   const [formConfig, setFormConfig] = useState<AnyFixMe[]>([]);
 
   // Cascading Availability States
@@ -43,6 +45,8 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setAllowProviderSelection(service.allowProviderSelection || false);
       setRequireManualCheckIn(service.requireManualCheckIn || false);
       setAppointmentGranularityMins(service.appointmentGranularityMins || 15);
+      setDateSelectionType(service.dateSelectionType || 'calendar');
+      setMaxDaysInAdvance(service.maxDaysInAdvance ?? 30);
       let initialFormConfig = service.formConfig || [];
       if (initialFormConfig.length === 0 && service.queues && service.queues.length > 0) {
         const queueWithConfig = service.queues.find((q: AnyFixMe) => q.formConfig && q.formConfig.length > 0);
@@ -140,6 +144,8 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       allowProviderSelection,
       requireManualCheckIn,
       appointmentGranularityMins,
+      dateSelectionType,
+      maxDaysInAdvance,
       formConfig,
       useLocationHours,
       businessHoursOverride: useLocationHours ? null : businessHoursOverride,
@@ -273,12 +279,38 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
                     onChange={(e) => setAppointmentGranularityMins(Number(e.target.value))}
                     className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
                   >
-                    <option value={5}>Every 5 minutes</option>
-                    <option value={10}>Every 10 minutes</option>
-                    <option value={15}>Every 15 minutes</option>
-                    <option value={30}>Every 30 minutes</option>
-                    <option value={60}>Every 1 hour</option>
+                    <option value={5}>5 mins</option>
+                    <option value={10}>10 mins</option>
+                    <option value={15}>15 mins</option>
+                    <option value={20}>20 mins</option>
+                    <option value={30}>30 mins</option>
+                    <option value={60}>60 mins</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Date Selection UI Type</label>
+                  <select
+                    value={dateSelectionType}
+                    onChange={(e) => setDateSelectionType(e.target.value)}
+                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+                  >
+                    <option value="calendar">Full Calendar (Recommended)</option>
+                    <option value="slider">Date Slider (Great for short-term)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Max Days in Advance</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={maxDaysInAdvance}
+                    onChange={(e) => setMaxDaysInAdvance(Number(e.target.value))}
+                    className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-zinc-500 mt-2">Maximum number of days in the future customers can book</p>
                 </div>
               </>
             )}

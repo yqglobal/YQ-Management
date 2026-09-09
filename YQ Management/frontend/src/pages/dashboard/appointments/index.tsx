@@ -57,9 +57,15 @@ export default function AppointmentsPage() {
 
   // Schedule view for Day mode — unified endpoint
   const dateStr = format(currentDate, 'yyyy-MM-dd');
+  
+  const startOfDay = new Date(currentDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(currentDate);
+  endOfDay.setHours(23, 59, 59, 999);
+  
   const { data: scheduleViewData, isLoading: scheduleLoading, refetch: refetchSchedule } = useQuery({
     queryKey: ['schedule-view', dateStr, activeLocationId],
-    queryFn: () => fetchApi(`/appointments/schedule-view?date=${dateStr}${locParam}`).catch(() => null),
+    queryFn: () => fetchApi(`/appointments/schedule-view?date=${dateStr}&start=${encodeURIComponent(startOfDay.toISOString())}&end=${encodeURIComponent(endOfDay.toISOString())}${locParam}`).catch(() => null),
     enabled: view === 'day',
   });
 

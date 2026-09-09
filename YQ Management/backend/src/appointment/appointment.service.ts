@@ -273,9 +273,9 @@ export class AppointmentService {
    * Unified schedule view for the timeline calendar.
    * Returns appointments, walk-in visits, avg durations, and gap analysis for a given date.
    */
-  async getScheduleView(tenantId: string, date: string, locationId?: string) {
-    const dayStart = new Date(`${date}T00:00:00.000Z`);
-    const dayEnd = new Date(`${date}T23:59:59.999Z`);
+  async getScheduleView(tenantId: string, date: string, start?: string, end?: string, locationId?: string) {
+    const dayStart = start ? new Date(start) : new Date(`${date}T00:00:00.000Z`);
+    const dayEnd = end ? new Date(end) : new Date(`${date}T23:59:59.999Z`);
 
     // Fetch all appointments for the day
     const appointments = await this.prisma.appointment.findMany({

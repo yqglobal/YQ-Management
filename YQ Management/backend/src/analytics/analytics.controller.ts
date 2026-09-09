@@ -17,10 +17,12 @@ export class AnalyticsController {
   async getDashboardAnalytics(
     @Req() req: AuthenticatedRequest,
     @Query('timeframe') timeframe: string,
+    @Query('tz') tz: string,
   ) {
     return this.analyticsService.getDashboardAnalytics(
       req.user.tenantId,
       timeframe || 'today',
+      tz || 'UTC',
     );
   }
 }

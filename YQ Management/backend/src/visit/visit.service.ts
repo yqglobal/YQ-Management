@@ -16,6 +16,7 @@ import { SubscriptionService } from '../subscription/subscription.service';
 import { AppointmentService } from '../appointment/appointment.service';
 import { CommunicationService } from '../communication/communication.service';
 import { CommunicationEvent } from '../communication/events/communication-events.enum';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 @Injectable()
 export class VisitService {
@@ -45,6 +46,7 @@ export class VisitService {
     userTokenPayload: any,
     scope?: 'today' | 'history',
     locationId?: string,
+    tzParam?: string,
   ) {
     const where: any = { tenantId: userTokenPayload.tenantId };
     if (locationId) {
@@ -70,10 +72,15 @@ export class VisitService {
       }
     }
     if (scope === 'today') {
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
+      const tz = tzParam || 'UTC';
+      const zonedNow = toZonedTime(new Date(), tz);
+      zonedNow.setHours(0, 0, 0, 0);
+      const start = fromZonedTime(zonedNow, tz);
+      
+      const zonedEnd = toZonedTime(new Date(), tz);
+      zonedEnd.setHours(23, 59, 59, 999);
+      const end = fromZonedTime(zonedEnd, tz);
+
       where.createdAt = { gte: start, lte: end };
     } else if (scope === 'history') {
       where.currentState = { in: ['COMPLETED', 'NO_SHOW', 'CANCELLED'] };
@@ -203,7 +210,7 @@ export class VisitService {
   ) {
     const queue = await this.prisma.queue.findUnique({
       where: { id: queueId },
-      include: { services: true },
+      include: { services: true, location: true },
     });
 
     if (!queue) throw new NotFoundException('Queue not found');
@@ -228,8 +235,11 @@ export class VisitService {
 
     return this.prisma.$transaction(async (tx) => {
       // FIX (2C): Check subscription visit quota before creating a new visit
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
+      const tz = queue.location?.timezone || 'UTC';
+      const zonedNow = toZonedTime(new Date(), tz);
+      zonedNow.setHours(0, 0, 0, 0);
+      const todayStart = fromZonedTime(zonedNow, tz);
+      
       const todayVisitCount = await tx.visit.count({
         where: { tenantId: queue.tenantId, createdAt: { gte: todayStart } },
       });

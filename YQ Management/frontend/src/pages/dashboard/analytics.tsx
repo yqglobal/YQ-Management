@@ -24,9 +24,10 @@ export default function Analytics() {
   const timeParam = timeRange === 'Day' ? 'today' : timeRange === 'Week' ? '7d' : '30d';
   const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
 
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { data: analytics = null, isLoading: isAnalyticsLoading } = useQuery({
-    queryKey: ['analytics', timeParam, activeLocationId],
-    queryFn: () => fetchApi(`/analytics?timeframe=${timeParam}${locParam}`).catch(() => null),
+    queryKey: ['analytics', timeParam, activeLocationId, tz],
+    queryFn: () => fetchApi(`/analytics?timeframe=${timeParam}${locParam}&tz=${encodeURIComponent(tz)}`).catch(() => null),
   });
 
   const { data: customers = [], isLoading: isCustomersLoading } = useQuery({

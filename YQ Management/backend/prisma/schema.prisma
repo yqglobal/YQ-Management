@@ -634,6 +634,8 @@ model Service {
   allowAppointments          Boolean @default(false)
   requireManualCheckIn       Boolean @default(false) // If true, customer must click "I have arrived"
   appointmentGranularityMins Int     @default(15) // e.g. 15 mins increments
+  dateSelectionType          String  @default("calendar") // "calendar" or "slider"
+  maxDaysInAdvance           Int     @default(30) // max days to show in calendar/slider
   avgActualDurationMins      Int? // Rolling avg from completed visits (auto-updated)
 
   // Cascading Scheduling & Availability

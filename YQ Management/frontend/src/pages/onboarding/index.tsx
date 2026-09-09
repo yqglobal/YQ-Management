@@ -455,7 +455,8 @@ export default function Onboarding() {
             name: `${s.name} Service`, 
             locationId: location.id,
             description: '',
-            formConfig: s.formConfig
+            formConfig: s.formConfig,
+            allowAppointments: true
           }),
         });
       }));

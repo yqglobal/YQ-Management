@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
-import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { fromZonedTime, toZonedTime, format } from 'date-fns-tz';
 import {
   addMinutes,
   isAfter,
@@ -36,6 +36,8 @@ export class ServiceService {
       allowProviderSelection?: boolean;
       requireManualCheckIn?: boolean;
       appointmentGranularityMins?: number;
+      dateSelectionType?: string;
+      maxDaysInAdvance?: number;
       formConfig?: any;
       useLocationHours?: boolean;
       businessHoursOverride?: any;
@@ -65,6 +67,8 @@ export class ServiceService {
         allowAppointments: data.allowAppointments,
         requireManualCheckIn: data.requireManualCheckIn,
         appointmentGranularityMins: data.appointmentGranularityMins,
+        dateSelectionType: data.dateSelectionType,
+        maxDaysInAdvance: data.maxDaysInAdvance,
         formConfig: data.formConfig,
       },
     });
@@ -166,6 +170,8 @@ export class ServiceService {
       allowProviderSelection?: boolean;
       requireManualCheckIn?: boolean;
       appointmentGranularityMins?: number;
+      dateSelectionType?: string;
+      maxDaysInAdvance?: number;
       formConfig?: any;
       useLocationHours?: boolean;
       businessHoursOverride?: any;
@@ -236,6 +242,17 @@ export class ServiceService {
     const bufferMins = service.bufferDuration || 0;
     const concurrentSlots = service.concurrentSlots || 1;
     const timezone = service.location?.timezone || 'UTC';
+
+    const nowZoned = toZonedTime(new Date(), timezone);
+    const todayStr = format(nowZoned, 'yyyy-MM-dd');
+    const maxDays = service.maxDaysInAdvance ?? 30;
+    const maxDateZoned = new Date(nowZoned.getTime());
+    maxDateZoned.setDate(maxDateZoned.getDate() + maxDays);
+    const maxDateStr = format(maxDateZoned, 'yyyy-MM-dd');
+
+    if (date < todayStr || date > maxDateStr) {
+      return [];
+    }
 
     // Determine which settings to use
     let exceptions: string[] = [];
@@ -443,6 +460,16 @@ export class ServiceService {
       businessHours = service.businessHoursOverride;
     }
 
+    const timezone = service.location?.timezone || 'UTC';
+    const nowZoned = toZonedTime(new Date(), timezone);
+    const todayStr = format(nowZoned, 'yyyy-MM-dd');
+    const maxDays = service.maxDaysInAdvance ?? 30;
+    
+    // Add days properly (using date-fns if available, else plain JS)
+    const maxDateZoned = new Date(nowZoned.getTime());
+    maxDateZoned.setDate(maxDateZoned.getDate() + maxDays);
+    const maxDateStr = format(maxDateZoned, 'yyyy-MM-dd');
+
     const availableDates: string[] = [];
     const daysInMonth = new Date(year, month, 0).getDate();
     const days = [
@@ -458,6 +485,9 @@ export class ServiceService {
     for (let day = 1; day <= daysInMonth; day++) {
       // Create local date string YYYY-MM-DD
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+      // Check date bounds
+      if (dateStr < todayStr || dateStr > maxDateStr) continue;
 
       // Check exceptions
       if (exceptions.includes(dateStr)) continue;

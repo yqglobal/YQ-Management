@@ -1,20 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getDashboardAnalytics(tenantId: string, timeframe: string = 'today') {
-    // 1. Calculate Date Range
-    const startDate = new Date();
-    startDate.setHours(0, 0, 0, 0);
+  async getDashboardAnalytics(tenantId: string, timeframe: string = 'today', tz: string = 'UTC') {
+    // 1. Calculate Date Range using timezone
+    const zonedNow = toZonedTime(new Date(), tz);
+    zonedNow.setHours(0, 0, 0, 0);
 
     if (timeframe === '7d') {
-      startDate.setDate(startDate.getDate() - 7);
+      zonedNow.setDate(zonedNow.getDate() - 7);
     } else if (timeframe === '30d') {
-      startDate.setDate(startDate.getDate() - 30);
+      zonedNow.setDate(zonedNow.getDate() - 30);
     }
+    const startDate = fromZonedTime(zonedNow, tz);
 
     const tokens = await this.prisma.visit.findMany({
       where: {

@@ -62,6 +62,8 @@ export class ServiceController {
       allowProviderSelection?: boolean;
       requireManualCheckIn?: boolean;
       appointmentGranularityMins?: number;
+      dateSelectionType?: string;
+      maxDaysInAdvance?: number;
       formConfig?: any;
       useLocationHours?: boolean;
       businessHoursOverride?: any;
@@ -102,6 +104,8 @@ export class ServiceController {
       allowProviderSelection?: boolean;
       requireManualCheckIn?: boolean;
       appointmentGranularityMins?: number;
+      dateSelectionType?: string;
+      maxDaysInAdvance?: number;
       formConfig?: any;
       useLocationHours?: boolean;
       businessHoursOverride?: any;
