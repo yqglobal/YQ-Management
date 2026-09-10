@@ -12,6 +12,11 @@ import { WebhooksService } from '../webhooks/webhooks.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as QRCode from 'qrcode';
+import {
+  CommunicationLogService,
+  CommunicationChannel,
+  CommunicationStatus,
+} from '../communication/logging/communication-log.service';
 
 @Injectable()
 export class OutboxProcessorService implements OnModuleInit {
@@ -26,6 +31,7 @@ export class OutboxProcessorService implements OnModuleInit {
     private readonly queueGateway: QueueGateway,
     @Inject(forwardRef(() => WhatsappService))
     private readonly whatsappService: WhatsappService,
+    private readonly communicationLogService: CommunicationLogService,
   ) {}
 
   onModuleInit() {
@@ -286,27 +292,58 @@ export class OutboxProcessorService implements OnModuleInit {
 
     if (statusUrl) {
       try {
-        const qrBase64 = await QRCode.toDataURL(statusUrl);
-        await this.whatsappService.sendMediaMessage(
+        const qrBase64DataUrl = await QRCode.toDataURL(statusUrl);
+        const qrBase64 = qrBase64DataUrl.split(',')[1] || qrBase64DataUrl;
+        
+        const result = await this.whatsappService.sendMediaMessage(
           visit.tenant.whatsappInstanceId,
           visit.customer.phone,
           qrBase64,
           'image',
           message,
         );
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Unknown sendMediaMessage error');
+        }
+
+        await this.communicationLogService.log({
+          tenantId: payload.tenantId,
+          channel: CommunicationChannel.WHATSAPP,
+          type: 'queue_joined',
+          recipient: visit.customer.phone,
+          body: message,
+          status: CommunicationStatus.SENT,
+          provider: 'evolution',
+          providerId: result.providerId,
+        });
         return;
-      } catch (err) {
+      } catch (err: any) {
         this.logger.warn(
-          'Failed to generate/send QR code, falling back to text message',
+          `Failed to generate/send QR code (${err.message}), falling back to text message`,
         );
       }
     }
 
-    await this.whatsappService.sendMessage(
+    const result = await this.whatsappService.sendMessage(
       visit.tenant.whatsappInstanceId,
       visit.customer.phone,
       message,
     );
+
+    await this.communicationLogService.log({
+      tenantId: payload.tenantId,
+      channel: CommunicationChannel.WHATSAPP,
+      type: 'queue_joined',
+      recipient: visit.customer.phone,
+      body: message,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
+      provider: 'evolution',
+      providerId: (result as any).providerId,
+      errorMessage: result.error,
+    });
   }
 
   /**
@@ -341,11 +378,25 @@ export class OutboxProcessorService implements OnModuleInit {
 
     const message = `🔔 *It\'s Your Turn!* \n\nHello ${visit.customer.name}, ticket *${displayId}* for *${serviceName}* is now being called.\n\nPlease proceed to the counter immediately.`;
 
-    await this.whatsappService.sendMessage(
+    const result = await this.whatsappService.sendMessage(
       visit.tenant.whatsappInstanceId,
       visit.customer.phone,
       message,
     );
+
+    await this.communicationLogService.log({
+      tenantId: payload.tenantId,
+      channel: CommunicationChannel.WHATSAPP,
+      type: 'visit_called',
+      recipient: visit.customer.phone,
+      body: message,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
+      provider: 'evolution',
+      providerId: (result as any).providerId,
+      errorMessage: result.error,
+    });
   }
 
   private async sendVisitCancelledNotification(payload: {
@@ -376,11 +427,25 @@ export class OutboxProcessorService implements OnModuleInit {
 
     const message = `❌ *Booking Cancelled*\n\nHello ${visit.customer.name}, your booking for *${visit.service?.name || 'the service'}* (Ticket: ${visit.displayId || payload.displayId || 'Unknown'}) has been cancelled.`;
 
-    await this.whatsappService.sendMessage(
+    const result = await this.whatsappService.sendMessage(
       visit.tenant.whatsappInstanceId,
       visit.customer.phone,
       message,
     );
+
+    await this.communicationLogService.log({
+      tenantId: payload.tenantId,
+      channel: CommunicationChannel.WHATSAPP,
+      type: 'visit_cancelled',
+      recipient: visit.customer.phone,
+      body: message,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
+      provider: 'evolution',
+      providerId: (result as any).providerId,
+      errorMessage: result.error,
+    });
   }
 
   private async sendVisitMissedNotification(payload: {
@@ -411,11 +476,25 @@ export class OutboxProcessorService implements OnModuleInit {
 
     const message = `⚠️ *Missed Turn*\n\nHello ${visit.customer.name}, we called your ticket *${visit.displayId || payload.displayId || 'Unknown'}* for *${visit.service?.name || 'the service'}* but you were not present. Please speak to the receptionist.`;
 
-    await this.whatsappService.sendMessage(
+    const result = await this.whatsappService.sendMessage(
       visit.tenant.whatsappInstanceId,
       visit.customer.phone,
       message,
     );
+
+    await this.communicationLogService.log({
+      tenantId: payload.tenantId,
+      channel: CommunicationChannel.WHATSAPP,
+      type: 'visit_missed',
+      recipient: visit.customer.phone,
+      body: message,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
+      provider: 'evolution',
+      providerId: (result as any).providerId,
+      errorMessage: result.error,
+    });
   }
 
   /**
@@ -470,16 +549,30 @@ export class OutboxProcessorService implements OnModuleInit {
         // Customer didn't wait too long, ask for a review rating!
         const message = `🌟 *How did we do?*\n\nHi ${visit.customer.name}, thanks for visiting us for ${visit.service?.name || 'your service'}!\n\nPlease reply with a number from 1 to 5 to rate your experience (5 being excellent).`;
 
-        await this.whatsappService.sendMessage(
+        const result = await this.whatsappService.sendMessage(
           visit.tenant.whatsappInstanceId,
           visit.customer.phone,
           message,
         );
         this.logger.log(`Sent Review Gating request to ${visit.customer.phone} (Wait time: ${waitTimeMins}m <= ${threshold}m)`);
-        
+
+        await this.communicationLogService.log({
+          tenantId: payload.tenantId,
+          channel: CommunicationChannel.WHATSAPP,
+          type: 'visit_completed',
+          recipient: visit.customer.phone,
+          body: message,
+          status: result.success
+            ? CommunicationStatus.SENT
+            : CommunicationStatus.FAILED,
+          provider: 'evolution',
+          providerId: (result as any).providerId,
+          errorMessage: result.error,
+        });
+
         // Put the chat session into step 20 to expect a rating
         try {
-          const cleanPhone = visit.customer.phone.replace(/\\D/g, '').slice(-9);
+          const cleanPhone = visit.customer.phone.replace(/\D/g, '').slice(-9);
           // Assuming we match on the last 9 digits as in whatsapp.chatbot.ts
           // Wait, outbox-processor doesn't have a direct clean phone logic, we can just use the phone directly if it matches
           const session = await this.prisma.chatSession.findFirst({

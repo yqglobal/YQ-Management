@@ -5,6 +5,7 @@ import { RedisModule } from '../redis/redis.module';
 import { QueueModule } from '../queue/queue.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
+import { CommunicationModule } from '../communication/communication.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { WhatsappModule } from '../whatsapp/whatsapp.module';
     forwardRef(() => QueueModule),
     WebhooksModule,
     forwardRef(() => WhatsappModule),
+    CommunicationModule,
   ],
   providers: [TasksService, OutboxProcessorService],
 })
