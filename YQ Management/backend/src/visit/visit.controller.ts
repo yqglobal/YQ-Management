@@ -80,11 +80,17 @@ export class VisitController {
   }
 
   @Post(':id/cancel')
-  cancelVisit(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+  cancelVisit(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { cancelledBy?: string; cancelReason?: string } = {},
+  ) {
     return this.visitService.cancelVisit(
       id,
       req.user.tenantId,
       req.user.userId,
+      body.cancelledBy || 'OPERATOR',
+      body.cancelReason,
     );
   }
   @Post('validate')

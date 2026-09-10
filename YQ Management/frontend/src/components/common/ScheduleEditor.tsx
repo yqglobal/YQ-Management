@@ -278,18 +278,28 @@ export function ScheduleEditor({ schedule, onChange, exceptionDates, onChangeExc
             <div className="flex flex-col md:flex-row gap-6">
               <div className="w-full md:w-auto flex justify-center bg-gray-50 dark:bg-zinc-900/30 p-4 rounded-xl border border-gray-200 dark:border-zinc-800">
                 <DatePicker
-                  selected={selectedDate}
-                  onChange={(date: Date) => setSelectedDate(date)}
+                  selected={selectedDateStr ? new Date(selectedDateStr + 'T12:00:00') : null}
+                  onChange={(date: Date | null) => {
+                    if (date) {
+                      // Format as YYYY-MM-DD local date (not UTC)
+                      const y = date.getFullYear();
+                      const m = String(date.getMonth() + 1).padStart(2, '0');
+                      const d = String(date.getDate()).padStart(2, '0');
+                      setSelectedDateStr(`${y}-${m}-${d}`);
+                    } else {
+                      setSelectedDateStr('');
+                    }
+                  }}
                   inline
                   calendarClassName="dark:bg-transparent dark:border-none border-none shadow-none"
-                  dayClassName={date => "dark:text-white hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-full"}
+                  dayClassName={() => "dark:text-white hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-full"}
                 />
               </div>
               <div className="flex-1 space-y-4">
                 <button
                   type="button"
                   onClick={handleAddException}
-                  disabled={!selectedDate}
+                  disabled={!selectedDateStr}
                   className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
                 >
                   <CalendarIcon className="w-4 h-4" />

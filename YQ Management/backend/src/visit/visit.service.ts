@@ -672,7 +672,7 @@ export class VisitService {
     });
   }
 
-  async cancelVisit(visitId: string, tenantId?: string, operatorId?: string) {
+  async cancelVisit(visitId: string, tenantId?: string, operatorId?: string, cancelledBy?: string, cancelReason?: string) {
     return this.prisma.$transaction(async (tx) => {
       const visit = await tx.visit.findUnique({ where: { id: visitId } });
       if (!visit) throw new NotFoundException('Visit not found');
@@ -697,6 +697,8 @@ export class VisitService {
           currentState: 'CANCELLED',
           completedAt: new Date(),
           operatorId: operatorId || visit.operatorId,
+          cancelledBy: cancelledBy || 'SYSTEM',
+          cancelReason: cancelReason || null,
         },
       });
 
@@ -707,6 +709,8 @@ export class VisitService {
             visitId: updated.id,
             queueId: updated.queueId,
             tenantId: updated.tenantId,
+            cancelledBy: updated.cancelledBy,
+            cancelReason: updated.cancelReason,
           },
         },
       });
@@ -802,7 +806,7 @@ export class VisitService {
 
     const updated = await this.prisma.visit.update({
       where: { id: visit.id },
-      data: { currentState: 'CANCELLED' },
+      data: { currentState: 'CANCELLED', cancelledBy: 'CUSTOMER' },
       include: { customer: true, queue: true, service: true, tenant: true },
     });
 

@@ -786,6 +786,8 @@ model Visit {
   accessToken   String    @unique @default(uuid()) // Opaque capability token
   operatorId    String?
   operatorUser  User?     @relation("OperatorVisits", fields: [operatorId], references: [id])
+  cancelledBy   String?   // 'OPERATOR' | 'CUSTOMER' | 'SYSTEM'
+  cancelReason  String?   // Free text reason for cancellation
   language      String    @default("en")
   rating        Int?
   feedbackText  String?

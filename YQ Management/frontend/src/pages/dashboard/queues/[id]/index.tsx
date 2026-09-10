@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { WhatsAppChatPanel } from '../../../../components/WhatsAppChatPanel';
 import { useAuth } from '../../../../components/AuthContext';
 import { PremiumFeatureGate } from '../../../../components/PremiumFeatureGate';
+import { CancelBookingModal } from '../../../../components/modals/CancelBookingModal';
 
 export default function QueueDetails() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function QueueDetails() {
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState<AnyFixMe>({});
+  const [cancelModal, setCancelModal] = useState<{ open: boolean; token: AnyFixMe | null }>({ open: false, token: null });
 
   // FIX (1B): Use fetchApi (credentials: include) instead of raw fetch with localStorage token
   const { data: queue = null, isLoading } = useQuery({
@@ -156,9 +158,14 @@ export default function QueueDetails() {
   });
 
   const cancelTokenMutation = useMutation({
-    mutationFn: (tokenId: string) => fetchApi(`/visits/${tokenId}/cancel`, { method: 'POST' }),
+    mutationFn: ({ tokenId, reason, notes }: { tokenId: string; reason: string; notes: string }) =>
+      fetchApi(`/visits/${tokenId}/cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ cancelledBy: 'OPERATOR', cancelReason: `${reason}${notes ? ': ' + notes : ''}` }),
+      }),
     onSuccess: () => {
       toast.success('Booking cancelled');
+      setCancelModal({ open: false, token: null });
       queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] });
     },
     onError: () => toast.error('Failed to cancel booking')
@@ -214,6 +221,7 @@ export default function QueueDetails() {
   }
 
   return (
+    <>
     <AdminLayout pageTitle={queue.name} pageSubtitle="Configure your queue parameters">
       <Head>
         <title>{queue.name} Settings | Qmova</title>
@@ -419,11 +427,7 @@ export default function QueueDetails() {
                           </button>
                         )}
                         <button 
-                          onClick={() => {
-                            if (window.confirm('Are you sure you want to cancel this booking? The customer will be notified.')) {
-                              cancelTokenMutation.mutate(token.id);
-                            }
-                          }}
+                          onClick={() => setCancelModal({ open: true, token })}
                           disabled={cancelTokenMutation.isPending}
                           className="flex-[0.5] flex justify-center items-center gap-2 h-[40px] bg-alert/10 hover:bg-alert/20 text-alert dark:bg-alert/10 dark:hover:bg-alert/20 dark:text-red-400 rounded-xl font-body-md font-semibold transition-colors"
                           title="Cancel Booking"
@@ -631,6 +635,21 @@ export default function QueueDetails() {
         </div>
       </div>
     </AdminLayout>
+
+    <CancelBookingModal
+      isOpen={cancelModal.open}
+      onClose={() => setCancelModal({ open: false, token: null })}
+      onConfirm={(reason, notes) => {
+        if (cancelModal.token) {
+          cancelTokenMutation.mutate({ tokenId: cancelModal.token.id, reason, notes });
+        }
+      }}
+      isPending={cancelTokenMutation.isPending}
+      customerName={cancelModal.token?.metadata?.customerName || cancelModal.token?.customer?.name}
+      serviceName={cancelModal.token?.service?.name}
+      scheduledTime={cancelModal.token?.scheduledTime ? new Date(cancelModal.token.scheduledTime).toLocaleString() : undefined}
+    />
+    </>
   );
 }
 

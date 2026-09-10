@@ -264,19 +264,13 @@ export class ServiceService {
 
     if (exceptions.includes(date)) return []; // Holiday or closed day
 
-    // Default business hours: 09:00 to 17:00 local time.
-    let startHour = 9;
-    let startMinute = 0;
-    let endHour = 17;
-    let endMinute = 0;
-
-    // For handling multiple business hours blocks (breaks)
-    const dailyBreaks: Array<{ start: string; end: string }> = [];
-
     // We parse the local date string "YYYY-MM-DD"
     // to find what day of the week it is in that timezone.
     const [year, month, day] = date.split('-').map(Number);
     const localDayDate = new Date(year, month - 1, day);
+    const dayOfWeek = localDayDate.getDay(); // 0 = Sunday, 6 = Saturday
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayName = days[dayOfWeek];
 
     let businessHours: any = null;
     if (service.useLocationHours && service.location?.businessHours) {
@@ -285,57 +279,59 @@ export class ServiceService {
       businessHours = service.businessHoursOverride;
     }
 
-    if (businessHours) {
-      const dayOfWeek = localDayDate.getDay(); // 0 = Sunday
-      const days = [
-        'sunday',
-        'monday',
-        'tuesday',
-        'wednesday',
-        'thursday',
-        'friday',
-        'saturday',
-      ];
-      const dayName = days[dayOfWeek];
+    // Default business hours: Mon-Fri 09:00-17:00, closed weekends.
+    // If no businessHours configured, apply this sensible default.
+    let startHour = 9;
+    let startMinute = 0;
+    let endHour = 17;
+    let endMinute = 0;
+    const dailyBreaks: Array<{ start: string; end: string }> = [];
 
+    if (!businessHours) {
+      // No hours configured: close weekends by default
+      if (dayOfWeek === 0 || dayOfWeek === 6) return [];
+    } else {
       const val = businessHours[dayName];
-      if (val) {
-        if (Array.isArray(val)) {
-          if (val.length === 0) return []; // closed
+      // If the day key exists and is falsy/empty, treat as closed
+      if (val === undefined || val === null) {
+        // Day not specified in businessHours — treat as closed
+        return [];
+      }
+      if (Array.isArray(val)) {
+        if (val.length === 0) return []; // closed
 
-          const firstBlock = val[0];
-          const lastBlock = val[val.length - 1];
-          if (firstBlock.start) {
-            const [h, m] = firstBlock.start.split(':');
-            startHour = parseInt(h);
-            startMinute = parseInt(m || '0');
-          }
-          if (lastBlock.end) {
-            const [h, m] = lastBlock.end.split(':');
-            endHour = parseInt(h);
-            endMinute = parseInt(m || '0');
-          }
+        const firstBlock = val[0];
+        const lastBlock = val[val.length - 1];
+        if (firstBlock.start) {
+          const [h, m] = firstBlock.start.split(':');
+          startHour = parseInt(h);
+          startMinute = parseInt(m || '0');
+        }
+        if (lastBlock.end) {
+          const [h, m] = lastBlock.end.split(':');
+          endHour = parseInt(h);
+          endMinute = parseInt(m || '0');
+        }
 
-          // Calculate breaks between blocks
-          for (let i = 0; i < val.length - 1; i++) {
-            dailyBreaks.push({
-              start: val[i].end,
-              end: val[i + 1].start,
-            });
-          }
-        } else {
-          const { start, end, closed } = val;
-          if (closed) return []; // No slots if closed
-          if (start) {
-            const [h, m] = start.split(':');
-            startHour = parseInt(h);
-            startMinute = parseInt(m || '0');
-          }
-          if (end) {
-            const [h, m] = end.split(':');
-            endHour = parseInt(h);
-            endMinute = parseInt(m || '0');
-          }
+        // Calculate breaks between blocks
+        for (let i = 0; i < val.length - 1; i++) {
+          dailyBreaks.push({
+            start: val[i].end,
+            end: val[i + 1].start,
+          });
+        }
+      } else {
+        const { start, end, closed } = val;
+        if (closed) return []; // No slots if closed
+        if (start) {
+          const [h, m] = start.split(':');
+          startHour = parseInt(h);
+          startMinute = parseInt(m || '0');
+        }
+        if (end) {
+          const [h, m] = end.split(':');
+          endHour = parseInt(h);
+          endMinute = parseInt(m || '0');
         }
       }
     }
@@ -498,9 +494,14 @@ export class ServiceService {
       const dayName = days[dayOfWeek];
 
       let isClosed = false;
-      if (businessHours && businessHours[dayName]) {
+      if (!businessHours) {
+        // No hours configured: close weekends (Saturday=6, Sunday=0) by default
+        isClosed = dayOfWeek === 0 || dayOfWeek === 6;
+      } else {
         const val = businessHours[dayName];
-        if (Array.isArray(val)) {
+        if (val === undefined || val === null) {
+          isClosed = true; // Day not specified → closed
+        } else if (Array.isArray(val)) {
           isClosed = val.length === 0;
         } else {
           isClosed = val.closed === true;

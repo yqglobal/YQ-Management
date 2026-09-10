@@ -560,6 +560,30 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
           :root { --border-color: #e2e8f0; --bg-color: #ffffff; --primary-color: ${primaryColor}; --primary-color-alpha: ${primaryColor}33; }
           .dark { --border-color: #27272a; --bg-color: #18181b; }
           .dark .PhoneInputCountrySelect option { color: #fff; background: #18181b; }
+
+          /* ── Calendar Full-Width Fix ── */
+          .custom-calendar-container { width: 100% !important; }
+          .custom-calendar-container .react-datepicker { width: 100% !important; border: none !important; background: transparent !important; font-family: inherit !important; }
+          .custom-calendar-container .react-datepicker__month-container { width: 100% !important; float: none !important; }
+          .custom-calendar-container .react-datepicker__header { background: transparent !important; border-bottom: 1px solid rgba(0,0,0,0.08) !important; padding: 12px 0 8px !important; text-align: center; }
+          .dark .custom-calendar-container .react-datepicker__header { border-bottom-color: rgba(255,255,255,0.08) !important; }
+          .custom-calendar-container .react-datepicker__current-month { font-size: 0.95rem !important; font-weight: 700 !important; color: inherit !important; margin-bottom: 6px; }
+          .custom-calendar-container .react-datepicker__day-names { display: flex !important; justify-content: space-around !important; width: 100% !important; margin: 0 !important; padding: 0 4px !important; }
+          .custom-calendar-container .react-datepicker__day-name { flex: 1 !important; text-align: center !important; font-size: 0.7rem !important; font-weight: 600 !important; text-transform: uppercase !important; color: #9ca3af !important; }
+          .custom-calendar-container .react-datepicker__month { display: flex !important; flex-direction: column !important; gap: 2px !important; padding: 4px !important; }
+          .custom-calendar-container .react-datepicker__week { display: flex !important; justify-content: space-around !important; width: 100% !important; }
+          .custom-calendar-container .react-datepicker__day { flex: 1 !important; display: flex !important; align-items: center !important; justify-content: center !important; height: 36px !important; margin: 1px !important; border-radius: 8px !important; font-size: 0.85rem !important; font-weight: 500 !important; color: inherit !important; transition: all 0.15s !important; }
+          .custom-calendar-container .react-datepicker__day:hover { background-color: rgba(0,0,0,0.06) !important; }
+          .dark .custom-calendar-container .react-datepicker__day:hover { background-color: rgba(255,255,255,0.08) !important; }
+          .custom-calendar-container .react-datepicker__day--selected { background-color: ${primaryColor} !important; color: white !important; font-weight: 700 !important; }
+          .custom-calendar-container .react-datepicker__day--keyboard-selected { background-color: ${primaryColor}33 !important; }
+          .custom-calendar-container .react-datepicker__day--disabled { color: #d1d5db !important; cursor: not-allowed !important; }
+          .dark .custom-calendar-container .react-datepicker__day--disabled { color: #3f3f46 !important; }
+          .custom-calendar-container .react-datepicker__day--outside-month { opacity: 0.3 !important; pointer-events: none !important; }
+          .custom-calendar-container .react-datepicker__navigation { top: 12px !important; }
+          .custom-calendar-container .react-datepicker__navigation-icon::before { border-color: #6b7280 !important; }
+          .custom-calendar-container .react-datepicker__navigation--previous { left: 8px !important; }
+          .custom-calendar-container .react-datepicker__navigation--next { right: 8px !important; }
         `}</style>
       </Head>
 
@@ -740,68 +764,94 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                       <div className="space-y-3 mt-4">
                         <div className="w-full relative">
                           {currentService.dateSelectionType === 'slider' ? (
-                            <div className="flex overflow-x-auto pb-4 gap-3 snap-x scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                              {sliderDates.map((date) => {
-                                const m = date.getMonth() + 1;
-                                const y = date.getFullYear();
-                                const key = `${currentServiceId}-${m}-${y}`;
-                                const tzOffset = date.getTimezoneOffset() * 60000;
-                                const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
-                                
-                                const isAvailable = availableDatesMap[key]?.includes(localISOTime);
-                                if (availableDatesMap[key] && !isAvailable) return null; // Hide unavailable dates
-                                
-                                const isSelected = currentDetails.selectedDate === localISOTime;
-                                
-                                return (
-                                  <button
-                                    key={localISOTime}
-                                    type="button"
-                                    onClick={() => updateCurrentDetails({ selectedDate: localISOTime, selectedSlot: '' })}
-                                    className={`flex-none w-[72px] p-3 rounded-2xl border-2 snap-center transition-all flex flex-col items-center justify-center ${isSelected ? 'border-transparent text-white shadow-md' : 'border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-gray-300'}`}
-                                    style={isSelected ? { backgroundColor: primaryColor } : {}}
-                                  >
-                                    <span className="text-xs font-semibold uppercase opacity-80">{date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
-                                    <span className="text-2xl font-bold my-1">{date.getDate()}</span>
-                                    <span className="text-[10px] font-medium opacity-80 uppercase">{date.toLocaleDateString('en-US', { month: 'short' })}</span>
-                                  </button>
-                                );
-                              })}
-                              {sliderDates.length > 0 && sliderDates.every(date => {
-                                const m = date.getMonth() + 1;
-                                const y = date.getFullYear();
-                                const key = `${currentServiceId}-${m}-${y}`;
-                                const tzOffset = date.getTimezoneOffset() * 60000;
-                                const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
-                                return availableDatesMap[key] && !availableDatesMap[key].includes(localISOTime);
-                              }) && (
-                                <p className="text-sm text-gray-500 w-full text-center py-4">No dates available in the next {currentService.maxDaysInAdvance || 30} days.</p>
-                              )}
+                            loadingDates && !Object.keys(availableDatesMap).some(k => k.startsWith(currentServiceId)) ? (
+                              // Loading skeleton for slider
+                              <div className="flex overflow-x-auto pb-4 gap-3 snap-x" style={{ scrollbarWidth: 'none' }}>
+                                {[...Array(7)].map((_, i) => (
+                                  <div key={i} className="flex-none w-[72px] h-[88px] p-3 rounded-2xl border-2 border-gray-200 dark:border-zinc-800 bg-gray-100 dark:bg-zinc-800 animate-pulse" />
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="flex overflow-x-auto pb-4 gap-3 snap-x scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                {sliderDates.map((date) => {
+                                  const m = date.getMonth() + 1;
+                                  const y = date.getFullYear();
+                                  const key = `${currentServiceId}-${m}-${y}`;
+                                  const tzOffset = date.getTimezoneOffset() * 60000;
+                                  const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
+                                  
+                                  // Only show dates once we know they are available
+                                  // If data loaded for this month and date is NOT in it → skip
+                                  if (availableDatesMap[key] && !availableDatesMap[key].includes(localISOTime)) return null;
+                                  // If data not yet loaded for this month → show skeleton pill
+                                  if (!availableDatesMap[key]) {
+                                    return (
+                                      <div key={localISOTime} className="flex-none w-[72px] h-[88px] p-3 rounded-2xl border-2 border-gray-200 dark:border-zinc-800 bg-gray-100 dark:bg-zinc-800 animate-pulse" />
+                                    );
+                                  }
+                                  
+                                  const isSelected = currentDetails.selectedDate === localISOTime;
+                                  
+                                  return (
+                                    <button
+                                      key={localISOTime}
+                                      type="button"
+                                      onClick={() => updateCurrentDetails({ selectedDate: localISOTime, selectedSlot: '' })}
+                                      className={`flex-none w-[72px] p-3 rounded-2xl border-2 snap-center transition-all flex flex-col items-center justify-center ${isSelected ? 'border-transparent text-white shadow-md' : 'border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-gray-300'}`}
+                                      style={isSelected ? { backgroundColor: primaryColor } : {}}
+                                    >
+                                      <span className="text-xs font-semibold uppercase opacity-80">{date.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                                      <span className="text-2xl font-bold my-1">{date.getDate()}</span>
+                                      <span className="text-[10px] font-medium opacity-80 uppercase">{date.toLocaleDateString('en-US', { month: 'short' })}</span>
+                                    </button>
+                                  );
+                                })}
+                                {sliderDates.length > 0 && sliderDates.every(date => {
+                                  const m = date.getMonth() + 1;
+                                  const y = date.getFullYear();
+                                  const key = `${currentServiceId}-${m}-${y}`;
+                                  const tzOffset = date.getTimezoneOffset() * 60000;
+                                  const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
+                                  return availableDatesMap[key] && !availableDatesMap[key].includes(localISOTime);
+                                }) && (
+                                  <p className="text-sm text-gray-500 w-full text-center py-4">No dates available in the next {currentService.maxDaysInAdvance || 30} days.</p>
+                                )}
+                              </div>
+                            )
+                          ) : loadingDates && !Object.keys(availableDatesMap).some(k => k.startsWith(currentServiceId)) ? (
+                            // Loading skeleton for calendar mode
+                            <div className="custom-calendar-container border border-gray-200 dark:border-zinc-800 rounded-xl w-full p-4">
+                              <div className="h-6 bg-gray-200 dark:bg-zinc-700 rounded animate-pulse mb-4 mx-auto w-32" />
+                              <div className="grid grid-cols-7 gap-1">
+                                {[...Array(35)].map((_, i) => (
+                                  <div key={i} className="h-9 rounded-lg bg-gray-100 dark:bg-zinc-800 animate-pulse" />
+                                ))}
+                              </div>
                             </div>
                           ) : (
                             <DatePicker
-                              selected={currentDetails.selectedDate ? new Date(currentDetails.selectedDate) : null}
+                              selected={currentDetails.selectedDate ? new Date(currentDetails.selectedDate + 'T12:00:00') : null}
                               onChange={(date: Date | null) => {
                                 if (date) {
-                                  // Adjust timezone offset manually so it formats correctly
-                                  const tzOffset = date.getTimezoneOffset() * 60000;
-                                  const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
-                                  updateCurrentDetails({ selectedDate: localISOTime, selectedSlot: '' });
+                                  const y = date.getFullYear();
+                                  const mo = String(date.getMonth() + 1).padStart(2, '0');
+                                  const d = String(date.getDate()).padStart(2, '0');
+                                  updateCurrentDetails({ selectedDate: `${y}-${mo}-${d}`, selectedSlot: '' });
                                 } else {
                                   updateCurrentDetails({ selectedDate: '', selectedSlot: '' });
                                 }
                               }}
                               onMonthChange={(date) => fetchAvailableDates(currentServiceId, date)}
                               filterDate={(date) => {
-                                // Filter out dates that are not in our availableDates cache for this month
                                 const m = date.getMonth() + 1;
                                 const y = date.getFullYear();
                                 const key = `${currentServiceId}-${m}-${y}`;
-                                if (!availableDatesMap[key]) return true; // If not loaded yet, let them click, but API slot load might fail. Better to show a loader on the whole calendar if loadingDates is true
-                                
-                                const tzOffset = date.getTimezoneOffset() * 60000;
-                                const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
-                                return availableDatesMap[key].includes(localISOTime);
+                                // While data is loading → disable all to prevent clicking closed days
+                                if (!availableDatesMap[key]) return false;
+                                const yr = date.getFullYear();
+                                const mo = String(date.getMonth() + 1).padStart(2, '0');
+                                const d = String(date.getDate()).padStart(2, '0');
+                                return availableDatesMap[key].includes(`${yr}-${mo}-${d}`);
                               }}
                               minDate={new Date()}
                               maxDate={(() => {
