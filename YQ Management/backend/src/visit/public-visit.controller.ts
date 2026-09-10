@@ -14,8 +14,8 @@ import {
   MessageEvent,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { Observable, timer, from } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { Observable, timer, from, merge, interval } from 'rxjs';
+import { map, switchMap, filter } from 'rxjs/operators';
 import { VisitService } from './visit.service';
 import { RedisService } from '../redis/redis.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
@@ -61,13 +61,24 @@ export class PublicVisitController {
       .map((t: string) => t.trim())
       .filter(Boolean);
 
-    // Poll every 5 seconds, starting immediately
-    return timer(0, 5000).pipe(
+    // Data stream: poll every 5 seconds, starting immediately
+    const dataStream$ = timer(0, 5000).pipe(
       switchMap(() => this.visitService.findMultiplePublic(tokenArray)),
       map((visits) => ({
         data: visits,
+        // type omitted — default SSE "message" event consumed by browser EventSource
       })),
     );
+
+    // Heartbeat stream: every 15 seconds, send a comment-only SSE message.
+    // This keeps the HTTP connection alive through reverse proxies (Caddy/nginx)
+    // that close idle connections after their default timeout (typically 60s).
+    // SSE comment lines (starting with ':') are silently ignored by EventSource.
+    const heartbeat$ = interval(15000).pipe(
+      map(() => ({ data: ':heartbeat', type: 'ping' } as MessageEvent)),
+    );
+
+    return merge(dataStream$, heartbeat$);
   }
 
   @Post('request-recovery-otp')

@@ -130,10 +130,25 @@ export default function TVDisplay() {
   useEffect(() => {
     if (!tenantId) return;
 
-    const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000');
-    socket.emit('joinTenantRoom', tenantId);
+    const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000', {
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+    });
 
-        socket.on('queue_status_changed', (data: any) => {
+    // CRITICAL FIX: join the room on EVERY connect event (initial + all reconnects).
+    // Previously this was called once outside the listener, so after any disconnect
+    // (sleep, idle, proxy timeout) the socket reconnected but never re-joined the room,
+    // meaning the TV display would silently stop receiving token_serving events.
+    const joinRoom = () => {
+      socket.emit('joinTenantRoom', tenantId);
+      if (queueId) {
+        socket.emit('joinQueueRoom', queueId);
+      }
+    };
+    socket.on('connect', joinRoom);
+
+    socket.on('queue_status_changed', (data: any) => {
       if (queueId && data.queueId === queueId) {
          setIsPaused(data.status === 'PAUSED');
       }

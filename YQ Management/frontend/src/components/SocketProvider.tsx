@@ -41,6 +41,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         timeout: 20000,
       });
 
+      // Re-join the tenant room on EVERY connect, not just the first.
+      // Socket.io reconnects fire the 'connect' event again, but room memberships
+      // are lost on the server side when a client disconnects. Without re-joining
+      // here, after any network blip (idle, sleep, proxy timeout) the dashboard
+      // would reconnect but receive no events because it's no longer in the room.
       socketInstance.on('connect', () => {
         setIsConnected(true);
         if (user.tenantId) {
@@ -48,8 +53,13 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       });
 
-      socketInstance.on('disconnect', () => {
+      socketInstance.on('disconnect', (reason) => {
         setIsConnected(false);
+        // If the server disconnected us (e.g., ping timeout), socket.io will
+        // automatically try to reconnect. Log for visibility.
+        if (reason === 'io server disconnect') {
+          socketInstance?.connect();
+        }
       });
 
       setSocket(socketInstance);

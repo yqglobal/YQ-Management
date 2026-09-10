@@ -96,35 +96,55 @@ export default function StatusPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Determine the query string for SSE, can be empty if relying purely on cookies
     const query = activeTokens ? `?tokens=${activeTokens}` : '';
-    
-    // We only connect if we have some token source (URL, LocalStorage, or assumed Cookie)
-    // Actually, if it's purely cookie-based, activeTokens might be empty on first load.
-    // That's fine, we will still try to connect and if the cookie exists, backend will find it.
-    
-    const es = new EventSource(`${baseUrl}/public-visit/stream${query}`, {
-      withCredentials: true, // Crucial for sending HTTP-Only cookies
-    });
+    let es: EventSource | null = null;
+    let loadingTimer: ReturnType<typeof setTimeout> | null = null;
 
-    es.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        setVisits(data);
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Failed to parse SSE data', err);
+    const connect = () => {
+      if (es) {
+        es.close();
+      }
+
+      es = new EventSource(`${baseUrl}/public-visit/stream${query}`, {
+        withCredentials: true, // Crucial for sending HTTP-Only cookies
+      });
+
+      es.onmessage = (event) => {
+        // Ignore SSE heartbeat/ping messages sent by the backend to keep the connection alive
+        if (event.data === ':heartbeat' || event.data?.startsWith(':')) return;
+        try {
+          const data = JSON.parse(event.data);
+          setVisits(data);
+          setIsLoading(false);
+        } catch (err) {
+          console.error('Failed to parse SSE data', err);
+        }
+      };
+
+      es.onerror = () => {
+        // EventSource auto-reconnects (CONNECTING state). Only fail loading indicator
+        // if we haven't received any data yet (prevents flashing during normal reconnects).
+        if (loadingTimer) clearTimeout(loadingTimer);
+        loadingTimer = setTimeout(() => setIsLoading(false), 4000);
+      };
+    };
+
+    connect();
+
+    // Page Visibility API: when the user returns to this tab after it was backgrounded,
+    // browsers may have throttled or killed the SSE connection entirely.
+    // Force-reconnect to get an immediate data refresh.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        connect();
       }
     };
-
-    es.onerror = (err) => {
-      console.error('SSE Error:', err);
-      // Let EventSource handle auto-reconnects, but if we're still loading, fail gracefully after a delay
-      setTimeout(() => setIsLoading(false), 3000); 
-    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      es.close();
+      if (es) es.close();
+      if (loadingTimer) clearTimeout(loadingTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [activeTokens]);
 

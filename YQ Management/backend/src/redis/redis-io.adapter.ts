@@ -30,6 +30,13 @@ export class RedisIoAdapter extends IoAdapter {
         origin: true,
         credentials: true,
       },
+      // Explicit heartbeat settings to prevent idle disconnections.
+      // Default is 25s interval + 20s timeout = 45s before a dead client is detected.
+      // With these settings: 10s interval + 5s timeout = 15s max before cleanup.
+      // This ensures mobile/laptop sleep reconnects are handled quickly and
+      // rooms (tenant_xxx, queue_xxx) are never left in a stale state.
+      pingInterval: 10000,
+      pingTimeout: 5000,
     };
     const server = super.createIOServer(port, serverOptions);
     server.adapter(this.adapterConstructor);
