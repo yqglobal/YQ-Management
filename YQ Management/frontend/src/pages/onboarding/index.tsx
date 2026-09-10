@@ -57,9 +57,15 @@ const BUSINESS_TEMPLATES = [
         ]
       },
       {
-        name: 'Doctor Appointment',
+        name: 'Consultation: Dr. Smith',
         formConfig: [
-          { id: 'doctor', type: 'dropdown', label: 'Doctor', required: true, system: false, options: ['Dr. Smith', 'Dr. Johnson', 'Dr. Lee'] }
+          { id: 'reason', type: 'textarea', label: 'Reason for visit', required: true, system: false }
+        ]
+      },
+      {
+        name: 'Dentist: Dr. Johnson Consultation',
+        formConfig: [
+          { id: 'reason', type: 'textarea', label: 'Reason for visit', required: true, system: false }
         ]
       }
     ]
