@@ -11,6 +11,7 @@ interface ServiceStepProps {
   errorMsg: string;
   primaryColor: string;
   supportNumber: string;
+  onViewTickets?: () => void;
 }
 
 export const ServiceStep: React.FC<ServiceStepProps> = ({
@@ -23,6 +24,7 @@ export const ServiceStep: React.FC<ServiceStepProps> = ({
   errorMsg,
   primaryColor,
   supportNumber,
+  onViewTickets,
 }) => {
   const filteredServices = services.filter((s: AnyFixMe) => !s.locationId || s.locationId === selectedLocationId);
 
@@ -77,6 +79,15 @@ export const ServiceStep: React.FC<ServiceStepProps> = ({
         <button type="submit" disabled={selectedServiceIds.length === 0} className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50" style={{ backgroundColor: primaryColor }}>
           Continue {selectedServiceIds.length > 0 && `(${selectedServiceIds.length})`}
         </button>
+        {onViewTickets && (
+          <button 
+            type="button" 
+            onClick={onViewTickets}
+            className="w-full py-4 rounded-xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-zinc-800 transition-colors hover:bg-gray-200 dark:hover:bg-zinc-700"
+          >
+            Find My Tickets
+          </button>
+        )}
       </form>
     </motion.div>
   );

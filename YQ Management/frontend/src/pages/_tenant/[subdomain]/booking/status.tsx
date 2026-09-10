@@ -6,7 +6,8 @@ import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Download, Maximize2, X } from 'lucide-react';
+import { toPng } from 'html-to-image';
 
 const baseUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') : 'http://localhost:3000';
 
@@ -22,6 +23,27 @@ export default function StatusPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [recoveryError, setRecoveryError] = useState('');
   const [isRecovering, setIsRecovering] = useState(false);
+  const [expandedVisit, setExpandedVisit] = useState<AnyFixMe | null>(null);
+
+  const downloadTicket = async (elementId: string, filename: string) => {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    try {
+      const dataUrl = await toPng(el, { cacheBust: true, pixelRatio: 2 });
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Failed to download ticket', err);
+    }
+  };
+
+  useEffect(() => {
+    if (router.query.recover === 'true') {
+      setRecoveryMode(true);
+    }
+  }, [router.query.recover]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -293,10 +315,10 @@ export default function StatusPage() {
           {visits.map((visit: AnyFixMe) => {
             const isDone = visit.currentState === 'COMPLETED' || visit.currentState === 'NO_SHOW' || visit.currentState === 'CANCELLED';
             const isServing = visit.currentState === 'SERVING';
-            const isAppointment = visit.appointmentId != null || visit.scheduledTime != null;
+            const isAppointment = visit.isScheduled || visit.appointmentId != null || visit.scheduledTime != null;
             
             return (
-              <div key={visit.id} className="bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full shadow-lg relative overflow-hidden border border-gray-100 dark:border-zinc-800">
+              <div key={visit.id} id={`ticket-${visit.id}`} className="bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full shadow-lg relative overflow-hidden border border-gray-100 dark:border-zinc-800">
                 <div className="absolute top-0 left-0 right-0 h-2" style={{ backgroundColor: primaryColor }} />
                 
                 <div className="flex justify-between items-start mb-4">
@@ -310,10 +332,28 @@ export default function StatusPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-center mb-4">
-                  <div className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                <div className="flex justify-center mb-4 relative">
+                  <div className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm relative group cursor-pointer" onClick={() => setExpandedVisit(visit)}>
                     <QRCode value={visit.id} size={100} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                    <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Maximize2 className="text-white w-6 h-6" />
+                    </div>
                   </div>
+                </div>
+
+                <div className="flex justify-center gap-2 mb-4">
+                  <button 
+                    onClick={() => downloadTicket(`ticket-${visit.id}`, `Ticket-${visit.displayId || visit.id.substring(0,6)}.png`)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-sm font-bold rounded-xl transition-colors"
+                  >
+                    <Download className="w-4 h-4" /> Download
+                  </button>
+                  <button 
+                    onClick={() => setExpandedVisit(visit)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-sm font-bold rounded-xl transition-colors"
+                  >
+                    <Maximize2 className="w-4 h-4" /> Expand
+                  </button>
                 </div>
 
                 {isServing && (
@@ -350,6 +390,19 @@ export default function StatusPage() {
                   </div>
                 )}
 
+                {!isDone && !isServing && !isAppointment && visit.position > 0 && (
+                  <div className="flex justify-between items-center bg-gray-50 dark:bg-zinc-950 p-4 rounded-xl border border-gray-100 dark:border-zinc-800 mt-2">
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Live Position</p>
+                      <p className="font-bold text-lg" style={{ color: primaryColor }}>#{visit.position}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500 uppercase">Est. Wait</p>
+                      <p className="font-bold">{visit.estimatedWaitTime} min</p>
+                    </div>
+                  </div>
+                )}
+
                 {isDone && (
                   <div className="bg-gray-100 dark:bg-zinc-800 rounded-xl p-3 text-center mt-4">
                     <p className="text-gray-600 dark:text-gray-300 font-bold text-sm">Ticket {visit.currentState.toLowerCase()}</p>
@@ -366,6 +419,44 @@ export default function StatusPage() {
             Book Another Service
           </button>
         </motion.div>
+
+        {expandedVisit && (
+          <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setExpandedVisit(null)}>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-zinc-900 rounded-3xl p-8 max-w-sm w-full relative shadow-2xl flex flex-col items-center text-center"
+            >
+              <button 
+                onClick={() => setExpandedVisit(null)}
+                className="absolute top-4 right-4 p-2 bg-gray-100 dark:bg-zinc-800 rounded-full hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <h2 className="text-2xl font-bold mb-1">{expandedVisit.service?.name}</h2>
+              <p className="text-gray-500 uppercase tracking-widest text-xs font-bold mb-6">
+                Ticket: <span className="font-mono text-gray-900 dark:text-gray-100 text-sm ml-1">{expandedVisit.displayId || expandedVisit.id.substring(0,6).toUpperCase()}</span>
+              </p>
+              
+              <div className="p-4 bg-white border border-gray-100 rounded-3xl shadow-sm mb-6 w-full flex justify-center">
+                <QRCode value={expandedVisit.id} size={200} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+              </div>
+              
+              <p className="text-sm text-gray-500 mb-6">Show this QR code to the staff at {expandedVisit.location?.name || 'the service desk'}.</p>
+              
+              <button 
+                onClick={() => downloadTicket(`ticket-${expandedVisit.id}`, `Ticket-${expandedVisit.displayId || expandedVisit.id.substring(0,6)}.png`)}
+                className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                style={{ backgroundColor: primaryColor }}
+              >
+                <Download className="w-5 h-5" /> Save Ticket to Device
+              </button>
+            </motion.div>
+          </div>
+        )}
 
         {/* Support Number Banner */}
         {supportNumber && (

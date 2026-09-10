@@ -173,7 +173,7 @@ export class VisitService {
   }
 
   async findMultiplePublic(accessTokens: string[]) {
-    return this.prisma.visit.findMany({
+    const visits = await this.prisma.visit.findMany({
       where: { accessToken: { in: accessTokens } },
       select: {
         id: true,
@@ -183,6 +183,8 @@ export class VisitService {
         currentState: true,
         waitingStart: true,
         createdAt: true,
+        scheduledTime: true,
+        appointmentId: true,
         customer: { select: { name: true } },
         service: { select: { name: true, expectedDuration: true } },
         location: { select: { name: true, address: true } },
@@ -190,6 +192,32 @@ export class VisitService {
         queue: { select: { status: true } },
       },
     });
+
+    return Promise.all(
+      visits.map(async (visit) => {
+        let position = 0;
+        let ewt = 0;
+
+        if (visit.currentState === 'WAITING' || visit.currentState === 'CHECKED_IN') {
+          const waitingAhead = await this.prisma.visit.count({
+            where: {
+              queueId: visit.queueId,
+              currentState: { in: ['WAITING', 'CHECKED_IN'] },
+              createdAt: { lt: visit.createdAt },
+            },
+          });
+          position = waitingAhead + 1;
+          ewt = waitingAhead * (visit.service?.expectedDuration || 5);
+        }
+
+        return {
+          ...visit,
+          position,
+          estimatedWaitTime: ewt,
+          isScheduled: !!visit.scheduledTime,
+        };
+      })
+    );
   }
 
   async update(id: string, tenantId: string, updateVisitDto: UpdateVisitDto) {

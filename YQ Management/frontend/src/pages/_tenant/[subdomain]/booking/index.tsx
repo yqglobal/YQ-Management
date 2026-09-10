@@ -472,17 +472,18 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
       const data = await res.json();
       const accessTokens = data.map((d: AnyFixMe) => d.accessToken).filter(Boolean);
       
+      let tokenStr = accessTokens.join(',');
       if (accessTokens.length > 0) {
         try {
           const stored = JSON.parse(localStorage.getItem('qmova_active_tokens') || '[]');
           const updatedTokens = Array.from(new Set([...stored, ...accessTokens]));
           localStorage.setItem('qmova_active_tokens', JSON.stringify(updatedTokens));
+          tokenStr = updatedTokens.join(',');
         } catch (e) {
           console.error('Failed to save tokens to local storage', e);
         }
       }
 
-      const tokenStr = accessTokens.join(',');
       const queryStr = `?tokens=${tokenStr}`;
 
       let targetUrl = `/booking/status${queryStr}`;
@@ -650,6 +651,22 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               errorMsg={errorMsg}
               primaryColor={primaryColor}
               supportNumber={supportNumber}
+              onViewTickets={() => {
+                let targetUrl = `/booking/status?recover=true`;
+                if (window.location.pathname.startsWith('/t/')) {
+                  const parts = window.location.pathname.split('/');
+                  if (parts.length >= 3) {
+                    targetUrl = `/t/${parts[2]}/booking/status?recover=true`;
+                  }
+                }
+                router.push(
+                  {
+                    pathname: '/_tenant/[subdomain]/booking/status',
+                    query: { subdomain: router.query.subdomain as string, recover: 'true' },
+                  },
+                  targetUrl
+                );
+              }}
             />
           )}
 
