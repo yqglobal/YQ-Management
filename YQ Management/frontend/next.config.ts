@@ -14,7 +14,8 @@ const withPWA = withPWAInit({
       /build-manifest\.json$/,
       /prerender-manifest\.json$/,
       /react-loadable-manifest\.json$/,
-      /routes-manifest\.json$/
+      /routes-manifest\.json$/,
+      /\.map$/,
     ],
   },
 });
