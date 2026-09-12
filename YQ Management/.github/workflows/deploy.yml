@@ -19,14 +19,14 @@ jobs:
       matrix:
         include:
           - service: frontend
-            context: ./YQ Management/frontend
+            context: ./frontend
             image: ghcr.io/yqglobal/yq-management-frontend
             build-args: |
               NEXT_PUBLIC_API_URL=https://api.qmova.yqbuddy.com
               NEXT_PUBLIC_BACKEND_URL=https://api.qmova.yqbuddy.com
               NEXT_PUBLIC_WS_URL=https://api.qmova.yqbuddy.com
           - service: backend
-            context: ./YQ Management/backend
+            context: ./backend
             image: ghcr.io/yqglobal/yq-management-backend
             build-args: ""
     steps:
@@ -44,11 +44,13 @@ jobs:
 
       - name: Prepare shared folder for Docker builds
         run: |
-          cp -r "./YQ Management/shared" "./YQ Management/frontend/shared"
-          sed -i 's|"@yq/shared": "\*"|"@yq/shared": "file:./shared"|g' "./YQ Management/frontend/package.json"
-          cp -r "./YQ Management/shared" "./YQ Management/backend/shared"
-          sed -i 's|"@yq/shared": "\*"|"@yq/shared": "file:./shared"|g' "./YQ Management/backend/package.json"
-          git add "./YQ Management/frontend/shared" "./YQ Management/frontend/package.json" "./YQ Management/backend/shared" "./YQ Management/backend/package.json"
+          cp -r "./shared" "./frontend/shared"
+          sed -i 's|"@yq/shared": "\*"|"@yq/shared": "file:./shared"|g' "./frontend/package.json"
+          cp -r "./shared" "./backend/shared"
+          sed -i 's|"@yq/shared": "\*"|"@yq/shared": "file:./shared"|g' "./backend/package.json"
+          # Optional: You can commit this during the build if needed by Docker context, 
+          # but `cp` is enough since buildx context is local filesystem unless using remote.
+          # git add "./frontend/shared" "./frontend/package.json" "./backend/shared" "./backend/package.json"
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
