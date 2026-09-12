@@ -14,6 +14,7 @@ import {
   Headers,
   Delete,
   Param,
+  ConflictException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
@@ -438,7 +439,10 @@ export class AuthController {
               data: dataToUpdate,
             });
           }
-        } catch (error) {
+        } catch (error: any) {
+          if (error.code === 'P2002') {
+            throw new ConflictException('Workspace URL (subdomain) is already taken. Please choose another name.');
+          }
           new Logger(AuthController.name).warn(
             `Could not update tenant name: ${error}`,
           );

@@ -261,13 +261,16 @@ export default function Onboarding() {
     queryFn: async () => {
       if (!debouncedSubdomain) return null;
       try {
-        await fetchApi(`/tenant/public/${debouncedSubdomain}`);
-        return { taken: true };
+        const tenant = await fetchApi(`/tenant/public/${debouncedSubdomain}`);
+        if (tenant && tenant.id === user?.tenantId) {
+          return { taken: false, error: false };
+        }
+        return { taken: true, error: false };
       } catch (err: any) {
         if (err.status === 404) {
-          return { taken: false };
+          return { taken: false, error: false };
         }
-        throw err;
+        return { taken: false, error: true };
       }
     },
     enabled: !!debouncedSubdomain,
@@ -723,7 +726,9 @@ export default function Onboarding() {
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
                         className={`w-full h-[56px] px-4 rounded-xl border bg-white/50 dark:bg-black/40 backdrop-blur-md outline-none transition-all duration-300 font-body-lg text-on-surface dark:text-white placeholder:text-outline-variant shadow-inner ${
-                          subdomainCheck?.taken
+                          subdomainCheck?.error
+                            ? 'border-yellow-500/50 dark:border-yellow-500/50 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20'
+                            : subdomainCheck?.taken
                             ? 'border-red-500/50 dark:border-red-500/50 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
                             : 'border-white/40 dark:border-white/10 focus:bg-white dark:focus:bg-black focus:border-primary focus:ring-2 focus:ring-primary/20'
                         }`}
@@ -731,12 +736,16 @@ export default function Onboarding() {
                       />
                       {companyName.length > 0 && (
                         <div className={`absolute -bottom-6 left-1 flex items-center gap-1.5 text-[13px] animate-in fade-in slide-in-from-top-1 ${
-                          subdomainCheck?.taken 
+                          subdomainCheck?.error 
+                            ? 'text-yellow-600 dark:text-yellow-500'
+                            : subdomainCheck?.taken 
                             ? 'text-red-500 dark:text-red-400' 
                             : 'text-emerald-600 dark:text-emerald-400'
                         }`}>
                           {isCheckingSubdomain ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : subdomainCheck?.error ? (
+                            <div className="w-3.5 h-3.5 rounded-full border border-yellow-600 flex items-center justify-center text-[8px] font-bold">!</div>
                           ) : subdomainCheck?.taken ? (
                             <div className="w-3.5 h-3.5 rounded-full border border-red-500 flex items-center justify-center text-[8px] font-bold">!</div>
                           ) : (
@@ -745,8 +754,9 @@ export default function Onboarding() {
                           <span>
                             Portal URL: <strong>{derivedSubdomain || 'your-company'}.qmova.app</strong>
                             {isCheckingSubdomain && ' (Checking...)'}
-                            {!isCheckingSubdomain && subdomainCheck?.taken && ' (Already taken)'}
-                            {!isCheckingSubdomain && subdomainCheck?.taken === false && ' (Available)'}
+                            {!isCheckingSubdomain && subdomainCheck?.error && ' (Check failed)'}
+                            {!isCheckingSubdomain && !subdomainCheck?.error && subdomainCheck?.taken && ' (Already taken)'}
+                            {!isCheckingSubdomain && !subdomainCheck?.error && subdomainCheck?.taken === false && ' (Available)'}
                           </span>
                         </div>
                       )}
@@ -800,7 +810,7 @@ export default function Onboarding() {
               <div className="pt-8 mt-2 border-t border-border dark:border-dark-border flex justify-end">
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => savePersonalInfoMutation.mutate()}
-                  disabled={savePersonalInfoMutation.isPending || !fullName || (!inviteCode && (!companyName || subdomainCheck?.taken === true || isCheckingSubdomain))}
+                  disabled={savePersonalInfoMutation.isPending || !fullName || (!inviteCode && (!companyName || subdomainCheck?.taken === true || subdomainCheck?.error === true || isCheckingSubdomain))}
                   className="w-full sm:w-auto min-h-[44px] px-8 rounded-lg font-body-md font-medium bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {savePersonalInfoMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue'}
