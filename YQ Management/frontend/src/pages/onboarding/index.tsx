@@ -736,27 +736,29 @@ export default function Onboarding() {
                       />
                       {companyName.length > 0 && (
                         <div className={`absolute -bottom-6 left-1 flex items-center gap-1.5 text-[13px] animate-in fade-in slide-in-from-top-1 ${
-                          subdomainCheck?.error 
+                          !subdomainCheck || isCheckingSubdomain
+                            ? 'text-zinc-500 dark:text-zinc-400'
+                            : subdomainCheck.error 
                             ? 'text-yellow-600 dark:text-yellow-500'
-                            : subdomainCheck?.taken 
+                            : subdomainCheck.taken 
                             ? 'text-red-500 dark:text-red-400' 
                             : 'text-emerald-600 dark:text-emerald-400'
                         }`}>
-                          {isCheckingSubdomain ? (
+                          {!subdomainCheck || isCheckingSubdomain ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : subdomainCheck?.error ? (
+                          ) : subdomainCheck.error ? (
                             <div className="w-3.5 h-3.5 rounded-full border border-yellow-600 flex items-center justify-center text-[8px] font-bold">!</div>
-                          ) : subdomainCheck?.taken ? (
+                          ) : subdomainCheck.taken ? (
                             <div className="w-3.5 h-3.5 rounded-full border border-red-500 flex items-center justify-center text-[8px] font-bold">!</div>
                           ) : (
                             <CheckCircle2 className="w-3.5 h-3.5" />
                           )}
                           <span>
-                            Portal URL: <strong>{derivedSubdomain || 'your-company'}.qmova.app</strong>
-                            {isCheckingSubdomain && ' (Checking...)'}
-                            {!isCheckingSubdomain && subdomainCheck?.error && ' (Check failed)'}
-                            {!isCheckingSubdomain && !subdomainCheck?.error && subdomainCheck?.taken && ' (Already taken)'}
-                            {!isCheckingSubdomain && !subdomainCheck?.error && subdomainCheck?.taken === false && ' (Available)'}
+                            Portal URL: <strong>{derivedSubdomain || 'your-company'}.qmova.yqbuddy.com</strong>
+                            {(!subdomainCheck || isCheckingSubdomain) && ' (Checking...)'}
+                            {subdomainCheck && !isCheckingSubdomain && subdomainCheck.error && ' (Check failed)'}
+                            {subdomainCheck && !isCheckingSubdomain && !subdomainCheck.error && subdomainCheck.taken && ' (Already taken)'}
+                            {subdomainCheck && !isCheckingSubdomain && !subdomainCheck.error && !subdomainCheck.taken && ' (Available)'}
                           </span>
                         </div>
                       )}
@@ -810,7 +812,7 @@ export default function Onboarding() {
               <div className="pt-8 mt-2 border-t border-border dark:border-dark-border flex justify-end">
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => savePersonalInfoMutation.mutate()}
-                  disabled={savePersonalInfoMutation.isPending || !fullName || (!inviteCode && (!companyName || subdomainCheck?.taken === true || subdomainCheck?.error === true || isCheckingSubdomain))}
+                  disabled={savePersonalInfoMutation.isPending || !fullName || (!inviteCode && (!companyName || !subdomainCheck || subdomainCheck.taken === true || subdomainCheck.error === true || isCheckingSubdomain))}
                   className="w-full sm:w-auto min-h-[44px] px-8 rounded-lg font-body-md font-medium bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {savePersonalInfoMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue'}
