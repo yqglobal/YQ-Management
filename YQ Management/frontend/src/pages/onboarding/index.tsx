@@ -659,7 +659,7 @@ export default function Onboarding() {
         <title>Onboarding | Qmova</title>
       </Head>
 
-      <main className="w-full max-w-2xl bg-white/70 dark:bg-[#121212]/80 backdrop-blur-3xl rounded-[2.5rem] border border-white/40 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-8 md:p-12 relative z-10 overflow-hidden my-12">
+      <main className={`w-full ${step === 5 ? 'max-w-5xl' : 'max-w-2xl'} transition-[max-width] duration-500 ease-in-out bg-white/70 dark:bg-[#121212]/80 backdrop-blur-3xl rounded-[2.5rem] border border-white/40 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-8 md:p-12 relative z-10 overflow-hidden my-12`}>
         {/* Progress Tracker */}
         <div className="flex gap-2 mb-10 w-full max-w-[200px] mx-auto">
           {Array.from({ length: totalSteps }).map((_, i) => (
@@ -1295,7 +1295,7 @@ export default function Onboarding() {
                 </p>
               </header>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
                 {isPlansLoading ? (
                   <div className="col-span-2 flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
                 ) : (
