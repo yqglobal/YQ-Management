@@ -18,7 +18,7 @@ RUN npx prisma generate
 COPY . .
 
 # Build the NestJS application
-RUN npm run build
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Production Stage
 FROM node:20-alpine AS runner

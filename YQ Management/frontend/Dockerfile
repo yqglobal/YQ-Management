@@ -21,7 +21,7 @@ RUN npm install
 COPY . .
 
 # Build Next.js application (standalone output enabled in next.config.ts)
-RUN npm run build
+RUN NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Production stage
 FROM node:20-alpine AS runner
