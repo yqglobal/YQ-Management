@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import {
   Plus, Trash2, Loader2, MapPin, Briefcase, Edit2, ToggleLeft, ToggleRight,
 } from 'lucide-react';
-import { useAuth } from '../../../../components/AuthContext';
+import { useAuth } from '../AuthContext';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
-import { ProviderModal } from '../../../../components/modals/ProviderModal';
+import { ProviderModal } from '../modals/ProviderModal';
 
 type Provider = {
   id: string;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { PremiumFeatureGate } from '../../../../components/PremiumFeatureGate';
+import { PremiumFeatureGate } from '../PremiumFeatureGate';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 import { Save, Loader2, PlayCircle } from 'lucide-react';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Loader2 } from 'lucide-react';
-import { useAuth } from '../../../../components/AuthContext';
-import { fetchApi } from '../../../../lib/api';
+import { useAuth } from '../AuthContext';
+import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 
 export default function ProfileSettingsPage() {

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 import { Save, Plus, GripVertical, Trash2, MessagesSquare, FormInput, PhoneCall, LayoutTemplate, Loader2, Upload } from 'lucide-react';
-import { FeatureNudge } from '../../../../components/FeatureNudge';
-import { usePlan } from '../../../../hooks/usePlan';
+import { FeatureNudge } from '../FeatureNudge';
+import { usePlan } from '../../hooks/usePlan';
 
 interface FormField {
   id: string;

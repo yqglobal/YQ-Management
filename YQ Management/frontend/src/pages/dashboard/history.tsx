@@ -5,7 +5,7 @@ import { History as HistoryIcon, Download, TrendingUp, Clock, Users } from 'luci
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import type { AnalyticsResponse, Visit } from '../../types/api';
+import type { AnalyticsResponse, Visit } from '@yq/shared';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

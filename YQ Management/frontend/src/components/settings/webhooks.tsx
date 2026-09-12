@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 import { Plus, Trash2, Loader2, AlertCircle } from 'lucide-react';
-import { PremiumFeatureGate } from '../../../../components/PremiumFeatureGate';
+import { PremiumFeatureGate } from '../PremiumFeatureGate';
 
 export default function WebhooksSettingsPage() {
   const queryClient = useQueryClient();

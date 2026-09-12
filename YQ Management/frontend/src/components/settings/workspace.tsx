@@ -1,11 +1,11 @@
-import { getTenantUrl } from "../../../../lib/utils";
+import { getTenantUrl } from "../../lib/utils";
 import React, { useState, useEffect } from 'react';
 import { Save, Loader2, Copy, ExternalLink } from 'lucide-react';
-import { useAuth } from '../../../../components/AuthContext';
-import { fetchApi } from '../../../../lib/api';
+import { useAuth } from '../AuthContext';
+import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-import { SelectServiceModal } from '../../../../components/modals/SelectServiceModal';
+import { SelectServiceModal } from '../modals/SelectServiceModal';
 
 export default function WorkspaceSettingsPage() {
   const { user, refetch } = useAuth();

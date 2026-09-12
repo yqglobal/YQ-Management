@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
-import StaffSettings from './_components/staff';
-import SecuritySettings from './_components/security';
-import AuditLogsPage from './_components/audit';
-import ComplianceSettings from './_components/compliance';
-import PrivacySettings from './_components/privacy';
+import StaffSettings from '../../../components/settings/staff';
+import SecuritySettings from '../../../components/settings/security';
+import AuditLogsPage from '../../../components/settings/audit';
+import ComplianceSettings from '../../../components/settings/compliance';
+import PrivacySettings from '../../../components/settings/privacy';
 import { RolesTable } from '../../../components/settings/RolesTable';
 
 export default function TeamSettingsPage() {

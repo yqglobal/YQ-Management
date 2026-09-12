@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { FeatureGuard } from '../../../../components/guards/FeatureGuard';
+import { FeatureGuard } from '../guards/FeatureGuard';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 import { Bot, Save, Loader2, Sparkles, Zap } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
+import { Button } from '../ui/button';
 
 export default function ChatbotSettings() {
   const queryClient = useQueryClient();

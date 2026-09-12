@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import useWhatsapp from '../../../../hooks/useWhatsapp';
-import { useAuth } from '../../../../components/AuthContext';
+import useWhatsapp from '../../hooks/useWhatsapp';
+import { useAuth } from '../AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { Send, QrCode, Loader2, CheckCircle2, Phone, RefreshCw, Terminal, Smartphone } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import PhoneInput from '../../../../components/PhoneInput';
+import PhoneInput from '../PhoneInput';
 import { toast } from 'sonner';
-import { FeatureGuard } from '../../../../components/guards/FeatureGuard';
-import { FeatureNudge } from '../../../../components/FeatureNudge';
-import { usePlan } from '../../../../hooks/usePlan';
+import { FeatureGuard } from '../guards/FeatureGuard';
+import { FeatureNudge } from '../FeatureNudge';
+import { usePlan } from '../../hooks/usePlan';
 
 export default function WhatsAppSettingsPage() {
   const { user } = useAuth();

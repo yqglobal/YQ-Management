@@ -1,8 +1,8 @@
 import React from 'react';
 import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
-import ProfileSettingsPage from './_components/profile';
-import PrivacySettings from './_components/privacy';
+import ProfileSettingsPage from '../../../components/settings/profile';
+import PrivacySettings from '../../../components/settings/privacy';
 
 export default function UserProfileSettingsPage() {
   return (

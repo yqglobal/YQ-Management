@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { ChevronDown, ChevronUp, Loader2, Search, Filter } from 'lucide-react';
-import { useAuth } from '../../../../components/AuthContext';
+import { useAuth } from '../AuthContext';
 
 export default function AuditLogs() {
   const { user } = useAuth();

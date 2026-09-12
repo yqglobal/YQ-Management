@@ -9,7 +9,7 @@ import { fetchApi } from '../../lib/api';
 import { FeatureGuard } from '../../components/guards/FeatureGuard';
 import { Search, Users, Phone, Mail, Clock, BarChart2 } from 'lucide-react';
 import { useLocation } from '../../components/LocationContext';
-import type { AnalyticsResponse, Customer } from '../../types/api';
+import type { AnalyticsResponse, Customer } from '@yq/shared';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

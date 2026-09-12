@@ -3,11 +3,11 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
 import SettingsLayout from '../../../components/SettingsLayout';
-import WhatsAppSettings from './_components/whatsapp';
-import ChatbotSettings from './_components/chatbot';
-import WebhooksSettings from './_components/webhooks';
-import AnnouncementsSettings from './_components/announcements';
-import GoogleBusinessSettings from './_components/google-business';
+import WhatsAppSettings from '../../../components/settings/whatsapp';
+import ChatbotSettings from '../../../components/settings/chatbot';
+import WebhooksSettings from '../../../components/settings/webhooks';
+import AnnouncementsSettings from '../../../components/settings/announcements';
+import GoogleBusinessSettings from '../../../components/settings/google-business';
 
 export default function IntegrationsSettingsPage() {
   const router = useRouter();

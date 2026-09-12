@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldAlert, Trash2, MonitorSmartphone, Loader2, ShieldCheck, Link2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 
 export default function SecuritySettings() {

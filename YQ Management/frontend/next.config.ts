@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
   /* config options */
   reactStrictMode: true,
   output: 'standalone',
+  transpilePackages: ['@yq/shared'],
   turbopack: {},
 
   experimental: {

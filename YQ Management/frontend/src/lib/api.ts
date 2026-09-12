@@ -113,7 +113,7 @@ export function getBackendUrl() {
   return baseUrl;
 }
 
-export const fetchApi = async <T = unknown>(endpoint: string, options: RequestInit = {}): Promise<T | null> => {
+export const fetchApi = async <T = AnyFixMe>(endpoint: string, options: RequestInit = {}): Promise<T | null> => {
   const baseUrl = getBackendUrl();
 
   const headers = new Headers(options.headers || {});

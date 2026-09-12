@@ -1,7 +1,7 @@
 import React from 'react';
 import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
-import BillingSettings from './_components/billing';
+import BillingSettings from '../../../components/settings/billing';
 
 export default function billingSettingsPage() {
   return (

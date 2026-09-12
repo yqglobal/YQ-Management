@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { CheckCircle2, AlertCircle, Loader2, Zap, ArrowRight, Sparkles, Crown, CreditCard, Shield } from 'lucide-react';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { usePlan } from '../../../../hooks/usePlan';
-import { PlanSelectModal } from '../../../../components/billing/PlanSelectModal';
-import { DowngradeWarningModal } from '../../../../components/billing/DowngradeWarningModal';
-import { Button } from '../../../../components/ui/button';
+import { usePlan } from '../../hooks/usePlan';
+import { PlanSelectModal } from '../billing/PlanSelectModal';
+import { DowngradeWarningModal } from '../billing/DowngradeWarningModal';
+import { Button } from '../ui/button';
 interface OzowPaymentData {
   paymentUrl?: string;
   checkoutUrl?: string;

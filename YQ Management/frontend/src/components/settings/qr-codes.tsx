@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { QRCodeSVG } from 'qrcode.react';
 import { Printer, ScanLine } from 'lucide-react';
-import { getTenantUrl } from '../../../../lib/utils';
+import { getTenantUrl } from '../../lib/utils';
 
 export default function QRCodesSettings() {
   const { data: tenant = null, isLoading } = useQuery({

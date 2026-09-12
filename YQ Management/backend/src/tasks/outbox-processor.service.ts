@@ -14,6 +14,8 @@ import {
   VisitNotificationService,
   VisitNotificationType,
 } from '../communication/visit-notification.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 const VISIT_NOTIFICATION_TYPES: VisitNotificationType[] = [
   'VISIT_CREATED',
@@ -32,8 +34,8 @@ const VISIT_NOTIFICATION_TYPES: VisitNotificationType[] = [
  *     across multiple backend instances.
  *  3. Dispatch each event to the appropriate handler:
  *     - WebSocket broadcast (via QueueGateway)
- *     - Webhook firing (via WebhooksService)
- *     - WhatsApp lifecycle notifications (via VisitNotificationService)
+ *     - Webhook firing (via BullMQ queue_webhooks)
+ *     - WhatsApp lifecycle notifications (via BullMQ queue_whatsapp)
  *  4. Mark events as COMPLETED or FAILED.
  *  5. Recover stuck PROCESSING events via a cron job.
  *
@@ -52,6 +54,8 @@ export class OutboxProcessorService implements OnModuleInit {
     @Inject(forwardRef(() => QueueGateway))
     private readonly queueGateway: QueueGateway,
     private readonly visitNotificationService: VisitNotificationService,
+    @InjectQueue('queue_webhooks') private readonly webhooksQueue: Queue,
+    @InjectQueue('queue_whatsapp') private readonly whatsappQueue: Queue,
   ) {}
 
   onModuleInit() {
@@ -152,28 +156,29 @@ export class OutboxProcessorService implements OnModuleInit {
         );
       }
 
-      // 2. Fire tenant webhooks
+      // 2. Fire tenant webhooks (Enqueue to BullMQ)
       if (payload.tenantId) {
-        await this.webhooksService.triggerWebhooks(
-          payload.tenantId as string,
+        await this.webhooksQueue.add('process', {
+          tenantId: payload.tenantId as string,
           type,
           payload,
-        );
+        }, {
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 2000 }, // 2s, 4s, 8s, 16s...
+          removeOnComplete: true,
+        });
       }
 
-      // 3. Send WhatsApp lifecycle notification (delegated entirely to VisitNotificationService)
+      // 3. Send WhatsApp lifecycle notification (Enqueue to BullMQ)
       if (VISIT_NOTIFICATION_TYPES.includes(type as VisitNotificationType)) {
-        await this.visitNotificationService
-          .notify(type as VisitNotificationType, {
-            visitId: payload.visitId as string,
-            tenantId: payload.tenantId as string,
-            displayId: payload.displayId as string | undefined,
-          })
-          .catch((e) =>
-            this.logger.warn(
-              `WhatsApp notification ${type} failed for visitId=${payload.visitId}: ${e.message}`,
-            ),
-          );
+        await this.whatsappQueue.add('process', {
+          type,
+          payload,
+        }, {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 2000 },
+          removeOnComplete: true,
+        });
       }
       return;
     }

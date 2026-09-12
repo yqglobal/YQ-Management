@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
-import WorkspaceSettingsPage from './_components/workspace';
-import QRCodesSettings from './_components/qr-codes';
-import CustomerExperienceSettings from './_components/experience';
+import WorkspaceSettingsPage from '../../../components/settings/workspace';
+import QRCodesSettings from '../../../components/settings/qr-codes';
+import CustomerExperienceSettings from '../../../components/settings/experience';
 
 export default function WorkspaceSettingsWrapper() {
   const [activeTab, setActiveTab] = useState<'identity' | 'customer' | 'info'>('identity');

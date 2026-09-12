@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../../../components/AuthContext';
+import { useAuth } from '../AuthContext';
 import { Download, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
-import { fetchApi } from '../../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { useRouter } from 'next/router';
 
 export default function ComplianceSettings() {
