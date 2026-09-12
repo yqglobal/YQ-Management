@@ -577,6 +577,12 @@ export default function Onboarding() {
   const totalSteps = inviteCode ? 2 : 5;
   const currentStepProgress = inviteCode ? (step === 1 ? 1 : 2) : step;
 
+  useEffect(() => {
+    if (user?.personalSettings?.onboardingCompleted && step !== 6 && !showConfetti) {
+      router.replace('/dashboard');
+    }
+  }, [user?.personalSettings?.onboardingCompleted, step, showConfetti, router]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-surface dark:bg-[#0a0a0a] flex items-center justify-center">
@@ -584,12 +590,6 @@ export default function Onboarding() {
       </div>
     );
   }
-
-  useEffect(() => {
-    if (user?.personalSettings?.onboardingCompleted && step !== 6 && !showConfetti) {
-      router.replace('/dashboard');
-    }
-  }, [user?.personalSettings?.onboardingCompleted, step, showConfetti, router]);
 
   if (user?.personalSettings?.onboardingCompleted && step !== 6 && !showConfetti) {
     return (

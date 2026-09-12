@@ -131,17 +131,16 @@ export default function CustomerLiveStatus() {
 
   // ─── Map API response to display variables ──────────────────────────────────
   // Backend findOnePublic returns: { id, displayId, currentState, position, ewt, customer, service, location, tenant }
+  const { position, estimatedWaitTime: ewt } = data;
   const {
     displayId,
     currentState,
-    position,
-    ewt,
     customer,
     service,
     location,
     tenant,
     scheduledTime,
-  } = data;
+  } = data.token || {};
 
   const customerName = customer?.name || 'Guest';
   const serviceName = service?.name || 'Service';
