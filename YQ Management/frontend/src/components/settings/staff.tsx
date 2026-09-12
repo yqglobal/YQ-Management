@@ -175,8 +175,8 @@ export default function StaffDirectory() {
   const queryClient = useQueryClient();
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-      const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState<AnyFixMe>(null);
+  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<Member | null>(null);
 
   const isAdmin = user?.role === 'TENANT_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
   

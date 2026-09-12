@@ -9,19 +9,9 @@ import { useRouter } from 'next/router';
 import { toast } from 'sonner';
 import { ProviderModal } from '../modals/ProviderModal';
 
-type Provider = {
-  id: string;
-  name: string;
-  title?: string;
-  email?: string;
-  phone?: string;
-  bio?: string;
-  color?: string;
-  status: string;
-  locationId?: string;
-  userId?: string;
-  capacity?: number;
-  weeklySchedule?: AnyFixMe[];
+import type { Staff } from '@yq/shared';
+
+type Provider = Staff & {
   services?: { id: string; name: string }[];
   location?: { id: string; name: string };
 };
