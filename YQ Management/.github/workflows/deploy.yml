@@ -45,9 +45,9 @@ jobs:
       - name: Prepare shared folder for Docker builds
         run: |
           cp -r "./YQ Management/shared" "./YQ Management/frontend/shared"
-          sed -i 's|"file:../shared"|"file:./shared"|g' "./YQ Management/frontend/package.json"
+          sed -i 's|"@yq/shared": "\*"|"@yq/shared": "file:./shared"|g' "./YQ Management/frontend/package.json"
           cp -r "./YQ Management/shared" "./YQ Management/backend/shared"
-          sed -i 's|"file:../shared"|"file:./shared"|g' "./YQ Management/backend/package.json"
+          sed -i 's|"@yq/shared": "\*"|"@yq/shared": "file:./shared"|g' "./YQ Management/backend/package.json"
           git add "./YQ Management/frontend/shared" "./YQ Management/frontend/package.json" "./YQ Management/backend/shared" "./YQ Management/backend/package.json"
 
       - name: Extract metadata (tags, labels) for Docker
