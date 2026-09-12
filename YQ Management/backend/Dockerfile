@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY shared ./shared
 
 # Install all dependencies (including dev for build)
 RUN npm install
@@ -28,6 +29,7 @@ ENV NODE_ENV=production
 
 # Install production dependencies
 COPY package*.json ./
+COPY shared ./shared
 RUN npm install --omit=dev
 
 # Copy generated Prisma client

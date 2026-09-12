@@ -42,6 +42,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Prepare shared folder for Docker builds
+        run: |
+          cp -r "./YQ Management/shared" "./YQ Management/frontend/shared"
+          sed -i 's|"file:../shared"|"file:./shared"|g' "./YQ Management/frontend/package.json"
+          cp -r "./YQ Management/shared" "./YQ Management/backend/shared"
+          sed -i 's|"file:../shared"|"file:./shared"|g' "./YQ Management/backend/package.json"
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5

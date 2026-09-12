@@ -15,6 +15,7 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY package*.json ./
+COPY shared ./shared
 RUN npm install
 
 COPY . .
