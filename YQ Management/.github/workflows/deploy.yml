@@ -48,9 +48,7 @@ jobs:
           sed -i 's|"@yq/shared": "\*"|"@yq/shared": "file:./shared"|g' "./frontend/package.json"
           cp -r "./shared" "./backend/shared"
           sed -i 's|"@yq/shared": "\*"|"@yq/shared": "file:./shared"|g' "./backend/package.json"
-          # Optional: You can commit this during the build if needed by Docker context, 
-          # but `cp` is enough since buildx context is local filesystem unless using remote.
-          # git add "./frontend/shared" "./frontend/package.json" "./backend/shared" "./backend/package.json"
+          git add "./frontend/shared" "./frontend/package.json" "./backend/shared" "./backend/package.json"
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
