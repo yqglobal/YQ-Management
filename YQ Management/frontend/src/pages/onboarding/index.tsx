@@ -302,8 +302,6 @@ export default function Onboarding() {
     }
   };
 
-  useEffect(() => {
-
   // --- Premium UI: Data Prefilling ---
   useEffect(() => {
     if (user && !localStorage.getItem('onboarding_form_data')) {
@@ -324,6 +322,7 @@ export default function Onboarding() {
   }, [user]);
   // ------------------------------------
 
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const code = (router.query.inviteCode || router.query.code || localStorage.getItem('qmova_invite_code')) as string;
       if (typeof code === 'string' && code.trim()) {
