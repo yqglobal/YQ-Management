@@ -4,6 +4,7 @@ interface Step {
   elementId: string;
   title: string;
   description: string;
+  route: string;
 }
 
 const STEPS: Step[] = [
@@ -11,22 +12,28 @@ const STEPS: Step[] = [
     elementId: 'tour-queues-nav',
     title: 'Manage Your Queues',
     description: 'This is where you can see all your active queues and create new ones.',
+    route: '/dashboard/queues',
   },
   {
     elementId: 'tour-create-queue-btn',
     title: 'Create a Queue',
     description: 'Click here to create a new queue. You can select pre-built templates for your specific business type!',
+    route: '/dashboard/queues',
   },
   {
     elementId: 'tour-settings-nav',
     title: 'Connect WhatsApp',
     description: "Don't forget to connect your WhatsApp in the settings so your customers get real-time SMS updates.",
+    route: '/dashboard/settings',
   },
 ];
+
+import { useRouter } from 'next/router';
 
 export function DashboardTour({ canStart = true }: { canStart?: boolean }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (!canStart) return;
@@ -40,11 +47,21 @@ export function DashboardTour({ canStart = true }: { canStart?: boolean }) {
   useEffect(() => {
     if (!isOpen) return;
 
-    const element = document.getElementById(STEPS[currentStep]?.elementId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const step = STEPS[currentStep];
+    if (step && step.route && router.pathname !== step.route) {
+      router.push(step.route).then(() => {
+        setTimeout(() => {
+          const element = document.getElementById(step.elementId);
+          if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 500);
+      });
+    } else {
+      const element = document.getElementById(step?.elementId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
-  }, [currentStep, isOpen]);
+  }, [currentStep, isOpen, router]);
 
   const handleNext = () => {
     if (currentStep < STEPS.length - 1) {
@@ -64,8 +81,8 @@ export function DashboardTour({ canStart = true }: { canStart?: boolean }) {
   const step = STEPS[currentStep];
 
   return (
-    <div className="fixed inset-0 bg-zinc-950/40 dark:bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6">
+    <div className="fixed bottom-6 right-6 z-[200] flex items-end justify-end p-4 pointer-events-none">
+      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] w-full max-w-sm p-6 pointer-events-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">{step.title}</h3>
           <span className="text-xs text-gray-500 dark:text-zinc-400">

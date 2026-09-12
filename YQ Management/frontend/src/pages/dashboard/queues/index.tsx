@@ -151,6 +151,7 @@ export default function QueuesList() {
               Print QR
             </button>
             <button
+              id="tour-create-queue-btn"
               onClick={() => plan.isAtQueueLimit ? setShowQuotaModal(true) : setIsModalOpen(true)}
               className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-container text-white rounded-xl font-semibold transition-all shadow-sm border border-primary/20 hover:-translate-y-0.5 w-fit"
             >

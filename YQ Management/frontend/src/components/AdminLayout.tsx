@@ -113,7 +113,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     { label: 'Scanner', href: '/dashboard/check-in', icon: 'qr_code_scanner', pageId: 'service-desk' },
     { label: 'Inbox', href: '/dashboard/inbox', icon: 'chat', pageId: 'inbox' },
     { label: 'Schedule', href: '/dashboard/appointments', icon: 'calendar_today', pageId: 'appointments' },
-    { label: 'Queues', href: '/dashboard/queues', icon: 'list_alt', pageId: 'service-desk' },
+    { label: 'Queues', href: '/dashboard/queues', icon: 'list_alt', pageId: 'service-desk', id: 'tour-queues-nav' },
     { label: 'Analytics', href: '/dashboard/analytics', icon: 'analytics', pageId: 'analytics' },
   ];
 
@@ -439,6 +439,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
               <Link
                 key={item.href}
                 href={item.href}
+                id={(item as any).id}
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md ${
                   active 
