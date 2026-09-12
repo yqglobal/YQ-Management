@@ -25,7 +25,10 @@ export const AuthStorage = {
       localStorage.setItem('qmover_auth_token', token);
       // also write legacy key for older onboarding flows
       try { localStorage.setItem('token', token); } catch (e) {}
-      document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Lax`;
+      // NOTE: Do NOT write document.cookie here. The backend sets an httpOnly
+      // `token` cookie on login. Writing a non-httpOnly cookie with the same
+      // name causes browser collisions (one shadows the other depending on
+      // browser path rules). The httpOnly cookie is the authoritative one.
     }
   },
   get: (): string | null => {
@@ -72,13 +75,13 @@ async function fetchWithRetry(
       signal: options.signal,
     });
     return response;
-  } catch (error) {
+  } catch (error: unknown) {
     if (
       attempt < MAX_RETRIES &&
       (
         (error instanceof DOMException && error.name === 'AbortError') ||
-        error.message === 'Failed to fetch' ||
-        error.name === 'TypeError'
+        (error instanceof Error && error.message === 'Failed to fetch') ||
+        (error instanceof TypeError)
       )
     ) {
       await new Promise((resolve) =>
@@ -110,7 +113,7 @@ export function getBackendUrl() {
   return baseUrl;
 }
 
-export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
+export const fetchApi = async <T = unknown>(endpoint: string, options: RequestInit = {}): Promise<T | null> => {
   const baseUrl = getBackendUrl();
 
   const headers = new Headers(options.headers || {});

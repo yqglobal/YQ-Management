@@ -140,6 +140,7 @@ export default function CustomerLiveStatus() {
     service,
     location,
     tenant,
+    scheduledTime,
   } = data;
 
   const customerName = customer?.name || 'Guest';
@@ -237,9 +238,42 @@ export default function CustomerLiveStatus() {
                 <h2 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">
                   Appointment Scheduled
                 </h2>
-                <p className="text-amber-600 dark:text-amber-500 text-sm font-medium">
-                  Please check in when you arrive.
-                </p>
+                {scheduledTime ? (
+                  <div className="mt-3 mb-4 inline-block bg-white dark:bg-zinc-950 px-4 py-2 rounded-xl border border-amber-100 dark:border-amber-900/50">
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 uppercase tracking-wide font-semibold mb-1">Scheduled For</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {new Date(scheduledTime).toLocaleString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-amber-600 dark:text-amber-500 text-sm font-medium mt-2">
+                    Please check in when you arrive.
+                  </p>
+                )}
+                
+                <div className="mt-4 border-t border-amber-200 dark:border-amber-900/30 pt-4">
+                  <button
+                    onClick={async () => {
+                      if (confirm('Are you sure you want to cancel this appointment?')) {
+                        try {
+                          await fetch(getBackendUrl() + `/public-visit/${accessToken}/cancel`, { method: 'POST' });
+                          window.location.reload();
+                        } catch (e) {
+                          alert('Failed to cancel appointment. Please try again.');
+                        }
+                      }
+                    }}
+                    className="text-sm font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                  >
+                    Cancel Appointment
+                  </button>
+                </div>
               </div>
             )}
 

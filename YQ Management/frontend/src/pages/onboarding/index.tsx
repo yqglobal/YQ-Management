@@ -1238,7 +1238,7 @@ export default function Onboarding() {
                 {isPlansLoading ? (
                   <div className="col-span-2 flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
                 ) : (
-                  plans.filter((p: AnyFixMe) => !p.name.toLowerCase().includes('enterprise')).map((plan: AnyFixMe) => {
+                  (plans || []).filter((p: AnyFixMe) => !p.name.toLowerCase().includes('enterprise')).map((plan: AnyFixMe) => {
                     const isPopular = plan.name.toLowerCase().includes('standard') || plan.name.toLowerCase().includes('pro');
                     return (
                       <div key={plan.id} className={`relative flex flex-col p-6 rounded-3xl ${isPopular ? 'bg-gradient-to-br from-primary-container to-primary/10 dark:from-sky-900/40 dark:to-sky-800/10 border-2 border-primary dark:border-sky-500 shadow-md transform md:-translate-y-2' : 'bg-surface-container-lowest dark:bg-zinc-900 border border-border dark:border-dark-border shadow-sm'}`}>

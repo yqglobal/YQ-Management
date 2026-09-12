@@ -259,6 +259,17 @@ export class PublicVisitController {
     @Res({ passthrough: true }) res: Response,
     @Req() req: Request,
   ) {
+    const idempotencyKey = req.headers['idempotency-key'] as string;
+    let redisKey = '';
+
+    if (idempotencyKey) {
+      redisKey = `booking:idempotency:${idempotencyKey}`;
+      const cached = await this.redisService.client.get(redisKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    }
+
     const visits = await this.visitService.joinMultiple(body);
     const tokens = visits.map((v: any) => v.accessToken).filter(Boolean);
 
@@ -273,6 +284,10 @@ export class PublicVisitController {
         sameSite: 'strict',
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       });
+    }
+
+    if (idempotencyKey) {
+      await this.redisService.client.set(redisKey, JSON.stringify(visits), 'EX', 86400); // 24 hours
     }
 
     return visits;

@@ -6,6 +6,7 @@ export class WhatsappChatbot {
   constructor(
     private prisma: PrismaService,
     private sendMsg: (jid: string, text: string) => Promise<void>,
+    private sendListMsg: (jid: string, payload: any) => Promise<void>,
     private serviceService?: ServiceService,
     private appointmentService?: AppointmentService,
   ) {}
@@ -83,28 +84,19 @@ export class WhatsappChatbot {
         config.quickReplies?.status &&
         (upperText === '1' ||
           upperText.includes('STATUS') ||
-          upperText.includes('WHERE'))
+          upperText === 'check_status')
       ) {
         await this.handleStatusCheck(tenantId, phone, jid);
         return { handled: true, isHumanPaused: false };
       }
 
       if (
-        config.quickReplies?.cancel &&
-        (upperText === '2' ||
-          upperText.includes('CANCEL') ||
-          upperText.includes('STOP'))
-      ) {
-        await this.handleCancel(tenantId, phone, jid);
-        return { handled: true, isHumanPaused: false };
-      }
-
-      if (
         config.quickReplies?.human &&
-        (upperText === '3' ||
+        (upperText === '2' ||
           upperText.includes('HUMAN') ||
           upperText.includes('AGENT') ||
-          upperText.includes('SUPPORT'))
+          upperText.includes('SUPPORT') ||
+          upperText === 'chat_human')
       ) {
         await this.sendMsg(
           jid,
@@ -116,10 +108,12 @@ export class WhatsappChatbot {
         });
         return { handled: true, isHumanPaused: true }; // Trigger inbox saving
       }
+
       if (
-        upperText === '4' ||
+        upperText === '3' ||
         upperText.includes('BOOK') ||
-        upperText.includes('APPOINTMENT')
+        upperText.includes('APPOINTMENT') ||
+        upperText === 'book_new'
       ) {
         await this.handleBookingStart(tenantId, phone, jid, session);
         return { handled: true, isHumanPaused: false };
@@ -165,23 +159,37 @@ export class WhatsappChatbot {
   }
 
   private async sendMenu(jid: string, config: any) {
-    let msg = `*${config.botName}*\n\n${config.welcomeMessage}\n\n`;
-
-    let optionNum = 1;
+    const rows = [];
+    
     if (config.quickReplies?.status) {
-      msg += `${optionNum++}. Check my Queue Status\n`;
+      rows.push({ title: 'Check Status', description: 'See your current queue position', rowId: 'check_status' });
     }
-    if (config.quickReplies?.cancel) {
-      msg += `${optionNum++}. Cancel my Visit\n`;
-    }
+    rows.push({ title: 'Book Appointment', description: 'Schedule a new visit', rowId: 'book_new' });
     if (config.quickReplies?.human) {
-      msg += `${optionNum++}. Speak to a Human\n`;
+      rows.push({ title: 'Chat with Human', description: 'Speak to a support executive', rowId: 'chat_human' });
     }
 
-    // Always append booking as an option
-    msg += `4. Book an Appointment\n`;
-
-    await this.sendMsg(jid, msg);
+    try {
+      await this.sendListMsg(jid, {
+        title: config.botName,
+        description: config.welcomeMessage,
+        buttonText: 'View Options',
+        footerText: 'Powered by YQ',
+        sections: [
+          {
+            title: 'Main Menu',
+            rows
+          }
+        ]
+      });
+    } catch (e) {
+      // Fallback if list message fails (e.g., Baileys limitation on some numbers)
+      let msg = `*${config.botName}*\n\n${config.welcomeMessage}\n\n`;
+      msg += `1. Check Status\n`;
+      msg += `2. Chat with Human\n`;
+      msg += `3. Book an Appointment\n`;
+      await this.sendMsg(jid, msg);
+    }
   }
 
   /**

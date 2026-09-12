@@ -9,6 +9,7 @@ import { fetchApi } from '../../lib/api';
 import { FeatureGuard } from '../../components/guards/FeatureGuard';
 import { Search, Users, Phone, Mail, Clock, BarChart2 } from 'lucide-react';
 import { useLocation } from '../../components/LocationContext';
+import type { AnalyticsResponse, Customer } from '../../types/api';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -27,13 +28,16 @@ export default function Analytics() {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { data: analytics = null, isLoading: isAnalyticsLoading } = useQuery({
     queryKey: ['analytics', timeParam, activeLocationId, tz],
-    queryFn: () => fetchApi(`/analytics?timeframe=${timeParam}${locParam}&tz=${encodeURIComponent(tz)}`).catch(() => null),
+    queryFn: (): Promise<AnalyticsResponse | null> =>
+      fetchApi<AnalyticsResponse>(`/analytics?timeframe=${timeParam}${locParam}&tz=${encodeURIComponent(tz)}`)
+        .catch(() => null),
   });
 
-  const { data: customers = [], isLoading: isCustomersLoading } = useQuery({
+  const { data: customersRaw, isLoading: isCustomersLoading } = useQuery({
     queryKey: ['customers', 'with-visits'],
-    queryFn: () => fetchApi('/customer').catch(() => []),
+    queryFn: (): Promise<Customer[] | null> => fetchApi<Customer[]>('/customer').catch(() => null),
   });
+  const customers: Customer[] = customersRaw ?? [];
 
   const { kpis, chartData: rawChartData, servicePerformance } = analytics || {
     kpis: { totalVisits: 0, averageWaitTimeMins: 0, slaViolations: 0, dropOffRate: 0 },
@@ -42,7 +46,7 @@ export default function Analytics() {
   };
 
   const chartData = useMemo(() => {
-    return (rawChartData || []).map((d: AnyFixMe) => ({ time: d.timeLabel, visits: d.volume }));
+    return (rawChartData || []).map((d) => ({ time: d.timeLabel, visits: d.volume }));
   }, [rawChartData]);
 
   // ── Customer map ──────────────────────────────

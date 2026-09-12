@@ -9,6 +9,7 @@ import { BrevoProvider } from './providers/brevo.provider';
 import { CommunicationProcessor } from './communication.processor';
 import { CommunicationController } from './communication.controller';
 import { WhatsAppTemplateService } from './templates/whatsapp-template.service';
+import { VisitNotificationService } from './visit-notification.service';
 
 @Global()
 @Module({
@@ -24,6 +25,7 @@ import { WhatsAppTemplateService } from './templates/whatsapp-template.service';
     TemplateService,
     CommunicationLogService,
     WhatsAppTemplateService,
+    VisitNotificationService,
     BrevoProvider,
     CommunicationProcessor,
     {
@@ -37,6 +39,7 @@ import { WhatsAppTemplateService } from './templates/whatsapp-template.service';
     TemplateService,
     CommunicationLogService,
     WhatsAppTemplateService,
+    VisitNotificationService,
     'EmailProvider',
   ],
 })

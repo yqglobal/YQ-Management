@@ -80,6 +80,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>('US');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [regionBlocked, setRegionBlocked] = useState(false);
+  const idempotencyKey = React.useMemo(() => crypto.randomUUID(), []);
 
   useEffect(() => {
     import('../../../../lib/country-codes').then(({ detectCountryCode }) => {
@@ -455,7 +456,10 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
 
       const res = await fetch(`${baseUrl}/public-visit/join-multiple`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey
+        },
         credentials: 'include',
         body: JSON.stringify({
           customerName: name,

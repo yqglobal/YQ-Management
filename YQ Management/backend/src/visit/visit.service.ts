@@ -349,7 +349,7 @@ export class VisitService {
       throw new BadRequestException('No bookings provided');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Find the first service to get tenantId and locationId (assuming all bookings are for the same location/tenant)
       const firstService = await tx.service.findUnique({
         where: { id: data.bookings[0].serviceId },
@@ -514,6 +514,13 @@ export class VisitService {
 
       return visits;
     });
+
+    // Zero-Latency Event Streaming: Wake up the outbox processor immediately
+    this.redisService.client.publish('outbox_events', 'WAKE_UP').catch(e => 
+      console.error('Failed to publish outbox wake-up event', e)
+    );
+
+    return result;
   }
 
   async advanceTurn(queueId: string, operatorId?: string) {

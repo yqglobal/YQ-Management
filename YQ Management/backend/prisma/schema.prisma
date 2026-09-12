@@ -498,6 +498,7 @@ model CommunicationLog {
   error       String?
   sentAt      DateTime?
   deliveredAt DateTime?
+  readAt      DateTime?
   failedAt    DateTime?
   createdAt   DateTime  @default(now())
   tenantId    String?

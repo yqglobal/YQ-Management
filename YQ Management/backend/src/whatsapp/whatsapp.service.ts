@@ -13,6 +13,7 @@ import { Cron } from '@nestjs/schedule';
 import { WhatsappLogger } from './whatsapp.logger';
 import { QueueGateway } from '../queue/queue.gateway';
 import { WhatsappChatbot } from './whatsapp.chatbot';
+import { CommunicationLogService, CommunicationStatus } from '../communication/logging/communication-log.service';
 
 import { ServiceService } from '../service/service.service';
 import { AppointmentService } from '../appointment/appointment.service';
@@ -55,6 +56,8 @@ export class WhatsappService implements OnModuleInit {
     private readonly serviceService: ServiceService,
     @Inject(forwardRef(() => AppointmentService))
     private readonly appointmentService: AppointmentService,
+    @Inject(forwardRef(() => CommunicationLogService))
+    private readonly communicationLogService: CommunicationLogService,
   ) {}
 
   async onModuleInit() {
@@ -1402,14 +1405,23 @@ export class WhatsappService implements OnModuleInit {
       // (moved to class method to avoid nesting function declarations)
 
       if (payload?.event === 'messages.update' && payload?.data) {
-        for (const update of payload.data) {
-          const messageId = update?.key?.id;
-          const status = update?.update?.status; // 2=SERVER_ACK, 3=DELIVERY_ACK, 4=READ
+        const updates = Array.isArray(payload.data) ? payload.data : [payload.data];
+        for (const update of updates) {
+          const messageId = update?.key?.id || update?.keyId;
+          const status = update?.update?.status || update?.status; // 2=SERVER_ACK, 3=DELIVERY_ACK, 4=READ, or strings
           if (messageId && status) {
             let statusStr = '';
-            if (status === 2) statusStr = 'SENT (1 tick)';
-            else if (status === 3) statusStr = 'DELIVERED (2 ticks)';
-            else if (status === 4) statusStr = 'READ (blue ticks)';
+            let commStatus: CommunicationStatus | null = null;
+            if (status === 2 || status === 'SERVER_ACK') {
+              statusStr = 'SENT (1 tick)';
+              // Optional: upgrade to SENT if it wasn't already, but usually it's set on dispatch
+            } else if (status === 3 || status === 'DELIVERY_ACK') {
+              statusStr = 'DELIVERED (2 ticks)';
+              commStatus = CommunicationStatus.DELIVERED;
+            } else if (status === 4 || status === 'READ') {
+              statusStr = 'READ (blue ticks)';
+              commStatus = CommunicationStatus.READ;
+            }
 
             if (statusStr) {
               const tenant = await this.prisma.tenant.findFirst({
@@ -1420,6 +1432,22 @@ export class WhatsappService implements OnModuleInit {
                   messageId,
                   status: statusStr,
                 });
+                if (commStatus) {
+                  await this.communicationLogService.updateStatusByProviderId(
+                    messageId,
+                    commStatus,
+                  );
+                  
+                  // Broadcast to frontend
+                  this.queueGateway.broadcastTenantUpdate(
+                    tenant.id,
+                    'COMMUNICATION_STATUS_UPDATE',
+                    {
+                      messageId,
+                      status: commStatus,
+                    },
+                  );
+                }
               }
             }
           }
@@ -1620,6 +1648,31 @@ export class WhatsappService implements OnModuleInit {
               type: 'NEW_INBOX_MESSAGE',
               tenantId: tenant.id,
               phone,
+              conversationId: conversation.id,
+            }),
+          );
+        },
+        async (jidToSend, listPayload) => {
+          await this.sendListMessage(instanceName, jidToSend, listPayload);
+          // Log outgoing bot list message to Inbox as text summary
+          await this.prisma.message.create({
+            data: {
+              tenantId: tenant.id,
+              customerPhone: phone,
+              conversationId: conversation.id,
+              body: `[Interactive Menu]: ${listPayload.title || listPayload.description}`,
+              sender: 'SYSTEM',
+              isRead: true,
+            },
+          });
+          
+          this.redisService.client.publish(
+            'queue_events',
+            JSON.stringify({
+              type: 'NEW_INBOX_MESSAGE',
+              tenantId: tenant.id,
+              phone,
+              conversationId: conversation.id,
             }),
           );
         },
@@ -1638,6 +1691,38 @@ export class WhatsappService implements OnModuleInit {
       );
       return { handled: false, error: errorMessage };
     }
+  }
+
+  async sendListMessage(
+    instanceName: string,
+    number: string,
+    listPayload: {
+      title: string;
+      description: string;
+      buttonText: string;
+      footerText?: string;
+      sections: { title: string; rows: { title: string; description?: string; rowId: string }[] }[];
+    }
+  ) {
+    const normalizedNumber = number.replace(/\D/g, '');
+    this.logger.debug(`Sending list message on ${instanceName} to: ${normalizedNumber}`);
+
+    const result = await this.fetchEvo(
+      `/message/sendList/${instanceName}`,
+      'POST',
+      {
+        number: normalizedNumber,
+        ...listPayload,
+      },
+      25000,
+    );
+
+    if (result.error) {
+      this.logger.error(`Failed to send List Message to ${normalizedNumber} on ${instanceName}: ${result.error.message}`);
+      return { success: false, error: result.error.message };
+    }
+    
+    return { success: true, providerId: result.data?.key?.id };
   }
 
   async sendMessage(instanceName: string, number: string, text: string) {
@@ -1836,6 +1921,8 @@ export class WhatsappService implements OnModuleInit {
         mediatype: mediaType,
         media: base64,
         caption: caption,
+        mimetype: mediaType === 'image' ? 'image/png' : 'application/octet-stream',
+        fileName: mediaType === 'image' ? 'image.png' : 'file.bin',
       },
     );
     if (result.error) {

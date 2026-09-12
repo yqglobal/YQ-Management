@@ -96,7 +96,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     enabled: !!user,
   });
 
-  const hasAcceptedPolicies = isLoadingPolicies || !user || (acceptedPolicies.some((p: AnyFixMe) => p.policy.type === 'TERMS_OF_SERVICE') && acceptedPolicies.some((p: AnyFixMe) => p.policy.type === 'PRIVACY_POLICY'));
+  const hasAcceptedPolicies = isLoadingPolicies || !user || ((acceptedPolicies || []).some((p: AnyFixMe) => p.policy.type === 'TERMS_OF_SERVICE') && (acceptedPolicies || []).some((p: AnyFixMe) => p.policy.type === 'PRIVACY_POLICY'));
   const [planWelcomeDismissed, setPlanWelcomeDismissed] = useState(false);
 
   const handleLocationSelect = (id: string) => {

@@ -125,7 +125,7 @@ export default function ServiceDeskToday() {
   });
 
   const filteredQueues = React.useMemo(() => {
-    let q = queues;
+    let q = queues || [];
     if (user && user.role === 'OPERATOR') {
       if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
         q = q.filter((queue: AnyFixMe) => {
@@ -140,7 +140,7 @@ export default function ServiceDeskToday() {
   }, [queues, user]);
 
   const filteredVisits = React.useMemo(() => {
-    let v = visits;
+    let v = visits || [];
     if (user && user.role === 'OPERATOR') {
       if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
         v = v.filter((visit: AnyFixMe) => user.allowedServiceIds!.includes(visit.serviceId));
@@ -150,7 +150,7 @@ export default function ServiceDeskToday() {
   }, [visits, user]);
 
   const filteredAppointments = React.useMemo(() => {
-    let a = pendingAppointments;
+    let a = pendingAppointments || [];
     if (user && user.role === 'OPERATOR') {
       if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
         a = a.filter((appt: AnyFixMe) => user.allowedServiceIds!.includes(appt.serviceId));

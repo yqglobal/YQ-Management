@@ -10,6 +10,7 @@ export enum CommunicationStatus {
   QUEUED = 'queued',
   SENT = 'sent',
   DELIVERED = 'delivered',
+  READ = 'read',
   FAILED = 'failed',
   RETRYING = 'retrying',
 }
@@ -60,6 +61,35 @@ export class CommunicationLogService {
       });
     } catch (error) {
       this.logger.error('Failed to create communication log', error);
+    }
+  }
+
+  async updateStatusByProviderId(
+    providerId: string,
+    status: CommunicationStatus,
+  ) {
+    try {
+      const dataToUpdate: any = { status };
+      const now = new Date();
+
+      if (status === CommunicationStatus.DELIVERED) {
+        dataToUpdate.deliveredAt = now;
+      } else if (status === CommunicationStatus.READ) {
+        dataToUpdate.readAt = now;
+        dataToUpdate.deliveredAt = now; // If read, it must have been delivered
+      } else if (status === CommunicationStatus.FAILED) {
+        dataToUpdate.failedAt = now;
+      }
+
+      await this.prisma.communicationLog.updateMany({
+        where: { providerId },
+        data: dataToUpdate,
+      });
+    } catch (e) {
+      this.logger.error(
+        `Failed to update status for providerId ${providerId}`,
+        e instanceof Error ? e.stack : e,
+      );
     }
   }
 
