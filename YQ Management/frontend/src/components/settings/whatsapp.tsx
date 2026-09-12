@@ -179,7 +179,7 @@ export default function WhatsAppSettingsPage() {
           featureKey="whatsappChatbot_enable"
           message="🤖 Your plan includes the AI WhatsApp Chatbot — let it handle bookings automatically 24/7!"
           ctaLabel="Configure Chatbot"
-          ctaHref="/dashboard/settings/chatbot"
+          ctaHref="#chatbot-settings"
           className="mb-4"
         />
       )}
