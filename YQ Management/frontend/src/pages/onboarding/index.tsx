@@ -263,14 +263,14 @@ export default function Onboarding() {
       try {
         const tenant = await fetchApi(`/tenant/public/${debouncedSubdomain}`);
         if (tenant && tenant.id === user?.tenantId) {
-          return { taken: false, error: false };
+          return { taken: false, error: false, isCurrentTenant: true };
         }
-        return { taken: true, error: false };
+        return { taken: true, error: false, isCurrentTenant: false };
       } catch (err: any) {
         if (err.status === 404) {
-          return { taken: false, error: false };
+          return { taken: false, error: false, isCurrentTenant: false };
         }
-        return { taken: false, error: true };
+        return { taken: false, error: true, isCurrentTenant: false };
       }
     },
     enabled: !!debouncedSubdomain,
@@ -754,11 +754,11 @@ export default function Onboarding() {
                             <CheckCircle2 className="w-3.5 h-3.5" />
                           )}
                           <span>
-                            Portal URL: <strong>{derivedSubdomain || 'your-company'}.qmova.yqbuddy.com</strong>
+                            Portal URL: <strong>{derivedSubdomain || 'your-company'}.{process.env.NEXT_PUBLIC_DOMAIN_BASE || 'qmova.yqbuddy.com'}</strong>
                             {(!subdomainCheck || isCheckingSubdomain) && ' (Checking...)'}
                             {subdomainCheck && !isCheckingSubdomain && subdomainCheck.error && ' (Check failed)'}
                             {subdomainCheck && !isCheckingSubdomain && !subdomainCheck.error && subdomainCheck.taken && ' (Already taken)'}
-                            {subdomainCheck && !isCheckingSubdomain && !subdomainCheck.error && !subdomainCheck.taken && ' (Available)'}
+                            {subdomainCheck && !isCheckingSubdomain && !subdomainCheck.error && !subdomainCheck.taken && (subdomainCheck.isCurrentTenant ? ' (Your current workspace)' : ' (Available)')}
                           </span>
                         </div>
                       )}

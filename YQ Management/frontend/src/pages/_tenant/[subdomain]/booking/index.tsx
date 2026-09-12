@@ -550,7 +550,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               "@context": "https://schema.org",
               "@type": "LocalBusiness",
               "name": tenant.name,
-              "url": `https://${tenant.id}.qmova.app/booking`,
+              "url": `${process.env.NEXT_PUBLIC_APP_URL ? process.env.NEXT_PUBLIC_APP_URL.replace('://', `://${tenant.id}.`) : `https://${tenant.id}.qmova.yqbuddy.com`}/booking`,
               "telephone": tenant.phone || tenant.customerCareNumber || undefined,
               "description": `Book an appointment or join the waitlist at ${tenant.name}. Services include ${services.map(s => s.name).join(', ')}.`
             })
