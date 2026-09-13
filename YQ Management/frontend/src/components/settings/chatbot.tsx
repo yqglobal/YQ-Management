@@ -101,7 +101,14 @@ export default function ChatbotSettings() {
                   type="checkbox" 
                   className="sr-only peer" 
                   checked={chatbotEnabled}
-                  onChange={(e) => setChatbotEnabled(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setChatbotEnabled(checked);
+                    updateMutation.mutate({
+                      chatbotEnabled: checked,
+                      chatbotConfig: config,
+                    });
+                  }}
                 />
                 <div className="w-14 h-7 bg-surface-container-highest dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-[#8b5cf6]"></div>
               </label>
@@ -212,17 +219,17 @@ export default function ChatbotSettings() {
                   </div>
                 </section>
               </div>
+            </div>
 
-              <div className="flex justify-end pt-8 mt-8 border-t border-border dark:border-dark-border">
-                <Button 
-                  onClick={handleSave} 
-                  disabled={updateMutation.isPending}
-                  className="bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-body-md font-semibold h-[44px] px-8 rounded-lg flex items-center justify-center gap-2 shadow-sm"
-                >
-                  {updateMutation.isPending ? <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" /> : <Save strokeWidth={1.5} className="w-5 h-5" />}
-                  Save Chatbot Settings
-                </Button>
-              </div>
+            <div className="flex justify-end pt-8 mt-8 border-t border-border dark:border-dark-border">
+              <Button 
+                onClick={handleSave} 
+                disabled={updateMutation.isPending}
+                className="bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-body-md font-semibold h-[44px] px-8 rounded-lg flex items-center justify-center gap-2 shadow-sm"
+              >
+                {updateMutation.isPending ? <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" /> : <Save strokeWidth={1.5} className="w-5 h-5" />}
+                Save Chatbot Settings
+              </Button>
             </div>
           </div>
         )}
