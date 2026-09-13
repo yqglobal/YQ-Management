@@ -84,7 +84,7 @@ export default function StatusPage() {
     queryKey: ['tenant', subdomain],
     queryFn: async () => {
       if (!subdomain) return null;
-      const res = await fetch(`${baseUrl}/tenant/by-domain/${subdomain}`);
+      const res = await fetch(`${baseUrl}/tenant/public/${subdomain}`);
       if (!res.ok) throw new Error('Tenant not found');
       return res.json();
     },
