@@ -404,10 +404,6 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
     setStep(5);
   };
 
-  useEffect(() => {
-    if (step === 5) triggerJoinSequence();
-  }, [step]);
-
   const triggerJoinSequence = async () => {
     setLoading(true);
     setErrorMsg('');
@@ -656,17 +652,24 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               primaryColor={primaryColor}
               supportNumber={supportNumber}
               onViewTickets={() => {
-                let targetUrl = `/booking/status?recover=true`;
+                const storedTokens = JSON.parse(localStorage.getItem('qmova_active_tokens') || '[]');
+                const shouldRecover = storedTokens.length === 0;
+
+                let targetUrl = `/booking/status${shouldRecover ? '?recover=true' : ''}`;
                 if (window.location.pathname.startsWith('/t/')) {
                   const parts = window.location.pathname.split('/');
                   if (parts.length >= 3) {
-                    targetUrl = `/t/${parts[2]}/booking/status?recover=true`;
+                    targetUrl = `/t/${parts[2]}/booking/status${shouldRecover ? '?recover=true' : ''}`;
                   }
                 }
+                
+                const query: Record<string, string> = { subdomain: router.query.subdomain as string };
+                if (shouldRecover) query.recover = 'true';
+
                 router.push(
                   {
                     pathname: '/_tenant/[subdomain]/booking/status',
-                    query: { subdomain: router.query.subdomain as string, recover: 'true' },
+                    query,
                   },
                   targetUrl
                 );
