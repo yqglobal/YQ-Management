@@ -1,4 +1,4 @@
-import { getTenantUrl } from "../../lib/utils";
+import { getTenantUrl, slugify } from "../../lib/utils";
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import AdminLayout from '../../components/AdminLayout';
@@ -479,7 +479,15 @@ export default function ServiceDeskToday() {
                     </p>
                     {visits.length === 0 && tenant?.subdomain && (
                       <a
-                        href={getTenantUrl(tenant.subdomain, `/booking${activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : ''}`)}
+                        href={(() => {
+                          if (!tenant?.subdomain) return '#';
+                          let path = '/booking';
+                          if (activeLocationId && activeLocationId !== 'all') {
+                            const loc = locations?.find((l: AnyFixMe) => l.id === activeLocationId);
+                            if (loc) path = `/booking/${slugify(loc.name)}`;
+                          }
+                          return getTenantUrl(tenant.subdomain, path);
+                        })()}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-semibold text-body-sm hover:bg-primary-container transition-all hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]"

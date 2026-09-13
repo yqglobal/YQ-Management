@@ -1,5 +1,6 @@
 import React from 'react';
 import { useRouter } from 'next/router';
+import { slugify } from '../../lib/utils';
 import Link from 'next/link';
 import { ExternalLink, Scan, Settings, QrCode, Share2, Users } from 'lucide-react';
 import { useAuth } from '../AuthContext';
@@ -12,7 +13,7 @@ interface QueueHeaderProps {
   isAdmin: boolean;
 }
 
-export function QueueHeader({ queueName, queueId, activeTab, onTabChange, isAdmin }: QueueHeaderProps) {
+export function QueueHeader({ queueName, queueId, activeTab, onTabChange, isAdmin, locationName }: QueueHeaderProps & { locationName?: string }) {
   const router = useRouter();
   const { user } = useAuth();
 
@@ -29,7 +30,7 @@ export function QueueHeader({ queueName, queueId, activeTab, onTabChange, isAdmi
       </div>
 
       <div className="flex items-center gap-3">
-        <Link href={`/booking?queueId=${queueId}`} target="_blank" className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors shadow-sm dark:shadow-none">
+        <Link href={`/booking${locationName ? `/${slugify(locationName)}` : ''}?queueId=${queueId}`} target="_blank" className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors shadow-sm dark:shadow-none">
           <ExternalLink className="w-4 h-4" /> Customer View
         </Link>
         <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 text-gray-700 dark:text-white rounded-lg text-sm font-medium transition-colors border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none">

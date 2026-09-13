@@ -1,4 +1,4 @@
-import { getTenantUrl } from "../lib/utils";
+import { getTenantUrl, slugify } from "../lib/utils";
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -343,7 +343,15 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                       Specific Queue TV
                     </button>
                     <a
-                      href={tenant?.subdomain ? getTenantUrl(tenant.subdomain, `/booking${activeLocationId && activeLocationId !== 'all' ? `?locationId=${activeLocationId}` : ''}`) : '#'}
+                      href={(() => {
+                        if (!tenant?.subdomain) return '#';
+                        let path = '/booking';
+                        if (activeLocationId && activeLocationId !== 'all') {
+                          const loc = locations?.find((l: AnyFixMe) => l.id === activeLocationId);
+                          if (loc) path = `/booking/${slugify(loc.name)}`;
+                        }
+                        return getTenantUrl(tenant.subdomain, path);
+                      })()}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors text-on-surface"

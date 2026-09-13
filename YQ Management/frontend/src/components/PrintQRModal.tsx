@@ -1,4 +1,4 @@
-import { getTenantUrl } from "../lib/utils";
+import { getTenantUrl, slugify } from "../lib/utils";
 import { useAuth } from "./AuthContext";
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -78,7 +78,7 @@ export default function PrintQRModal({ open, onClose, queues }: PrintQRModalProp
     const queuesToPrint = queues.filter(q => idsToPrint.includes(q.id));
 
     const pagesHtml = queuesToPrint.map(queue => {
-      const joinUrl = `${baseUrl}/booking?queueId=${queue.id}`;
+      const joinUrl = `${baseUrl}/booking${queue.location?.name ? `/${slugify(queue.location.name)}` : ''}?queueId=${queue.id}`;
       // Grab clean rendered SVG vector code or fallback to API image
       const svgEl = document.getElementById(`qr-svg-render-${queue.id}`);
       const qrContent = svgEl ? svgEl.innerHTML : `<img src="https://api.qrserver.com/v1/create-qr-code/?size=380x380&data=${encodeURIComponent(joinUrl)}" alt="QR Code" />`;
@@ -218,7 +218,7 @@ export default function PrintQRModal({ open, onClose, queues }: PrintQRModalProp
         <div className="hidden aria-hidden">
           {queues.map(q => (
             <div key={q.id} id={`qr-svg-render-${q.id}`}>
-              <QRCodeSVG value={`${baseUrl}/booking?queueId=${q.id}`} size={360} level="H" />
+              <QRCodeSVG value={`${baseUrl}/booking${q.location?.name ? `/${slugify(q.location.name)}` : ''}?queueId=${q.id}`} size={360} level="H" />
             </div>
           ))}
         </div>
@@ -296,7 +296,7 @@ export default function PrintQRModal({ open, onClose, queues }: PrintQRModalProp
                         </span>
                       </div>
                       <p className="text-xs text-gray-400 dark:text-zinc-500 font-mono mt-0.5 truncate">
-                        {baseUrl ? `${baseUrl}/booking?queueId=${queue.id}` : `/booking?queueId=${queue.id}`}
+                        {baseUrl ? `${baseUrl}/booking${queue.location?.name ? `/${slugify(queue.location.name)}` : ''}?queueId=${queue.id}` : `/booking${queue.location?.name ? `/${slugify(queue.location.name)}` : ''}?queueId=${queue.id}`}
                       </p>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import { getTenantUrl } from "../../lib/utils";
+import { getTenantUrl, slugify } from "../../lib/utils";
 import { useAuth } from "../AuthContext";
 import React, { useState, useEffect } from 'react';
 import { Copy, MapPin, Globe, Code, Download } from 'lucide-react';
@@ -9,7 +9,7 @@ interface SharePanelProps {
   locationId?: string;
 }
 
-export function SharePanel({ queueId, locationId }: SharePanelProps) {
+export function SharePanel({ queueId, locationId, locationName }: SharePanelProps & { locationName?: string }) {
   const [publicUrl, setPublicUrl] = useState('');
   const [tvDisplayUrl, setTvDisplayUrl] = useState('');
 
@@ -18,7 +18,7 @@ export function SharePanel({ queueId, locationId }: SharePanelProps) {
   useEffect(() => {
     // Only access window on the client side
     const subdomain = user?.tenant?.subdomain || '';
-    setPublicUrl(getTenantUrl(subdomain, `/booking?queueId=${queueId}`));
+    setPublicUrl(getTenantUrl(subdomain, `/booking${locationName ? `/${slugify(locationName)}` : ''}?queueId=${queueId}`));
     setTvDisplayUrl(getTenantUrl(subdomain, `/tv/${user?.tenant?.id}?queueId=${queueId}${locationId ? `&locationId=${locationId}` : ''}`));
   }, [queueId, user?.tenant?.id, user?.tenant?.subdomain]);
 
