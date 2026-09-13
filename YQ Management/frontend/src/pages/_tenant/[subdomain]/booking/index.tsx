@@ -436,6 +436,10 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
     }
   };
 
+  useEffect(() => {
+    if (step === 5) triggerJoinSequence();
+  }, [step]);
+
   const submitJoin = async (otpCode?: string) => {
     setLoading(true);
     setErrorMsg('');
