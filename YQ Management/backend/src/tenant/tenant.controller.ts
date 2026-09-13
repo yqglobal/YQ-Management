@@ -66,6 +66,8 @@ export class TenantController {
       subdomain?: string;
       branding?: any;
       customerExperience?: any;
+      chatbotEnabled?: boolean;
+      chatbotConfig?: any;
     },
   ) {
     // SECURITY: TENANT_ADMIN can only update their own tenant.

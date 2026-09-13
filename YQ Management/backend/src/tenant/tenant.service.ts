@@ -170,6 +170,8 @@ export class TenantService {
       branding?: any;
       customerExperience?: any;
       subdomain?: string;
+      chatbotEnabled?: boolean;
+      chatbotConfig?: any;
     },
   ) {
     const tenant = await this.prisma.tenant.findUnique({ where: { id } });
@@ -198,6 +200,8 @@ export class TenantService {
     if (data.branding !== undefined) updateData.branding = data.branding;
     if (data.customerExperience !== undefined)
       updateData.customerExperience = data.customerExperience;
+    if (data.chatbotEnabled !== undefined) updateData.chatbotEnabled = data.chatbotEnabled;
+    if (data.chatbotConfig !== undefined) updateData.chatbotConfig = data.chatbotConfig;
 
     return this.prisma.tenant.update({
       where: { id },
