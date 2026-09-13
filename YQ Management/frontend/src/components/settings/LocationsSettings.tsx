@@ -46,11 +46,13 @@ export function LocationsSettings() {
             </p>
           </div>
           <div className="flex flex-col items-end shrink-0">
-            <span className="text-sm font-semibold text-on-surface dark:text-white mb-1">{locations.length} of 5 Locations Used</span>
+            <span className="text-sm font-semibold text-on-surface dark:text-white mb-1">
+              {locations.length} of {plan.limits.maxLocations > 0 ? plan.limits.maxLocations : 'Unlimited'} Locations Used
+            </span>
             <div className="w-32 h-2 bg-surface-container-low dark:bg-zinc-800 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min((locations.length / 5) * 100, 100)}%` }}
+                style={{ width: plan.limits.maxLocations > 0 ? `${Math.min((locations.length / plan.limits.maxLocations) * 100, 100)}%` : '100%' }}
               />
             </div>
           </div>

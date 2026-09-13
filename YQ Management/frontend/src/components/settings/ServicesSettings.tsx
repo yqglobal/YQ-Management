@@ -66,11 +66,13 @@ export function ServicesSettings() {
           </div>
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-end shrink-0 mr-2">
-              <span className="text-sm font-semibold text-on-surface dark:text-white mb-1">{services.length} of 5 Services Used</span>
+              <span className="text-sm font-semibold text-on-surface dark:text-white mb-1">
+                {services.length} of {plan.limits.maxServices > 0 ? plan.limits.maxServices : 'Unlimited'} Services Used
+              </span>
               <div className="w-32 h-2 bg-surface-container-low dark:bg-zinc-800 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min((services.length / 5) * 100, 100)}%` }}
+                  style={{ width: plan.limits.maxServices > 0 ? `${Math.min((services.length / plan.limits.maxServices) * 100, 100)}%` : '100%' }}
                 />
               </div>
             </div>
