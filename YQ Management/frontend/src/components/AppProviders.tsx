@@ -52,10 +52,15 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           action: {
             label: 'Update Now',
             onClick: () => {
-              wb.messageSkipWaiting();
               wb.addEventListener('controlling', () => {
                 window.location.reload();
               });
+              wb.messageSkipWaiting();
+              
+              // Fallback in case controlling event is missed
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
             }
           }
         });
