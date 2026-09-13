@@ -39,6 +39,7 @@ docker compose -f docker-compose.production.yml pull
 echo "====> Running Safe Database Migrations..."
 # Run migrations safely using a temporary container to prevent downtime crashes
 docker exec yq-postgres psql -U postgres -d yq_queue -c "DELETE FROM _prisma_migrations WHERE finished_at IS NULL;" || true
+docker exec yq-postgres psql -U postgres -d yq_queue -c "DELETE FROM _prisma_migrations WHERE migration_name = '20260913152042_add_self_serve_mode';" || true
 docker compose -f docker-compose.production.yml run --rm backend npx prisma migrate deploy
 
 echo "====> Starting new containers..."

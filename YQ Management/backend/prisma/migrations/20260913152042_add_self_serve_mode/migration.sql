@@ -1,5 +1,3 @@
--- AlterTable
-ALTER TABLE "CommunicationLog" ADD COLUMN     "readAt" TIMESTAMP(3);
 
 -- AlterTable
 ALTER TABLE "Tenant" ADD COLUMN     "selfServeModeEnabled" BOOLEAN NOT NULL DEFAULT false,

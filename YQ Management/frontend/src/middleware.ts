@@ -11,10 +11,11 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - manifest.json, sw.js, workbox-* (PWA files)
      * - images, svg, icons (public files)
      * - all .png, .jpg, .jpeg, .svg files
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|images|svg|icons|.*\\.(?:png|jpg|jpeg|svg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|sw\\.js|workbox-.*|images|svg|icons|.*\\.(?:png|jpg|jpeg|svg|gif|webp)$).*)',
   ],
 };
 
