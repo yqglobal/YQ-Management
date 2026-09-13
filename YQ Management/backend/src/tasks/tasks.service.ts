@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class TasksService {
@@ -10,6 +11,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -45,7 +47,6 @@ export class TasksService {
         });
         cleanupCount++;
 
-        // Try to notify the tenant admin
         if (invite.email) {
           const tenantAdmin = await this.prisma.user.findFirst({
             where: {
@@ -73,18 +74,14 @@ export class TasksService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleDataRetentionLifecycle() {
     this.logger.log('Running data retention lifecycle check...');
-    // GDPR / data retention: Wipe Visits and legacy Tokens older than 2 years
     const twoYearsAgo = new Date();
     twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
 
     try {
-      // FIX (1D): Previously both deleteMany calls targeted prisma.visit (copy-paste bug).
-      // The second call now correctly targets prisma.token for legacy Token record cleanup.
       const visitResult = await this.prisma.visit.deleteMany({
         where: { createdAt: { lt: twoYearsAgo } },
       });
 
-      // Legacy Token model cleanup (model deprecated but still exists in schema)
       const tokenResult = await this.prisma.token.deleteMany({
         where: { joinedAt: { lt: twoYearsAgo } },
       });
@@ -96,4 +93,82 @@ export class TasksService {
       this.logger.error('Failed to run data retention cleanup', err);
     }
   }
+
+  /**
+   * Check-in reminders: runs every minute and sends WhatsApp nudges
+   * to customers who have upcoming or overdue appointments.
+   */
+  @Cron('* * * * *') // Every minute
+  async handleCheckinReminders() {
+    const now = new Date();
+
+    // Find scheduled visits where service has requireManualCheckIn = true
+    const upcomingVisits = await this.prisma.visit.findMany({
+      where: {
+        currentState: { in: ['SCHEDULED', 'CREATED'] },
+        scheduledTime: { not: null },
+        service: { requireManualCheckIn: true },
+      },
+      include: {
+        customer: { select: { name: true, phone: true } },
+        service: { select: { name: true, expectedDuration: true } },
+        location: { select: { name: true } },
+        tenant: { select: { name: true, id: true } },
+      },
+    });
+
+    for (const visit of upcomingVisits) {
+      const phone = visit.customer?.phone;
+      if (!phone || !visit.scheduledTime) continue;
+
+      const diffMins = (visit.scheduledTime.getTime() - now.getTime()) / 60000;
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com';
+      const statusUrl = `${baseUrl}/status/${visit.accessToken}`;
+
+      let message: string | null = null;
+
+      // T-15: Get ready reminder
+      if (diffMins > 14 && diffMins <= 15) {
+        message =
+          `🔔 *Reminder!* Your appointment at *${visit.location?.name || visit.tenant?.name}* is in *15 minutes*.\n\n` +
+          `📋 Service: *${visit.service?.name}*\n\n` +
+          `Head to the location and check in when you arrive: ${statusUrl}`;
+      }
+
+      // T-5: Head there now
+      if (diffMins > 4 && diffMins <= 5) {
+        message =
+          `🚶 *Time to head over!* Your appointment at *${visit.location?.name}* is in *5 minutes*.\n\n` +
+          `Check in when you arrive: ${statusUrl}`;
+      }
+
+      // T+0 to T+10: Overdue — gentle nudge
+      if (diffMins < 0 && diffMins >= -10) {
+        message =
+          `⚠️ *You're late!* Your appointment at *${visit.location?.name}* was scheduled for now.\n\n` +
+          `Please check in immediately or your spot may be released: ${statusUrl}\n\n` +
+          `Reply *CANCEL* to free your spot.`;
+      }
+
+      if (message) {
+        await this.notificationsService
+          .sendWhatsAppMessage(phone, message, visit.tenant?.id)
+          .catch((e) => this.logger.warn(`Reminder send failed for visit ${visit.id}: ${e.message}`));
+      }
+    }
+  }
+
+  /**
+   * Clean up expired, unverified OTPs every 10 minutes.
+   */
+  @Cron('*/10 * * * *')
+  async handleOtpCleanup() {
+    const result = await this.prisma.checkInOtp.deleteMany({
+      where: { expiresAt: { lt: new Date() }, verified: false },
+    });
+    if (result.count > 0) {
+      this.logger.log(`Cleaned up ${result.count} expired check-in OTPs`);
+    }
+  }
 }
+

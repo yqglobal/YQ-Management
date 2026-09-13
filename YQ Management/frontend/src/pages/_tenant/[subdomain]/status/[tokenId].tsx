@@ -85,6 +85,26 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
     return () => clearInterval(interval);
   }, []);
 
+  // Live EWT countdown — ticks every second, resets when estimatedWaitTime changes (via websocket)
+  const [ewtSeconds, setEwtSeconds] = useState(0);
+  useEffect(() => {
+    if (!statusData) return;
+    setEwtSeconds((statusData.estimatedWaitTime || 0) * 60);
+  }, [statusData?.estimatedWaitTime]);
+  useEffect(() => {
+    if (ewtSeconds <= 0) return;
+    const t = setInterval(() => setEwtSeconds(s => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(t);
+  }, [ewtSeconds > 0]);
+
+  const fmtEwt = (secs: number) => {
+    if (secs <= 0) return 'Any moment now';
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col p-6 items-center justify-center">
@@ -235,14 +255,14 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
                 <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 flex flex-col items-center justify-center">
                   <Clock className="w-5 h-5 text-gray-400 mb-2" />
                   <motion.div 
-                    key={estimatedWaitTime}
-                    initial={{ scale: 1.5, opacity: 0 }}
+                    key={Math.floor(ewtSeconds / 60)}
+                    initial={{ scale: 1.1, opacity: 0.5 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="text-3xl font-bold text-gray-900 mb-1"
+                    className="text-3xl font-bold text-gray-900 mb-1 tabular-nums"
                   >
-                    ~{estimatedWaitTime}m
+                    {fmtEwt(ewtSeconds)}
                   </motion.div>
-                  <div className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">{t(lang, 'estimatedWait')}</div>
+                  <div className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Time remaining</div>
                 </div>
               </motion.div>
             )}

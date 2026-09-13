@@ -47,6 +47,7 @@ import { PoliciesModule } from './policies/policies.module';
 import { GoogleModule } from './integrations/google/google.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { BlogsModule } from './blogs/blogs.module';
+import { PublicCheckinModule } from './public-checkin/public-checkin.module';
 
 @Module({
   imports: [
@@ -131,6 +132,7 @@ import { BlogsModule } from './blogs/blogs.module';
     GoogleModule,
     MarketingModule,
     BlogsModule,
+    PublicCheckinModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

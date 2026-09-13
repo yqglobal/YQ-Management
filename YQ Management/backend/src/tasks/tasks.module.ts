@@ -5,6 +5,7 @@ import { RedisModule } from '../redis/redis.module';
 import { QueueModule } from '../queue/queue.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
 import { CommunicationModule } from '../communication/communication.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 import { BullModule } from '@nestjs/bullmq';
 import { WebhookConsumer } from './consumers/webhook.consumer';
@@ -20,6 +21,7 @@ import { WhatsappConsumer } from './consumers/whatsapp.consumer';
     forwardRef(() => QueueModule),
     WebhooksModule,
     CommunicationModule,
+    NotificationsModule,
     BullModule.registerQueue(
       { name: 'queue_webhooks' },
       { name: 'queue_whatsapp' },
@@ -33,4 +35,5 @@ import { WhatsappConsumer } from './consumers/whatsapp.consumer';
   ],
 })
 export class TasksModule {}
+
 

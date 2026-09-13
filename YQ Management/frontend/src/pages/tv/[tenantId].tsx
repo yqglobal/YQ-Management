@@ -38,6 +38,7 @@ export default function TVDisplay() {
   const [branding, setBranding] = useState<AnyFixMe>(null);
   const [tenantName, setTenantName] = useState<string>('Qmova');
   const [tenantSubdomain, setTenantSubdomain] = useState<string>('');
+  const [selfServeModeEnabled, setSelfServeModeEnabled] = useState(false);
   const [queueInfo, setQueueInfo] = useState<{name: string, serviceName?: string} | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -88,6 +89,9 @@ export default function TVDisplay() {
         }
         if (data?.subdomain) {
           setTenantSubdomain(data.subdomain);
+        }
+        if (data?.selfServeModeEnabled) {
+          setSelfServeModeEnabled(true);
         }
       })
       .catch(() => {/* use defaults */});
@@ -196,7 +200,9 @@ export default function TVDisplay() {
   const dateStr = currentTime.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
 
   const { serviceId } = router.query;
-  const joinUrl = tenantSubdomain ? `${getTenantUrl(tenantSubdomain, '/booking')}${(serviceId || queueId) ? `?${new URLSearchParams({
+  // In self-serve mode, the QR points to the check-in smart landing page instead of /booking
+  const bookingPath = selfServeModeEnabled ? '/checkin' : '/booking';
+  const joinUrl = tenantSubdomain ? `${getTenantUrl(tenantSubdomain, bookingPath)}${(serviceId || queueId) ? `?${new URLSearchParams({
     ...(serviceId && { serviceId: serviceId as string }),
     ...(queueId && { queueId: queueId as string })
   }).toString()}` : ''}` : '';
@@ -280,7 +286,9 @@ export default function TVDisplay() {
                     <div className="bg-white p-6 rounded-[2rem] inline-block shadow-2xl ring-4 ring-white/10 opacity-95 transition-transform hover:scale-105">
                       <QRCode value={joinUrl} size={400} fgColor="#09090b" bgColor="#ffffff" style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
                     </div>
-                    <div className="mt-8 text-white/50 font-bold tracking-[0.2em] uppercase text-sm bg-black/40 px-6 py-2 rounded-full backdrop-blur-sm border border-white/10">Scan to join queue</div>
+                    <div className="mt-8 text-white/50 font-bold tracking-[0.2em] uppercase text-sm bg-black/40 px-6 py-2 rounded-full backdrop-blur-sm border border-white/10">
+                      {selfServeModeEnabled ? 'Scan to check in or join queue' : 'Scan to join queue'}
+                    </div>
                   </div>
                 ) : (
                   <div className="text-8xl font-black text-white/5 leading-none uppercase tracking-widest select-none">WELCOME</div>

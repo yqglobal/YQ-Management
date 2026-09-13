@@ -569,12 +569,13 @@ export class VisitService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.visit.update({
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.visit.update({
         where: { id },
         data: {
           currentState: 'CHECKED_IN',
           waitingStart: new Date(),
+          checkInTime: new Date(),
           priority: 10,
         },
       });
@@ -583,15 +584,53 @@ export class VisitService {
         data: {
           type: 'VISIT_CHECKED_IN',
           payload: {
-            visitId: updated.id,
-            queueId: updated.queueId,
-            tenantId: updated.tenantId,
+            visitId: u.id,
+            queueId: u.queueId,
+            tenantId: u.tenantId,
+            source: 'RECEPTIONIST',
           },
         },
       });
 
-      return updated;
+      return u;
     });
+
+    // Send WhatsApp confirmation to the customer (receptionist scan flow)
+    try {
+      const fullVisit = await this.prisma.visit.findUnique({
+        where: { id },
+        include: {
+          customer: { select: { name: true, phone: true } },
+          service: { select: { name: true, expectedDuration: true } },
+          location: { select: { name: true } },
+          tenant: { select: { name: true } },
+        },
+      });
+      const phone = fullVisit?.customer?.phone;
+      if (phone) {
+        const waitingAhead = await this.prisma.visit.count({
+          where: {
+            queueId: updated.queueId,
+            currentState: { in: ['WAITING', 'CHECKED_IN'] },
+            createdAt: { lt: updated.createdAt },
+          },
+        });
+        const position = waitingAhead + 1;
+        const ewt = waitingAhead * (fullVisit?.service?.expectedDuration || 5);
+        const statusUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com'}/status/${updated.accessToken}`;
+        const msg =
+          `✅ Reception confirmed your arrival at *${fullVisit?.location?.name || fullVisit?.tenant?.name}*!\n\n` +
+          `📋 Booking: *${fullVisit?.service?.name}*\n` +
+          `🔢 Your position: *#${position}*\n` +
+          (ewt > 0 ? `⏱ Estimated wait: *${ewt} mins*\n\n` : '\n') +
+          `Track live: ${statusUrl}`;
+        await this.whatsappService.sendToTenant(tenantId, phone, msg).catch(() => {});
+      }
+    } catch (e) {
+      this.logger.warn(`WhatsApp receptionist check-in notification failed: ${e.message}`);
+    }
+
+    return updated;
   }
 
   async startService(id: string, tenantId: string) {

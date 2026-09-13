@@ -184,7 +184,8 @@ function StateBadge({ state }: { state: string }) {
   const style = colors[state] || colors.COMPLETED;
   
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${style}`}>
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${style}`}>
+      {state === 'CHECKED_IN' && <span>✅</span>}
       {state.replace('_', ' ')}
     </span>
   );

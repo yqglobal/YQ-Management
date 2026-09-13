@@ -1,0 +1,851 @@
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	﻿2026-09-12T19:24:13.6881307Z Current runner version: '2.337.0'
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6900029Z ##[group]Runner Image Provisioner
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6900652Z Hosted Compute Agent
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6901078Z Version: 20260828.587
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6901538Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6902065Z Build Date: 2026-08-28T16:44:25Z
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6902573Z Worker ID: {026359f3-4987-494b-a21f-85c3401fc8a3}
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6903065Z Azure Region: centralus
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6903747Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6904801Z ##[group]Operating System
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6905226Z Ubuntu
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6905577Z 24.04.5
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6905954Z LTS
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6906334Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6906712Z ##[group]Runner Image
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6907158Z Image: ubuntu-24.04
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6907538Z Version: 20260907.300.1
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6908453Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6909465Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6910151Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6911196Z ##[group]GITHUB_TOKEN Permissions
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6912981Z Contents: read
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6913540Z Metadata: read
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6913982Z Packages: write
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6914362Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6915837Z Secret source: Actions
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6916511Z Cache mode: write
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.6916974Z Prepare workflow directory
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.7143621Z Prepare all required actions
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:13.7178243Z Getting action download info
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:14.0090069Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:14.4511161Z Download action repository 'docker/setup-buildx-action@v3' (SHA:8d2750c68a42422c14e847fe6c8ac0403b4cbd6f)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:14.9581609Z Download action repository 'docker/login-action@v3' (SHA:c94ce9fb468520275223c153574b00df6fe4bcc9)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:15.6947074Z Download action repository 'docker/metadata-action@v5' (SHA:c299e40c65443455700f0fdfc63efafe5b349051)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:16.4100256Z Download action repository 'docker/build-push-action@v5' (SHA:ca052bb54ab0790a636c9b5f226502c73d547a25)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1433691Z Complete job name: Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1934217Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1939791Z ##[group]Run actions/checkout@v4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1940133Z with:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1940353Z   repository: yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1942152Z   token: ***
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1942372Z   ssh-strict: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1942630Z   ssh-user: git
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1942861Z   persist-credentials: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1943086Z   clean: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1943582Z   sparse-checkout-cone-mode: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1943860Z   fetch-depth: 1
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1944091Z   fetch-tags: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1944346Z   show-progress: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1944549Z   lfs: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1944891Z   submodules: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1945110Z   set-safe-directory: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1945378Z   allow-unsafe-pr-checkout: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.1945762Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.2736734Z Syncing repository: yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.2737871Z ##[group]Getting Git version info
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.2738222Z Working directory is '/home/runner/work/YQ-Management/YQ-Management'
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.2738819Z [command]/usr/bin/git version
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.3874047Z git version 2.55.0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.3888167Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.3899681Z Temporarily overriding HOME='/home/runner/work/_temp/2c385773-b1ba-43ea-8fb4-8be6acde5e6f' before making global git config changes
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.3900424Z Adding repository directory to the temporary git global config as a safe directory
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.3904215Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/YQ-Management/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.3948903Z Deleting the contents of '/home/runner/work/YQ-Management/YQ-Management'
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.3952294Z ##[group]Initializing the repository
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.3956262Z [command]/usr/bin/git init /home/runner/work/YQ-Management/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4045545Z hint: Using 'master' as the name for the initial branch. This default branch name
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4046233Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4046727Z hint: to use in all of your new repositories, which will suppress this warning,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4047346Z hint: call:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4047639Z hint:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4048065Z hint: 	git config --global init.defaultBranch <name>
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4048454Z hint:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4048792Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4049330Z hint: 'development'. The just-created branch can be renamed via this command:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4049687Z hint:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4049942Z hint: 	git branch -m <name>
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4050247Z hint:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4050564Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4051249Z Initialized empty Git repository in /home/runner/work/YQ-Management/YQ-Management/.git/
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4055645Z [command]/usr/bin/git remote add origin https://github.com/yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4092490Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4093091Z ##[group]Disabling automatic garbage collection
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4095526Z [command]/usr/bin/git config --local gc.auto 0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4116895Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4117379Z ##[group]Setting up auth
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4121432Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.4143682Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.6163826Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.6192896Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.6379171Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.6404653Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.6554584Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.6582872Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.6583453Z ##[group]Fetching the repository
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:17.6592262Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +2610445dcc588850756f6f78de7bf2ad5d54c9a4:refs/remotes/origin/main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.2028496Z From https://github.com/yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.2029223Z  * [new ref]         2610445dcc588850756f6f78de7bf2ad5d54c9a4 -> origin/main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.2031170Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.2031626Z ##[group]Determining the checkout info
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.2032202Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.2038661Z [command]/usr/bin/git sparse-checkout disable
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.2079059Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.2101772Z ##[group]Checking out the ref
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.2115006Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3526951Z Switched to a new branch 'main'
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3528325Z branch 'main' set up to track 'origin/main'.
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3535938Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3572443Z [command]/usr/bin/git log -1 --format=%H
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3592156Z 2610445dcc588850756f6f78de7bf2ad5d54c9a4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3767333Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3768660Z ##[group]Run docker/setup-buildx-action@v3
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3768960Z with:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3769202Z   driver: docker-container
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3769442Z   use: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3769724Z   keep-state: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3769953Z   cache-binary: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3770185Z   cleanup: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3770422Z   install: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.3770763Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.5484240Z (node:2039) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.5485039Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.5518855Z ##[group]Docker info
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:19.5534687Z [command]/usr/bin/docker version
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8353559Z Client: Docker Engine - Community
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8354666Z  Version:           28.0.4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8355329Z  API version:       1.48
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8355759Z  Go version:        go1.23.7
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8356259Z  Git commit:        b8034c0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8356754Z  Built:             Tue Mar 25 15:07:16 2025
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8357181Z  OS/Arch:           linux/amd64
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8357603Z  Context:           default
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8357924Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8358135Z Server: Docker Engine - Community
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8358637Z  Engine:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8359158Z   Version:          28.0.4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8359585Z   API version:      1.48 (minimum version 1.24)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8359997Z   Go version:       go1.23.7
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8360410Z   Git commit:       6430e49
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8360829Z   Built:            Tue Mar 25 15:07:16 2025
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8361245Z   OS/Arch:          linux/amd64
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8361684Z   Experimental:     false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8362028Z  containerd:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8362400Z   Version:          v2.3.4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8362853Z   GitCommit:        db8809540e1a7a9da5d518876894933ff55692ab
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8363458Z  runc:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8363831Z   Version:          1.5.1
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8364225Z   GitCommit:        v1.5.1-0-g8f2685a4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8364703Z  docker-init:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8365132Z   Version:          0.19.0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8365605Z   GitCommit:        de40ad0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:20.8388644Z [command]/usr/bin/docker info
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6431618Z Client: Docker Engine - Community
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6432204Z  Version:    28.0.4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6432487Z  Context:    default
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6432748Z  Debug Mode: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6433051Z  Plugins:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6433510Z   buildx: Docker Buildx (Docker Inc.)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6433916Z     Version:  v0.37.0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6434323Z     Path:     /usr/libexec/docker/cli-plugins/docker-buildx
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6434733Z   compose: Docker Compose (Docker Inc.)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6435105Z     Version:  v2.38.2
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6435499Z     Path:     /usr/libexec/docker/cli-plugins/docker-compose
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6435816Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6435900Z Server:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6436181Z  Containers: 0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6436417Z   Running: 0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6436731Z   Paused: 0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6437452Z   Stopped: 0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6437691Z  Images: 6
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6437929Z  Server Version: 28.0.4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6438161Z  Storage Driver: overlay2
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6438423Z   Backing Filesystem: extfs
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6438685Z   Supports d_type: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6438908Z   Using metacopy: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6439143Z   Native Overlay Diff: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6439371Z   userxattr: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6439729Z  Logging Driver: json-file
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6440007Z  Cgroup Driver: systemd
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6440266Z  Cgroup Version: 2
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6440484Z  Plugins:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6440699Z   Volume: local
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6440950Z   Network: bridge host ipvlan macvlan null overlay
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6441337Z   Log: awslogs fluentd gcplogs gelf journald json-file local splunk syslog
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6441836Z  Swarm: inactive
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6442120Z  Runtimes: io.containerd.runc.v2 runc
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6442436Z  Default Runtime: runc
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6442721Z  Init Binary: docker-init
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6443083Z  containerd version: db8809540e1a7a9da5d518876894933ff55692ab
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6443591Z  runc version: v1.5.1-0-g8f2685a4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6443899Z  init version: de40ad0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6444151Z  Security Options:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6444480Z   apparmor
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6444723Z   seccomp
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6444948Z    Profile: builtin
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6445192Z   cgroupns
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6445460Z  Kernel Version: 6.17.0-1022-azure
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6445774Z  Operating System: Ubuntu 24.04.5 LTS
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6446113Z  OSType: linux
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6446351Z  Architecture: x86_64
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6446592Z  CPUs: 4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6446839Z  Total Memory: 15.61GiB
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6447095Z  Name: runnervmlun5p
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6447386Z  ID: a4efb8b6-20f9-46f4-b827-91ac0547be3a
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6447698Z  Docker Root Dir: /var/lib/docker
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6447969Z  Debug Mode: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6448235Z  Username: githubactions
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6448497Z  Experimental: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6448841Z  Insecure Registries:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6453789Z   ::1/128
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6454102Z   127.0.0.0/8
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6454484Z  Live Restore Enabled: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6454735Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.6455338Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.8618833Z ##[group]Buildx version
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.8641641Z [command]/usr/bin/docker buildx version
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9075069Z github.com/docker/buildx v0.37.0 ac30b249211430b85fb8f37b6e7154b5c47ba0b6
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9092309Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9226491Z ##[group]Inspecting default docker context
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9341820Z [
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9342102Z   {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9342450Z     "Name": "default",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9342734Z     "Metadata": {},
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9342964Z     "Endpoints": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9343424Z       "docker": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9343752Z         "Host": "unix:///var/run/docker.sock",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9344072Z         "SkipTLSVerify": false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9344292Z       }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9344480Z     },
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9344742Z     "TLSMaterial": {},
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9344959Z     "Storage": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9345233Z       "MetadataPath": "<IN MEMORY>",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9345539Z       "TLSPath": "<IN MEMORY>"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9345774Z     }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9346011Z   }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9346239Z ]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9346835Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:21.9347313Z ##[group]Creating a new builder instance
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:22.0261768Z [command]/usr/bin/docker buildx create --name builder-59afdf56-701c-44e8-803f-7eb4443519b0 --driver docker-container --buildkitd-flags --allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host --use
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:22.1064923Z builder-59afdf56-701c-44e8-803f-7eb4443519b0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:22.1082400Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:22.1083470Z ##[group]Booting builder
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:22.1115174Z [command]/usr/bin/docker buildx inspect --bootstrap --builder builder-59afdf56-701c-44e8-803f-7eb4443519b0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:22.1529039Z #1 [internal] booting buildkit
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:22.3036568Z #1 pulling image moby/buildkit:buildx-stable-1
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.6086827Z #1 pulling image moby/buildkit:buildx-stable-1 10.5s done
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.7603704Z #1 creating container buildx_buildkit_builder-59afdf56-701c-44e8-803f-7eb4443519b00
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.8862634Z #1 creating container buildx_buildkit_builder-59afdf56-701c-44e8-803f-7eb4443519b00 0.3s done
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9080419Z #1 DONE 10.7s
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9307814Z Name:          builder-59afdf56-701c-44e8-803f-7eb4443519b0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9308528Z Driver:        docker-container
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9309387Z Last Activity: 2026-09-12 19:24:22 +0000 UTC
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9309650Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9309778Z Nodes:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9310116Z Name:                  builder-59afdf56-701c-44e8-803f-7eb4443519b00
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9310741Z Endpoint:              unix:///var/run/docker.sock
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9311115Z Status:                running
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9311770Z BuildKit daemon flags: --allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9312359Z BuildKit version:      v0.32.2
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9312780Z Platforms:             linux/amd64, linux/amd64/v2, linux/amd64/v3, linux/amd64/v4, linux/386
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9313220Z Labels:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9313672Z  org.mobyproject.buildkit.worker.executor:         oci
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9314136Z  org.mobyproject.buildkit.worker.hostname:         37828f363d95
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9314631Z  org.mobyproject.buildkit.worker.network:          host
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9315040Z  org.mobyproject.buildkit.worker.oci.process-mode: sandbox
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9315506Z  org.mobyproject.buildkit.worker.selinux.enabled:  false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9315972Z  org.mobyproject.buildkit.worker.snapshotter:      overlayfs
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9316343Z GC Policy rule#0:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9316610Z  All:            false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9316967Z  Filters:        type==source.local type==exec.cachemount type==source.git.checkout
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9317410Z  Keep Duration:  48h0m0s
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9317734Z  Max Used Space: 488.3MiB
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9318059Z GC Policy rule#1:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9318315Z  All:            false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9318601Z  Keep Duration:  1440h0m0s
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9318923Z  Reserved Space: 9.313GiB
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9319237Z  Max Used Space: 93.13GiB
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9319498Z  Min Free Space: 27.01GiB
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9319795Z GC Policy rule#2:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9320062Z  All:            false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9320356Z  Reserved Space: 9.313GiB
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9320689Z  Max Used Space: 93.13GiB
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9320986Z  Min Free Space: 27.01GiB
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9321313Z GC Policy rule#3:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9321585Z  All:            true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9321894Z  Reserved Space: 9.313GiB
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9322218Z  Max Used Space: 93.13GiB
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9322507Z  Min Free Space: 27.01GiB
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:32.9349952Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0071693Z ##[group]Inspect builder
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0072087Z {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0073778Z   "nodes": [
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0074374Z     {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0075137Z       "name": "builder-59afdf56-701c-44e8-803f-7eb4443519b00",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0075717Z       "endpoint": "unix:///var/run/docker.sock",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0076066Z       "status": "running",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0076707Z       "buildkitd-flags": "--allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0077172Z       "buildkit": "v0.32.2",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0077525Z       "platforms": "linux/amd64,linux/amd64/v2,linux/amd64/v3,linux/amd64/v4,linux/386",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0077935Z       "features": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0078306Z         "Automatically load images to the Docker Engine image store": true,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0078843Z         "Cache export": true,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0079125Z         "Direct push": true,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0079364Z         "Docker exporter": true,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0079642Z         "Multi-platform build": true,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0079919Z         "OCI exporter": true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0080143Z       },
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0080360Z       "labels": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0080785Z         "org.mobyproject.buildkit.worker.executor": "oci",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0081256Z         "org.mobyproject.buildkit.worker.hostname": "37828f363d95",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0081621Z         "org.mobyproject.buildkit.worker.network": "host",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0081975Z         "org.mobyproject.buildkit.worker.oci.process-mode": "sandbox",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0082378Z         "org.mobyproject.buildkit.worker.selinux.enabled": "false",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0082734Z         "org.mobyproject.buildkit.worker.snapshotter": "overlayfs"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0083013Z       },
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0083436Z       "gcPolicy": [
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0083701Z         {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0083996Z           "all": false,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0084348Z           "filter": [
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0084715Z             "type==source.local type==exec.cachemount type==source.git.checkout"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0085120Z           ],
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0085359Z           "keepDuration": "48h0m0s",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0085725Z           "maxUsedSpace": "488.3MiB"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0086045Z         },
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0086309Z         {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0086614Z           "all": false,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0086938Z           "keepDuration": "1440h0m0s",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0087278Z           "reservedSpace": "9.313GiB",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0087690Z           "maxUsedSpace": "93.13GiB",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0088082Z           "minFreeSpace": "27.01GiB"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0088411Z         },
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0088672Z         {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0088970Z           "all": false,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0089374Z           "reservedSpace": "9.313GiB",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0089698Z           "maxUsedSpace": "93.13GiB",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0090034Z           "minFreeSpace": "27.01GiB"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0090379Z         },
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0090650Z         {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0090961Z           "all": true,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0091252Z           "reservedSpace": "9.313GiB",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0091600Z           "maxUsedSpace": "93.13GiB",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0091962Z           "minFreeSpace": "27.01GiB"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0092318Z         }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0092611Z       ]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0092873Z     }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0093121Z   ],
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0093699Z   "name": "builder-59afdf56-701c-44e8-803f-7eb4443519b0",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0094117Z   "driver": "docker-container",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0094498Z   "lastActivity": "2026-09-12T19:24:22.000Z"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0094844Z }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0095382Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0096050Z ##[group]BuildKit version
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0096491Z builder-59afdf56-701c-44e8-803f-7eb4443519b00: v0.32.2
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0097153Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0197400Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0198361Z ##[group]Run docker/login-action@v3
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0198608Z with:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0198861Z   registry: ghcr.io
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0199100Z   username: AbhimanyuGit2507
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0200941Z   password: ***
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0201172Z   logout: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.0201395Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.2347405Z Logging into ghcr.io...
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.2362682Z (node:2526) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.2363749Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.6324977Z Login Succeeded!
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.6451246Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.6452315Z ##[group]Run docker/metadata-action@v5
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.6452688Z with:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.6452988Z   images: ghcr.io/yqglobal/yq-management-backend
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.6453548Z   context: workflow
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.6455483Z   github-token: ***
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.6455744Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.9334484Z (node:2546) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:33.9335427Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2406560Z ##[group]Context info
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2407246Z eventName: push
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2408698Z sha: 2610445dcc588850756f6f78de7bf2ad5d54c9a4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2409245Z ref: refs/heads/main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2409633Z workflow: Deploy to Hostinger VPS
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2410008Z action: meta
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2410383Z actor: AbhimanyuGit2507
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2410729Z runNumber: 309
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2411008Z runId: 34714061990
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2411682Z commitDate: Sat Sep 12 2026 19:24:04 GMT+0000 (Coordinated Universal Time)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2412647Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2415204Z ##[group]Processing images input
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2415863Z name=ghcr.io/yqglobal/yq-management-backend,enable=true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2416715Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2425466Z ##[group]Processing tags input
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2426205Z type=schedule,pattern=nightly,enable=true,priority=1000
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2426977Z type=ref,event=branch,enable=true,priority=600
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2427688Z type=ref,event=tag,enable=true,priority=600
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2428444Z type=ref,event=pr,prefix=pr-,enable=true,priority=600
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2429358Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2430193Z ##[group]Processing flavor input
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2430791Z latest=auto
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2431290Z prefix=
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2432228Z prefixLatest=false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2432660Z suffix=
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2433133Z suffixLatest=false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2434020Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2459663Z ##[group]Docker image version
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2460518Z main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2461609Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2464060Z ##[group]Docker tags
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2464765Z ghcr.io/yqglobal/yq-management-backend:main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2465543Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2521250Z ##[group]Docker labels
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2521751Z org.opencontainers.image.created=2026-09-12T19:24:34.242Z
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2522456Z org.opencontainers.image.description=
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2523148Z org.opencontainers.image.licenses=
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2524041Z org.opencontainers.image.revision=2610445dcc588850756f6f78de7bf2ad5d54c9a4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2524869Z org.opencontainers.image.source=https://github.com/yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2525542Z org.opencontainers.image.title=YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2526125Z org.opencontainers.image.url=https://github.com/yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2526718Z org.opencontainers.image.version=main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2527465Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2528037Z ##[group]Annotations
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2528504Z manifest:org.opencontainers.image.created=2026-09-12T19:24:34.242Z
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2529063Z manifest:org.opencontainers.image.description=
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2529549Z manifest:org.opencontainers.image.licenses=
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2530147Z manifest:org.opencontainers.image.revision=2610445dcc588850756f6f78de7bf2ad5d54c9a4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2530817Z manifest:org.opencontainers.image.source=https://github.com/yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2531865Z manifest:org.opencontainers.image.title=YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2532538Z manifest:org.opencontainers.image.url=https://github.com/yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2533128Z manifest:org.opencontainers.image.version=main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2534038Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2534696Z ##[group]JSON output
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2535056Z {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2535333Z   "tags": [
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2535773Z     "ghcr.io/yqglobal/yq-management-backend:main"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2536190Z   ],
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2536523Z   "tag-names": [
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2536868Z     "main"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2537135Z   ],
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2537447Z   "labels": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2537927Z     "org.opencontainers.image.created": "2026-09-12T19:24:34.242Z",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2538487Z     "org.opencontainers.image.description": "",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2539041Z     "org.opencontainers.image.licenses": "",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2539645Z     "org.opencontainers.image.revision": "2610445dcc588850756f6f78de7bf2ad5d54c9a4",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2540455Z     "org.opencontainers.image.source": "https://github.com/yqglobal/YQ-Management",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2540967Z     "org.opencontainers.image.title": "YQ-Management",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2541598Z     "org.opencontainers.image.url": "https://github.com/yqglobal/YQ-Management",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2542130Z     "org.opencontainers.image.version": "main"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2542514Z   },
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2542795Z   "annotations": [
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2543186Z     "manifest:org.opencontainers.image.created=2026-09-12T19:24:34.242Z",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2543884Z     "manifest:org.opencontainers.image.description=",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2544416Z     "manifest:org.opencontainers.image.licenses=",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2544997Z     "manifest:org.opencontainers.image.revision=2610445dcc588850756f6f78de7bf2ad5d54c9a4",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2545822Z     "manifest:org.opencontainers.image.source=https://github.com/yqglobal/YQ-Management",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2546468Z     "manifest:org.opencontainers.image.title=YQ-Management",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2547104Z     "manifest:org.opencontainers.image.url=https://github.com/yqglobal/YQ-Management",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2547845Z     "manifest:org.opencontainers.image.version=main"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2548214Z   ]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2548477Z }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2549051Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2549727Z ##[group]Bake file definition (tags)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2550079Z {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2550343Z   "target": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2550655Z     "docker-metadata-action": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2550985Z       "tags": [
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2551347Z         "ghcr.io/yqglobal/yq-management-backend:main"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2551721Z       ],
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2552033Z       "args": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2552565Z         "DOCKER_META_IMAGES": "ghcr.io/yqglobal/yq-management-backend",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2553137Z         "DOCKER_META_VERSION": "main"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2553823Z       }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2554129Z     }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2554374Z   }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2554714Z }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2555193Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2555986Z ##[group]Bake file definition (labels)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2556382Z {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2556712Z   "target": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2557123Z     "docker-metadata-action": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2557541Z       "labels": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2558025Z         "org.opencontainers.image.created": "2026-09-12T19:24:34.242Z",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2558620Z         "org.opencontainers.image.description": "",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2559137Z         "org.opencontainers.image.licenses": "",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2559768Z         "org.opencontainers.image.revision": "2610445dcc588850756f6f78de7bf2ad5d54c9a4",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2560538Z         "org.opencontainers.image.source": "https://github.com/yqglobal/YQ-Management",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2561316Z         "org.opencontainers.image.title": "YQ-Management",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2562360Z         "org.opencontainers.image.url": "https://github.com/yqglobal/YQ-Management",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2563173Z         "org.opencontainers.image.version": "main"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2563826Z       }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2564132Z     }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2564475Z   }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2564781Z }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2565447Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2566092Z ##[group]Bake file definition (annotations)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2566578Z {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2566903Z   "target": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2567275Z     "docker-metadata-action": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2567701Z       "annotations": [
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2568264Z         "manifest:org.opencontainers.image.created=2026-09-12T19:24:34.242Z",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2569036Z         "manifest:org.opencontainers.image.description=",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2569672Z         "manifest:org.opencontainers.image.licenses=",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2570359Z         "manifest:org.opencontainers.image.revision=2610445dcc588850756f6f78de7bf2ad5d54c9a4",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2571289Z         "manifest:org.opencontainers.image.source=https://github.com/yqglobal/YQ-Management",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2572065Z         "manifest:org.opencontainers.image.title=YQ-Management",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2572766Z         "manifest:org.opencontainers.image.url=https://github.com/yqglobal/YQ-Management",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2573547Z         "manifest:org.opencontainers.image.version=main"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2574295Z       ]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2574655Z     }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2574976Z   }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2575303Z }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2575817Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2768755Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2769832Z ##[group]Run docker/build-push-action@v5
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2770153Z with:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2770415Z   context: ./YQ Management/backend
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2770758Z   push: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2771035Z   tags: ghcr.io/yqglobal/yq-management-backend:latest
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2772526Z   labels: org.opencontainers.image.created=2026-09-12T19:24:34.242Z
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.description=
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.licenses=
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.revision=2610445dcc588850756f6f78de7bf2ad5d54c9a4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.source=https://github.com/yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.title=YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.url=https://github.com/yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.version=main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2774137Z   load: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2774474Z   no-cache: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2774732Z   pull: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2776567Z   github-token: ***
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2776816Z env:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2777057Z   DOCKER_METADATA_OUTPUT_VERSION: main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2777483Z   DOCKER_METADATA_OUTPUT_TAGS: ghcr.io/yqglobal/yq-management-backend:main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2777869Z   DOCKER_METADATA_OUTPUT_TAG_NAMES: main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2779252Z   DOCKER_METADATA_OUTPUT_LABELS: org.opencontainers.image.created=2026-09-12T19:24:34.242Z
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.description=
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.licenses=
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.revision=2610445dcc588850756f6f78de7bf2ad5d54c9a4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.source=https://github.com/yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.title=YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.url=https://github.com/yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	org.opencontainers.image.version=main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2781939Z   DOCKER_METADATA_OUTPUT_ANNOTATIONS: manifest:org.opencontainers.image.created=2026-09-12T19:24:34.242Z
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	manifest:org.opencontainers.image.description=
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	manifest:org.opencontainers.image.licenses=
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	manifest:org.opencontainers.image.revision=2610445dcc588850756f6f78de7bf2ad5d54c9a4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	manifest:org.opencontainers.image.source=https://github.com/yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	manifest:org.opencontainers.image.title=YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	manifest:org.opencontainers.image.url=https://github.com/yqglobal/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	manifest:org.opencontainers.image.version=main
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2786518Z   DOCKER_METADATA_OUTPUT_JSON: {"tags":["ghcr.io/yqglobal/yq-management-backend:main"],"tag-names":["main"],"labels":{"org.opencontainers.image.created":"2026-09-12T19:24:34.242Z","org.opencontainers.image.description":"","org.opencontainers.image.licenses":"","org.opencontainers.image.revision":"2610445dcc588850756f6f78de7bf2ad5d54c9a4","org.opencontainers.image.source":"https://github.com/yqglobal/YQ-Management","org.opencontainers.image.title":"YQ-Management","org.opencontainers.image.url":"https://github.com/yqglobal/YQ-Management","org.opencontainers.image.version":"main"},"annotations":["manifest:org.opencontainers.image.created=2026-09-12T19:24:34.242Z","manifest:org.opencontainers.image.description=","manifest:org.opencontainers.image.licenses=","manifest:org.opencontainers.image.revision=2610445dcc588850756f6f78de7bf2ad5d54c9a4","manifest:org.opencontainers.image.source=https://github.com/yqglobal/YQ-Management","manifest:org.opencontainers.image.title=YQ-Management","manifest:org.opencontainers.image.url=https://github.com/yqglobal/YQ-Management","manifest:org.opencontainers.image.version=main"]}
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2790160Z   DOCKER_METADATA_OUTPUT_BAKE_FILE_TAGS: /home/runner/work/_temp/docker-actions-toolkit-ewHr9E/docker-metadata-action-bake-tags.json
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2791092Z   DOCKER_METADATA_OUTPUT_BAKE_FILE_LABELS: /home/runner/work/_temp/docker-actions-toolkit-ewHr9E/docker-metadata-action-bake-labels.json
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2792003Z   DOCKER_METADATA_OUTPUT_BAKE_FILE_ANNOTATIONS: /home/runner/work/_temp/docker-actions-toolkit-ewHr9E/docker-metadata-action-bake-annotations.json
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2792967Z   DOCKER_METADATA_OUTPUT_BAKE_FILE: /home/runner/work/_temp/docker-actions-toolkit-ewHr9E/docker-metadata-action-bake.json
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.2793666Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.4668732Z (node:2559) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.4669977Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.4685367Z ##[group]GitHub Actions runtime token ACs
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.4689740Z refs/heads/main: read/write
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.4690526Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.4691356Z ##[group]Docker info
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.4744875Z [command]/usr/bin/docker version
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5012464Z Client: Docker Engine - Community
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5016448Z  Version:           28.0.4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5017056Z  API version:       1.48
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5017667Z  Go version:        go1.23.7
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5018161Z  Git commit:        b8034c0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5018717Z  Built:             Tue Mar 25 15:07:16 2025
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5019467Z  OS/Arch:           linux/amd64
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5020108Z  Context:           default
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5020550Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5020839Z Server: Docker Engine - Community
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5021332Z  Engine:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5021801Z   Version:          28.0.4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5022354Z   API version:      1.48 (minimum version 1.24)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5023073Z   Go version:       go1.23.7
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5023809Z   Git commit:       6430e49
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5024386Z   Built:            Tue Mar 25 15:07:16 2025
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5024905Z   OS/Arch:          linux/amd64
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5025439Z   Experimental:     false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5025986Z  containerd:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5026635Z   Version:          v2.3.4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5027229Z   GitCommit:        db8809540e1a7a9da5d518876894933ff55692ab
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5027848Z  runc:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5028331Z   Version:          1.5.1
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5028820Z   GitCommit:        v1.5.1-0-g8f2685a4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5029417Z  docker-init:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5029900Z   Version:          0.19.0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5030982Z   GitCommit:        de40ad0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5044951Z [command]/usr/bin/docker info
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5972535Z Client: Docker Engine - Community
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5972887Z  Version:    28.0.4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5973415Z  Context:    default
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5973688Z  Debug Mode: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5973946Z  Plugins:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5974245Z   buildx: Docker Buildx (Docker Inc.)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5974544Z     Version:  v0.37.0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5974872Z     Path:     /usr/libexec/docker/cli-plugins/docker-buildx
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5975258Z   compose: Docker Compose (Docker Inc.)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5975595Z     Version:  v2.38.2
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5975927Z     Path:     /usr/libexec/docker/cli-plugins/docker-compose
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5976184Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5976308Z Server:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5976549Z  Containers: 1
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5976782Z   Running: 1
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5977000Z   Paused: 0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5977272Z   Stopped: 0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5977502Z  Images: 7
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5977750Z  Server Version: 28.0.4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5978055Z  Storage Driver: overlay2
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5978305Z   Backing Filesystem: extfs
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5978668Z   Supports d_type: true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5978985Z   Using metacopy: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5979280Z   Native Overlay Diff: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5979560Z   userxattr: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5979813Z  Logging Driver: json-file
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5980107Z  Cgroup Driver: systemd
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5980361Z  Cgroup Version: 2
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5980583Z  Plugins:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5981220Z   Volume: local
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5981520Z   Network: bridge host ipvlan macvlan null overlay
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5981930Z   Log: awslogs fluentd gcplogs gelf journald json-file local splunk syslog
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5982363Z  Swarm: inactive
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5982712Z  Runtimes: io.containerd.runc.v2 runc
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5983050Z  Default Runtime: runc
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5983444Z  Init Binary: docker-init
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5983795Z  containerd version: db8809540e1a7a9da5d518876894933ff55692ab
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5984150Z  runc version: v1.5.1-0-g8f2685a4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5984427Z  init version: de40ad0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5984720Z  Security Options:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5984977Z   apparmor
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5985203Z   seccomp
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5985463Z    Profile: builtin
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5985736Z   cgroupns
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5986060Z  Kernel Version: 6.17.0-1022-azure
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5986408Z  Operating System: Ubuntu 24.04.5 LTS
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5986778Z  OSType: linux
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5987126Z  Architecture: x86_64
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5987444Z  CPUs: 4
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5987737Z  Total Memory: 15.61GiB
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5988044Z  Name: runnervmlun5p
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5988333Z  ID: a4efb8b6-20f9-46f4-b827-91ac0547be3a
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5988670Z  Docker Root Dir: /var/lib/docker
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5988942Z  Debug Mode: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5989190Z  Username: githubactions
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5989486Z  Experimental: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5989738Z  Insecure Registries:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5990030Z   ::1/128
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5990315Z   127.0.0.0/8
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5990566Z  Live Restore Enabled: false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5990774Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5991237Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5991711Z ##[group]Proxy configuration
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5992053Z No proxy configuration found
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.5992566Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.6464675Z ##[group]Buildx version
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.6479022Z [command]/usr/bin/docker buildx version
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.6879424Z github.com/docker/buildx v0.37.0 ac30b249211430b85fb8f37b6e7154b5c47ba0b6
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.6898056Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.6898670Z ##[group]Builder info
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7633745Z {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7634462Z   "nodes": [
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7634896Z     {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7635403Z       "name": "builder-59afdf56-701c-44e8-803f-7eb4443519b00",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7636224Z       "endpoint": "unix:///var/run/docker.sock",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7636683Z       "status": "running",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7637258Z       "buildkitd-flags": "--allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7637788Z       "buildkit": "v0.32.2",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7638230Z       "platforms": "linux/amd64,linux/amd64/v2,linux/amd64/v3,linux/amd64/v4,linux/386",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7638612Z       "features": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7638990Z         "Automatically load images to the Docker Engine image store": true,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7639388Z         "Cache export": true,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7639704Z         "Direct push": true,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7639989Z         "Docker exporter": true,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7640271Z         "Multi-platform build": true,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7640561Z         "OCI exporter": true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7640835Z       },
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7641060Z       "labels": {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7641359Z         "org.mobyproject.buildkit.worker.executor": "oci",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7641797Z         "org.mobyproject.buildkit.worker.hostname": "37828f363d95",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7642195Z         "org.mobyproject.buildkit.worker.network": "host",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7642626Z         "org.mobyproject.buildkit.worker.oci.process-mode": "sandbox",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7643131Z         "org.mobyproject.buildkit.worker.selinux.enabled": "false",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7643782Z         "org.mobyproject.buildkit.worker.snapshotter": "overlayfs"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7644139Z       },
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7644390Z       "gcPolicy": [
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7644763Z         {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7645008Z           "all": false,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7645303Z           "filter": [
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7645674Z             "type==source.local type==exec.cachemount type==source.git.checkout"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7646039Z           ],
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7646333Z           "keepDuration": "48h0m0s"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7646610Z         },
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7646824Z         {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7647088Z           "all": false,
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7647383Z           "keepDuration": "1440h0m0s"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7647659Z         },
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7647885Z         {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7648125Z           "all": false
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7648404Z         },
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7648616Z         {
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7648832Z           "all": true
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7649114Z         }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7649355Z       ]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7649615Z     }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7649822Z   ],
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7650091Z   "name": "builder-59afdf56-701c-44e8-803f-7eb4443519b0",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7650457Z   "driver": "docker-container",
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7650751Z   "lastActivity": "2026-09-12T19:24:22.000Z"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7651108Z }
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.7651687Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:34.8880562Z [command]/usr/bin/docker buildx build --iidfile /home/runner/work/_temp/docker-actions-toolkit-tcCDY0/build-iidfile-389ec9ccfa.txt --label org.opencontainers.image.created=2026-09-12T19:24:34.242Z --label org.opencontainers.image.description= --label org.opencontainers.image.licenses= --label org.opencontainers.image.revision=2610445dcc588850756f6f78de7bf2ad5d54c9a4 --label org.opencontainers.image.source=https://github.com/yqglobal/YQ-Management --label org.opencontainers.image.title=YQ-Management --label org.opencontainers.image.url=https://github.com/yqglobal/YQ-Management --label org.opencontainers.image.version=main --attest type=provenance,mode=max,builder-id=https://github.com/yqglobal/YQ-Management/actions/runs/34714061990 --tag ghcr.io/yqglobal/yq-management-backend:latest --metadata-file /home/runner/work/_temp/docker-actions-toolkit-tcCDY0/build-metadata-198197bffa.json --push ./YQ Management/backend
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.2500773Z #0 building with "builder-59afdf56-701c-44e8-803f-7eb4443519b0" instance using docker-container driver
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.2501301Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.2501514Z #1 [internal] load build definition from Dockerfile
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.2502236Z #1 transferring dockerfile: 1.16kB done
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.2502610Z #1 DONE 0.0s
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.2502771Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.2502929Z #2 [auth] library/node:pull token for registry-1.docker.io
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.4002440Z #2 DONE 0.0s
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.4002658Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.4002949Z #3 [internal] load metadata for docker.io/library/node:20-alpine
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.8376246Z #3 DONE 0.7s
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9402427Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9403579Z #4 [internal] load .dockerignore
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9404469Z #4 transferring context: 233B done
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9405527Z #4 DONE 0.0s
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9405847Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9406354Z #5 [builder  1/10] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9407070Z #5 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 done
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9718828Z #5 sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb 0B / 3.86MB 0.0s
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9719928Z #5 sha256:b2cbbfe903b0821005780971ddc5892edcc4ce74c5a48d82e1d2b382edac3122 0B / 1.26MB 0.0s
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9722555Z #5 sha256:fff4e2c1b189bf87d63ad8bd07f7f4eb288d6f2b6a07a8bb44c60e8c075d2096 0B / 445B 0.0s
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9723704Z #5 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 0B / 43.23MB 0.0s
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9724889Z #5 ...
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9725065Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9725245Z #6 [internal] load build context
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9725692Z #6 transferring context: 1.47MB 0.0s done
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9726401Z #6 DONE 0.1s
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9726593Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9726779Z #7 [builder  3/10] COPY package*.json ./
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9727145Z #7 CACHED
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9727348Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9727456Z #8 [builder  4/10] COPY shared ./shared
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9728110Z #8 ERROR: failed to calculate checksum of ref nmfx5ks6qw2ajckyqntonj4ay::hpi5v2myvpbndy8mdpfpra2f9: "/shared": not found
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9728516Z 
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9728686Z #9 [builder  2/10] WORKDIR /app
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9729022Z #9 CANCELED
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9729235Z ------
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9729515Z  > [builder  4/10] COPY shared ./shared:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9729967Z ------
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9740561Z Dockerfile:7
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9741746Z --------------------
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9743431Z    5 |     # Copy package files
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9744050Z    6 |     COPY package*.json ./
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9744500Z    7 | >>> COPY shared ./shared
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9744931Z    8 |     
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9745668Z    9 |     # Install all dependencies (including dev for build)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9746304Z --------------------
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9747550Z Dockerfile:32
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9747980Z --------------------
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9748501Z   30 |     # Install production dependencies
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9749048Z   31 |     COPY package*.json ./
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9749560Z   32 | >>> COPY shared ./shared
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9750195Z   33 |     RUN npm install --omit=dev
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9750834Z   34 |     
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9751246Z --------------------
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9752256Z ERROR: failed to build: failed to solve: failed to compute cache key: failed to calculate checksum of ref nmfx5ks6qw2ajckyqntonj4ay::hpi5v2myvpbndy8mdpfpra2f9: "/shared": not found
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9802129Z ##[error]buildx failed with: ERROR: failed to build: failed to solve: failed to compute cache key: failed to calculate checksum of ref nmfx5ks6qw2ajckyqntonj4ay::hpi5v2myvpbndy8mdpfpra2f9: "/shared": not found
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9953617Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:35.9954707Z Post job cleanup.
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.1735755Z ##[group]Removing temp folder /home/runner/work/_temp/docker-actions-toolkit-tcCDY0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.1739149Z (node:2851) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.1739720Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.1740709Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.1741222Z ##[group]Post cache
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.1742295Z State not set
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.1742935Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.1880210Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.1881853Z Post job cleanup.
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.4336925Z ##[group]Logout from ghcr.io
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.4352909Z (node:2859) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.4353900Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.4380868Z [command]/usr/bin/docker logout ghcr.io
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.4536462Z Removing login credentials for ghcr.io
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.4576646Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.4579227Z ##[group]Post cache
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.4579958Z State not set
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.4580905Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.4706195Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.4707247Z Post job cleanup.
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.6700952Z ##[group]Removing builder
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.6705369Z (node:2879) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.6706040Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.7657252Z [command]/usr/bin/docker buildx rm builder-59afdf56-701c-44e8-803f-7eb4443519b0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.9407010Z builder-59afdf56-701c-44e8-803f-7eb4443519b0 removed
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.9425659Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.9426327Z ##[group]Cleaning up certificates
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.9428596Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.9429384Z ##[group]Post cache
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.9430173Z State not set
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.9430740Z ##[endgroup]
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.9562313Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:36.9563883Z Post job cleanup.
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.0280295Z [command]/usr/bin/git version
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.0336369Z git version 2.55.0
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.0363630Z Temporarily overriding HOME='/home/runner/work/_temp/c0e93050-1e38-4177-8acd-ac238471c2b6' before making global git config changes
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.0364903Z Adding repository directory to the temporary git global config as a safe directory
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.0368749Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/YQ-Management/YQ-Management
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.0408402Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.0445641Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.0744561Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.0751627Z http.https://github.com/.extraheader
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.0757775Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.0786767Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.1034502Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.1043111Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.1336504Z Cleaning up orphan processes
+Build & Push Images (backend, ./YQ Management/backend, ghcr.io/yqglobal/yq-management-backend)	UNKNOWN STEP	2026-09-12T19:24:37.1609996Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, docker/build-push-action@v5, docker/login-action@v3, docker/metadata-action@v5, docker/setup-buildx-action@v3. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	﻿2026-09-12T19:24:49.9978444Z Current runner version: '2.337.0'
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0003822Z ##[group]Runner Image Provisioner
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0004922Z Hosted Compute Agent
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0005608Z Version: 20260828.587
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0006261Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0006977Z Build Date: 2026-08-28T16:44:25Z
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0007721Z Worker ID: {1685989d-60a3-416d-8992-9ea8be00a602}
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0008421Z Azure Region: westus3
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0009044Z ##[endgroup]
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0010678Z ##[group]Operating System
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0011333Z Ubuntu
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0011945Z 24.04.5
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0012551Z LTS
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0013096Z ##[endgroup]
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0013660Z ##[group]Runner Image
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0014251Z Image: ubuntu-24.04
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0015370Z Version: 20260907.300.1
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0016680Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0018295Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0019249Z ##[endgroup]
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0020908Z ##[group]GITHUB_TOKEN Permissions
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0023004Z Contents: read
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0023702Z Metadata: read
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0024258Z Packages: write
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0025112Z ##[endgroup]
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0027258Z Secret source: Actions
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0028160Z Cache mode: write
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0028955Z Prepare workflow directory
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0367066Z Prepare all required actions
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.0415511Z Getting action download info
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.4140342Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:50.5473197Z Download action repository 'docker/setup-buildx-action@v3' (SHA:8d2750c68a42422c14e847fe6c8ac0403b4cbd6f)
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:51.6601392Z Download action repository 'docker/login-action@v3' (SHA:c94ce9fb468520275223c153574b00df6fe4bcc9)
+Build & Push Images (frontend, ./YQ Management/frontend, ghcr.io/yqglobal/yq-management-frontend,...	UNKNOWN STEP	2026-09-12T19:24:52.5852605Z ##[error]A task was canceled.

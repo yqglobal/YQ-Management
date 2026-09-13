@@ -12,6 +12,8 @@ export default function WorkspaceSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [tenantName, setTenantName] = useState('');
   const [tenantSubdomain, setTenantSubdomain] = useState('');
+  const [selfServeModeEnabled, setSelfServeModeEnabled] = useState(false);
+  const [selfServeOtpEnabled, setSelfServeOtpEnabled] = useState(false);
   const [subdomainError, setSubdomainError] = useState('');
   const [tenantId, setTenantId] = useState('');
   const [isTvModalOpen, setIsTvModalOpen] = useState(false);
@@ -32,6 +34,8 @@ export default function WorkspaceSettingsPage() {
         if (currentTenant) {
           setTenantName(currentTenant.name || '');
           setTenantSubdomain(currentTenant.subdomain || '');
+          setSelfServeModeEnabled(currentTenant.selfServeModeEnabled || false);
+          setSelfServeOtpEnabled(currentTenant.selfServeOtpEnabled || false);
           setTenantId(currentTenant.id);
         }
       }).catch(err => console.warn("Failed to fetch tenant details:", err));
@@ -47,7 +51,9 @@ export default function WorkspaceSettingsPage() {
           method: 'PATCH', 
           body: JSON.stringify({ 
             name: tenantName,
-            subdomain: tenantSubdomain
+            subdomain: tenantSubdomain,
+            selfServeModeEnabled,
+            selfServeOtpEnabled
           }) 
         });
         await refetch();
@@ -133,8 +139,38 @@ export default function WorkspaceSettingsPage() {
               ) : (
                 <p className="text-[12px] text-outline mt-2">Used in the customer-facing booking page URL.</p>
               )}
+            </div>
+
+            <div className="pt-4 border-t border-border dark:border-dark-border mt-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={selfServeModeEnabled} 
+                  onChange={(e) => setSelfServeModeEnabled(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-primary border-border rounded focus:ring-primary bg-surface-container-low dark:bg-black/50" 
+                />
+                <div>
+                  <span className="text-body-md font-semibold text-on-surface dark:text-white block">Enable Self-Serve Mode (No Receptionist)</span>
+                  <span className="text-body-sm text-on-surface-variant dark:text-outline block mt-0.5">Allow customers to check in to their appointments directly from their phones or lobby tablet without speaking to staff.</span>
+                </div>
+              </label>
+
+              {selfServeModeEnabled && (
+                <label className="flex items-start gap-3 cursor-pointer mt-4 pl-7">
+                  <input 
+                    type="checkbox" 
+                    checked={selfServeOtpEnabled} 
+                    onChange={(e) => setSelfServeOtpEnabled(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-primary border-border rounded focus:ring-primary bg-surface-container-low dark:bg-black/50" 
+                  />
+                  <div>
+                    <span className="text-body-sm font-semibold text-on-surface dark:text-white block">Require WhatsApp OTP for Check-in</span>
+                    <span className="text-xs text-on-surface-variant dark:text-outline block mt-0.5">Send a 6-digit verification code to the customer's phone to confirm they are physically present.</span>
+                  </div>
+                </label>
+              )}
+            </div>
           </div>
-        </div>
         </div>
 
         <div className="mt-8 pt-6 border-t border-border dark:border-dark-border flex justify-end">

@@ -149,9 +149,30 @@ model Tenant {
   ownerId               String? // Primary owner's User ID — replaces Workspace.ownerId
   createdAt             DateTime               @default(now())
 
+  // Self-Serve / No-Receptionist Mode
+  selfServeModeEnabled Boolean @default(false) // When true, customers check themselves in via OTP
+  selfServeOtpEnabled  Boolean @default(true)  // When false, fallback to honor-system button
+
   googleIntegrations GoogleIntegration[]
   communicationLogs CommunicationLog[]
   whatsappTemplates WhatsAppTemplate[]
+  checkInOtps       CheckInOtp[]
+}
+
+// OTP sessions for self-serve check-in (no receptionist mode)
+model CheckInOtp {
+  id         String   @id @default(uuid())
+  tenantId   String
+  phone      String
+  locationId String?
+  code       String   // 6-digit OTP
+  expiresAt  DateTime
+  verified   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([phone, tenantId])
 }
 
 model User {
