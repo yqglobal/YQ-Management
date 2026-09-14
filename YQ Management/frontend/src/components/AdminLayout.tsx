@@ -41,6 +41,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const [locationOpen, setLocationOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [bookingPreviewExpanded, setBookingPreviewExpanded] = useState(false);
   const [tvModalOpen, setTvModalOpen] = useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const locationDropdownRef = useRef<HTMLDivElement>(null);
@@ -310,7 +311,10 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
             <div className="flex items-center gap-3 md:gap-4">
               <div className="relative hidden sm:block" ref={previewDropdownRef}>
                 <button
-                  onClick={() => setPreviewOpen(!previewOpen)}
+                  onClick={() => {
+                    setPreviewOpen(!previewOpen);
+                    if (previewOpen) setBookingPreviewExpanded(false);
+                  }}
                   className="bg-surface-container-low text-on-surface hover:bg-surface-container-high px-4 h-[38px] rounded-lg font-body-sm font-semibold transition-colors flex items-center gap-2 text-sm border border-border"
                 >
                   <span className="material-symbols-outlined text-[16px]">visibility</span>
@@ -342,24 +346,42 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                       <span className="material-symbols-outlined text-[18px] text-primary">tv</span>
                       Specific Queue TV
                     </button>
-                    <a
-                      href={(() => {
-                        if (!tenant?.subdomain) return '#';
-                        let path = '/booking';
-                        if (activeLocationId && activeLocationId !== 'all') {
-                          const loc = locations?.find((l: AnyFixMe) => l.id === activeLocationId);
-                          if (loc) path = `/booking/${slugify(loc.name)}`;
-                        }
-                        return getTenantUrl(tenant.subdomain, path);
-                      })()}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors text-on-surface"
-                      onClick={() => setPreviewOpen(false)}
+                    <button
+                      className="flex items-center justify-between w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors text-on-surface"
+                      onClick={() => setBookingPreviewExpanded(!bookingPreviewExpanded)}
                     >
-                      <span className="material-symbols-outlined text-[18px] text-emerald-500">book_online</span>
-                      Booking Page
-                    </a>
+                      <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[18px] text-emerald-500">book_online</span>
+                        Booking Page
+                      </div>
+                      <span className={`material-symbols-outlined text-[16px] transition-transform ${bookingPreviewExpanded ? 'rotate-180' : ''}`}>expand_more</span>
+                    </button>
+                    
+                    {bookingPreviewExpanded && (
+                      <div className="bg-surface-container-lowest/50 py-1 animate-in slide-in-from-top-1">
+                        <a
+                          href={tenant?.subdomain ? getTenantUrl(tenant.subdomain, '/booking') : '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block px-4 py-2 pl-11 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                          onClick={() => setPreviewOpen(false)}
+                        >
+                          Global Landing Page
+                        </a>
+                        {locations?.map((loc: AnyFixMe) => (
+                          <a
+                            key={loc.id}
+                            href={tenant?.subdomain ? getTenantUrl(tenant.subdomain, `/booking/${slugify(loc.name)}`) : '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block px-4 py-2 pl-11 text-sm text-on-surface hover:bg-surface-container-low transition-colors truncate"
+                            onClick={() => setPreviewOpen(false)}
+                          >
+                            {loc.name}
+                          </a>
+                        ))}
+                      </div>
+                    )}
 
                   </div>
                 )}
