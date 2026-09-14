@@ -8,6 +8,7 @@ import 'react-phone-number-input/style.css';
 import { CheckCircle2, Clock, MapPin, ChevronRight, ArrowLeft, Loader2, QrCode } from 'lucide-react';
 import { fetchApi } from '../../../../lib/api';
 import Link from 'next/link';
+import { TenantSupportFooter } from '../../../../components/TenantSupportFooter';
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { subdomain } = context.params as { subdomain: string };
@@ -421,6 +422,7 @@ export default function SelfServeCheckinPage({ tenant }: { tenant: any }) {
           </AnimatePresence>
         </div>
       </div>
+      <TenantSupportFooter tenant={tenant} />
     </div>
   );
 }

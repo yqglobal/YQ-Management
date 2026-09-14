@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
+import { TenantSupportFooter } from '../../../../components/TenantSupportFooter';
 import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -337,6 +338,8 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
         </AnimatePresence>
 
       </div>
+
+        <TenantSupportFooter tenant={tenant} />
 
         {/* Powered by Qmova */}
         {!isBrandingEnabled && (

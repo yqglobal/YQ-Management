@@ -10,7 +10,6 @@ interface ServiceStepProps {
   onNext: (e: React.FormEvent) => void;
   errorMsg: string;
   primaryColor: string;
-  supportNumber: string;
   onViewTickets?: () => void;
 }
 
@@ -23,7 +22,6 @@ export const ServiceStep: React.FC<ServiceStepProps> = ({
   onNext,
   errorMsg,
   primaryColor,
-  supportNumber,
   onViewTickets,
 }) => {
   const filteredServices = services.filter((s: AnyFixMe) => !s.locationId || s.locationId === selectedLocationId);
@@ -40,9 +38,6 @@ export const ServiceStep: React.FC<ServiceStepProps> = ({
           {filteredServices.length === 0 ? (
             <div className="p-6 text-center text-gray-500 border-2 border-dashed rounded-xl dark:border-zinc-800">
               <p>No services available at this location right now.</p>
-              {supportNumber && (
-                <p className="mt-2 text-sm">Please contact support at <a href={`tel:${supportNumber}`} className="font-bold underline">{supportNumber}</a></p>
-              )}
             </div>
           ) : (
             filteredServices.map((service: AnyFixMe) => {

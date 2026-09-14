@@ -17,6 +17,10 @@ export default function WorkspaceSettingsPage() {
   const [subdomainError, setSubdomainError] = useState('');
   const [tenantId, setTenantId] = useState('');
   const [isTvModalOpen, setIsTvModalOpen] = useState(false);
+  
+  const [supportEmail, setSupportEmail] = useState('');
+  const [supportPhone, setSupportPhone] = useState('');
+  const [showSupportInfo, setShowSupportInfo] = useState(true);
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN';
 
@@ -36,6 +40,9 @@ export default function WorkspaceSettingsPage() {
           setTenantSubdomain(currentTenant.subdomain || '');
           setSelfServeModeEnabled(currentTenant.selfServeModeEnabled || false);
           setSelfServeOtpEnabled(currentTenant.selfServeOtpEnabled || false);
+          setSupportEmail(currentTenant.supportEmail || '');
+          setSupportPhone(currentTenant.supportPhone || '');
+          setShowSupportInfo(currentTenant.showSupportInfo ?? true);
           setTenantId(currentTenant.id);
         }
       }).catch(err => console.warn("Failed to fetch tenant details:", err));
@@ -53,7 +60,10 @@ export default function WorkspaceSettingsPage() {
             name: tenantName,
             subdomain: tenantSubdomain,
             selfServeModeEnabled,
-            selfServeOtpEnabled
+            selfServeOtpEnabled,
+            supportEmail: supportEmail || null,
+            supportPhone: supportPhone || null,
+            showSupportInfo
           }) 
         });
         await refetch();
@@ -169,6 +179,46 @@ export default function WorkspaceSettingsPage() {
                   </div>
                 </label>
               )}
+            </div>
+
+            <div className="pt-4 border-t border-border dark:border-dark-border mt-4">
+              <h3 className="font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-4 uppercase tracking-wide">Customer Support Settings</h3>
+              
+              <label className="flex items-start gap-3 cursor-pointer mb-4">
+                <input 
+                  type="checkbox" 
+                  checked={showSupportInfo} 
+                  onChange={(e) => setShowSupportInfo(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-primary border-border rounded focus:ring-primary bg-surface-container-low dark:bg-black/50" 
+                />
+                <div>
+                  <span className="text-body-md font-semibold text-on-surface dark:text-white block">Show Support Info to Customers</span>
+                  <span className="text-body-sm text-on-surface-variant dark:text-outline block mt-0.5">Display a support footer with contact details on customer-facing pages.</span>
+                </div>
+              </label>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-body-sm text-on-surface-variant dark:text-outline mb-1">Support Email</label>
+                  <input
+                    type="email"
+                    value={supportEmail}
+                    onChange={(e) => setSupportEmail(e.target.value)}
+                    className="w-full h-[40px] bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-3 font-body-sm text-body-md focus:ring-1 focus:ring-primary outline-none text-on-surface dark:text-white"
+                    placeholder="help@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-body-sm text-on-surface-variant dark:text-outline mb-1">Support Phone</label>
+                  <input
+                    type="tel"
+                    value={supportPhone}
+                    onChange={(e) => setSupportPhone(e.target.value)}
+                    className="w-full h-[40px] bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-3 font-body-sm text-body-md focus:ring-1 focus:ring-primary outline-none text-on-surface dark:text-white"
+                    placeholder="+1 (555) 000-0000"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -21,4 +21,16 @@ export class UpdateTenantDto {
 
   @IsOptional()
   chatbotConfig?: any;
+
+  @IsOptional()
+  @IsString()
+  supportEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  supportPhone?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  showSupportInfo?: boolean;
 }

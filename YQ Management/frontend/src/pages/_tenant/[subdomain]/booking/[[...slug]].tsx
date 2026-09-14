@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { GetServerSideProps } from 'next';
+import { QRCode } from "react-qrcode-logo";
+import { TenantSupportFooter } from '../../../../components/TenantSupportFooter';
 import { useRouter } from 'next/router';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -237,7 +239,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   };
 
   // Helper for contact details
-  const supportNumber = tenant?.customerCareNumber || tenant?.phone || null;
+  const [isRefreshingLocation, setIsRefreshingLocation] = useState(false);
 
   // Realtime updates for multiple tokens
   useEffect(() => {
@@ -671,7 +673,6 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               onNext={handleNextStep1}
               errorMsg={errorMsg}
               primaryColor={primaryColor}
-              supportNumber={supportNumber}
               onViewTickets={() => {
                 let targetUrl = `/booking/status`;
                 if (window.location.pathname.startsWith('/t/')) {
@@ -1201,15 +1202,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
           )}
         </AnimatePresence>
 
-        {/* Support Number Banner */}
-        {supportNumber && step < 4 && (
-          <div className="mt-auto pt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-            Need help? Contact us: <br/>
-            <a href={`tel:${supportNumber}`} className="font-bold hover:underline" style={{ color: primaryColor }}>
-              {supportNumber}
-            </a>
-          </div>
-        )}
+        <TenantSupportFooter tenant={tenant} />
 
         {/* Branding Fallback (Powered by Qmova) */}
         {!isBrandingEnabled && (

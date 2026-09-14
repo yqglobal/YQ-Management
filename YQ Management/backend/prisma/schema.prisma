@@ -117,6 +117,11 @@ model Tenant {
   chatbotConfig      Json? // Stores custom button menus and automated replies
   customerExperience Json? // Global settings for forms, feedback, and portal experience
 
+  // Customer Support Integration
+  supportEmail       String?
+  supportPhone       String?
+  showSupportInfo    Boolean @default(true)
+
   // Google Business Profile Integration
 
   enableSmartReviews      Boolean @default(false)
