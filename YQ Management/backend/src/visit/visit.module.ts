@@ -8,6 +8,7 @@ import { PublicVisitController } from './public-visit.controller';
 import { AppointmentModule } from '../appointment/appointment.module';
 import { TokenController } from './token.controller';
 import { CommunicationModule } from '../communication/communication.module';
+import { ServiceModule } from '../service/service.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { CommunicationModule } from '../communication/communication.module';
     forwardRef(() => SubscriptionModule),
     forwardRef(() => AppointmentModule),
     forwardRef(() => CommunicationModule),
+    forwardRef(() => ServiceModule),
   ],
   providers: [VisitService, VisitCron],
   controllers: [VisitController, PublicVisitController, TokenController],

@@ -96,6 +96,7 @@ export default function StatusPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    setIsLoading(true);
     const query = activeTokens ? `?tokens=${activeTokens}` : '';
     let es: EventSource | null = null;
     let loadingTimer: ReturnType<typeof setTimeout> | null = null;
@@ -147,6 +148,13 @@ export default function StatusPage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [activeTokens]);
+
+  // Smart OTP Trigger: If finished loading and no active tickets are found, auto-trigger OTP recovery
+  useEffect(() => {
+    if (!isLoading && !recoveryMode && visits.length === 0) {
+      setRecoveryMode(true);
+    }
+  }, [isLoading, recoveryMode, visits.length]);
 
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,7 +224,13 @@ export default function StatusPage() {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex flex-col items-center p-6 text-slate-900 dark:text-zinc-100">
         <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-3xl p-8 shadow-xl mt-12">
-          <button onClick={() => setRecoveryMode(false)} className="mb-6 flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+          <button onClick={() => {
+            if (visits.length === 0) {
+              router.push('/booking');
+            } else {
+              setRecoveryMode(false);
+            }
+          }} className="mb-6 flex items-center text-sm font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
             <span className="material-symbols-outlined text-[18px] mr-1">arrow_back</span>
             Back
           </button>
@@ -263,35 +277,7 @@ export default function StatusPage() {
     );
   }
 
-  if (!visits.length) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex items-center justify-center p-6 text-slate-900 dark:text-zinc-100">
-        <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-3xl p-8 max-w-sm w-full text-center shadow-lg">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="material-symbols-outlined text-[32px] text-gray-400">confirmation_number</span>
-          </div>
-          <h1 className="text-2xl font-extrabold tracking-tight mb-2">No Tickets Found</h1>
-          <p className="text-gray-500 mb-8">We couldn't find any active tickets for this link.</p>
-          
-          <div className="space-y-3">
-            <button 
-              onClick={() => router.push(`/booking`)}
-              className="w-full py-4 rounded-xl font-bold text-white transition-all hover:opacity-90 shadow-md"
-              style={{ backgroundColor: primaryColor }}
-            >
-              Go to Booking
-            </button>
-            <button 
-              onClick={() => setRecoveryMode(true)}
-              className="w-full py-4 rounded-xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-zinc-800 transition-colors hover:bg-gray-200 dark:hover:bg-zinc-700"
-            >
-              Find My Tickets
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col items-center">
@@ -437,6 +423,13 @@ export default function StatusPage() {
             style={{ color: primaryColor, backgroundColor: `${primaryColor}15` }}
           >
             Book Another Service
+          </button>
+          
+          <button 
+            onClick={() => setRecoveryMode(true)}
+            className="w-full py-4 rounded-xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-zinc-800 transition-colors hover:bg-gray-200 dark:hover:bg-zinc-700 mt-3"
+          >
+            Search tickets for another number
           </button>
         </motion.div>
 

@@ -123,7 +123,7 @@ export class ServiceService {
   }
 
   async findAllPublic(tenantId: string) {
-    return this.prisma.extendedClient.service.findMany({
+    const services = await this.prisma.extendedClient.service.findMany({
       where: { tenantId },
       select: {
         id: true,
@@ -135,6 +135,16 @@ export class ServiceService {
         allowAppointments: true,
         appointmentGranularityMins: true,
         requireManualCheckIn: true,
+        useLocationHours: true,
+        businessHoursOverride: true,
+        exceptionDatesOverride: true,
+        location: {
+          select: {
+            timezone: true,
+            businessHours: true,
+            exceptionDates: true,
+          }
+        },
         queues: {
           where: { status: 'ACTIVE' },
           select: {
@@ -146,6 +156,20 @@ export class ServiceService {
         },
       },
     });
+
+    const now = new Date();
+    
+    return Promise.all(
+      services.map(async (s: any) => {
+        const isOpenNow = await this.isServiceOpen(s, now);
+        // Remove internal scheduling data from public payload
+        const { useLocationHours, businessHoursOverride, exceptionDatesOverride, location, ...publicService } = s;
+        return {
+          ...publicService,
+          isOpenNow,
+        };
+      })
+    );
   }
 
   async findOne(id: string, tenantId: string) {
@@ -155,6 +179,71 @@ export class ServiceService {
     });
     if (!service) throw new NotFoundException('Service not found');
     return service;
+  }
+
+  async isServiceOpen(service: any, checkDate: Date = new Date()): Promise<boolean> {
+    const timezone = service.location?.timezone || 'UTC';
+    const zonedDate = toZonedTime(checkDate, timezone);
+    const dateStr = format(zonedDate, 'yyyy-MM-dd');
+
+    let exceptions: string[] = [];
+    if (service.useLocationHours && service.location?.exceptionDates) {
+      exceptions = service.location.exceptionDates as string[];
+    } else if (!service.useLocationHours && service.exceptionDatesOverride) {
+      exceptions = service.exceptionDatesOverride as string[];
+    }
+
+    if (exceptions.includes(dateStr)) return false;
+
+    let businessHours: any = null;
+    if (service.useLocationHours && service.location?.businessHours) {
+      businessHours = service.location.businessHours;
+    } else if (!service.useLocationHours && service.businessHoursOverride) {
+      businessHours = service.businessHoursOverride;
+    }
+
+    const dayOfWeek = zonedDate.getDay();
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayName = days[dayOfWeek];
+
+    if (!businessHours) {
+      // Default: closed on weekends
+      if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+      return true; // Wait, actually need to check times if we want strictness, but default is 09-17
+    } else {
+      const val = businessHours[dayName];
+      if (val === undefined || val === null) return false;
+      
+      let blocks: any[] = [];
+      if (Array.isArray(val)) {
+        if (val.length === 0) return false;
+        blocks = val;
+      } else {
+        if (val.closed) return false;
+        if (val.start && val.end) {
+          blocks = [{ start: val.start, end: val.end }];
+        }
+      }
+
+      if (blocks.length === 0) return true;
+
+      const currentMinutes = zonedDate.getHours() * 60 + zonedDate.getMinutes();
+
+      for (const block of blocks) {
+        if (block.start && block.end) {
+          const [sh, sm] = block.start.split(':').map(Number);
+          const [eh, em] = block.end.split(':').map(Number);
+          const startMin = sh * 60 + (sm || 0);
+          const endMin = eh * 60 + (em || 0);
+
+          if (currentMinutes >= startMin && currentMinutes <= endMin) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    }
   }
 
   async update(

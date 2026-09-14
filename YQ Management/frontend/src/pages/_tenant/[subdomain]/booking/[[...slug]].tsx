@@ -150,7 +150,8 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
           setSelectedServiceIds([serviceId]);
           if (queueId && typeof queueId === 'string') {
             const hasQueues = s && s.queues && s.queues.filter(q => q.status === 'ACTIVE').length > 0;
-            const defaultJoinMode = (!s.allowAppointments || hasQueues) ? 'immediate' : 'appointment';
+            const canJoinNow = hasQueues && (s as any).isOpenNow !== false;
+            const defaultJoinMode = (!s.allowAppointments || canJoinNow) ? 'immediate' : 'appointment';
             setServiceDetails(prev => ({
               ...prev,
               [serviceId]: { 
@@ -294,7 +295,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   
   const hasQueues = currentService && currentService.queues && currentService.queues.filter(q => q.status === 'ACTIVE').length > 0;
   const currentDetails = serviceDetails[currentServiceId] || {
-    joinMode: (!currentService?.allowAppointments || hasQueues) ? 'immediate' : 'appointment', selectedDate: '', selectedSlot: '', responses: {}
+    joinMode: (!currentService?.allowAppointments || (hasQueues && (currentService as any).isOpenNow !== false)) ? 'immediate' : 'appointment', selectedDate: '', selectedSlot: '', responses: {}
   };
 
   const updateCurrentDetails = (updates: Partial<typeof currentDetails>) => {
@@ -672,24 +673,18 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               primaryColor={primaryColor}
               supportNumber={supportNumber}
               onViewTickets={() => {
-                const storedTokens = JSON.parse(localStorage.getItem('qmova_active_tokens') || '[]');
-                const shouldRecover = storedTokens.length === 0;
-
-                let targetUrl = `/booking/status${shouldRecover ? '?recover=true' : ''}`;
+                let targetUrl = `/booking/status`;
                 if (window.location.pathname.startsWith('/t/')) {
                   const parts = window.location.pathname.split('/');
                   if (parts.length >= 3) {
-                    targetUrl = `/t/${parts[2]}/booking/status${shouldRecover ? '?recover=true' : ''}`;
+                    targetUrl = `/t/${parts[2]}/booking/status`;
                   }
                 }
                 
-                const query: Record<string, string> = { subdomain: router.query.subdomain as string };
-                if (shouldRecover) query.recover = 'true';
-
                 router.push(
                   {
                     pathname: '/_tenant/[subdomain]/booking/status',
-                    query,
+                    query: { subdomain: router.query.subdomain as string },
                   },
                   targetUrl
                 );
@@ -800,7 +795,18 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                   <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-zinc-800">
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">When do you want to visit?</label>
                     <div className="flex gap-2">
-                      <button type="button" disabled={currentService.queues?.filter(q => q.status === 'ACTIVE').length === 0} onClick={() => updateCurrentDetails({ joinMode: 'immediate' })} className={`flex-1 py-3 rounded-xl font-semibold border-2 transition-all ${currentDetails.joinMode === 'immediate' ? 'border-transparent text-white shadow-md' : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300'} disabled:opacity-50 disabled:cursor-not-allowed`} style={currentDetails.joinMode === 'immediate' ? { backgroundColor: primaryColor } : {}}>Now {currentService.queues?.filter(q => q.status === 'ACTIVE').length === 0 && '(Unavailable)'}</button>
+                      <button 
+                        type="button" 
+                        disabled={
+                          currentService.queues?.filter((q: any) => q.status === 'ACTIVE').length === 0 || 
+                          !currentService.isOpenNow
+                        } 
+                        onClick={() => updateCurrentDetails({ joinMode: 'immediate' })} 
+                        className={`flex-1 py-3 rounded-xl font-semibold border-2 transition-all ${currentDetails.joinMode === 'immediate' ? 'border-transparent text-white shadow-md' : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300'} disabled:opacity-50 disabled:cursor-not-allowed`} 
+                        style={currentDetails.joinMode === 'immediate' ? { backgroundColor: primaryColor } : {}}
+                      >
+                        Now {currentService.queues?.filter((q: any) => q.status === 'ACTIVE').length === 0 ? '(Unavailable)' : (!currentService.isOpenNow ? '(Closed)' : '')}
+                      </button>
                       <button type="button" onClick={() => updateCurrentDetails({ joinMode: 'appointment' })} className={`flex-1 py-3 rounded-xl font-semibold border-2 transition-all ${currentDetails.joinMode === 'appointment' ? 'border-transparent text-white shadow-md' : 'border-gray-200 dark:border-zinc-800 hover:border-gray-300'}`} style={currentDetails.joinMode === 'appointment' ? { backgroundColor: primaryColor } : {}}>Book Slot</button>
                     </div>
 

@@ -18,6 +18,8 @@ import { CommunicationService } from '../communication/communication.service';
 import { CommunicationEvent } from '../communication/events/communication-events.enum';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
+import { ServiceService } from '../service/service.service';
+
 @Injectable()
 export class VisitService {
   private readonly logger = new Logger(VisitService.name);
@@ -33,6 +35,8 @@ export class VisitService {
     private readonly redisService: RedisService,
     @Inject(forwardRef(() => CommunicationService))
     private readonly communicationService: CommunicationService,
+    @Inject(forwardRef(() => ServiceService))
+    private readonly serviceService: ServiceService,
   ) {}
 
   // Basic CRUD for controllers
@@ -395,7 +399,7 @@ export class VisitService {
       for (const booking of data.bookings) {
         const service = await tx.service.findUnique({
           where: { id: booking.serviceId },
-          include: { queues: true },
+          include: { queues: true, location: true },
         });
 
         if (!service)
@@ -438,6 +442,17 @@ export class VisitService {
           scheduledTime = new Date(booking.scheduledFor);
           currentState = service.requireManualCheckIn ? 'CREATED' : 'SCHEDULED';
 
+          // Verify that this slot is actually valid within business hours
+          // Timezone manipulation makes the simple string split unreliable if UTC date falls on previous day.
+          // Let getAvailableSlots handle the raw date lookup using its internal timezone logic.
+          const localDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: service.location?.timezone || 'UTC' }).format(scheduledTime);
+          const availableSlots = await this.serviceService.getAvailableSlots(service.id, localDateStr);
+          const requestedSlot = scheduledTime.toISOString();
+          
+          if (!availableSlots.some(s => s.time === requestedSlot && s.available)) {
+            throw new BadRequestException(`The selected time slot is outside of operational hours or invalid for service ${service.name}`);
+          }
+
           // Lock the service record to serialize concurrent bookings for this service
           await tx.$executeRaw`SELECT 1 FROM "Service" WHERE id = ${service.id} FOR UPDATE`;
 
@@ -471,6 +486,12 @@ export class VisitService {
             throw new ConflictException(
               `The selected time slot is no longer available for service ${service.name}`,
             );
+          }
+        } else {
+          // Walk-in booking - check if the service is open right now
+          const isOpenNow = await this.serviceService.isServiceOpen(service, new Date());
+          if (!isOpenNow) {
+            throw new BadRequestException(`Service ${service.name} is currently closed.`);
           }
         }
 
