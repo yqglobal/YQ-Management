@@ -7,9 +7,13 @@ import {
   UseGuards,
   Req,
   Param,
+  Delete,
+  Query,
+  ForbiddenException,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { TenantService } from './tenant.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
@@ -60,15 +64,7 @@ export class TenantController {
   async updateTenant(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body()
-    body: {
-      name?: string;
-      subdomain?: string;
-      branding?: any;
-      customerExperience?: any;
-      chatbotEnabled?: boolean;
-      chatbotConfig?: any;
-    },
+    @Body() body: UpdateTenantDto,
   ) {
     // SECURITY: TENANT_ADMIN can only update their own tenant.
     // SUPER_ADMIN can update any tenant.

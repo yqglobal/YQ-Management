@@ -99,16 +99,16 @@ export default function ChatbotSettings() {
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
                   type="checkbox" 
-                  className="sr-only peer" 
                   checked={chatbotEnabled}
                   onChange={(e) => {
-                    const checked = e.target.checked;
-                    setChatbotEnabled(checked);
+                    const newValue = e.target.checked;
+                    setChatbotEnabled(newValue);
                     updateMutation.mutate({
-                      chatbotEnabled: checked,
+                      chatbotEnabled: newValue,
                       chatbotConfig: config,
                     });
                   }}
+                  className="sr-only peer" 
                 />
                 <div className="w-14 h-7 bg-surface-container-highest dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-[#8b5cf6]"></div>
               </label>

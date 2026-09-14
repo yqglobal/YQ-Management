@@ -127,7 +127,6 @@ export class TenantService {
     const subscription = tenant.subscriptions?.[0];
     const plan = subscription?.plan;
 
-    // Parse features if stored as string
     let planFeatures = plan?.features as any;
     if (typeof planFeatures === 'string') {
       try {
@@ -135,6 +134,24 @@ export class TenantService {
       } catch (e) {
         planFeatures = {};
       }
+    }
+
+    if (typeof tenant.customerExperience === 'string') {
+      try {
+        (tenant as any).customerExperience = JSON.parse(tenant.customerExperience);
+      } catch (e) {}
+    }
+
+    if (typeof tenant.chatbotConfig === 'string') {
+      try {
+        (tenant as any).chatbotConfig = JSON.parse(tenant.chatbotConfig);
+      } catch (e) {}
+    }
+
+    if (typeof tenant.branding === 'string') {
+      try {
+        (tenant as any).branding = JSON.parse(tenant.branding);
+      } catch (e) {}
     }
 
     const isTrial = subscription?.status === 'TRIAL';

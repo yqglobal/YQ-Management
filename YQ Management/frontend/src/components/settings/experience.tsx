@@ -110,7 +110,11 @@ export default function CustomerExperienceSettings() {
   });
 
   const handleSave = () => {
-    saveSettingsMutation.mutate({ newConfig: config, branding: brandingConfig });
+    const newConfig = {
+      ...(typeof tenant?.customerExperience === 'object' ? tenant.customerExperience : {}),
+      ...config
+    };
+    saveSettingsMutation.mutate({ newConfig, branding: brandingConfig });
   };
 
   const handleAddField = (path: 'globalIntakeForm' | 'feedback.questions') => {
