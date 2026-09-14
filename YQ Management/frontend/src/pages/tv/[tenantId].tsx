@@ -39,7 +39,8 @@ export default function TVDisplay() {
   const [tenantName, setTenantName] = useState<string>('Qmova');
   const [tenantSubdomain, setTenantSubdomain] = useState<string>('');
   const [selfServeModeEnabled, setSelfServeModeEnabled] = useState(false);
-  const [queueInfo, setQueueInfo] = useState<{name: string, serviceName?: string} | null>(null);
+  const [queueInfo, setQueueInfo] = useState<{name: string, serviceName?: string, status?: string} | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const isMutedRef = useRef(isMuted);

@@ -113,8 +113,8 @@ export default function AdminScanner() {
   });
 
   const recentScans = useMemo(() => {
-    if (!history.length) return [];
-    return history.filter((t) => t.currentState === 'CHECKED_IN' || t.currentState === 'COMPLETED').slice(0, 20);
+    if (!history?.length) return [];
+    return history.filter((t: AnyFixMe) => t.currentState === 'CHECKED_IN' || t.currentState === 'COMPLETED').slice(0, 20);
   }, [history]);
 
   const resetIdleTimer = () => {

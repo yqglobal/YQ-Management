@@ -483,7 +483,7 @@ export default function ServiceDeskToday() {
                           if (!tenant?.subdomain) return '#';
                           let path = '/booking';
                           if (activeLocationId && activeLocationId !== 'all') {
-                            const loc = locations?.find((l: AnyFixMe) => l.id === activeLocationId);
+                            const loc = tenant?.locations?.find((l: AnyFixMe) => l.id === activeLocationId);
                             if (loc) path = `/booking/${slugify(loc.name)}`;
                           }
                           return getTenantUrl(tenant.subdomain, path);
