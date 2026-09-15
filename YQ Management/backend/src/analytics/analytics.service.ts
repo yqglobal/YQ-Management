@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime, format } from 'date-fns-tz';
 
 @Injectable()
 export class AnalyticsService {
@@ -227,8 +227,7 @@ export class AnalyticsService {
       }
 
       tokens.forEach((t: any) => {
-        const zonedDate = toZonedTime(t.createdAt, tz);
-        const h = zonedDate.getHours();
+        const h = parseInt(format(t.createdAt, 'H', { timeZone: tz }), 10);
         if (hourlyDataMap.has(h)) {
           const entry = hourlyDataMap.get(h)!;
           entry.volume++;
@@ -261,12 +260,9 @@ export class AnalyticsService {
       // Initialize days
       const daysCount = timeframe === '7d' ? 7 : 30;
       for (let i = daysCount - 1; i >= 0; i--) {
-        const d = toZonedTime(new Date(), tz);
+        const d = new Date();
         d.setDate(d.getDate() - i);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const key = `${year}-${month}-${day}`;
+        const key = format(d, 'yyyy-MM-dd', { timeZone: tz });
         dailyDataMap.set(key, {
           timeLabel: key,
           volume: 0,
@@ -276,11 +272,7 @@ export class AnalyticsService {
       }
 
       tokens.forEach((t: any) => {
-        const d = toZonedTime(t.createdAt, tz);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const key = `${year}-${month}-${day}`;
+        const key = format(t.createdAt, 'yyyy-MM-dd', { timeZone: tz });
         if (dailyDataMap.has(key)) {
           const entry = dailyDataMap.get(key)!;
           entry.volume++;

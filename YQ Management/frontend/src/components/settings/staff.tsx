@@ -236,6 +236,40 @@ export default function StaffDirectory() {
 
   return (
     <div className="space-y-6">
+      {/* JOIN WORKSPACE SECTION */}
+      <div className="bg-white dark:bg-zinc-800/50 rounded-2xl border border-border dark:border-dark-border p-6 shadow-sm mb-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="font-bold text-on-surface dark:text-white flex items-center gap-2">
+              <Shield className="w-5 h-5 text-[#0284C7]" />
+              Have an Invite Code?
+            </h3>
+            <p className="text-sm text-on-surface-variant dark:text-zinc-400 mt-1 max-w-lg">
+              If you accidentally created a new trial workspace instead of joining your team, you can enter your invite code here to discard this workspace and join your intended team.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              const code = prompt('Enter your 8-character invite code:');
+              if (code && code.trim()) {
+                fetchApi('/auth/join-with-invite', {
+                  method: 'POST',
+                  body: JSON.stringify({ inviteCode: code.trim().toUpperCase() }),
+                })
+                  .then(() => {
+                    toast.success('Successfully joined the workspace! Reloading...', { duration: 5000 });
+                    setTimeout(() => window.location.href = '/dashboard', 1500);
+                  })
+                  .catch((e) => toast.error(e.message || 'Invalid or expired invite code'));
+              }
+            }}
+            className="flex items-center gap-2 px-4 h-9 bg-surface-container hover:bg-surface-container-high dark:bg-zinc-800 dark:hover:bg-zinc-700 text-on-surface dark:text-white text-sm font-semibold rounded-xl transition-colors border border-border dark:border-dark-border"
+          >
+            Join Workspace
+          </button>
+        </div>
+      </div>
+
       {/* MEMBERS SECTION */}
       <div className="space-y-4">
           <div className="flex items-center justify-between">

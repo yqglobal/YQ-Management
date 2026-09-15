@@ -176,7 +176,9 @@ export default function Onboarding() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(0);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [inviteInfo, setInviteInfo] = useState<AnyFixMe>(null);
   const [selectedType, setSelectedType] = useState<string>('general');
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -316,8 +318,6 @@ export default function Onboarding() {
   }, [googleSettings, selectedIntegrationId]);
 
   // Invitation State
-  const [inviteCode, setInviteCode] = useState<string | null>(null);
-  const [inviteInfo, setInviteInfo] = useState<{ workspaceName: string; role: string; valid: boolean } | null>(null);
   const [joiningWorkspace, setJoiningWorkspace] = useState(false);
 
   // WhatsApp State
@@ -386,6 +386,8 @@ export default function Onboarding() {
       if (savedStep) {
         const parsed = parseInt(savedStep, 10);
         if (parsed >= 1 && parsed <= 6) setStep(parsed as 1 | 2 | 3 | 4 | 5 | 6);
+      } else if (code && code.trim()) {
+        setStep(1);
       }
       const savedData = localStorage.getItem('onboarding_form_data');
       if (savedData) {
@@ -671,6 +673,70 @@ export default function Onboarding() {
         </div>
 
         <AnimatePresence mode="wait">
+          {step === 0 && (
+            <motion.div
+              key="step0"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-8 items-center text-center py-6"
+            >
+              <Logo width={160} height={26} />
+              <h1 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight mt-4">
+                Welcome to Qmova
+              </h1>
+              <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline max-w-lg mx-auto">
+                Are you setting up a new business workspace, or joining an existing team?
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-xl mt-6">
+                <button
+                  onClick={() => setStep(1)}
+                  className="p-6 rounded-2xl border-2 border-border dark:border-dark-border hover:border-[#0284C7] bg-white dark:bg-zinc-800 hover:bg-sky-50 dark:hover:bg-sky-500/10 transition-all text-left group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-sky-100 dark:bg-sky-500/20 flex items-center justify-center mb-4">
+                    <Store className="w-6 h-6 text-[#0284C7]" />
+                  </div>
+                  <h3 className="text-lg font-bold text-on-surface dark:text-white mb-1">Create Workspace</h3>
+                  <p className="text-sm text-on-surface-variant dark:text-zinc-400">
+                    I am the owner or admin setting up a new Qmova account.
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => {
+                    const code = prompt('Enter your 8-character invite code:');
+                    if (code && code.trim()) {
+                      const trimmed = code.trim().toUpperCase();
+                      setInviteCode(trimmed);
+                      fetchApi(`/workspace/invite-preview/${trimmed}`)
+                        .then((res: AnyFixMe) => {
+                          if (res?.valid) {
+                            setInviteInfo(res);
+                            setCompanyName(res.workspaceName);
+                            setStep(1);
+                          } else {
+                            toast.error('Invalid or expired invite code');
+                          }
+                        })
+                        .catch(() => toast.error('Could not verify invite code'));
+                    }
+                  }}
+                  className="p-6 rounded-2xl border-2 border-border dark:border-dark-border hover:border-[#7C3AED] bg-white dark:bg-zinc-800 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all text-left group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center mb-4">
+                    <Users className="w-6 h-6 text-[#7C3AED]" />
+                  </div>
+                  <h3 className="text-lg font-bold text-on-surface dark:text-white mb-1">Join Team</h3>
+                  <p className="text-sm text-on-surface-variant dark:text-zinc-400">
+                    I have an invite code from my manager to join as staff.
+                  </p>
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {step === 1 && (
             <motion.div 
               key="step1"

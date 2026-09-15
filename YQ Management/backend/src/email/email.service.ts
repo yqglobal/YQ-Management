@@ -449,6 +449,32 @@ export class EmailService {
     }
   }
 
+  async sendTeamInviteEmail(
+    email: string,
+    inviteCode: string,
+    inviterName: string,
+    workspaceName: string,
+    role: string,
+  ) {
+    const subject = `You've been invited to join ${workspaceName} on Qmova`;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://qmova.yqbuddy.com';
+    const inviteLink = `${frontendUrl}/onboarding?inviteCode=${inviteCode}`;
+    const roleName = role === 'OPERATOR' ? 'Service Provider' : 'Team Member';
+    
+    const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Join ${workspaceName}</h2>
+    <p style="color: #4b5563; line-height: 1.6;">${inviterName} has invited you to join <strong>${workspaceName}</strong> as a <strong>${roleName}</strong>.</p>
+    <p style="color: #4b5563; line-height: 1.6;">Click the button below to accept the invitation and set up your account. If you already have an account, this link will connect you to the new workspace.</p>
+    ${generateButtonHtml('Accept Invitation', inviteLink)}`;
+    
+    await this.sendEmail(
+      email,
+      subject,
+      'Team Invitation',
+      `You've been invited to join ${workspaceName}`,
+      content,
+    );
+  }
+
   async sendWelcomeEmail(email: string, name: string) {
     const subject = 'Welcome to Qmova!';
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Welcome aboard, ${name || 'there'}!</h2>
