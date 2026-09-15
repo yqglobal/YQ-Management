@@ -341,6 +341,15 @@ export default function CustomerLiveStatus() {
               </div>
             )}
 
+            {/* View Ticket Button */}
+            <button
+              onClick={() => router.push(`/customer/confirmation/${data.token?.id}`)}
+              className="w-full flex items-center justify-center gap-2 py-4 px-6 mb-4 bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-bold transition-all shadow-sm active:scale-[0.98]"
+            >
+              <span className="material-symbols-outlined text-[20px]">qr_code</span>
+              View Ticket QR
+            </button>
+
             {/* Manual refresh button */}
             <button
               onClick={triggerRefetch}

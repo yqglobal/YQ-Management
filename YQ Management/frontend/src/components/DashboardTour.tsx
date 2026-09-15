@@ -24,7 +24,7 @@ const STEPS: Step[] = [
     elementId: 'tour-settings-nav',
     title: 'Connect WhatsApp',
     description: "Don't forget to connect your WhatsApp in the settings so your customers get real-time SMS updates.",
-    route: '/dashboard/settings',
+    route: '/dashboard/settings/integrations',
   },
 ];
 

@@ -277,6 +277,23 @@ export class QueueService {
     return this.getQueueTokens(queueId);
   }
 
+  async getRecentlyCalledTokens(queueId: string) {
+    return this.prisma.visit.findMany({
+      where: {
+        queueId,
+        currentState: { in: ['IN_SERVICE', 'COMPLETED', 'NO_SHOW'] },
+        serviceStart: { not: null },
+      },
+      include: {
+        customer: { select: { name: true } },
+        queue: { select: { name: true } },
+        service: { select: { name: true } },
+      },
+      orderBy: { serviceStart: 'desc' },
+      take: 10,
+    });
+  }
+
   async getHistory(tenantId: string) {
     return this.prisma.visit.findMany({
       where: {

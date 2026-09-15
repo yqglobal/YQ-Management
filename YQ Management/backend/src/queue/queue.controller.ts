@@ -166,4 +166,10 @@ export class QueueController {
   async getPublicQueueTokens(@Param('id') id: string) {
     return this.queueService.getQueueTokens(id);
   }
+
+  // Public endpoint for live TV display recently called history
+  @Get('public/:id/recently-called')
+  async getPublicRecentlyCalledTokens(@Param('id') id: string) {
+    return this.queueService.getRecentlyCalledTokens(id);
+  }
 }

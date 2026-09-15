@@ -123,7 +123,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   const bottomItems = [
     ...(isSuperAdmin ? [{ label: 'Super Admin', href: '/super-admin', icon: 'shield', adminOnly: true, pageId: 'super-admin' }] : []),
-    { label: 'Settings', href: '/dashboard/settings', icon: 'settings', id: 'tour-settings-nav', adminOnly: true, pageId: 'settings' },
+    { label: 'Settings', href: '/dashboard/settings/profile', icon: 'settings', id: 'tour-settings-nav', adminOnly: true, pageId: 'settings' },
   ];
 
   const hasPageAccess = (pageId?: string) => {
@@ -790,7 +790,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
               </Link>
 
               <Link
-                href="/dashboard/settings"
+                href="/dashboard/settings/profile"
                 onClick={() => setProfileOpen(false)}
                 className="flex w-full items-center gap-3 px-6 py-3 text-sm text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors"
               >

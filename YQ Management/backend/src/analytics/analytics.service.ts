@@ -227,7 +227,8 @@ export class AnalyticsService {
       }
 
       tokens.forEach((t: any) => {
-        const h = t.createdAt.getHours();
+        const zonedDate = toZonedTime(t.createdAt, tz);
+        const h = zonedDate.getHours();
         if (hourlyDataMap.has(h)) {
           const entry = hourlyDataMap.get(h)!;
           entry.volume++;
@@ -260,9 +261,12 @@ export class AnalyticsService {
       // Initialize days
       const daysCount = timeframe === '7d' ? 7 : 30;
       for (let i = daysCount - 1; i >= 0; i--) {
-        const d = new Date();
+        const d = toZonedTime(new Date(), tz);
         d.setDate(d.getDate() - i);
-        const key = d.toISOString().split('T')[0]; // YYYY-MM-DD
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const key = `${year}-${month}-${day}`;
         dailyDataMap.set(key, {
           timeLabel: key,
           volume: 0,
@@ -272,7 +276,11 @@ export class AnalyticsService {
       }
 
       tokens.forEach((t: any) => {
-        const key = t.createdAt.toISOString().split('T')[0];
+        const d = toZonedTime(t.createdAt, tz);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const key = `${year}-${month}-${day}`;
         if (dailyDataMap.has(key)) {
           const entry = dailyDataMap.get(key)!;
           entry.volume++;

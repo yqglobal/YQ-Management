@@ -65,6 +65,23 @@ export default function TVDisplay() {
         }
       })
       .catch(console.error);
+      
+    // Fetch recently called tokens to populate history
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/queue/public/${queueId}/recently-called`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const tokens = data.map((d: any) => ({
+            id: d.id,
+            displayId: d.displayId,
+            customerName: d.customer?.name,
+            queueName: d.queue?.name,
+            resourceName: d.service?.name || d.resourceName,
+          }));
+          setCalledTokens(tokens);
+        }
+      })
+      .catch(console.error);
   }, [queueId]);
 
   // Fetch tenant TTS config via public endpoint

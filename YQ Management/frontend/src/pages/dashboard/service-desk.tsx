@@ -397,6 +397,7 @@ export default function ServiceDeskToday() {
                   </div>
                   <button 
                     onClick={(e) => handleComplete(v.id, e)}
+                    title="Complete Service"
                     className="p-1.5 text-on-surface-variant hover:text-emerald-600 dark:hover:text-emerald-400 bg-surface dark:bg-dark-card rounded shadow-sm border border-border dark:border-dark-border"
                   >
                     <span className="material-symbols-outlined text-[16px]">check</span>

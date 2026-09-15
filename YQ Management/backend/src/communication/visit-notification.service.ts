@@ -221,8 +221,12 @@ export class VisitNotificationService {
             createdAt: { lt: visit.createdAt },
           },
         });
-        const etaMins = (peopleAhead + 1) * perPersonMins;
-        positionText = `\n\nThere are *${peopleAhead}* people ahead of you. Estimated wait: *~${etaMins} mins*. Please move towards the reception when it's your turn.`;
+        const etaMins = peopleAhead * perPersonMins;
+        if (etaMins === 0) {
+          positionText = `\n\nThere are *0* people ahead of you. It's almost your turn! Please move towards the reception.`;
+        } else {
+          positionText = `\n\nThere are *${peopleAhead}* people ahead of you. Estimated wait: *~${etaMins} mins*. Please move towards the reception when it's your turn.`;
+        }
       } else {
         positionText = `\n\nWe'll notify you when it's almost your turn. Type *STATUS* to check your position.`;
       }
@@ -375,41 +379,34 @@ export class VisitNotificationService {
     const visit = await this.fetchVisitBase(payload.visitId!);
     if (!this.canSendWhatsApp(visit, 'VISIT_COMPLETED')) return;
 
-    if (!visit.tenant.enableSmartReviews || !visit.location?.googlePlaceId) {
-      this.logger.debug(
-        `VISIT_COMPLETED: Smart Reviews disabled or no Google Place ID for visit ${visit.id}`,
-      );
-      return;
+    const watermark = this.buildWatermark(visit);
+    let message = `Hi ${visit.customer.name}, your service is now complete. We hope you had a great experience!${watermark}`;
+    let shouldRequestRating = false;
+
+    // Evaluate Smart Reviews conditions
+    if (visit.tenant.enableSmartReviews && visit.location?.googlePlaceId) {
+      if (visit.waitingStart && visit.serviceStart) {
+        const waitTimeMs = new Date(visit.serviceStart).getTime() - new Date(visit.waitingStart).getTime();
+        const waitTimeMins = Math.floor(waitTimeMs / 60000);
+        const threshold = visit.tenant.reviewWaitThresholdMins ?? 15;
+
+        if (waitTimeMins <= threshold) {
+          shouldRequestRating = true;
+          message += `\n\n🌟 *How did we do?*\nPlease reply with a number from *1 to 5* to rate your experience (5 being excellent).`;
+        } else {
+          this.logger.log(`VISIT_COMPLETED: skipping review for ${visit.customer.phone} — wait ${waitTimeMins}m > threshold ${threshold}m`);
+        }
+      } else {
+        this.logger.debug(`VISIT_COMPLETED: missing wait timestamps for visit ${visit.id}, skipping review.`);
+      }
     }
-
-    // Only send if customer didn't wait too long
-    if (!visit.waitingStart || !visit.serviceStart) {
-      this.logger.debug(`VISIT_COMPLETED: missing wait timestamps for visit ${visit.id}`);
-      return;
-    }
-
-    const waitTimeMs = new Date(visit.serviceStart).getTime() - new Date(visit.waitingStart).getTime();
-    const waitTimeMins = Math.floor(waitTimeMs / 60000);
-    const threshold = visit.tenant.reviewWaitThresholdMins ?? 15;
-
-    if (waitTimeMins > threshold) {
-      this.logger.log(
-        `VISIT_COMPLETED: skipping review for ${visit.customer.phone} — wait ${waitTimeMins}m > threshold ${threshold}m`,
-      );
-      return;
-    }
-
-    const message =
-      `🌟 *How did we do?*\n\nHi ${visit.customer.name}, thanks for visiting us for ${visit.service?.name || 'your service'}!\n\nPlease reply with a number from *1 to 5* to rate your experience (5 being excellent).`;
 
     const result = await this.whatsappService.sendMessage(
       visit.tenant.whatsappInstanceId!,
       visit.customer.phone!,
       message,
     );
-    this.logger.log(
-      `Smart Review request sent to ${visit.customer.phone} (wait ${waitTimeMins}m <= threshold ${threshold}m)`,
-    );
+    this.logger.log(`Completion message sent to ${visit.customer.phone} (Rating requested: ${shouldRequestRating})`);
 
     await this.communicationLogService.log({
       tenantId: visit.tenantId,
@@ -423,17 +420,18 @@ export class VisitNotificationService {
       errorMessage: result.error,
     });
 
-    // Set chat session to step 20 so the chatbot awaits a rating reply.
-    // `normalizePhone` is used here for consistent session lookup.
-    try {
-      const normalizedPhone = this.normalizePhone(visit.customer.phone!);
-      await this.prisma.chatSession.upsert({
-        where: { tenantId_phone: { tenantId: visit.tenantId, phone: normalizedPhone } },
-        update: { step: 20, context: { locationId: visit.locationId } },
-        create: { tenantId: visit.tenantId, phone: normalizedPhone, step: 20, context: { locationId: visit.locationId } },
-      });
-    } catch (err: any) {
-      this.logger.error(`VISIT_COMPLETED: failed to set chat session step 20 — ${err.message}`);
+    if (shouldRequestRating) {
+      // Set chat session to step 20 so the chatbot awaits a rating reply.
+      try {
+        const normalizedPhone = this.normalizePhone(visit.customer.phone!);
+        await this.prisma.chatSession.upsert({
+          where: { tenantId_phone: { tenantId: visit.tenantId, phone: normalizedPhone } },
+          update: { step: 20, context: { locationId: visit.locationId } },
+          create: { tenantId: visit.tenantId, phone: normalizedPhone, step: 20, context: { locationId: visit.locationId } },
+        });
+      } catch (err: any) {
+        this.logger.error(`VISIT_COMPLETED: failed to set chat session step 20 — ${err.message}`);
+      }
     }
   }
 }
