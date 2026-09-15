@@ -176,39 +176,52 @@ export default function TVDisplay() {
       }
     });
 
-    socket.on('token_serving', (data: AnyFixMe) => {
-      const token: CalledToken = {
-        id: data.token?.id || data.id || data,
-        displayId: data.token?.displayId || data.displayId,
-        customerName: data.token?.customerName || data.customerName,
-        queueName: data.token?.queue?.name || data.queueName,
-        resourceName: data.token?.assignedResource?.name || data.resourceName,
-      };
+    socket.on('visit_called', () => {
+      // Re-fetch recently called to get full Visit objects including customer name and resource
+      if (queueId) {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/queue/public/${queueId}/recently-called`)
+          .then(r => r.json())
+          .then(data => {
+            if (Array.isArray(data)) {
+              const tokens = data.map((d: any) => ({
+                id: d.id,
+                displayId: d.displayId,
+                customerName: d.customer?.name,
+                queueName: d.queue?.name,
+                resourceName: d.service?.name || d.resourceName,
+              }));
 
-      setCalledTokens(prev => [token, ...prev].slice(0, 8));
+              setCalledTokens(prev => {
+                const newMostRecent = tokens[0];
+                if (newMostRecent && (!prev.length || prev[0].id !== newMostRecent.id)) {
+                  // Play chime
+                  try {
+                    const audioCtx = new (window.AudioContext || (window as AnyFixMe).webkitAudioContext)();
+                    [440, 550].forEach((freq, i) => {
+                      const osc = audioCtx.createOscillator();
+                      const gain = audioCtx.createGain();
+                      osc.type = 'sine';
+                      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.25);
+                      gain.gain.setValueAtTime(0.3, audioCtx.currentTime + i * 0.25);
+                      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.25 + 0.8);
+                      osc.connect(gain);
+                      gain.connect(audioCtx.destination);
+                      osc.start(audioCtx.currentTime + i * 0.25);
+                      osc.stop(audioCtx.currentTime + i * 0.25 + 0.8);
+                    });
+                  } catch (e) {
+                    console.error('Audio play failed', e);
+                  }
 
-      // Play chime
-      try {
-        const audioCtx = new (window.AudioContext || (window as AnyFixMe).webkitAudioContext)();
-        // Two-tone chime
-        [440, 550].forEach((freq, i) => {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.25);
-          gain.gain.setValueAtTime(0.3, audioCtx.currentTime + i * 0.25);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.25 + 0.8);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(audioCtx.currentTime + i * 0.25);
-          osc.stop(audioCtx.currentTime + i * 0.25 + 0.8);
-        });
-      } catch (e) {
-        console.error('Audio play failed', e);
+                  // TTS: small delay after chime
+                  setTimeout(() => speakAnnouncement(newMostRecent), 800);
+                }
+                return tokens;
+              });
+            }
+          })
+          .catch(console.error);
       }
-
-      // TTS: small delay after chime
-      setTimeout(() => speakAnnouncement(token), 800);
     });
 
     return () => { socket.disconnect(); };

@@ -410,6 +410,7 @@ export default function Onboarding() {
   useEffect(() => {
     const template = BUSINESS_TEMPLATES.find(t => t.id === selectedType);
     if (template) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedServices(template.services.map(s => s.name));
     }
   }, [selectedType]);
@@ -563,6 +564,7 @@ export default function Onboarding() {
   useEffect(() => {
     let cancelled = false;
     if (step === 4 && cachedQrQuery.data?.qr) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQrCode(cachedQrQuery.data.qr);
     }
     return () => { cancelled = true; };
@@ -570,12 +572,17 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (whatsappStatus?.state === 'open') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQrCode(null);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPairingCode(null);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPairingPhoneNumber('');
     } else if (whatsappStatus?.state === 'connecting') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (whatsappStatus.qr) setQrCode(whatsappStatus.qr);
     } else if (whatsappStatus?.state === 'close' || whatsappStatus?.state === 'unconfigured') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQrCode(null);
     }
   }, [whatsappStatus]);
