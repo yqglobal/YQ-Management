@@ -20,12 +20,7 @@ enum QueueStatus {
   CLOSED
 }
 
-enum TokenStatus {
-  WAITING
-  SERVING
-  COMPLETED
-  MISSED
-}
+
 
 enum SubscriptionStatus {
   TRIAL
@@ -200,7 +195,6 @@ model User {
   policyAcceptances PolicyAcceptance[]
   cookiePreferences CookiePreference[]
   sessions          UserSession[]
-  tokens            Token[]
   operatorVisits    Visit[]            @relation("OperatorVisits")
 
   @@index([tenantId])
@@ -257,7 +251,6 @@ model Queue {
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  tokens   Token[]
   visits   Visit[]
   services Service[] @relation("QueueToService")
 
@@ -269,42 +262,7 @@ model Queue {
   @@index([locationId])
 }
 
-model Token {
-  id           String      @id @default(uuid())
-  queueId      String
-  customerName String
-  phone        String?
-  status       TokenStatus
-  joinedAt     DateTime    @default(now())
 
-  // Hybrid Appointments
-  isAppointment Boolean   @default(false)
-  scheduledFor  DateTime?
-  checkedIn     Boolean   @default(false)
-
-  // Feedback & CSAT
-  rating       Int? // 1-5 star rating
-  feedbackText String? // Optional feedback comment
-
-  formResponses Json? // Customer answers to dynamic queue fields
-  purpose       String? // Extracted top-level purpose for ETA logic and fast analytics
-  language      String  @default("en") // Customer language preference
-  displayId     String? // Human-readable token number (e.g. "CC876")
-
-  // Time Tracking (for ETA logic)
-  servedAt    DateTime?
-  completedAt DateTime?
-
-  queue Queue @relation(fields: [queueId], references: [id], onDelete: Cascade)
-
-  operatorId String?
-  operator   User?   @relation(fields: [operatorId], references: [id])
-
-  reminderSent Boolean @default(false)
-
-  @@index([queueId, status])
-  @@index([queueId, joinedAt])
-}
 
 model CustomerConversation {
   id            String   @id @default(uuid())

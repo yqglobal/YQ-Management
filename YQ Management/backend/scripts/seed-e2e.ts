@@ -12,7 +12,6 @@ async function seed() {
   // 1. Clean DB
   await prisma.outboxEvent.deleteMany();
   await prisma.visit.deleteMany();
-  await prisma.token.deleteMany();
   await prisma.queue.deleteMany();
   await prisma.service.deleteMany();
   await prisma.location.deleteMany();

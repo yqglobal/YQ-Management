@@ -10,9 +10,6 @@ async function main() {
     console.log('Deleting Messages...');
     await prisma.message.deleteMany();
 
-    console.log('Deleting Tokens...');
-    await prisma.token.deleteMany();
-
     console.log('Deleting Visits...');
     await prisma.visit.deleteMany();
 
