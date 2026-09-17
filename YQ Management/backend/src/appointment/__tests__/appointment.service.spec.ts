@@ -4,6 +4,7 @@ import { WhatsappService } from '../../whatsapp/whatsapp.service';
 import { RedisService } from '../../redis/redis.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConflictException } from '@nestjs/common';
+import { GoogleService } from '../../integrations/google/google.service';
 
 describe('AppointmentService', () => {
   let service: AppointmentService;
@@ -28,6 +29,9 @@ describe('AppointmentService', () => {
     },
   };
   const mockWhatsappService = {};
+  const mockGoogleService = {
+    syncAppointmentToCalendar: jest.fn().mockResolvedValue(true),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -36,6 +40,7 @@ describe('AppointmentService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: WhatsappService, useValue: mockWhatsappService },
         { provide: RedisService, useValue: mockRedisService },
+        { provide: GoogleService, useValue: mockGoogleService },
       ],
     }).compile();
 

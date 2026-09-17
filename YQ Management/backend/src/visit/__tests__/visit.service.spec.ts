@@ -1,6 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { VisitService } from '../visit.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { WhatsappService } from '../../whatsapp/whatsapp.service';
+import { RedisService } from '../../redis/redis.service';
+import { SubscriptionService } from '../../subscription/subscription.service';
+import { AppointmentService } from '../../appointment/appointment.service';
+import { CommunicationService } from '../../communication/communication.service';
+import { ServiceService } from '../../service/service.service';
+import { BlockOffService } from '../../block-off/block-off.service';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 
 describe('VisitService', () => {
@@ -34,6 +41,13 @@ describe('VisitService', () => {
       providers: [
         VisitService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: WhatsappService, useValue: {} },
+        { provide: RedisService, useValue: {} },
+        { provide: SubscriptionService, useValue: {} },
+        { provide: AppointmentService, useValue: {} },
+        { provide: CommunicationService, useValue: {} },
+        { provide: ServiceService, useValue: {} },
+        { provide: BlockOffService, useValue: {} },
       ],
     }).compile();
 
