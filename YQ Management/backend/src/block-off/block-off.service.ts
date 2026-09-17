@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueGateway } from '../queue/queue.gateway';
 
@@ -6,6 +6,7 @@ import { QueueGateway } from '../queue/queue.gateway';
 export class BlockOffService {
   constructor(
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => QueueGateway))
     private readonly queueGateway: QueueGateway,
   ) {}
 
