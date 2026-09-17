@@ -1,7 +1,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
-import { EmailProvider } from '../communication/interfaces/email.provider.interface';
+import type { EmailProvider } from '../communication/interfaces/email.provider';
 
 @Injectable()
 export class AnalyticsDigestCron {
@@ -68,16 +68,23 @@ export class AnalyticsDigestCron {
           where: { 
             tenantId: tenant.id, 
             createdAt: { gte: lastWeek },
-            currentState: 'COMPLETED'
+            currentState: 'COMPLETED',
+            waitingStart: { not: null },
+            serviceStart: { not: null },
+            completedAt: { not: null }
           },
-          select: { waitTime: true, serviceTime: true },
+          select: { waitingStart: true, serviceStart: true, completedAt: true },
         });
 
         let totalWait = 0;
         let totalService = 0;
         for (const v of completedVisits) {
-          totalWait += v.waitTime || 0;
-          totalService += v.serviceTime || 0;
+          if (v.waitingStart && v.serviceStart && v.completedAt) {
+            const waitTimeMins = (v.serviceStart.getTime() - v.waitingStart.getTime()) / 60000;
+            const serviceTimeMins = (v.completedAt.getTime() - v.serviceStart.getTime()) / 60000;
+            totalWait += waitTimeMins;
+            totalService += serviceTimeMins;
+          }
         }
 
         const avgWaitTime = completedVisits.length > 0 ? Math.round(totalWait / completedVisits.length) : 0;
@@ -97,11 +104,11 @@ export class AnalyticsDigestCron {
 
         for (const user of users) {
           if (user.email) {
-            await this.emailProvider.sendEmail(
-              user.email,
-              `Your Weekly Analytics Digest - ${tenant.name}`,
-              emailHtml,
-            );
+            await this.emailProvider.send({
+              to: user.email,
+              subject: `Your Weekly Analytics Digest - ${tenant.name}`,
+              htmlContent: emailHtml,
+            });
           }
         }
         

@@ -169,15 +169,21 @@ export class VisitService {
           where: { 
             serviceId: visit.serviceId, 
             currentState: 'COMPLETED',
-            serviceTime: { not: null }
+            serviceStart: { not: null },
+            completedAt: { not: null }
           },
           orderBy: { completedAt: 'desc' },
           take: 30,
-          select: { serviceTime: true }
+          select: { serviceStart: true, completedAt: true }
         });
         
         if (recentVisits.length > 0) {
-          const totalServiceTime = recentVisits.reduce((acc, v) => acc + (v.serviceTime || 0), 0);
+          const totalServiceTime = recentVisits.reduce((acc, v) => {
+            if (v.completedAt && v.serviceStart) {
+               return acc + (v.completedAt.getTime() - v.serviceStart.getTime()) / 60000;
+            }
+            return acc;
+          }, 0);
           avgServiceTime = totalServiceTime / recentVisits.length;
         }
       }
