@@ -9,15 +9,23 @@ import WebhooksSettings from '../../../components/settings/webhooks';
 import AnnouncementsSettings from '../../../components/settings/announcements';
 import GoogleBusinessSettings from '../../../components/settings/google-business';
 
+type TabId = 'whatsapp' | 'announcements' | 'webhooks' | 'google';
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'announcements', label: 'AI Announcements' },
+  { id: 'webhooks', label: 'Webhooks' },
+  { id: 'google', label: 'Google' },
+];
+
 export default function IntegrationsSettingsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'announcements' | 'webhooks' | 'google'>('whatsapp');
+  const [activeTab, setActiveTab] = useState<TabId>('whatsapp');
 
   useEffect(() => {
     if (router.query.googleAuth === 'success') {
       setActiveTab('google');
       toast.success('Successfully connected to Google!');
-      // Clean up the URL
       router.replace('/dashboard/settings/integrations', undefined, { shallow: true });
     } else if (router.query.googleAuth === 'error') {
       setActiveTab('google');
@@ -27,55 +35,28 @@ export default function IntegrationsSettingsPage() {
   }, [router.query]);
 
   return (
-    <SettingsLayout pageTitle="Integrations & Comms" pageSubtitle="Manage WhatsApp integration, webhooks, and AI announcements.">
+    <SettingsLayout pageTitle="Integrations & Comms" pageSubtitle="Manage WhatsApp, webhooks, AI announcements, and Google integrations.">
       <Head>
         <title>Integrations & Comms | Settings</title>
       </Head>
 
       <div className="flex space-x-1 border-b border-border dark:border-dark-border mb-6">
-        <button
-          onClick={() => setActiveTab('whatsapp')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'whatsapp'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-              : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
-          }`}
-        >
-          WhatsApp
-        </button>
-        <button
-          onClick={() => setActiveTab('announcements')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'announcements'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-              : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
-          }`}
-        >
-          AI Announcements
-        </button>
-        <button
-          onClick={() => setActiveTab('webhooks')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'webhooks'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-              : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
-          }`}
-        >
-          Webhooks
-        </button>
-        <button
-          onClick={() => setActiveTab('google')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'google'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-              : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
-          }`}
-        >
-          Google Business
-        </button>
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === tab.id
+                ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto">
+      <div className={`flex flex-col gap-8 w-full ${activeTab === 'google' ? 'max-w-5xl' : 'max-w-4xl'} mx-auto`}>
         {activeTab === 'whatsapp' && (
           <>
             <WhatsAppSettings />
