@@ -6,26 +6,44 @@ import { toZonedTime, fromZonedTime, format } from 'date-fns-tz';
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getDashboardAnalytics(tenantId: string, timeframe: string = 'today', tz: string = 'UTC') {
+  async getDashboardAnalytics(
+    tenantId: string, 
+    timeframe: string = 'today', 
+    tz: string = 'UTC',
+    startDateInput?: string,
+    endDateInput?: string,
+  ) {
     // 1. Calculate Date Range using timezone
     const zonedNow = toZonedTime(new Date(), tz);
     zonedNow.setHours(0, 0, 0, 0);
 
-    if (timeframe === '7d') {
-      zonedNow.setDate(zonedNow.getDate() - 7);
-    } else if (timeframe === '30d') {
-      zonedNow.setDate(zonedNow.getDate() - 30);
+    let startDate: Date;
+    let endDate: Date | undefined = undefined;
+
+    if (startDateInput && endDateInput) {
+      startDate = new Date(startDateInput);
+      endDate = new Date(endDateInput);
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      if (timeframe === '7d') {
+        zonedNow.setDate(zonedNow.getDate() - 7);
+      } else if (timeframe === '30d') {
+        zonedNow.setDate(zonedNow.getDate() - 30);
+      } else if (timeframe === 'all') {
+        zonedNow.setFullYear(2020); // Arbitrary old date for "All Time"
+      }
+      startDate = fromZonedTime(zonedNow, tz);
     }
-    const startDate = fromZonedTime(zonedNow, tz);
 
     const tokens = await this.prisma.visit.findMany({
       where: {
         tenantId,
-        createdAt: { gte: startDate },
+        createdAt: endDate ? { gte: startDate, lte: endDate } : { gte: startDate },
       },
       select: {
         currentState: true,
         createdAt: true,
+        waitingStart: true,
         serviceStart: true,
         completedAt: true,
         rating: true,
@@ -90,8 +108,8 @@ export class AnalyticsService {
 
       let waitMs = 0;
       let hasWait = false;
-      if (t.serviceStart && t.createdAt) {
-        waitMs = t.serviceStart.getTime() - t.createdAt.getTime();
+      if (t.serviceStart && (t.waitingStart || t.createdAt)) {
+        waitMs = t.serviceStart.getTime() - (t.waitingStart?.getTime() || t.createdAt.getTime());
         hasWait = true;
       }
 
@@ -233,7 +251,7 @@ export class AnalyticsService {
           entry.volume++;
           if (t.serviceStart) {
             entry.waitTimeSum +=
-              (t.serviceStart.getTime() - t.createdAt.getTime()) / 60000;
+              (t.serviceStart.getTime() - (t.waitingStart?.getTime() || t.createdAt.getTime())) / 60000;
             entry.waitCount++;
           }
         }
@@ -246,7 +264,7 @@ export class AnalyticsService {
           d.waitCount > 0 ? Math.floor(d.waitTimeSum / d.waitCount) : 0,
       }));
     } else {
-      // Group by day for 7d/30d
+      // Group by day for 7d/30d/custom
       const dailyDataMap = new Map<
         string,
         {
@@ -258,9 +276,13 @@ export class AnalyticsService {
       >();
 
       // Initialize days
-      const daysCount = timeframe === '7d' ? 7 : 30;
+      const endCalcDate = endDate || new Date();
+      const diffTime = Math.abs(endCalcDate.getTime() - startDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const daysCount = diffDays > 0 ? diffDays : 1;
+
       for (let i = daysCount - 1; i >= 0; i--) {
-        const d = new Date();
+        const d = new Date(endCalcDate);
         d.setDate(d.getDate() - i);
         const key = format(d, 'yyyy-MM-dd', { timeZone: tz });
         dailyDataMap.set(key, {
@@ -278,7 +300,7 @@ export class AnalyticsService {
           entry.volume++;
           if (t.serviceStart) {
             entry.waitTimeSum +=
-              (t.serviceStart.getTime() - t.createdAt.getTime()) / 60000;
+              (t.serviceStart.getTime() - (t.waitingStart?.getTime() || t.createdAt.getTime())) / 60000;
             entry.waitCount++;
           }
         }

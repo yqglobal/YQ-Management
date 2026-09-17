@@ -226,15 +226,15 @@ export default function SuperAdminTenants() {
                                 </Link>
                                 <button
                                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-white/5 w-full text-left"
-                                  onClick={() => { router.push('/super-admin/plans'); setShowActions(null); }}
+                                  onClick={() => { router.push(`/super-admin/tenants/${tenant.id}?tab=subscription`); setShowActions(null); }}
                                 >
-                                  <CreditCard className="w-4 h-4 text-emerald-500" /> Assign Plan
+                                  <CreditCard className="w-4 h-4 text-emerald-500" /> Manage Subscription
                                 </button>
                                 <button
                                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-white/5 w-full text-left"
-                                  onClick={() => { router.push(`/super-admin/tenants/${tenant.id}`); setShowActions(null); }}
+                                  onClick={() => { router.push(`/super-admin/tenants/${tenant.id}?tab=users`); setShowActions(null); }}
                                 >
-                                  <QrCode className="w-4 h-4 text-blue-500" /> Manage Workspace
+                                  <QrCode className="w-4 h-4 text-blue-500" /> Manage Users
                                 </button>
                                 <hr className="my-1 border-gray-100 dark:border-white/5" />
                                 <button

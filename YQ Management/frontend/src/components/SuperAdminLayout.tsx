@@ -46,17 +46,14 @@ export default function SuperAdminLayout({
 
   const navItems = [
     { label: 'Overview', href: '/super-admin', icon: LayoutDashboard },
-    { label: 'System Control', href: '/super-admin/system-control', icon: Sliders },
-    { label: 'Businesses', href: '/super-admin/tenants', icon: Building2 },
-    { label: 'Plans', href: '/super-admin/plans', icon: Package },
-    { label: 'Features', href: '/super-admin/features', icon: Layers },
-    { label: 'Subscriptions', href: '/super-admin/subscriptions', icon: CreditCard },
-    { label: 'Inquiries', href: '/super-admin/inquiries', icon: Inbox },
+    { label: 'Tenants & CRM', href: '/super-admin/tenants', icon: Building2 },
+    { label: 'Pricing & Plans', href: '/super-admin/pricing', icon: Package },
     { label: 'Analytics', href: '/super-admin/analytics', icon: TrendingUp },
-    { label: 'Users', href: '/super-admin/users', icon: Users },
-    { label: 'Notifications', href: '/super-admin/communication', icon: Mail },
+    { label: 'Content & Blogs', href: '/super-admin/blogs', icon: FileText },
     { label: 'Marketing', href: '/super-admin/marketing', icon: Megaphone },
-    { label: 'Blogs', href: '/super-admin/blogs', icon: FileText },
+    { label: 'Communications', href: '/super-admin/communication', icon: Mail },
+    { label: 'Inquiries', href: '/super-admin/inquiries', icon: Inbox },
+    { label: 'System Control', href: '/super-admin/system-control', icon: Sliders },
     { label: 'Tenant Dashboard', href: '/dashboard', icon: Activity },
   ];
 

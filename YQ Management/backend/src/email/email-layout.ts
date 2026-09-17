@@ -31,27 +31,27 @@ export function createBrandEmailLayout(options: {
 <title>${title}</title>
 <style>
   @media (prefers-color-scheme: dark) {
-    body, .email-bg { background-color: #09090b !important; color: #f4f4f5 !important; }
-    .email-container { background-color: #18181b !important; border-color: #27272a !important; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8) !important; }
-    .email-body { color: #d4d4d8 !important; }
-    .footer-text { color: #a1a1aa !important; }
-    .divider { border-top-color: #27272a !important; }
+    body, .email-bg { background-color: #000000 !important; color: #f4f4f5 !important; }
+    .email-container { background-color: #111111 !important; border: 1px solid #27272a !important; }
+    .email-body { color: #e4e4e7 !important; }
+    .footer-text { color: #71717a !important; }
+    .divider { border-top-color: #27272a !important; color: #a1a1aa !important; }
   }
 </style>
 </head>
-<body class="email-bg" style="margin: 0; padding: 0; background-color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #18181b; -webkit-font-smoothing: antialiased;">
+<body class="email-bg" style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #09090b; -webkit-font-smoothing: antialiased;">
   <!-- Preheader Text -->
   <div style="display: none; max-height: 0px; max-width: 0px; overflow: hidden; opacity: 0; font-size: 1px; line-height: 1px; color: #fff;">
     ${preheader || title}
   </div>
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" class="email-bg" style="background-color: #fafafa; padding: 48px 20px;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" class="email-bg" style="background-color: #f4f4f5; padding: 60px 20px;">
     <tr>
       <td align="center">
         <!-- Main Email Container -->
-        <table class="email-container" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); border: 1px solid #e4e4e7;">
+        <table class="email-container" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; width: 100%; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05); border: 1px solid #e4e4e7;">
           <!-- Brand Header -->
           <tr>
-            <td style="background-color: ${brandColor}; padding: 48px 40px; text-align: center; border-bottom: 4px solid rgba(0,0,0,0.1);">
+            <td style="background-color: ${brandColor}; padding: 40px 40px; text-align: center;">
               <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                   <td align="center">
@@ -63,21 +63,21 @@ export function createBrandEmailLayout(options: {
           </tr>
           <!-- Body Content -->
           <tr>
-            <td class="email-body" style="padding: 48px 40px; text-align: left; line-height: 1.6; font-size: 16px; color: #374151;">
+            <td class="email-body" style="padding: 48px 40px; text-align: left; line-height: 1.7; font-size: 17px; color: #3f3f46; font-weight: 400;">
               ${content}
-              <div class="divider" style="margin-top: 48px; padding-top: 24px; border-top: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">
-                <p style="margin: 0;">Warm regards,</p>
-                <p style="margin: 4px 0 0 0; font-weight: 600;">The ${headerTitle} Team</p>
+              <div class="divider" style="margin-top: 56px; padding-top: 32px; border-top: 1px solid #e4e4e7; font-size: 15px; color: #71717a;">
+                <p style="margin: 0; font-weight: 500;">Warm regards,</p>
+                <p style="margin: 4px 0 0 0; font-weight: 700; color: ${brandColor};">The ${headerTitle} Team</p>
               </div>
             </td>
           </tr>
         </table>
         <!-- Footer Notification -->
-        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; margin-top: 32px;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; width: 100%; margin-top: 32px;">
           <tr>
-            <td class="footer-text" align="center" style="font-size: 13px; color: #9ca3af; line-height: 1.6; padding: 0 20px;">
-              <p style="margin: 0 0 8px 0;">This communication is intended exclusively for ${headerTitle} account holders and authorized users.</p>
-              <p style="margin: 0;">&copy; ${year} ${headerTitle}. All rights reserved.</p>
+            <td class="footer-text" align="center" style="font-size: 13px; color: #a1a1aa; line-height: 1.6; padding: 0 20px;">
+              <p style="margin: 0 0 12px 0;">This communication is intended exclusively for ${headerTitle} account holders.</p>
+              <p style="margin: 0; font-weight: 500;">&copy; ${year} ${headerTitle}. All rights reserved.</p>
             </td>
           </tr>
         </table>
@@ -103,12 +103,12 @@ export function generateOtpBoxHtml(otp: string): string {
 export function generateButtonHtml(
   text: string,
   url: string = '#',
-  brandColor: string = '#4f46e5',
+  brandColor: string = '#0ea5e9',
 ): string {
-  return `<table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 36px 0;">
+  return `<table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 40px 0;">
   <tr>
     <td align="center">
-      <a href="${url}" target="_blank" style="background-color: ${brandColor}; color: #ffffff; padding: 16px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.25); transition: all 0.2s ease;">${text}</a>
+      <a href="${url}" target="_blank" style="background-color: ${brandColor}; color: #ffffff; padding: 16px 40px; border-radius: 999px; text-decoration: none; font-weight: 700; font-size: 16px; display: inline-block; box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.15); transition: all 0.2s ease; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 0.5px;">${text}</a>
     </td>
   </tr>
 </table>`;

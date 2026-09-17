@@ -10,6 +10,8 @@ import { FeatureGuard } from '../../components/guards/FeatureGuard';
 import { Search, Users, Phone, Mail, Clock, BarChart2 } from 'lucide-react';
 import { useLocation } from '../../components/LocationContext';
 import type { AnalyticsResponse, Customer } from '@yq/shared';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -17,20 +19,28 @@ const SLA_THRESHOLD_MINS = 15;
 
 export default function Analytics() {
   const { activeLocationId } = useLocation();
-  const [timeRange, setTimeRange] = useState<'Day' | 'Week' | 'Month'>('Week');
+  const [timeRange, setTimeRange] = useState<'Day' | 'Week' | 'Month' | 'All' | 'Custom'>('Week');
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+  const [startDate, endDate] = dateRange;
+
   const [activeTab, setActiveTab] = useState<'insights' | 'customers'>('insights');
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerSort, setCustomerSort] = useState<'visits' | 'recent' | 'name'>('visits');
 
-  const timeParam = timeRange === 'Day' ? 'today' : timeRange === 'Week' ? '7d' : '30d';
+  const timeParam = timeRange === 'Day' ? 'today' : timeRange === 'Week' ? '7d' : timeRange === 'Month' ? '30d' : timeRange === 'All' ? 'all' : 'custom';
   const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
+  
+  const customRangeParam = timeRange === 'Custom' && startDate && endDate 
+    ? `&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+    : '';
 
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { data: analytics = null, isLoading: isAnalyticsLoading } = useQuery({
-    queryKey: ['analytics', timeParam, activeLocationId, tz],
+    queryKey: ['analytics', timeParam, customRangeParam, activeLocationId, tz],
     queryFn: (): Promise<AnalyticsResponse | null> =>
-      fetchApi<AnalyticsResponse>(`/analytics?timeframe=${timeParam}${locParam}&tz=${encodeURIComponent(tz)}`)
+      fetchApi<AnalyticsResponse>(`/analytics?timeframe=${timeParam}${locParam}${customRangeParam}&tz=${encodeURIComponent(tz)}`)
         .catch(() => null),
+    enabled: timeRange !== 'Custom' || (!!startDate && !!endDate),
   });
 
   const { data: customersRaw, isLoading: isCustomersLoading } = useQuery({
@@ -147,21 +157,37 @@ export default function Analytics() {
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
                 className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-6 shadow-sm"
               >
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                   <h3 className="font-semibold text-on-surface dark:text-white">Visit Volume</h3>
-                  <div className="flex gap-1.5">
-                    {(['Day', 'Week', 'Month'] as const).map((r) => (
-                      <button
-                        key={r}
-                        onClick={() => setTimeRange(r)}
-                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${timeRange === r
-                            ? 'bg-primary text-white'
-                            : 'bg-surface-container-low dark:bg-zinc-800 text-on-surface-variant hover:text-on-surface dark:hover:text-white border border-border dark:border-dark-border'
-                          }`}
-                      >
-                        {r}
-                      </button>
-                    ))}
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="flex flex-wrap gap-1.5 justify-end">
+                      {(['Day', 'Week', 'Month', 'All', 'Custom'] as const).map((r) => (
+                        <button
+                          key={r}
+                          onClick={() => setTimeRange(r)}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${timeRange === r
+                              ? 'bg-primary text-white'
+                              : 'bg-surface-container-low dark:bg-zinc-800 text-on-surface-variant hover:text-on-surface dark:hover:text-white border border-border dark:border-dark-border'
+                            }`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                    {timeRange === 'Custom' && (
+                      <div className="bg-surface-container-low border border-border rounded-lg p-1 w-full max-w-[280px]">
+                        <DatePicker
+                          selectsRange={true}
+                          startDate={startDate}
+                          endDate={endDate}
+                          onChange={(update: [Date | null, Date | null]) => setDateRange(update)}
+                          placeholderText="Select date range"
+                          className="bg-transparent text-sm w-full outline-none px-2 py-1 text-on-surface"
+                          isClearable={true}
+                          maxDate={new Date()}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="w-full h-[280px]">

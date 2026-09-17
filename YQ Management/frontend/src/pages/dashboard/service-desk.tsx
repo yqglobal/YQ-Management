@@ -506,7 +506,8 @@ export default function ServiceDeskToday() {
               {displayPool.map((v: AnyFixMe, index: number) => {
                 const waitTimeMs = v.waitingStart ? Date.now() - new Date(v.waitingStart).getTime() : 0;
                 const waitTimeMins = Math.floor(waitTimeMs / 60000);
-                const isUrgent = waitTimeMins > 15;
+                const threshold = tenant?.reviewWaitThresholdMins || 15;
+                const isUrgent = waitTimeMins > threshold;
                 
                 return (
                   <motion.div 
@@ -521,11 +522,12 @@ export default function ServiceDeskToday() {
                   >
                     <div className={`absolute left-0 top-0 bottom-0 w-1 ${isUrgent ? 'bg-alert shadow-[0_0_10px_rgba(239,68,68,0.8)]' : 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'}`}></div>
                     
-                    <div className="flex flex-col gap-1 pl-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`font-data-mono text-data-mono ${isUrgent ? 'text-alert' : 'text-on-surface dark:text-white'}`}>{v.ticketNumber || `#TKT-${v.id.substring(0,4)}`}</span>
-                        {isUrgent && <span className="font-label-caps text-[10px] bg-alert/10 text-alert px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Urgent</span>}
-                        {(() => {
+                      <div className="flex flex-col gap-1 pl-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`font-data-mono text-data-mono ${isUrgent ? 'text-alert' : 'text-on-surface dark:text-white'}`}>{v.ticketNumber || `#TKT-${v.id.substring(0,4)}`}</span>
+                          {isUrgent && <span className="font-label-caps text-[10px] bg-alert/10 text-alert px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Urgent</span>}
+                          {v.priority > 0 && <span className="font-label-caps text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">VIP</span>}
+                          {(() => {
                            if (v.source !== 'APPOINTMENT') return null;
                            const sched = v.scheduledFor || v.scheduledTime;
                            if (!sched || !v.waitingStart) return null;

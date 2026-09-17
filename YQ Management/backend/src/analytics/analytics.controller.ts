@@ -18,11 +18,15 @@ export class AnalyticsController {
     @Req() req: AuthenticatedRequest,
     @Query('timeframe') timeframe: string,
     @Query('tz') tz: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
     return this.analyticsService.getDashboardAnalytics(
       req.user.tenantId,
       timeframe || 'today',
       tz || 'UTC',
+      startDate,
+      endDate,
     );
   }
 }

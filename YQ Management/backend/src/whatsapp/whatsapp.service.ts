@@ -559,7 +559,9 @@ export class WhatsappService implements OnModuleInit {
   private extractPairingCode(data: any): string | null {
     if (!data) return null;
     if (data?.pairingCode) return data.pairingCode;
+    if (data?.code) return data.code;
     if (data?.instance?.pairingCode) return data.instance.pairingCode;
+    if (data?.instance?.code) return data.instance.code;
     return null;
   }
 

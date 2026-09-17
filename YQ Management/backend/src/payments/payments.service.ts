@@ -166,37 +166,39 @@ export class PaymentsService {
   }
 
   async handleWebhook(body: any, headers: any) {
-    const { TransactionReference, Status, HashCheck } = body;
+    const transactionReference = body.TransactionReference || body.transactionReference;
+    const status = body.Status || body.status;
+    const hashCheck = body.HashCheck || body.hashCheck;
 
     // SECURITY: Validate HashCheck from Ozow
-    if (!HashCheck && process.env.NODE_ENV === 'production') {
+    if (!hashCheck && process.env.NODE_ENV === 'production') {
       throw new BadRequestException('Missing HashCheck');
     }
 
-    if (!TransactionReference) {
+    if (!transactionReference) {
       throw new BadRequestException('Missing TransactionReference');
     }
 
     const transaction = await this.prisma.transaction.findUnique({
-      where: { transactionRef: TransactionReference },
+      where: { transactionRef: transactionReference },
     });
 
     if (!transaction) {
-      this.logger.error(`Transaction not found: ${TransactionReference}`);
+      this.logger.error(`Transaction not found: ${transactionReference}`);
       return { success: false };
     }
 
     if (transaction.status !== 'PENDING') {
       this.logger.log(
-        `Transaction ${TransactionReference} already processed with status ${transaction.status}`,
+        `Transaction ${transactionReference} already processed with status ${transaction.status}`,
       );
       return { success: true };
     }
 
     const newStatus =
-      Status === 'Complete'
+      status === 'Complete' || status === 'complete'
         ? 'SUCCESS'
-        : Status === 'Cancelled'
+        : status === 'Cancelled' || status === 'cancelled'
           ? 'CANCELLED'
           : 'FAILED';
 

@@ -20,6 +20,7 @@ export default function SuperAdminTenantDetail() {
     enabled: !!id,
   });
 
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'subscription'>((router.query.tab as any) || 'overview');
   const [showAssignPlanModal, setShowAssignPlanModal] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState('');
   const [billingInterval, setBillingInterval] = useState('MONTHLY');
@@ -127,184 +128,209 @@ export default function SuperAdminTenantDetail() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <Activity className="w-5 h-5 text-emerald-500" />
-              <span className="text-sm font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Status</span>
-            </div>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400">Active</span>
-          </div>
-          <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <CreditCard className="w-5 h-5 text-blue-500" />
-              <span className="text-sm font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Subscription</span>
-            </div>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              tenant.subscriptionStatus === 'ACTIVE' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400' :
-              tenant.subscriptionStatus === 'TRIAL' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400' :
-              'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400'
-            }`}>{tenant.subscriptionStatus}</span>
-          </div>
-          <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <Clock className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Joined</span>
-            </div>
-            <p className="text-sm text-gray-900 dark:text-white">{tenant.createdAt ? formatDistanceToNow(new Date(tenant.createdAt), { addSuffix: true }) : '-'}</p>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Globe className="w-5 h-5 text-indigo-500" /> Workspaces
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-600 dark:text-zinc-400">
-              <thead className="bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-zinc-200 font-bold uppercase tracking-wider text-xs border-b border-gray-200 dark:border-white/10">
-                <tr>
-                  <th className="px-6 py-4">Name</th>
-                  <th className="px-6 py-4">Subdomain</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Queues</th>
-                  <th className="px-6 py-4">Transactions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                {tenant.workspaces?.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-400 dark:text-zinc-500">No workspaces found.</td>
-                  </tr>
-                ) : (
-                  tenant.workspaces?.map((ws: AnyFixMe) => (
-                    <tr key={ws.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{ws.name}</td>
-                      <td className="px-6 py-4 font-mono text-sm text-gray-500 dark:text-zinc-400">{ws.subdomain || '-'}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          ws.subscriptionStatus === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' :
-                          ws.subscriptionStatus === 'TRIAL' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400' :
-                          'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400'
-                        }`}>{ws.subscriptionStatus}</span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">{ws._count?.queues || 0}</td>
-                      <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">{ws._count?.transactions || 0}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Users className="w-5 h-5 text-indigo-500" /> Users
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-600 dark:text-zinc-400">
-              <thead className="bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-zinc-200 font-bold uppercase tracking-wider text-xs border-b border-gray-200 dark:border-white/10">
-                <tr>
-                  <th className="px-6 py-4">Email</th>
-                  <th className="px-6 py-4">Role</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                {tenant.users?.length === 0 ? (
-                  <tr>
-                    <td colSpan={2} className="px-6 py-8 text-center text-gray-400 dark:text-zinc-500">No users found.</td>
-                  </tr>
-                ) : (
-                  tenant.users?.map((user: AnyFixMe) => (
-                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{user.email}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          user.role === 'SUPER_ADMIN' ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/10 dark:text-purple-400' :
-                          user.role === 'TENANT_ADMIN' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-400' :
-                          user.role === 'MANAGER' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400' :
-                          'bg-gray-100 text-gray-800 dark:bg-gray-500/10 dark:text-gray-400'
-                        }`}>{user.role.replace('_', ' ')}</span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-indigo-500" /> Recent Transactions
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-600 dark:text-zinc-400">
-              <thead className="bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-zinc-200 font-bold uppercase tracking-wider text-xs border-b border-gray-200 dark:border-white/10">
-                <tr>
-                  <th className="px-6 py-4">Amount</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                {tenant.transactions?.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-6 py-8 text-center text-gray-400 dark:text-zinc-500">No transactions found.</td>
-                  </tr>
-                ) : (
-                  tenant.transactions?.map((tx: AnyFixMe) => (
-                    <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{tx.currency} {tx.amount.toFixed(2)}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          tx.status === 'COMPLETE' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' :
-                          tx.status === 'PENDING' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400' :
-                          'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400'
-                        }`}>
-                          {tx.status === 'COMPLETE' && <CheckCircle2 className="w-3 h-3" />}
-                          {tx.status === 'PENDING' && <Clock className="w-3 h-3" />}
-                          {(tx.status === 'CANCELLED' || tx.status === 'ERROR') && <XCircle className="w-3 h-3" />}
-                          {tx.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-500 dark:text-zinc-400 text-sm">{tx.createdAt ? format(new Date(tx.createdAt), 'MMM d, yyyy') : '-'}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setShowAssignPlanModal(true)}
-            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
-          >
-            <CreditCard className="w-4 h-4" /> Assign Plan
-          </button>
-          
-          {(tenant.subscriptionStatus === 'ACTIVE' || tenant.subscriptionStatus === 'TRIAL') && (
-            <button 
-              onClick={handleCancelPlan}
-              disabled={cancelPlanMutation.isPending}
-              className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-6 border-b border-gray-200 dark:border-white/10 mt-8 mb-6">
+          {(['overview', 'users', 'subscription'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-3 text-sm font-bold capitalize transition-colors border-b-2 ${activeTab === tab ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white'}`}
             >
-              <XCircle className="w-4 h-4" /> Cancel Plan
+              {tab}
             </button>
-          )}
-
-          <button className="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2" onClick={handleDelete}>
-            <Trash2 className="w-4 h-4" /> Remove Business
-          </button>
+          ))}
         </div>
+
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <Activity className="w-5 h-5 text-emerald-500" />
+                  <span className="text-sm font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Status</span>
+                </div>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400">Active</span>
+              </div>
+              <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <CreditCard className="w-5 h-5 text-blue-500" />
+                  <span className="text-sm font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Subscription</span>
+                </div>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  tenant.subscriptionStatus === 'ACTIVE' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400' :
+                  tenant.subscriptionStatus === 'TRIAL' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400' :
+                  'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400'
+                }`}>{tenant.subscriptionStatus}</span>
+              </div>
+              <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <Clock className="w-5 h-5 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-500 dark:text-zinc-400 uppercase tracking-wider">Joined</span>
+                </div>
+                <p className="text-sm text-gray-900 dark:text-white">{tenant.createdAt ? formatDistanceToNow(new Date(tenant.createdAt), { addSuffix: true }) : '-'}</p>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-indigo-500" /> Workspaces
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-gray-600 dark:text-zinc-400">
+                  <thead className="bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-zinc-200 font-bold uppercase tracking-wider text-xs border-b border-gray-200 dark:border-white/10">
+                    <tr>
+                      <th className="px-6 py-4">Name</th>
+                      <th className="px-6 py-4">Subdomain</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Queues</th>
+                      <th className="px-6 py-4">Transactions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                    {tenant.workspaces?.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center text-gray-400 dark:text-zinc-500">No workspaces found.</td>
+                      </tr>
+                    ) : (
+                      tenant.workspaces?.map((ws: AnyFixMe) => (
+                        <tr key={ws.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{ws.name}</td>
+                          <td className="px-6 py-4 font-mono text-sm text-gray-500 dark:text-zinc-400">{ws.subdomain || '-'}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              ws.subscriptionStatus === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' :
+                              ws.subscriptionStatus === 'TRIAL' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400' :
+                              'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400'
+                            }`}>{ws.subscriptionStatus}</span>
+                          </td>
+                          <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">{ws._count?.queues || 0}</td>
+                          <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">{ws._count?.transactions || 0}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 pt-4 border-t border-gray-200 dark:border-white/10">
+              <button className="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2" onClick={handleDelete}>
+                <Trash2 className="w-4 h-4" /> Remove Business
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'users' && (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex justify-between items-center">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Users className="w-5 h-5 text-indigo-500" /> Users
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-gray-600 dark:text-zinc-400">
+                  <thead className="bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-zinc-200 font-bold uppercase tracking-wider text-xs border-b border-gray-200 dark:border-white/10">
+                    <tr>
+                      <th className="px-6 py-4">Email</th>
+                      <th className="px-6 py-4">Role</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                    {tenant.users?.length === 0 ? (
+                      <tr>
+                        <td colSpan={2} className="px-6 py-8 text-center text-gray-400 dark:text-zinc-500">No users found.</td>
+                      </tr>
+                    ) : (
+                      tenant.users?.map((user: AnyFixMe) => (
+                        <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{user.email}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              user.role === 'SUPER_ADMIN' ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/10 dark:text-purple-400' :
+                              user.role === 'TENANT_ADMIN' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-400' :
+                              user.role === 'MANAGER' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400' :
+                              'bg-gray-100 text-gray-800 dark:bg-gray-500/10 dark:text-gray-400'
+                            }`}>{user.role.replace('_', ' ')}</span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'subscription' && (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-zinc-950 border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex justify-between items-center">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-indigo-500" /> Recent Transactions
+                </h2>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setShowAssignPlanModal(true)}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Assign Plan
+                  </button>
+                  {(tenant.subscriptionStatus === 'ACTIVE' || tenant.subscriptionStatus === 'TRIAL') && (
+                    <button 
+                      onClick={handleCancelPlan}
+                      disabled={cancelPlanMutation.isPending}
+                      className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                      Cancel Plan
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-gray-600 dark:text-zinc-400">
+                  <thead className="bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-zinc-200 font-bold uppercase tracking-wider text-xs border-b border-gray-200 dark:border-white/10">
+                    <tr>
+                      <th className="px-6 py-4">Amount</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                    {tenant.transactions?.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="px-6 py-8 text-center text-gray-400 dark:text-zinc-500">No transactions found.</td>
+                      </tr>
+                    ) : (
+                      tenant.transactions?.map((tx: AnyFixMe) => (
+                        <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                          <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{tx.currency} {tx.amount.toFixed(2)}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              tx.status === 'COMPLETE' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' :
+                              tx.status === 'PENDING' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400' :
+                              'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400'
+                            }`}>
+                              {tx.status === 'COMPLETE' && <CheckCircle2 className="w-3 h-3" />}
+                              {tx.status === 'PENDING' && <Clock className="w-3 h-3" />}
+                              {(tx.status === 'CANCELLED' || tx.status === 'ERROR') && <XCircle className="w-3 h-3" />}
+                              {tx.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-gray-500 dark:text-zinc-400 text-sm">{tx.createdAt ? format(new Date(tx.createdAt), 'MMM d, yyyy') : '-'}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {showAssignPlanModal && (

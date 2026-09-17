@@ -712,6 +712,7 @@ export class VisitService {
           completedAt: new Date(),
           serviceEnd: new Date(),
           operatorId: operatorId || visit.operatorId,
+          serviceStart: visit.serviceStart || new Date(),
         },
       });
 

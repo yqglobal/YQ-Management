@@ -1049,12 +1049,33 @@ export default function Onboarding() {
             >
               <header className="flex flex-col gap-2 w-full">
                 <h1 className="font-headline-lg text-headline-lg text-on-surface dark:text-white tracking-tight">
-                  Connect Google Accounts
+                  Supercharge with Google
                 </h1>
-                <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline max-w-lg mx-auto">
-                  Sync calendar appointments and harvest business reviews automatically by connecting your Google accounts.
+                <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-outline max-w-2xl mx-auto">
+                  Connect your Google Business Profile to automate your workflows and boost your online reputation.
                 </p>
               </header>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mt-2 text-left">
+                <div className="bg-surface-container-low dark:bg-zinc-800/50 p-4 rounded-xl border border-border flex gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">calendar_month</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-on-surface dark:text-white text-sm">Calendar Sync</h4>
+                    <p className="text-xs text-on-surface-variant dark:text-zinc-400 mt-1">Automatically sync your Qmova appointments directly to your team's Google Calendars to prevent double-booking.</p>
+                  </div>
+                </div>
+                <div className="bg-surface-container-low dark:bg-zinc-800/50 p-4 rounded-xl border border-border flex gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400">star</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-on-surface dark:text-white text-sm">Smart Reviews</h4>
+                    <p className="text-xs text-on-surface-variant dark:text-zinc-400 mt-1">Automatically send a WhatsApp message to happy customers asking for a 5-star Google review right after their visit.</p>
+                  </div>
+                </div>
+              </div>
 
               <div className="w-full max-w-md mt-4 p-8 bg-surface-bright dark:bg-zinc-900 border border-border dark:border-dark-border rounded-2xl flex flex-col items-center gap-6">
                 <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
@@ -1116,7 +1137,7 @@ export default function Onboarding() {
                 ) : (
                   <div className="flex flex-col items-center gap-4 w-full">
                     <p className="text-on-surface-variant dark:text-zinc-400 text-sm text-center">
-                      Connect your Google Business account to enable Calendar Sync and Smart Reviews.
+                      Connect your Google Account to enable Calendar Sync and Smart Reviews.
                     </p>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       onClick={() => {
@@ -1181,6 +1202,16 @@ export default function Onboarding() {
                           <p className="text-sm text-gray-500 dark:text-zinc-400 text-center max-w-[280px]">
                             After scanning QR on WhatsApp mobile phone, wait for 15-20 seconds for the screen to update.
                           </p>
+                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                            onClick={() => {
+                              setQrCode(null);
+                              handleConnectWhatsApp();
+                            }}
+                            className="mt-4 text-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">refresh</span>
+                            Retry Connection
+                          </motion.button>
                         </div>
                       </div>
                     ) : connectionMode === 'code' ? (
