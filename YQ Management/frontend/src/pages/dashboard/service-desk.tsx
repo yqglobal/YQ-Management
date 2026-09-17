@@ -9,10 +9,58 @@ import { WelcomeModal } from '../../components/modals/WelcomeModal';
 import { CreateVisitModal } from '../../components/modals/CreateVisitModal';
 import { ScannerModal } from '../../components/modals/ScannerModal';
 import { WhatsAppChatPanel } from '../../components/WhatsAppChatPanel';
-import { MonitorPlay, ScanLine } from 'lucide-react';
+import { MonitorPlay, ScanLine, StickyNote, Check } from 'lucide-react';
 import { usePlan } from '../../hooks/usePlan';
 import Link from 'next/link';
 import { useLocation } from '../../components/LocationContext';
+
+// ── Inline Notes Component ───────────────────────────────────────────────────
+function InlineNotes({ visitId, initialNotes }: { visitId: string; initialNotes: string | null }) {
+  const [notes, setNotes] = useState(initialNotes || '');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const queryClient = useQueryClient();
+
+  useEffect(() => { setNotes(initialNotes || ''); }, [initialNotes, visitId]);
+
+  const handleBlur = async () => {
+    if (notes === (initialNotes || '')) return;
+    setSaving(true);
+    setSaved(false);
+    try {
+      await fetchApi(`/visits/${visitId}/notes`, {
+        method: 'PATCH',
+        body: JSON.stringify({ notes }),
+      });
+      setSaved(true);
+      queryClient.invalidateQueries({ queryKey: ['visits-today'] });
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1 mt-3">
+      <div className="flex items-center justify-between text-outline text-xs">
+        <div className="flex items-center gap-1 font-medium text-on-surface dark:text-white">
+          <StickyNote className="w-3.5 h-3.5" /> Notes
+        </div>
+        {saving && <span className="text-[10px] text-primary animate-pulse">Saving...</span>}
+        {saved && <span className="text-[10px] text-emerald-500 flex items-center gap-1"><Check className="w-3 h-3" /> Saved</span>}
+      </div>
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        onBlur={handleBlur}
+        placeholder="Add private notes for staff..."
+        rows={2}
+        className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded text-xs py-1.5 px-2 w-full outline-none resize-none focus:border-primary transition-colors"
+      />
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
 import { useAuth } from '../../components/AuthContext';
 import { useSocket } from '../../components/SocketProvider';
 
@@ -613,6 +661,8 @@ export default function ServiceDeskToday() {
                     ))}
                   </select>
                 </div>
+                
+                <InlineNotes visitId={selectedVisit.id} initialNotes={selectedVisit.notes} />
               </div>
             </div>
 

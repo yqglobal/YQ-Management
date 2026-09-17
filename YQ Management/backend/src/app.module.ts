@@ -36,7 +36,9 @@ import { AuditModule } from './audit/audit.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { VisitModule } from './visit/visit.module';
 import { AppointmentModule } from './appointment/appointment.module';
+import { BlockOffModule } from './block-off/block-off.module';
 import { LocationModule } from './location/location.module';
+import { AiModule } from './ai/ai.module';
 import { ServiceModule } from './service/service.module';
 import { StaffModule } from './staff/staff.module';
 import { ResourceModule } from './resource/resource.module';
@@ -121,7 +123,9 @@ import { PublicCheckinModule } from './public-checkin/public-checkin.module';
     AuditModule,
     VisitModule,
     AppointmentModule,
+    BlockOffModule,
     LocationModule,
+    AiModule,
     ServiceModule,
     StaffModule,
     ResourceModule,

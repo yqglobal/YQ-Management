@@ -20,7 +20,7 @@ export default function SuperAdminTenantDetail() {
     enabled: !!id,
   });
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'subscription'>((router.query.tab as any) || 'overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'subscription'>((router.query.tab as 'overview' | 'users' | 'subscription') || 'overview');
   const [showAssignPlanModal, setShowAssignPlanModal] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState('');
   const [billingInterval, setBillingInterval] = useState('MONTHLY');

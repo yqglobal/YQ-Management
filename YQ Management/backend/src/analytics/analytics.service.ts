@@ -95,8 +95,9 @@ export class AnalyticsService {
 
     const operatorStats = new Map<
       string,
-      { email: string; name: string; served: number; serviceTimeMs: number }
+      { email: string; name: string; served: number; serviceTimeMs: number; ratingSum: number; ratingCount: number; noShows: number }
     >();
+
 
     tokens.forEach((t: any) => {
       const isWalkaway = ['NO_SHOW', 'CANCELLED', 'MISSED'].includes(
@@ -178,12 +179,7 @@ export class AnalyticsService {
         }
       }
 
-      if (
-        t.operatorUser &&
-        t.currentState === 'COMPLETED' &&
-        t.serviceStart &&
-        t.completedAt
-      ) {
+      if (t.operatorUser && t.serviceStart) {
         const opId = t.operatorUser.id;
         const opEmail = t.operatorUser.email;
         const settings: any = t.operatorUser.personalSettings || {};
@@ -197,14 +193,43 @@ export class AnalyticsService {
             name: opName,
             served: 0,
             serviceTimeMs: 0,
+            ratingSum: 0,
+            ratingCount: 0,
+            noShows: 0,
           });
         }
+        
         const stats = operatorStats.get(opId)!;
-        stats.served++;
-        stats.serviceTimeMs +=
-          t.completedAt.getTime() - t.serviceStart.getTime();
+        
+        if (t.currentState === 'COMPLETED' && t.completedAt) {
+          stats.served++;
+          stats.serviceTimeMs += t.completedAt.getTime() - t.serviceStart.getTime();
+          if (t.rating) {
+            stats.ratingSum += t.rating;
+            stats.ratingCount++;
+          }
+        }
+        
+        if (isWalkaway) {
+          stats.noShows++;
+        }
       }
     });
+
+    // Compute Heatmap (Day of Week vs Hour)
+    // 0 = Sunday, 1 = Monday, ... 6 = Saturday
+    const heatmapMatrix = Array(7).fill(0).map(() => Array(24).fill(0));
+    tokens.forEach((t: any) => {
+      const d = toZonedTime(t.createdAt, tz);
+      const day = d.getDay();
+      const hour = d.getHours();
+      heatmapMatrix[day][hour]++;
+    });
+    
+    const heatmapData = {
+      matrix: heatmapMatrix,
+      maxValue: Math.max(1, ...heatmapMatrix.flat())
+    };
 
     const averageWaitTimeMins =
       waitTimeCount > 0
@@ -318,6 +343,8 @@ export class AnalyticsService {
       name: op.name,
       email: op.email,
       served: op.served,
+      noShows: op.noShows,
+      csat: op.ratingCount > 0 ? Number((op.ratingSum / op.ratingCount).toFixed(1)) : 0,
       avgServiceTimeMins:
         op.served > 0 ? Math.floor(op.serviceTimeMs / op.served / 60000) : 0,
     }));
@@ -350,8 +377,36 @@ export class AnalyticsService {
         slaViolations,
       },
       chartData,
+      heatmapData,
       staffPerformance,
       servicePerformance,
     };
+  }
+
+  async exportAnalyticsCSV(tenantId: string, timeframe: string, tz: string, startDate?: string, endDate?: string) {
+    const data = await this.getDashboardAnalytics(tenantId, timeframe, tz, startDate, endDate);
+    
+    // Simple CSV generator
+    const lines = [];
+    lines.push('Qmova Analytics Export');
+    lines.push(`Timeframe: ${timeframe}`);
+    lines.push('');
+    
+    lines.push('--- Key Performance Indicators ---');
+    lines.push(`Total Visits,${data.kpis.totalVisits}`);
+    lines.push(`Total Served,${data.kpis.totalServed}`);
+    lines.push(`Average Wait Time (mins),${data.kpis.averageWaitTimeMins}`);
+    lines.push(`Average Service Time (mins),${data.kpis.averageServiceTimeMins}`);
+    lines.push(`Drop-off Rate (%),${data.kpis.dropOffRate}`);
+    lines.push(`CSAT Score,${data.kpis.csatScore}`);
+    lines.push('');
+
+    lines.push('--- Operator Performance ---');
+    lines.push('Name,Served,No-Shows,CSAT,Avg Service Time (mins)');
+    data.staffPerformance.forEach(op => {
+      lines.push(`${op.name},${op.served},${op.noShows},${op.csat},${op.avgServiceTimeMins}`);
+    });
+    
+    return lines.join('\\n');
   }
 }

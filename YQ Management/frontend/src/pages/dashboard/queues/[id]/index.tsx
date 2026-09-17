@@ -13,6 +13,7 @@ import { WhatsAppChatPanel } from '../../../../components/WhatsAppChatPanel';
 import { useAuth } from '../../../../components/AuthContext';
 import { PremiumFeatureGate } from '../../../../components/PremiumFeatureGate';
 import { CancelBookingModal } from '../../../../components/modals/CancelBookingModal';
+import { QueueBlockOffs } from '../../../../components/settings/QueueBlockOffs';
 
 export default function QueueDetails() {
   const router = useRouter();
@@ -58,6 +59,7 @@ export default function QueueDetails() {
         serviceIds: queue.services?.map((s: AnyFixMe) => s.id) || [],
         tokenDisplayConfig: queue.tokenDisplayConfig || { prefix: '', format: 'SEQUENTIAL' },
         formConfig: queue.formConfig || { requireEmail: false, requirePhone: false, customFields: [] },
+        maxCapacity: queue.maxCapacity || 0,
       });
     }
   }, [queue]);
@@ -528,7 +530,22 @@ export default function QueueDetails() {
                     <p className="font-body-sm text-on-surface-variant dark:text-outline mt-1">Customers joining online must physical scan a QR code at the location to be marked as checked-in.</p>
                   </div>
                 </div>
+
+                <div>
+                  <label className="block font-body-md font-medium text-on-surface dark:text-white mb-2">Maximum Capacity</label>
+                  <input 
+                    type="number"
+                    min="0" 
+                    value={formData.maxCapacity || ''} 
+                    onChange={(e) => setFormData({...formData, maxCapacity: parseInt(e.target.value) || 0})}
+                    className="w-full h-[44px] px-4 rounded-xl border border-border dark:border-dark-border bg-canvas dark:bg-black/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-md text-on-surface dark:text-white" 
+                    placeholder="Enter max waitlist capacity (0 for unlimited)"
+                  />
+                  <p className="font-body-sm text-on-surface-variant dark:text-outline mt-2">Maximum number of people allowed in the queue at once. Leave as 0 for unlimited.</p>
+                </div>
               </div>
+              
+              <QueueBlockOffs queueId={id as string} locationId={queue.locationId} />
             </div>
           )}
 

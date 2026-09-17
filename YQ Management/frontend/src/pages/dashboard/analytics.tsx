@@ -12,6 +12,58 @@ import { useLocation } from '../../components/LocationContext';
 import type { AnalyticsResponse, Customer } from '@yq/shared';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { Download, Medal, Star } from 'lucide-react';
+
+// ── Inline Heatmap Component ──────────────────────────────────────────────────
+function PeakHourHeatmap({ data }: { data: { matrix: number[][]; maxValue: number } }) {
+  if (!data || !data.matrix) return null;
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const hours = Array.from({ length: 13 }, (_, i) => i + 8); // 8 AM to 8 PM
+
+  return (
+    <div className="overflow-x-auto pb-2">
+      <div className="min-w-[600px]">
+        <div className="flex mb-1">
+          <div className="w-12 shrink-0"></div>
+          {hours.map(h => (
+            <div key={h} className="flex-1 text-center text-[10px] text-outline font-medium">
+              {h}:00
+            </div>
+          ))}
+        </div>
+        {days.map((day, dIdx) => (
+          <div key={day} className="flex items-center mb-1">
+            <div className="w-12 shrink-0 text-xs text-on-surface-variant font-medium">{day}</div>
+            {hours.map(h => {
+              const val = data.matrix[dIdx][h] || 0;
+              const intensity = data.maxValue > 0 ? val / data.maxValue : 0;
+              // Map 0 to very light green, 1 to solid emerald
+              let bg = 'bg-surface-container-low dark:bg-white/5';
+              if (intensity > 0) {
+                if (intensity > 0.7) bg = 'bg-emerald-600 dark:bg-emerald-500';
+                else if (intensity > 0.4) bg = 'bg-emerald-400 dark:bg-emerald-400/80';
+                else if (intensity > 0.1) bg = 'bg-emerald-200 dark:bg-emerald-300/40';
+                else bg = 'bg-emerald-100 dark:bg-emerald-200/20';
+              }
+              
+              return (
+                <div key={h} className="flex-1 px-0.5">
+                  <div 
+                    className={`h-6 rounded flex items-center justify-center text-[10px] font-bold ${bg} ${intensity > 0.5 ? 'text-white' : 'text-transparent hover:text-emerald-900'} transition-colors cursor-default`}
+                    title={`${val} visits on ${day} at ${h}:00`}
+                  >
+                    {val > 0 ? val : ''}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+// ──────────────────────────────────────────────────────────────────────────────
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -49,10 +101,35 @@ export default function Analytics() {
   });
   const customers: Customer[] = customersRaw ?? [];
 
-  const { kpis, chartData: rawChartData, servicePerformance } = analytics || {
-    kpis: { totalVisits: 0, averageWaitTimeMins: 0, slaViolations: 0, dropOffRate: 0 },
+  const { kpis, chartData: rawChartData, servicePerformance, heatmapData, staffPerformance } = analytics || {
+    kpis: { totalVisits: 0, averageWaitTimeMins: 0, slaViolations: 0, dropOffRate: 0, csatScore: 0 },
     chartData: [],
-    servicePerformance: []
+    servicePerformance: [],
+    heatmapData: null,
+    staffPerformance: []
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const url = `${baseUrl}/analytics/export?timeframe=${timeParam}${locParam}${customRangeParam}&tz=${encodeURIComponent(tz)}`;
+      const tokenStr = document.cookie.split('; ').find(row => row.startsWith('qmova_token='))?.split('=')[1];
+      
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${tokenStr}`
+        }
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `qmova-analytics-${timeParam}.csv`;
+      link.click();
+    } catch (e) {
+      console.error(e);
+      alert('Failed to export CSV. Please try again.');
+    }
   };
 
   const chartData = useMemo(() => {
@@ -136,6 +213,14 @@ export default function Analytics() {
                   <p className="text-xs text-outline mt-1">Served customers</p>
                 </motion.div>
 
+                <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm relative overflow-hidden">
+                  <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Avg CSAT Score</p>
+                  <p className="font-mono text-3xl font-bold text-primary flex items-center gap-2">
+                    {kpis.csatScore > 0 ? kpis.csatScore : '—'} 
+                    {kpis.csatScore > 0 && <Star className="w-5 h-5 fill-primary" />}
+                  </p>
+                  <p className="text-xs text-outline mt-1">Customer satisfaction</p>
+                </motion.div>
                 <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-alert/30 dark:border-alert/20 rounded-xl p-5 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full bg-alert rounded-l-xl" />
                   <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">SLA Violations</p>
@@ -161,6 +246,13 @@ export default function Analytics() {
                   <h3 className="font-semibold text-on-surface dark:text-white">Visit Volume</h3>
                   <div className="flex flex-col items-end gap-2">
                     <div className="flex flex-wrap gap-1.5 justify-end">
+                      <button 
+                        onClick={handleExportCSV}
+                        className="px-3 py-1 rounded-lg text-xs font-semibold bg-surface-container-low dark:bg-zinc-800 text-on-surface hover:bg-surface-container-high border border-border flex items-center gap-1 transition-colors mr-2"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Export CSV
+                      </button>
+
                       {(['Day', 'Week', 'Month', 'All', 'Custom'] as const).map((r) => (
                         <button
                           key={r}
@@ -195,7 +287,64 @@ export default function Analytics() {
                 </div>
               </motion.div>
 
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Heatmap */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                  className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-6 shadow-sm overflow-hidden"
+                >
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-on-surface dark:text-white">Peak Hours Heatmap</h3>
+                    <p className="text-xs text-outline">Busiest times by volume</p>
+                  </div>
+                  <PeakHourHeatmap data={heatmapData} />
+                </motion.div>
+
+                {/* Operator Leaderboard */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+                  className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-6 shadow-sm flex flex-col"
+                >
+                  <div className="mb-4 flex items-center gap-2">
+                    <Medal className="w-5 h-5 text-amber-500" />
+                    <h3 className="font-semibold text-on-surface dark:text-white">Operator Leaderboard</h3>
+                  </div>
+                  {staffPerformance && staffPerformance.length > 0 ? (
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-3 max-h-[300px]">
+                      {staffPerformance.map((op: any, i: number) => (
+                        <div key={op.email} className="flex items-center gap-3 p-3 bg-surface-container-low dark:bg-zinc-800/50 border border-border/50 rounded-xl relative">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
+                            i === 0 ? 'bg-amber-100 text-amber-600' :
+                            i === 1 ? 'bg-slate-200 text-slate-700' :
+                            i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-surface-container-high text-on-surface-variant'
+                          }`}>
+                            {i + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-on-surface truncate">{op.name}</p>
+                            <div className="flex gap-2 text-xs text-outline mt-0.5">
+                              <span>{op.served} served</span> • <span>{op.avgServiceTimeMins}m avg</span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="font-bold text-sm flex items-center justify-end gap-1 text-on-surface">
+                              {op.csat > 0 ? op.csat : '—'} <Star className={`w-3.5 h-3.5 ${op.csat > 0 ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`} />
+                            </p>
+                            <p className="text-[10px] text-rose-500">{op.noShows > 0 ? `${op.noShows} walkaways` : ''}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-sm text-outline">
+                      No operator data found.
+                    </div>
+                  )}
+                </motion.div>
+              </div>
+
               {/* Service & Queue Performance */}
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
               >

@@ -7,9 +7,105 @@ import { GetServerSideProps } from 'next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import { t } from '../../../../lib/i18n';
-import { MapPin, Clock, Info, XCircle, CalendarCheck } from 'lucide-react';
+import { MapPin, Clock, Info, XCircle, CalendarCheck, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
+
+// ── Inline CSAT Rating Widget ─────────────────────────────────────────────────
+function RatingWidget({ accessToken, lang }: { accessToken: string; lang: string }) {
+  const [selected, setSelected] = useState(0);
+  const [hovered, setHovered] = useState(0);
+  const [comment, setComment] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!selected) return;
+    setSubmitting(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      await fetch(`${apiBase}/public-visit/${accessToken}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: selected, feedbackText: comment.trim() || undefined }),
+      });
+      setSubmitted(true);
+    } catch {
+      setSubmitting(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <motion.div
+        key="rating-thanks"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center"
+      >
+        <div className="text-3xl mb-2">🙏</div>
+        <p className="text-emerald-700 font-bold text-lg mb-1">Thank you for your feedback!</p>
+        <p className="text-emerald-600 text-sm">Your response helps us improve our service.</p>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      key="rating-widget"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm"
+    >
+      <p className="text-gray-800 font-bold text-center mb-1">How was your experience?</p>
+      <p className="text-gray-500 text-sm text-center mb-4">Rate your visit today</p>
+
+      {/* Star selector */}
+      <div className="flex justify-center gap-2 mb-4">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            onClick={() => setSelected(star)}
+            onMouseEnter={() => setHovered(star)}
+            onMouseLeave={() => setHovered(0)}
+            className="transition-transform hover:scale-125 active:scale-95"
+            aria-label={`Rate ${star} stars`}
+          >
+            <Star
+              className={`w-9 h-9 transition-colors ${
+                star <= (hovered || selected)
+                  ? 'fill-amber-400 text-amber-400'
+                  : 'text-gray-300'
+              }`}
+            />
+          </button>
+        ))}
+      </div>
+
+      {/* Optional comment */}
+      {selected > 0 && (
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder={selected <= 3 ? 'What could we improve? (optional)' : 'Anything else to share? (optional)'}
+            maxLength={500}
+            rows={3}
+            className="w-full border border-gray-200 rounded-xl p-3 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300 mb-3"
+          />
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-60"
+          >
+            {submitting ? 'Submitting...' : 'Submit Feedback'}
+          </button>
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { subdomain, tokenId } = context.params as { subdomain: string, tokenId: string };
@@ -280,14 +376,18 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
               </motion.div>
             )}
 
-            {isCompleted && (
-              <motion.div 
-                key="completed-alert"
+            {isCompleted && token.status === 'COMPLETED' && (
+              <RatingWidget accessToken={token.accessToken || tokenId} lang={lang} />
+            )}
+            {isCompleted && token.status === 'MISSED' && (
+              <motion.div
+                key="missed-alert"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="bg-gray-100 rounded-2xl p-6"
+                className="bg-amber-50 border border-amber-200 rounded-2xl p-6"
               >
-                <p className="text-gray-600 font-medium">{t(lang, 'tokenCompleted')}</p>
+                <p className="text-amber-700 font-semibold mb-1">You missed your turn</p>
+                <p className="text-amber-600 text-sm">Please speak to a staff member if you still need assistance.</p>
               </motion.div>
             )}
           </AnimatePresence>

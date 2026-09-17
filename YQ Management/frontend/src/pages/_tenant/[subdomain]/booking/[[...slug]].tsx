@@ -450,7 +450,13 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
       }
       await submitJoin();
     } catch (err: AnyFixMe) {
-      setErrorMsg(err.message || 'Something went wrong.');
+      if (err.message === 'QUEUE_FULL') {
+        setErrorMsg('This queue is currently full and at maximum capacity. Please try again later or book an appointment.');
+      } else if (err.message && err.message.startsWith('QUEUE_BLOCKED:')) {
+        setErrorMsg(err.message.split('QUEUE_BLOCKED:')[1] || 'This queue is currently blocked.');
+      } else {
+        setErrorMsg(err.message || 'Something went wrong.');
+      }
       setLoading(false);
     }
   };
@@ -524,7 +530,13 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         targetUrl
       );
     } catch (err: AnyFixMe) {
-      setErrorMsg(err.message || 'Failed to complete booking.');
+      if (err.message === 'QUEUE_FULL') {
+        setErrorMsg('This queue is currently full and at maximum capacity. Please try again later or book an appointment.');
+      } else if (err.message && err.message.startsWith('QUEUE_BLOCKED:')) {
+        setErrorMsg(err.message.split('QUEUE_BLOCKED:')[1] || 'This queue is currently blocked.');
+      } else {
+        setErrorMsg(err.message || 'Failed to complete booking.');
+      }
       setLoading(false);
     }
     // Loading stays true on success to wait for router.push

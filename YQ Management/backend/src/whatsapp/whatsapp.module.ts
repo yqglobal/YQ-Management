@@ -14,6 +14,8 @@ import { AppointmentModule } from '../appointment/appointment.module';
 import { BullModule } from '@nestjs/bullmq';
 import { WhatsappWebhookProcessor } from './whatsapp-webhook.processor';
 import { CommunicationModule } from '../communication/communication.module';
+import { AiModule } from '../ai/ai.module';
+import { WhatsappAiService } from './whatsapp-ai.service';
 
 @Module({
   imports: [
@@ -24,12 +26,13 @@ import { CommunicationModule } from '../communication/communication.module';
     forwardRef(() => ServiceModule),
     forwardRef(() => AppointmentModule),
     forwardRef(() => CommunicationModule),
+    AiModule,
     BullModule.registerQueue({
       name: 'whatsapp-webhooks',
     }),
   ],
   controllers: [WhatsappController],
-  providers: [WhatsappService, WhatsappLogger, WhatsappWebhookProcessor],
-  exports: [WhatsappService, WhatsappLogger],
+  providers: [WhatsappService, WhatsappLogger, WhatsappWebhookProcessor, WhatsappAiService],
+  exports: [WhatsappService, WhatsappLogger, WhatsappAiService],
 })
 export class WhatsappModule {}

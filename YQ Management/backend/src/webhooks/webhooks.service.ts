@@ -43,7 +43,6 @@ export class WebhooksService {
     const endpoints = await this.prisma.webhookEndpoint.findMany({
       where: {
         tenantId,
-        active: true,
         events: { has: eventName },
       },
     });

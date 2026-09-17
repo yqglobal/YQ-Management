@@ -12,6 +12,7 @@ import { RedisService } from '../redis/redis.service';
 import { Cron } from '@nestjs/schedule';
 import { WhatsappLogger } from './whatsapp.logger';
 import { QueueGateway } from '../queue/queue.gateway';
+import { WhatsappAiService } from './whatsapp-ai.service';
 import { WhatsappChatbot } from './whatsapp.chatbot';
 import { CommunicationLogService, CommunicationStatus } from '../communication/logging/communication-log.service';
 
@@ -58,6 +59,7 @@ export class WhatsappService implements OnModuleInit {
     private readonly appointmentService: AppointmentService,
     @Inject(forwardRef(() => CommunicationLogService))
     private readonly communicationLogService: CommunicationLogService,
+    private readonly whatsappAiService: WhatsappAiService,
   ) {}
 
   async onModuleInit() {
@@ -1626,63 +1628,101 @@ export class WhatsappService implements OnModuleInit {
         return { handled: true, action: 'logged_only' };
       }
 
-      // Delegate to chatbot state machine
-      const bot = new WhatsappChatbot(
-        this.prisma,
-        async (jidToSend, textToSend) => {
-          await this.sendMessage(instanceName, jidToSend, textToSend);
-          
-          // Log outgoing bot message to Inbox
-          await this.prisma.message.create({
-            data: {
-              tenantId: tenant.id,
-              customerPhone: phone,
-              conversationId: conversation.id,
-              body: textToSend,
-              sender: 'SYSTEM', // Treating Bot as SYSTEM to show badge in UI
-              isRead: true,
-            },
-          });
-          
-          this.redisService.client.publish(
-            'queue_events',
-            JSON.stringify({
-              type: 'NEW_INBOX_MESSAGE',
-              tenantId: tenant.id,
-              phone,
-              conversationId: conversation.id,
-            }),
-          );
-        },
-        async (jidToSend, listPayload) => {
-          await this.sendListMessage(instanceName, jidToSend, listPayload);
-          // Log outgoing bot list message to Inbox as text summary
-          await this.prisma.message.create({
-            data: {
-              tenantId: tenant.id,
-              customerPhone: phone,
-              conversationId: conversation.id,
-              body: `[Interactive Menu]: ${listPayload.title || listPayload.description}`,
-              sender: 'SYSTEM',
-              isRead: true,
-            },
-          });
-          
-          this.redisService.client.publish(
-            'queue_events',
-            JSON.stringify({
-              type: 'NEW_INBOX_MESSAGE',
-              tenantId: tenant.id,
-              phone,
-              conversationId: conversation.id,
-            }),
-          );
-        },
-        this.serviceService,
-        this.appointmentService,
-      );
-      
-      await bot.process(tenant, phone, jid, rawText);
+      // Delegate to chatbot (either AI or rule-based based on config)
+      const useAiChatbot =
+        tenant.chatbotConfig && (tenant.chatbotConfig as any).useAi;
+
+      let processed;
+      if (useAiChatbot) {
+        processed = await this.whatsappAiService.processMessage(
+          tenant,
+          phone,
+          jid,
+          rawText,
+          async (jidToSend, textToSend) => {
+            await this.sendMessage(instanceName, jidToSend, textToSend);
+
+            // Log outgoing bot message to Inbox
+            await this.prisma.message.create({
+              data: {
+                tenantId: tenant.id,
+                customerPhone: phone,
+                conversationId: conversation.id,
+                body: textToSend,
+                sender: 'SYSTEM',
+                isRead: true,
+              },
+            });
+
+            this.redisService.client.publish(
+              'queue_events',
+              JSON.stringify({
+                type: 'NEW_INBOX_MESSAGE',
+                tenantId: tenant.id,
+                phone,
+                conversationId: conversation.id,
+              }),
+            );
+          },
+        );
+      } else {
+        const bot = new WhatsappChatbot(
+          this.prisma,
+          async (jidToSend, textToSend) => {
+            await this.sendMessage(instanceName, jidToSend, textToSend);
+
+            // Log outgoing bot message to Inbox
+            await this.prisma.message.create({
+              data: {
+                tenantId: tenant.id,
+                customerPhone: phone,
+                conversationId: conversation.id,
+                body: textToSend,
+                sender: 'SYSTEM', // Treating Bot as SYSTEM to show badge in UI
+                isRead: true,
+              },
+            });
+
+            this.redisService.client.publish(
+              'queue_events',
+              JSON.stringify({
+                type: 'NEW_INBOX_MESSAGE',
+                tenantId: tenant.id,
+                phone,
+                conversationId: conversation.id,
+              }),
+            );
+          },
+          async (jidToSend, listPayload) => {
+            await this.sendListMessage(instanceName, jidToSend, listPayload);
+            // Log outgoing bot list message to Inbox as text summary
+            await this.prisma.message.create({
+              data: {
+                tenantId: tenant.id,
+                customerPhone: phone,
+                conversationId: conversation.id,
+                body: `[Interactive Menu]: ${listPayload.title || listPayload.description}`,
+                sender: 'SYSTEM',
+                isRead: true,
+              },
+            });
+
+            this.redisService.client.publish(
+              'queue_events',
+              JSON.stringify({
+                type: 'NEW_INBOX_MESSAGE',
+                tenantId: tenant.id,
+                phone,
+                conversationId: conversation.id,
+              }),
+            );
+          },
+          this.serviceService,
+          this.appointmentService,
+        );
+
+        processed = await bot.process(tenant, phone, jid, rawText);
+      }
 
       return { handled: true, action: 'chatbot' };
     } catch (e) {

@@ -9,6 +9,7 @@ import { AppointmentModule } from '../appointment/appointment.module';
 import { TokenController } from './token.controller';
 import { CommunicationModule } from '../communication/communication.module';
 import { ServiceModule } from '../service/service.module';
+import { BlockOffModule } from '../block-off/block-off.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ServiceModule } from '../service/service.module';
     forwardRef(() => AppointmentModule),
     forwardRef(() => CommunicationModule),
     forwardRef(() => ServiceModule),
+    forwardRef(() => BlockOffModule),
   ],
   providers: [VisitService, VisitCron],
   controllers: [VisitController, PublicVisitController, TokenController],

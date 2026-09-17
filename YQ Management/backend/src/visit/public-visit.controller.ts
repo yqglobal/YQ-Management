@@ -232,6 +232,23 @@ export class PublicVisitController {
     return this.visitService.cancelPublicVisit(accessToken);
   }
 
+  /**
+   * PUBLIC — Customer submits a CSAT rating after their visit is COMPLETED.
+   * Validated by accessToken — no account login required.
+   * One-time only (ignores if already rated).
+   */
+  @Post(':accessToken/rate')
+  async ratePublicVisit(
+    @Param('accessToken') accessToken: string,
+    @Body() body: { rating: number; feedbackText?: string },
+  ) {
+    return this.visitService.rateVisit(
+      accessToken,
+      body.rating,
+      body.feedbackText,
+    );
+  }
+
   @Post('queue/:queueId/join')
   async joinQueue(
     @Param('queueId') queueId: string,

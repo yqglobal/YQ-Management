@@ -118,4 +118,17 @@ export class VisitController {
       req.user.userId,
     );
   }
+
+  /**
+   * AUTHENTICATED — operator-only.
+   * Saves operator notes on a visit ticket.
+   */
+  @Patch(':id/notes')
+  updateNotes(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { notes: string },
+  ) {
+    return this.visitService.updateNotes(id, req.user.tenantId, body.notes);
+  }
 }

@@ -19,6 +19,7 @@ import { CommunicationEvent } from '../communication/events/communication-events
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 import { ServiceService } from '../service/service.service';
+import { BlockOffService } from '../block-off/block-off.service';
 
 @Injectable()
 export class VisitService {
@@ -37,6 +38,8 @@ export class VisitService {
     private readonly communicationService: CommunicationService,
     @Inject(forwardRef(() => ServiceService))
     private readonly serviceService: ServiceService,
+    @Inject(forwardRef(() => BlockOffService))
+    private readonly blockOffService: BlockOffService,
   ) {}
 
   // Basic CRUD for controllers
@@ -156,7 +159,30 @@ export class VisitService {
         },
       });
       position = waitingAhead + 1;
-      ewt = waitingAhead * (visit.service?.expectedDuration || 5);
+      
+      // Dynamic AI Wait Time Estimation (C2)
+      // Calculate rolling average of the last 30 completed visits for this service
+      let avgServiceTime = visit.service?.expectedDuration || 5;
+      
+      if (visit.serviceId) {
+        const recentVisits = await this.prisma.visit.findMany({
+          where: { 
+            serviceId: visit.serviceId, 
+            currentState: 'COMPLETED',
+            serviceTime: { not: null }
+          },
+          orderBy: { completedAt: 'desc' },
+          take: 30,
+          select: { serviceTime: true }
+        });
+        
+        if (recentVisits.length > 0) {
+          const totalServiceTime = recentVisits.reduce((acc, v) => acc + (v.serviceTime || 0), 0);
+          avgServiceTime = totalServiceTime / recentVisits.length;
+        }
+      }
+      
+      ewt = Math.round(waitingAhead * avgServiceTime);
     }
 
     return {
@@ -248,6 +274,23 @@ export class VisitService {
     if (!queue) throw new NotFoundException('Queue not found');
     if (!queue.services || queue.services.length === 0) {
       throw new BadRequestException('Queue has no linked services');
+    }
+
+    const isBlocked = await this.blockOffService.isTimeBlocked(queue.tenantId, queue.locationId, queue.id, new Date());
+    if (isBlocked.blocked) {
+      throw new BadRequestException(`QUEUE_BLOCKED:${isBlocked.reason}`);
+    }
+
+    if (queue.maxCapacity && queue.maxCapacity > 0) {
+      const activeCount = await this.prisma.visit.count({
+        where: {
+          queueId,
+          currentState: { in: ['WAITING', 'CHECKED_IN'] }
+        }
+      });
+      if (activeCount >= queue.maxCapacity) {
+        throw new BadRequestException('QUEUE_FULL');
+      }
     }
 
     let serviceId = queue.services[0].id;
@@ -960,5 +1003,56 @@ export class VisitService {
       });
       return updated;
     });
+  }
+
+  /**
+   * Customer-submitted CSAT rating (public, validated by accessToken).
+   * One-time only — silently ignores if already rated.
+   * Looks up the visit by its unique accessToken UUID.
+   */
+  async rateVisit(
+    accessToken: string,
+    rating: number,
+    feedbackText?: string,
+  ) {
+    const visit = await this.prisma.visit.findUnique({
+      where: { accessToken },
+      select: { id: true, rating: true, currentState: true },
+    });
+
+    if (!visit) throw new NotFoundException('Visit not found or invalid token');
+    // Only allow rating completed visits; ignore if already rated
+    if (visit.rating !== null) return { success: true, alreadyRated: true };
+    if (visit.currentState !== 'COMPLETED') {
+      return { success: false, message: 'Visit is not yet completed' };
+    }
+
+    const clampedRating = Math.min(5, Math.max(1, Math.round(rating)));
+    await this.prisma.visit.update({
+      where: { id: visit.id },
+      data: {
+        rating: clampedRating,
+        feedbackText: feedbackText?.trim() || null,
+      },
+    });
+
+    return { success: true, rating: clampedRating };
+  }
+
+  /**
+   * Operator saves a note on a visit ticket (authenticated, tenant-scoped).
+   */
+  async updateNotes(visitId: string, tenantId: string, notes: string) {
+    const visit = await this.prisma.visit.findFirst({
+      where: { id: visitId, tenantId },
+    });
+    if (!visit) throw new NotFoundException('Visit not found');
+
+    const updated = await this.prisma.visit.update({
+      where: { id: visitId },
+      data: { notes: notes?.trim() || null },
+      select: { id: true, notes: true },
+    });
+    return updated;
   }
 }

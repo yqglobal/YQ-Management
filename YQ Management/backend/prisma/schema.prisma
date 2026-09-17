@@ -146,6 +146,7 @@ model Tenant {
   usages                TenantUsage[]
   invitations           Invitation[] // Team invitations scoped to this tenant
   autonomousEnabled     Boolean                @default(false)
+  blockOffs             BlockOff[]
   ownerId               String? // Primary owner's User ID — replaces Workspace.ownerId
   createdAt             DateTime               @default(now())
 
@@ -248,6 +249,7 @@ model Queue {
   nextQueueId        String? // For multi-step routing
   formConfig         Json? // Dynamic form configuration
   tokenDisplayConfig Json? // Display settings and token number generation config
+  maxCapacity        Int? // Maximum allowed concurrent visits in queue
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
@@ -257,6 +259,8 @@ model Queue {
   frozenByQuota Boolean   @default(false)
   frozenAt      DateTime?
   createdAt     DateTime  @default(now())
+
+  blockOffs     BlockOff[]
 
   @@index([tenantId])
   @@index([locationId])
@@ -571,6 +575,7 @@ model Location {
   visits       Visit[]
   appointments Appointment[]
   queues       Queue[]
+  blockOffs    BlockOff[]
 
   tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -932,4 +937,24 @@ model MarketingSubscriber {
   createdAt DateTime @default(now())
 
   @@index([email])
+}
+
+model BlockOff {
+  id        String   @id @default(uuid())
+  tenantId  String
+  locationId String?
+  queueId   String?  // Optional: if null, applies to all queues in location/tenant
+  startTime DateTime
+  endTime   DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location  Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  queue     Queue?    @relation(fields: [queueId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, startTime])
+  @@index([locationId])
+  @@index([queueId])
 }
