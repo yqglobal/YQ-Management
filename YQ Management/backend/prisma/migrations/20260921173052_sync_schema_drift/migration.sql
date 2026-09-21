@@ -5,30 +5,30 @@
 
 */
 -- DropForeignKey
-ALTER TABLE "Token" DROP CONSTRAINT "Token_operatorId_fkey";
+ALTER TABLE "Token" DROP CONSTRAINT IF EXISTS "Token_operatorId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "Token" DROP CONSTRAINT "Token_queueId_fkey";
+ALTER TABLE "Token" DROP CONSTRAINT IF EXISTS "Token_queueId_fkey";
 
 -- AlterTable
-ALTER TABLE "CommunicationLog" ADD COLUMN     "readAt" TIMESTAMP(3);
+ALTER TABLE "CommunicationLog" ADD COLUMN IF NOT EXISTS "readAt" TIMESTAMP(3);
 
 -- AlterTable
-ALTER TABLE "Queue" ADD COLUMN     "maxCapacity" INTEGER;
+ALTER TABLE "Queue" ADD COLUMN IF NOT EXISTS "maxCapacity" INTEGER;
 
 -- AlterTable
-ALTER TABLE "Tenant" ADD COLUMN     "showSupportInfo" BOOLEAN NOT NULL DEFAULT true,
-ADD COLUMN     "supportEmail" TEXT,
-ADD COLUMN     "supportPhone" TEXT;
+ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "showSupportInfo" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN IF NOT EXISTS "supportEmail" TEXT,
+ADD COLUMN IF NOT EXISTS "supportPhone" TEXT;
 
 -- DropTable
-DROP TABLE "Token";
+DROP TABLE IF EXISTS "Token" CASCADE;
 
 -- DropEnum
-DROP TYPE "TokenStatus";
+DROP TYPE IF EXISTS "TokenStatus" CASCADE;
 
 -- CreateTable
-CREATE TABLE "BlockOff" (
+CREATE TABLE IF NOT EXISTS "BlockOff" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "locationId" TEXT,
@@ -43,19 +43,34 @@ CREATE TABLE "BlockOff" (
 );
 
 -- CreateIndex
-CREATE INDEX "BlockOff_tenantId_startTime_idx" ON "BlockOff"("tenantId", "startTime");
+CREATE INDEX IF NOT EXISTS "BlockOff_tenantId_startTime_idx" ON "BlockOff"("tenantId", "startTime");
 
 -- CreateIndex
-CREATE INDEX "BlockOff_locationId_idx" ON "BlockOff"("locationId");
+CREATE INDEX IF NOT EXISTS "BlockOff_locationId_idx" ON "BlockOff"("locationId");
 
 -- CreateIndex
-CREATE INDEX "BlockOff_queueId_idx" ON "BlockOff"("queueId");
+CREATE INDEX IF NOT EXISTS "BlockOff_queueId_idx" ON "BlockOff"("queueId");
 
 -- AddForeignKey
-ALTER TABLE "BlockOff" ADD CONSTRAINT "BlockOff_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BlockOff_tenantId_fkey') THEN
+        ALTER TABLE "BlockOff" ADD CONSTRAINT "BlockOff_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "BlockOff" ADD CONSTRAINT "BlockOff_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BlockOff_locationId_fkey') THEN
+        ALTER TABLE "BlockOff" ADD CONSTRAINT "BlockOff_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "BlockOff" ADD CONSTRAINT "BlockOff_queueId_fkey" FOREIGN KEY ("queueId") REFERENCES "Queue"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BlockOff_queueId_fkey') THEN
+        ALTER TABLE "BlockOff" ADD CONSTRAINT "BlockOff_queueId_fkey" FOREIGN KEY ("queueId") REFERENCES "Queue"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
