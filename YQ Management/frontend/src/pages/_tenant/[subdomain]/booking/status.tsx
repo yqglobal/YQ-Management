@@ -97,6 +97,11 @@ export default function StatusPage() {
 
   useEffect(() => {
     setIsLoading(true);
+    if (!activeTokens) {
+      setIsLoading(false);
+      setRecoveryMode(true);
+      return;
+    }
     const query = activeTokens ? `?tokens=${activeTokens}` : '';
     let es: EventSource | null = null;
     let loadingTimer: ReturnType<typeof setTimeout> | null = null;

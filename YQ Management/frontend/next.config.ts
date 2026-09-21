@@ -16,6 +16,7 @@ const withPWA = withPWAInit({
       /react-loadable-manifest\.json$/,
       /routes-manifest\.json$/,
       /\.map$/,
+      /sitemap\.xml$/,
     ],
   },
 });

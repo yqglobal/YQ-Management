@@ -277,6 +277,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
     const loc = tenant?.locations?.find((l: AnyFixMe) => l.id === selectedLocationId);
     if (loc) {
       router.push(`/booking/${slugify(loc.name)}`, undefined, { shallow: true });
+      setStep(2);
     } else {
       setStep(2);
     }
