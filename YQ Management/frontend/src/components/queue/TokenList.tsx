@@ -8,7 +8,7 @@ import { Card, CardContent } from '../../components/ui/card';
 import { toast } from 'sonner';
 
 interface TokenListProps {
-  tokens: Array<{ id: string; displayId?: string; customerName: string; status: string }>;
+  tokens: Array<{ id: string; displayId?: string; customerName: string; status: string; tags?: string[]; accompanyingGuests?: number }>;
   queueId: string;
   nextQueueId: string | undefined;
 }
@@ -51,8 +51,26 @@ export function TokenList({ tokens, queueId, nextQueueId }: TokenListProps) {
                   {index + 1}
                 </div>
                 <div>
-                  <p className="text-gray-900 dark:text-white font-medium">{token.customerName}</p>
-                  <p className="text-gray-500 dark:text-zinc-500 text-sm font-mono">{token.displayId || token.id.substring(0, 5).toUpperCase()}</p>
+                  <p className="text-gray-900 dark:text-white font-medium flex items-center gap-2">
+                    {token.customerName}
+                    {token.accompanyingGuests ? (
+                      <span className="text-xs bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold">
+                        +{token.accompanyingGuests}
+                      </span>
+                    ) : null}
+                  </p>
+                  <p className="text-gray-500 dark:text-zinc-500 text-sm font-mono flex items-center gap-2">
+                    {token.displayId || token.id.substring(0, 5).toUpperCase()}
+                    {token.tags && token.tags.length > 0 && (
+                      <span className="flex gap-1 ml-1">
+                        {token.tags.map(t => (
+                          <span key={t} className="text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/20">
+                            {t}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

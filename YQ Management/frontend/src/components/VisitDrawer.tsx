@@ -27,9 +27,39 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
   const handleStart = () => startMutation.mutate();
   const handleComplete = () => completeMutation.mutate();
 
+  const [isEditingTags, setIsEditingTags] = React.useState(false);
+  const [tagInput, setTagInput] = React.useState('');
+
+  const updateTagsMutation = useMutation({
+    mutationFn: (tags: string[]) => fetchApi(`/visits/${visit?.id}/tags`, { method: 'PATCH', body: JSON.stringify({ tags }) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['visits'] });
+      setIsEditingTags(false);
+    },
+  });
+
+  const handleAddTag = () => {
+    if (!tagInput.trim()) return;
+    const currentTags = visit?.tags || [];
+    if (!currentTags.includes(tagInput.trim())) {
+      updateTagsMutation.mutate([...currentTags, tagInput.trim()]);
+    }
+    setTagInput('');
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const currentTags = visit?.tags || [];
+    updateTagsMutation.mutate(currentTags.filter((t: string) => t !== tagToRemove));
+  };
+
   const isWaiting = visit.currentState === 'WAITING' || visit.currentState === 'CHECKED_IN';
   const isInService = visit.currentState === 'IN_SERVICE';
   const isCompleted = visit.currentState === 'COMPLETED';
+
+  // Reset tag edit state when drawer closes
+  React.useEffect(() => {
+    if (!isOpen) setIsEditingTags(false);
+  }, [isOpen]);
 
   return (
     <>
@@ -88,6 +118,67 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
                 </div>
                 <div className="font-medium text-gray-900 dark:text-white text-sm capitalize">
                   {visit.source?.toLowerCase().replace('_', ' ')}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="bg-gray-50 dark:bg-zinc-900/50 p-3 rounded-xl border border-gray-100 dark:border-white/5">
+                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-zinc-400 mb-1">
+                  Party Size
+                </div>
+                <div className="font-medium text-gray-900 dark:text-white text-sm">
+                  {visit.accompanyingGuests ? `${visit.accompanyingGuests + 1} total` : '1'}
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-zinc-900/50 p-3 rounded-xl border border-gray-100 dark:border-white/5">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-zinc-400">
+                    Tags
+                  </div>
+                  <button 
+                    onClick={() => setIsEditingTags(!isEditingTags)}
+                    className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+                  >
+                    {isEditingTags ? 'Done' : 'Edit'}
+                  </button>
+                </div>
+                
+                {isEditingTags && (
+                  <div className="flex gap-2 mb-2 mt-2">
+                    <input 
+                      type="text" 
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                      placeholder="Add a tag..."
+                      className="flex-1 text-sm border border-gray-200 rounded px-2 py-1"
+                    />
+                    <button 
+                      onClick={handleAddTag}
+                      disabled={updateTagsMutation.isPending}
+                      className="bg-indigo-600 text-white px-2 py-1 rounded text-xs"
+                    >
+                      Add
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {visit.tags && visit.tags.length > 0 ? (
+                    visit.tags.map((tag: string) => (
+                      <span key={tag} className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded border border-indigo-200">
+                        {tag}
+                        {isEditingTags && (
+                          <button onClick={() => handleRemoveTag(tag)} className="text-indigo-400 hover:text-indigo-600 ml-1">
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </span>
+                    ))
+                  ) : (
+                    !isEditingTags && <span className="text-xs text-gray-400">No tags</span>
+                  )}
                 </div>
               </div>
             </div>

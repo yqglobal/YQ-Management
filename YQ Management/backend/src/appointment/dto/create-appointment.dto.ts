@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsDateString,
   IsObject,
+  IsInt,
 } from 'class-validator';
 import { AppointmentStatus, VisitSource } from '@prisma/client';
 
@@ -55,4 +56,8 @@ export class CreateAppointmentDto {
   @IsOptional()
   @IsObject()
   formData?: any;
+
+  @IsOptional()
+  @IsInt()
+  accompanyingGuests?: number;
 }

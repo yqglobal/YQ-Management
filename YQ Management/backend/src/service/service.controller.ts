@@ -68,6 +68,7 @@ export class ServiceController {
       useLocationHours?: boolean;
       businessHoursOverride?: any;
       exceptionDatesOverride?: any;
+      requiredSkills?: string[];
     },
   ) {
     return this.serviceService.create(req.user.tenantId, body);
@@ -110,6 +111,7 @@ export class ServiceController {
       useLocationHours?: boolean;
       businessHoursOverride?: any;
       exceptionDatesOverride?: any;
+      requiredSkills?: string[];
     },
   ) {
     return this.serviceService.update(id, req.user.tenantId, body);

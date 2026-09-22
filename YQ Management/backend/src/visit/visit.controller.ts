@@ -131,4 +131,13 @@ export class VisitController {
   ) {
     return this.visitService.updateNotes(id, req.user.tenantId, body.notes);
   }
+
+  @Patch(':id/tags')
+  updateTags(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { tags: string[] },
+  ) {
+    return this.visitService.updateTags(id, req.user.tenantId, body.tags);
+  }
 }

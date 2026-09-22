@@ -60,4 +60,12 @@ export class CreateVisitDto {
   @IsOptional()
   @IsObject()
   metadata?: any;
+
+  @IsOptional()
+  @IsInt()
+  accompanyingGuests?: number;
+
+  @IsOptional()
+  @IsString({ each: true })
+  tags?: string[];
 }

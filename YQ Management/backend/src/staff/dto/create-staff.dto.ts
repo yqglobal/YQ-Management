@@ -15,4 +15,8 @@ export class CreateStaffDto {
   @IsOptional()
   @IsString()
   userId?: string;
+
+  @IsOptional()
+  @IsString({ each: true })
+  skills?: string[];
 }

@@ -1,0 +1,14 @@
+TENANT_ID: e0be9dff-1fb1-4275-b1b2-cd0d20a46150
+LOCATIONS:
+                  id                  |       name       
+--------------------------------------+------------------
+ 3c96efe1-f901-4007-901e-9ecb3e5099ce | Bengaluru Branch
+(1 row)
+
+SERVICES:
+                  id                  |            name             |              locationId              | allowAppointments 
+--------------------------------------+-----------------------------+--------------------------------------+-------------------
+ 1f1ef093-75a9-4e0d-95e6-601c98ce9a6c | Parcel Pickup Service       | 3c96efe1-f901-4007-901e-9ecb3e5099ce | t
+ 61051953-cc63-4f53-82e6-4e086b785ae6 | Dispatch / Drop-off Service | 3c96efe1-f901-4007-901e-9ecb3e5099ce | t
+(2 rows)
+

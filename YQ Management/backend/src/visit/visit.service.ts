@@ -270,7 +270,7 @@ export class VisitService {
 
   async joinQueue(
     queueId: string,
-    customerData: { name: string; phone?: string | null; serviceId?: string },
+    customerData: { name: string; phone?: string | null; serviceId?: string; accompanyingGuests?: number },
   ) {
     const queue = await this.prisma.queue.findUnique({
       where: { id: queueId },
@@ -362,6 +362,7 @@ export class VisitService {
           displayId,
           currentState: 'WAITING',
           waitingStart: new Date(),
+          accompanyingGuests: customerData.accompanyingGuests || 0,
           metadata: {
             customerName: customerData.name,
             phone: customerData.phone,
@@ -396,6 +397,7 @@ export class VisitService {
       providerId?: string;
       scheduledFor?: string;
       formResponses?: any;
+      accompanyingGuests?: number;
     }[];
   }) {
     if (!data.bookings || data.bookings.length === 0) {
@@ -558,6 +560,7 @@ export class VisitService {
             priority: scheduledTime ? 10 : 0,
             waitingStart: currentState === 'WAITING' ? new Date() : null,
             language: data.language || 'en',
+            accompanyingGuests: booking.accompanyingGuests || 0,
             formResponses: booking.formResponses || {},
             metadata: {
               customerName: data.customerName,
@@ -1057,8 +1060,34 @@ export class VisitService {
     const updated = await this.prisma.visit.update({
       where: { id: visitId },
       data: { notes: notes?.trim() || null },
-      select: { id: true, notes: true },
     });
+    // Invalidate queue metrics on update
+    this.redisService.client.del(`queue_metrics:${updated.queueId}`).catch(() => {});
+    return updated;
+  }
+
+  async updateTags(id: string, tenantId: string, tags: string[]) {
+    const visit = await this.findOne(id, tenantId);
+    
+    const updated = await this.prisma.visit.update({
+      where: { id },
+      data: { tags },
+    });
+
+    // Fire outbox event so UI updates instantly over socket
+    await this.prisma.outboxEvent.create({
+      data: {
+        type: 'VISIT_UPDATED',
+        payload: {
+          visitId: id,
+          queueId: visit.queueId,
+          tenantId,
+          updatedFields: ['tags'],
+        },
+      },
+    });
+
+    this.redisService.client.publish('outbox_events', 'WAKE_UP').catch(() => {});
     return updated;
   }
 }
