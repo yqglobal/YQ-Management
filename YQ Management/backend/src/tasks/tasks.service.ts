@@ -15,6 +15,22 @@ export class TasksService {
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async handleOutboxRetention() {
+    this.logger.log('Running daily cleanup of completed OutboxEvents...');
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { count } = await this.prisma.outboxEvent.deleteMany({
+      where: {
+        status: 'COMPLETED',
+        createdAt: { lt: sevenDaysAgo },
+      },
+    });
+
+    this.logger.log(`Deleted ${count} expired OutboxEvents.`);
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCleanupExpiredInvitations() {
     this.logger.log('Running daily cleanup of expired invitations...');
     const now = new Date();

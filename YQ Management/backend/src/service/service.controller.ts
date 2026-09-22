@@ -12,6 +12,8 @@ import {
 } from '@nestjs/common';
 import { ServiceService } from './service.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Role } from '@prisma/client';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
 
 @Controller('service')
@@ -49,6 +51,7 @@ export class ServiceController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   create(
     @Req() req: AuthenticatedRequest,
     @Body()
@@ -91,6 +94,7 @@ export class ServiceController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   update(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -119,6 +123,7 @@ export class ServiceController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.serviceService.remove(id, req.user.tenantId);
   }

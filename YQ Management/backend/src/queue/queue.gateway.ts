@@ -52,36 +52,8 @@ export class QueueGateway
   }
 
   onModuleInit() {
-    this.redisService.subscriber.subscribe('queue_events', (err, count) => {
-      if (err) {
-        this.logger.error('Failed to subscribe to queue_events channel', err);
-      } else {
-        this.logger.log(`Subscribed to queue_events channel (${count})`);
-      }
-    });
-
-    this.redisService.subscriber.on('message', (channel, message) => {
-      if (channel === 'queue_events') {
-        try {
-          const payload = JSON.parse(message);
-          const { type, queueId, tenantId, ...data } = payload;
-          const sanitizedData = this.sanitizePayload(data);
-
-          if (queueId) {
-            this.broadcastQueueUpdate(queueId, type, sanitizedData);
-          }
-          if (tenantId) {
-            this.broadcastTenantUpdate(tenantId, type, sanitizedData);
-          }
-          if (data.visitId || payload.visitId) {
-            const vId = data.visitId || payload.visitId;
-            this.broadcastVisitUpdate(vId, type, sanitizedData);
-          }
-        } catch (error) {
-          this.logger.error('Failed to parse queue_events message', error);
-        }
-      }
-    });
+    // RedisIoAdapter handles scaling automatically via Socket.io Redis adapter.
+    // Manual pub/sub of queue_events was removed to prevent WebSocket fan-out cascades.
   }
 
   handleConnection(client: Socket) {

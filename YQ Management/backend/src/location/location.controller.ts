@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { LocationService } from './location.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Role } from '@prisma/client';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
 
 @UseGuards(JwtAuthGuard)
@@ -19,6 +21,7 @@ export class LocationController {
   constructor(private readonly locationService: LocationService) {}
 
   @Post()
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   create(
     @Req() req: AuthenticatedRequest,
     @Body() body: { name: string; address?: string; city?: string },
@@ -37,6 +40,7 @@ export class LocationController {
   }
 
   @Patch(':id')
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   update(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -46,6 +50,7 @@ export class LocationController {
   }
 
   @Delete(':id')
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.locationService.remove(id, req.user.tenantId);
   }

@@ -35,6 +35,7 @@ import { MessagesModule } from './messages/messages.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
 import { AuditModule } from './audit/audit.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { RolesGuard } from './auth/roles.guard';
 import { VisitModule } from './visit/visit.module';
 import { AppointmentModule } from './appointment/appointment.module';
 import { BlockOffModule } from './block-off/block-off.module';
@@ -155,6 +156,10 @@ import { PublicCheckinModule } from './public-checkin/public-checkin.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

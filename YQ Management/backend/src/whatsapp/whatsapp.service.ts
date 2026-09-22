@@ -1472,11 +1472,6 @@ export class WhatsappService implements OnModuleInit {
               messageId: message.id,
               phone: message.customerPhone,
             });
-            
-            this.redisService.client.publish(
-              'queue_events',
-              JSON.stringify({ type: 'MESSAGE_DELETED', tenantId: message.tenantId, phone: message.customerPhone, messageId: message.id }),
-            );
           }
         }
         return { success: true };
@@ -1591,14 +1586,7 @@ export class WhatsappService implements OnModuleInit {
         },
       });
 
-      this.redisService.client.publish(
-        'queue_events',
-        JSON.stringify({
-          type: 'NEW_INBOX_MESSAGE',
-          tenantId: tenant.id,
-          phone,
-        }),
-      );
+      this.queueGateway.broadcastTenantUpdate(tenant.id, 'NEW_INBOX_MESSAGE', { phone });
 
       // 2) GATING FOR CHATBOT
       if (!tenant.chatbotEnabled) {
@@ -1654,15 +1642,10 @@ export class WhatsappService implements OnModuleInit {
               },
             });
 
-            this.redisService.client.publish(
-              'queue_events',
-              JSON.stringify({
-                type: 'NEW_INBOX_MESSAGE',
-                tenantId: tenant.id,
-                phone,
-                conversationId: conversation.id,
-              }),
-            );
+            this.queueGateway.broadcastTenantUpdate(tenant.id, 'NEW_INBOX_MESSAGE', {
+              phone,
+              conversationId: conversation.id,
+            });
           },
         );
       } else {
@@ -1683,15 +1666,10 @@ export class WhatsappService implements OnModuleInit {
               },
             });
 
-            this.redisService.client.publish(
-              'queue_events',
-              JSON.stringify({
-                type: 'NEW_INBOX_MESSAGE',
-                tenantId: tenant.id,
-                phone,
-                conversationId: conversation.id,
-              }),
-            );
+            this.queueGateway.broadcastTenantUpdate(tenant.id, 'NEW_INBOX_MESSAGE', {
+              phone,
+              conversationId: conversation.id,
+            });
           },
           async (jidToSend, listPayload) => {
             await this.sendListMessage(instanceName, jidToSend, listPayload);
@@ -1707,15 +1685,10 @@ export class WhatsappService implements OnModuleInit {
               },
             });
 
-            this.redisService.client.publish(
-              'queue_events',
-              JSON.stringify({
-                type: 'NEW_INBOX_MESSAGE',
-                tenantId: tenant.id,
-                phone,
-                conversationId: conversation.id,
-              }),
-            );
+            this.queueGateway.broadcastTenantUpdate(tenant.id, 'NEW_INBOX_MESSAGE', {
+              phone,
+              conversationId: conversation.id,
+            });
           },
           this.serviceService,
           this.appointmentService,
@@ -1915,11 +1888,6 @@ export class WhatsappService implements OnModuleInit {
       messageId,
       phone: message.customerPhone,
     });
-    
-    this.redisService.client.publish(
-      'queue_events',
-      JSON.stringify({ type: 'MESSAGE_DELETED', tenantId, phone: message.customerPhone, messageId }),
-    );
 
     return { success: true };
   }

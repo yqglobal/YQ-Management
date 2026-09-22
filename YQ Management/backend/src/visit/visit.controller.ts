@@ -14,6 +14,8 @@ import { VisitService } from './visit.service';
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Role } from '@prisma/client';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
 
 @UseGuards(JwtAuthGuard)
@@ -56,6 +58,7 @@ export class VisitController {
   }
 
   @Delete(':id')
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.visitService.remove(id, req.user.tenantId);
   }

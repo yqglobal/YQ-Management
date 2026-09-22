@@ -839,6 +839,24 @@ export default function ServiceDeskToday() {
                     <ItineraryProgress itinerary={selectedVisit.itinerary} />
                   </div>
                 )}
+                {industry.uiFlags.enableVitalsMock && (
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button 
+                      onClick={() => alert('Vitals tracking module coming soon')}
+                      className="flex items-center justify-center gap-2 bg-surface-container hover:bg-surface-container-high dark:bg-zinc-800 dark:hover:bg-zinc-700 text-on-surface dark:text-white text-xs font-bold py-2 px-3 rounded-lg border border-border dark:border-dark-border transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[16px] text-rose-500">favorite</span>
+                      Vitals
+                    </button>
+                    <button 
+                      onClick={() => alert('Medical history module coming soon')}
+                      className="flex items-center justify-center gap-2 bg-surface-container hover:bg-surface-container-high dark:bg-zinc-800 dark:hover:bg-zinc-700 text-on-surface dark:text-white text-xs font-bold py-2 px-3 rounded-lg border border-border dark:border-dark-border transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[16px] text-blue-500">history</span>
+                      History
+                    </button>
+                  </div>
+                )}
                 
                 <InlineNotes 
                   visitId={selectedVisit.id} 

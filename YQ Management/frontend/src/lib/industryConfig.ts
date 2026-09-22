@@ -116,6 +116,8 @@ export interface IndustryConfig {
     showPrivacyBadge: boolean;
     /** Highlight appointment arrival status (Early/Late) prominently */
     highlightArrivalStatus: boolean;
+    /** Show Vitals & Medical History shortcuts */
+    enableVitalsMock: boolean;
   };
 
   /** Admin sidebar nav label override for the "Service Desk" link */
@@ -181,6 +183,7 @@ const CONFIGS: Record<BusinessType, IndustryConfig> = {
       showGuestCount: true,
       showPrivacyBadge: false, // Only show PHI badge for healthcare
       highlightArrivalStatus: true,
+      enableVitalsMock: true, // Universal mode includes all features
     },
     navLabel: 'Service Desk',
     accentColor: 'primary',
@@ -233,6 +236,7 @@ const CONFIGS: Record<BusinessType, IndustryConfig> = {
       showGuestCount: true,
       showPrivacyBadge: true,
       highlightArrivalStatus: true,
+      enableVitalsMock: true,
     },
     navLabel: 'Patient Flow',
     accentColor: 'sky-600',
@@ -285,6 +289,7 @@ const CONFIGS: Record<BusinessType, IndustryConfig> = {
       showGuestCount: true,
       showPrivacyBadge: false,
       highlightArrivalStatus: true,
+      enableVitalsMock: false,
     },
     navLabel: 'Chair Board',
     accentColor: 'pink-600',
@@ -337,6 +342,7 @@ const CONFIGS: Record<BusinessType, IndustryConfig> = {
       showGuestCount: false,
       showPrivacyBadge: true,
       highlightArrivalStatus: false,
+      enableVitalsMock: false,
     },
     navLabel: 'Teller Board',
     accentColor: 'indigo-600',
@@ -389,6 +395,7 @@ const CONFIGS: Record<BusinessType, IndustryConfig> = {
       showGuestCount: false,
       showPrivacyBadge: true,
       highlightArrivalStatus: true,
+      enableVitalsMock: false,
     },
     navLabel: 'Applicant Queue',
     accentColor: 'amber-600',
@@ -441,6 +448,7 @@ const CONFIGS: Record<BusinessType, IndustryConfig> = {
       showGuestCount: true,
       showPrivacyBadge: false,
       highlightArrivalStatus: false,
+      enableVitalsMock: false,
     },
     navLabel: 'Order Board',
     accentColor: 'orange-600',
@@ -493,6 +501,7 @@ const CONFIGS: Record<BusinessType, IndustryConfig> = {
       showGuestCount: false,
       showPrivacyBadge: false,
       highlightArrivalStatus: false,
+      enableVitalsMock: false,
     },
     navLabel: 'Dispatch Board',
     accentColor: 'emerald-600',

@@ -5,9 +5,10 @@ import { AppointmentController } from './appointment.controller';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { RedisModule } from '../redis/redis.module';
 import { GoogleModule } from '../integrations/google/google.module';
+import { QueueModule } from '../queue/queue.module';
 
 @Module({
-  imports: [forwardRef(() => WhatsappModule), RedisModule, GoogleModule],
+  imports: [forwardRef(() => WhatsappModule), RedisModule, GoogleModule, forwardRef(() => QueueModule)],
   providers: [AppointmentService, AppointmentReminderCron],
   controllers: [AppointmentController],
   exports: [AppointmentService],

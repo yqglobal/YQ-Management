@@ -11,6 +11,7 @@ import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { RedisService } from '../redis/redis.service';
 import { GoogleService } from '../integrations/google/google.service';
+import { QueueGateway } from '../queue/queue.gateway';
 
 @Injectable()
 export class AppointmentService {
@@ -20,6 +21,8 @@ export class AppointmentService {
     private readonly whatsappService: WhatsappService,
     private readonly redisService: RedisService,
     private readonly googleService: GoogleService,
+    @Inject(forwardRef(() => QueueGateway))
+    private readonly queueGateway: QueueGateway,
   ) {}
 
   async create(createAppointmentDto: CreateAppointmentDto) {
@@ -62,14 +65,9 @@ export class AppointmentService {
       },
     });
 
-    this.redisService.client.publish(
-      'queue_events',
-      JSON.stringify({
-        type: 'APPOINTMENT_CREATED',
-        tenantId: appointment.tenantId,
-        appointment,
-      }),
-    );
+    this.queueGateway.broadcastTenantUpdate(appointment.tenantId, 'APPOINTMENT_CREATED', {
+      appointment,
+    });
 
     // Sync to Google Calendar
     this.googleService

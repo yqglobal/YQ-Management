@@ -14,6 +14,8 @@ import { AppointmentService } from './appointment.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Role } from '@prisma/client';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
 
 @UseGuards(JwtAuthGuard)
@@ -76,6 +78,7 @@ export class AppointmentController {
   }
 
   @Delete(':id')
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.appointmentService.remove(id, req.user.tenantId);
   }

@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RedisService } from '../redis/redis.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { QueueGateway } from '../queue/queue.gateway';
+import { forwardRef, Inject } from '@nestjs/common';
 
 @Injectable()
 export class MessagesService {
@@ -11,6 +13,8 @@ export class MessagesService {
     private notificationsService: NotificationsService,
     private redisService: RedisService,
     private whatsappService: WhatsappService,
+    @Inject(forwardRef(() => QueueGateway))
+    private queueGateway: QueueGateway,
   ) {}
 
   async getMessages(visitId: string, tenantId: string) {
@@ -111,10 +115,9 @@ export class MessagesService {
     }
 
     // Broadcast message to Dashboard & Live Status
-    this.redisService.client.publish(
-      'queue_events',
-      JSON.stringify({ type: 'NEW_MESSAGE', queueId: token.queueId, message }),
-    );
+    if (token.queueId) {
+      this.queueGateway.broadcastQueueUpdate(token.queueId, 'NEW_MESSAGE', { message });
+    }
 
     return message;
   }
@@ -150,10 +153,7 @@ export class MessagesService {
       await this.notificationsService.sendWhatsAppMessage(phone, text, tenantId, message.id);
     }
 
-    this.redisService.client.publish(
-      'queue_events',
-      JSON.stringify({ type: 'NEW_INBOX_MESSAGE', tenantId, phone }),
-    );
+    this.queueGateway.broadcastTenantUpdate(tenantId, 'NEW_INBOX_MESSAGE', { phone });
 
     return message;
   }
