@@ -693,6 +693,9 @@ export default function ServiceDeskToday() {
                         })()}
                         {/* Healthcare privacy badge */}
                         {industry.uiFlags.showPrivacyBadge && <span className="font-label-caps text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider flex items-center gap-0.5"><span className="material-symbols-outlined text-[9px]">lock</span>PHI</span>}
+                        {/* SLA Badges */}
+                        {v.slaStatus === 'WARNING' && <span className="font-label-caps text-[10px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">SLA Warning</span>}
+                        {v.slaStatus === 'BREACHED' && <span className="font-label-caps text-[10px] bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">SLA Breach</span>}
                         </div>
                         <h3 className="font-semibold text-body-lg text-on-surface dark:text-white">{v.customer?.name || industry.terminology.walkIn}</h3>
                         <div className="flex items-center gap-2 text-outline text-body-sm mt-0.5">

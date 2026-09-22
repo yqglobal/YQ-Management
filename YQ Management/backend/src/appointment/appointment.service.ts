@@ -396,13 +396,22 @@ export class AppointmentService {
       const avgMins = Math.round(totalMs / recentCompleted.length / 60000);
       if (avgMins <= 0) return;
 
+      const service = await this.prisma.service.findUnique({ where: { id: serviceId }, select: { emaExpectedDuration: true, expectedDuration: true } });
+      const currentEma = service?.emaExpectedDuration || service?.expectedDuration || avgMins;
+      
+      const latestVisit = recentCompleted[0];
+      const latestDuration = (latestVisit.completedAt!.getTime() - latestVisit.serviceStart!.getTime()) / 60000;
+      
+      // ML Exponential Moving Average (alpha = 0.2 for ~10 periods)
+      const alpha = 0.2;
+      const newEma = (latestDuration * alpha) + (currentEma * (1 - alpha));
+
       await this.prisma.service.update({
         where: { id: serviceId },
-        data: { avgActualDurationMins: avgMins },
+        data: { avgActualDurationMins: avgMins, emaExpectedDuration: newEma },
       });
     } catch (e) {
-      // Non-critical — log and continue
-      console.error('Failed to update avgActualDurationMins', e);
+      console.error(`Failed to update duration stats for service ${serviceId}: ${e.message}`);
     }
   }
 }

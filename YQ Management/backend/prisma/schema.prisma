@@ -164,6 +164,8 @@ model Tenant {
   strictPrivacyMode Boolean @default(false)
   // Industry template selected during onboarding — drives UI/UX adaptations across the whole app
   businessType      String  @default("general") // general | hospital | salon | bank | visa | fastfood | logistics
+  
+  slaPolicies       SlaPolicy[]
 }
 
 // OTP sessions for self-serve check-in (no receptionist mode)
@@ -196,6 +198,7 @@ model User {
   allowedLocationIds String[] @default([])
   allowedServiceIds  String[] @default([])
   allowedPages       String[] @default([])
+  skills             String[] @default([]) // Skills for intelligent routing
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -205,6 +208,18 @@ model User {
   operatorVisits    Visit[]            @relation("OperatorVisits")
 
   @@index([tenantId])
+}
+
+model SlaPolicy {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  name                String
+  warningThresholdMins Int
+  breachThresholdMins  Int
+  escalationPhones    String[] @default([])
+
+  services            Service[]
+  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model PasswordReset {
@@ -634,7 +649,8 @@ model Service {
   dateSelectionType          String  @default("calendar") // "calendar" or "slider"
   maxDaysInAdvance           Int     @default(30) // max days to show in calendar/slider
   avgActualDurationMins      Int? // Rolling avg from completed visits (auto-updated)
-  requiredSkills             String[] @default([]) // Skills required to perform this service
+  emaExpectedDuration        Float? // Predictive ML: Exponential Moving Average
+  slaPolicyId                String? // Dynamic SLA linking
 
   // Cascading Scheduling & Availability
   useLocationHours       Boolean @default(true)
@@ -648,6 +664,7 @@ model Service {
   appointments Appointment[]
   queues       Queue[]       @relation("QueueToService")
   resources    Resource[]
+  slaPolicy    SlaPolicy?    @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
 
   // Provider selection during booking
   allowProviderSelection Boolean @default(false) // Customers can pick their provider
@@ -792,10 +809,12 @@ model Visit {
   language      String    @default("en")
   rating        Int?
   feedbackText       String?
+  surveySent         Boolean   @default(false)
   purpose            String?
   accompanyingGuests Int       @default(0)
   formResponses      Json?
   itinerary          Json?     // Used for multi-stop patient journeys e.g. [{serviceId: '...', status: 'PENDING'}]
+  slaStatus          String    @default("OK") // OK, WARNING, BREACHED
   messages           Message[]
 
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)

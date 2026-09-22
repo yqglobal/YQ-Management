@@ -78,7 +78,7 @@ export class PublicCheckinService {
     const visits = await this.prisma.visit.findMany({
       where: whereClause,
       include: {
-        service: { select: { name: true, expectedDuration: true, requireManualCheckIn: true } },
+        service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true, requireManualCheckIn: true } },
         location: { select: { name: true, address: true } },
         queue: { select: { name: true, status: true } },
       },
@@ -98,7 +98,7 @@ export class PublicCheckinService {
             },
           });
           position = waitingAhead + 1;
-          estimatedWaitTime = waitingAhead * (visit.service?.expectedDuration || 5);
+          estimatedWaitTime = waitingAhead * (visit.service?.emaExpectedDuration || visit.service?.expectedDuration || 5);
         }
         return {
           id: visit.id,
@@ -128,7 +128,7 @@ export class PublicCheckinService {
       where: { id: visitId, tenantId: otp.tenantId },
       include: {
         customer: { select: { name: true, phone: true } },
-        service: { select: { name: true, expectedDuration: true } },
+        service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true } },
         location: { select: { name: true } },
         tenant: { select: { name: true } },
       },
@@ -168,7 +168,7 @@ export class PublicCheckinService {
         },
       });
       const position = waitingAhead + 1;
-      const ewt = waitingAhead * (visit.service?.expectedDuration || 5);
+      const ewt = waitingAhead * (visit.service?.emaExpectedDuration || visit.service?.expectedDuration || 5);
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com';
       const statusUrl = `${baseUrl}/status/${visit.accessToken}`;
       const msg =

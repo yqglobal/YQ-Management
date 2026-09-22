@@ -33,7 +33,7 @@ interface VisitEventPayload {
  * Design principles:
  * - Each notification type is independently try/caught; a failing "called"
  *   handler cannot affect the "created" handler.
- * - ETA computation uses the service's `expectedDuration` from the DB, not a
+ * - ETA computation uses the service's `emaExpectedDuration` (or `expectedDuration`) from the DB.
  *   hardcoded constant.
  * - Phone normalization is centralized in `normalizePhone()`.
  * - All DB lookups include only the fields required by that notification type
@@ -116,7 +116,7 @@ export class VisitNotificationService {
         queueId: true,
         createdAt: true,
         customer: { select: { name: true, phone: true } },
-        service: { select: { name: true, expectedDuration: true } },
+        service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true } },
         location: { select: { name: true, googlePlaceId: true } },
         tenant: {
           select: {
@@ -187,7 +187,7 @@ export class VisitNotificationService {
     const serviceName = visit.service?.name || 'the service';
     const displayId = visit.displayId || payload.displayId || 'Unknown';
     // Use actual service duration for ETA, default to 10 only if unset
-    const perPersonMins = visit.service?.expectedDuration ?? 10;
+    const perPersonMins = visit.service?.emaExpectedDuration ?? visit.service?.expectedDuration ?? 10;
 
     const watermark = this.buildWatermark(visit);
 

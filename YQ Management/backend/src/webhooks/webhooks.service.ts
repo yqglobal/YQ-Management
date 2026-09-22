@@ -94,6 +94,19 @@ export class WebhooksService {
               }
             ]
           };
+        } else if (endpoint.payloadFormat === 'SALESFORCE') {
+          // Translate to a Salesforce custom object (e.g. Visit__c)
+          finalPayload = {
+            attributes: { type: "Visit__c" },
+            External_ID__c: payload.id,
+            Tenant_ID__c: payload.tenantId,
+            Customer_Name__c: payload.customerName || "Walk-in",
+            Status__c: payload.currentState,
+            Service_ID__c: payload.serviceId,
+            Wait_Time_Mins__c: payload.waitingStart && payload.serviceStart 
+              ? (new Date(payload.serviceStart).getTime() - new Date(payload.waitingStart).getTime()) / 60000 
+              : 0
+          };
         }
 
         const res = await fetch(endpoint.url, {

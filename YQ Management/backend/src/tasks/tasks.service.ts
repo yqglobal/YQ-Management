@@ -182,5 +182,78 @@ export class TasksService {
       this.logger.log(`Cleaned up ${result.count} expired check-in OTPs`);
     }
   }
+
+  /**
+   * SLA Monitor: runs every minute to check if WAITING customers breached their SLA.
+   */
+  @Cron('* * * * *')
+  async handleSlaMonitoring() {
+    const visits = await this.prisma.visit.findMany({
+      where: {
+        currentState: 'WAITING',
+        slaStatus: { not: 'BREACHED' },
+        service: { slaPolicyId: { not: null } }
+      },
+      include: {
+        service: { include: { slaPolicy: true } },
+        customer: { select: { name: true } },
+        tenant: { select: { id: true, name: true } }
+      }
+    });
+
+    const now = new Date();
+    for (const v of visits) {
+      if (!v.waitingStart || !v.service?.slaPolicy) continue;
+      const waitMins = (now.getTime() - v.waitingStart.getTime()) / 60000;
+      const policy = v.service.slaPolicy;
+      let newStatus = v.slaStatus;
+
+      if (waitMins >= policy.breachThresholdMins && v.slaStatus !== 'BREACHED') {
+        newStatus = 'BREACHED';
+      } else if (waitMins >= policy.warningThresholdMins && v.slaStatus === 'OK') {
+        newStatus = 'WARNING';
+      }
+
+      if (newStatus !== v.slaStatus) {
+        await this.prisma.visit.update({ where: { id: v.id }, data: { slaStatus: newStatus } });
+        
+        if (newStatus === 'BREACHED' && policy.escalationPhones && policy.escalationPhones.length > 0) {
+          const msg = `🚨 *SLA BREACH* 🚨\nCustomer *${v.customer.name}* has been waiting *${Math.floor(waitMins)} mins* for *${v.service.name}* at *${v.tenant.name}*.`;
+          for (const phone of policy.escalationPhones) {
+             await this.notificationsService.sendWhatsAppMessage(phone, msg, v.tenant.id).catch(e => this.logger.error(e));
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * CSAT Surveys: runs every 5 mins, checks for COMPLETED visits ~1hr ago, sends survey.
+   */
+  @Cron('*/5 * * * *')
+  async handleCsatSurveys() {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const oneHourFiveMinsAgo = new Date(Date.now() - 65 * 60 * 1000);
+
+    const visits = await this.prisma.visit.findMany({
+      where: {
+        currentState: 'COMPLETED',
+        surveySent: false,
+        completedAt: {
+          lte: oneHourAgo,
+          gte: oneHourFiveMinsAgo
+        },
+        customer: { phone: { not: null } }
+      },
+      include: { customer: { select: { name: true, phone: true } }, tenant: { select: { id: true } }, location: { select: { name: true } } }
+    });
+
+    for (const v of visits) {
+      if (!v.customer?.phone) continue;
+      const msg = `Hi ${v.customer.name}, thanks for visiting ${v.location.name}! How was your experience? Reply 1 (Terrible) to 5 (Excellent).`;
+      await this.notificationsService.sendWhatsAppMessage(v.customer.phone, msg, v.tenant.id).catch(e => this.logger.error(e));
+      await this.prisma.visit.update({ where: { id: v.id }, data: { surveySent: true } });
+    }
+  }
 }
 

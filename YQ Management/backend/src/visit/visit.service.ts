@@ -234,7 +234,7 @@ export class VisitService {
         scheduledTime: true,
         appointmentId: true,
         customer: { select: { name: true } },
-        service: { select: { name: true, expectedDuration: true } },
+        service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true } },
         location: { select: { name: true, address: true } },
         tenant: { select: { name: true } },
         queue: { select: { status: true } },
@@ -255,7 +255,7 @@ export class VisitService {
             },
           });
           position = waitingAhead + 1;
-          ewt = waitingAhead * (visit.service?.expectedDuration || 5);
+          ewt = waitingAhead * (visit.service?.emaExpectedDuration || visit.service?.expectedDuration || 5);
         }
 
         return {
@@ -686,7 +686,7 @@ export class VisitService {
         where: { id },
         include: {
           customer: { select: { name: true, phone: true } },
-          service: { select: { name: true, expectedDuration: true } },
+          service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true } },
           location: { select: { name: true } },
           tenant: { select: { name: true } },
         },
@@ -701,7 +701,7 @@ export class VisitService {
           },
         });
         const position = waitingAhead + 1;
-        const ewt = waitingAhead * (fullVisit?.service?.expectedDuration || 5);
+        const ewt = waitingAhead * (fullVisit?.service?.emaExpectedDuration || fullVisit?.service?.expectedDuration || 5);
         const statusUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com'}/status/${updated.accessToken}`;
         const msg =
           `✅ Reception confirmed your arrival at *${fullVisit?.location?.name || fullVisit?.tenant?.name}*!\n\n` +
