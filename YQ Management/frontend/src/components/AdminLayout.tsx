@@ -14,6 +14,7 @@ import { usePlan } from '../hooks/usePlan';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 import { useSocket } from '../components/SocketProvider';
+import { useIndustry } from '../hooks/useIndustry';
 
 const QueueMigrationModal = dynamic(() => import('./modals/QueueMigrationModal').then(mod => mod.QueueMigrationModal), { ssr: false });
 const ServiceModal = dynamic(() => import('./modals/ServiceModal').then(mod => mod.ServiceModal), { ssr: false });
@@ -109,8 +110,10 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     ? { id: 'all', name: 'All Locations' }
     : locations.find((l: AnyFixMe) => l.id === activeLocationId) || locations[0];
 
+  const industry = useIndustry();
+
   const navItems = [
-    { label: 'Service Desk', href: '/dashboard/service-desk', icon: 'desktop_windows', pageId: 'service-desk' },
+    { label: industry.navLabel, href: '/dashboard/service-desk', icon: industry.industryIcon, pageId: 'service-desk' },
     { label: 'Scanner', href: '/dashboard/check-in', icon: 'qr_code_scanner', pageId: 'service-desk' },
     { label: 'Inbox', href: '/dashboard/inbox', icon: 'chat', pageId: 'inbox' },
     { label: 'Schedule', href: '/dashboard/appointments', icon: 'calendar_today', pageId: 'appointments' },

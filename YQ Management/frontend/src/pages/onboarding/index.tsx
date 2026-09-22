@@ -503,7 +503,7 @@ export default function Onboarding() {
         });
       }));
       
-      // 3. Save Waitlist preference to Tenant
+      // 3. Save Waitlist preference AND businessType to Tenant
       const tenant = await fetchApi('/tenant/me').catch(() => null);
       if (tenant) {
         await fetchApi(`/tenant/${tenant.id}`, {
@@ -512,7 +512,9 @@ export default function Onboarding() {
              customerExperience: {
                ...(tenant.customerExperience || {}),
                enableWaitlist
-             }
+             },
+             // Persist the selected industry template — this drives UI adaptations across the whole app
+             businessType: selectedType,
           })
         }).catch(() => null);
       }

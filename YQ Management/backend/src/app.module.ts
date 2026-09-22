@@ -29,6 +29,7 @@ import { SuperAdminModule } from './super-admin/super-admin.module';
 import { EmailModule } from './email/email.module';
 import { CommunicationModule } from './communication/communication.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { UploadModule } from './upload/upload.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { MessagesModule } from './messages/messages.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
@@ -118,6 +119,7 @@ import { PublicCheckinModule } from './public-checkin/public-checkin.module';
     EmailModule,
     CommunicationModule,
     WebhooksModule,
+    UploadModule,
     AnalyticsModule,
     MessagesModule,
     AuditModule,

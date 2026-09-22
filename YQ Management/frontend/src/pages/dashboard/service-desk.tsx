@@ -9,13 +9,16 @@ import { WelcomeModal } from '../../components/modals/WelcomeModal';
 import { CreateVisitModal } from '../../components/modals/CreateVisitModal';
 import { ScannerModal } from '../../components/modals/ScannerModal';
 import { WhatsAppChatPanel } from '../../components/WhatsAppChatPanel';
-import { MonitorPlay, ScanLine, StickyNote, Check } from 'lucide-react';
+import { MonitorPlay, ScanLine, StickyNote, Check, AlertTriangle } from 'lucide-react';
 import { usePlan } from '../../hooks/usePlan';
 import Link from 'next/link';
 import { useLocation } from '../../components/LocationContext';
+import { useIndustry } from '../../hooks/useIndustry';
+import { DYNAMIC_CHIP_SENTINEL } from '../../lib/industryConfig';
+import { toast } from 'sonner';
 
 // ── Inline Notes Component ───────────────────────────────────────────────────
-function InlineNotes({ visitId, initialNotes }: { visitId: string; initialNotes: string | null }) {
+function InlineNotes({ visitId, initialNotes, placeholder }: { visitId: string; initialNotes: string | null; placeholder?: string }) {
   const [notes, setNotes] = useState(initialNotes || '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -53,10 +56,41 @@ function InlineNotes({ visitId, initialNotes }: { visitId: string; initialNotes:
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         onBlur={handleBlur}
-        placeholder="Add private notes for staff..."
+        placeholder={placeholder || 'Add private notes for staff...'}
         rows={2}
         className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded text-xs py-1.5 px-2 w-full outline-none resize-none focus:border-primary transition-colors"
       />
+    </div>
+  );
+}
+
+// ── Itinerary Progress Stepper ───────────────────────────────────────────────
+function ItineraryProgress({ itinerary }: { itinerary: any[] }) {
+  if (!Array.isArray(itinerary) || itinerary.length === 0) return null;
+  return (
+    <div className="flex items-center gap-1 mt-2 flex-wrap">
+      {itinerary.map((stop: any, idx: number) => {
+        const isCompleted = stop.status === 'COMPLETED';
+        const isActive = stop.status === 'ACTIVE';
+        const isPending = stop.status === 'PENDING';
+        return (
+          <React.Fragment key={idx}>
+            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all
+              ${isCompleted ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : ''}
+              ${isActive ? 'bg-primary/10 border-primary/40 text-primary animate-pulse' : ''}
+              ${isPending ? 'bg-surface-container border-border text-outline' : ''}
+            `}>
+              <span className="material-symbols-outlined text-[10px]">
+                {isCompleted ? 'check_circle' : isActive ? 'radio_button_checked' : 'radio_button_unchecked'}
+              </span>
+              {stop.label || `Stop ${idx + 1}`}
+            </div>
+            {idx < itinerary.length - 1 && (
+              <span className="text-outline text-[10px]">→</span>
+            )}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 }
@@ -68,6 +102,7 @@ export default function ServiceDeskToday() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { activeLocationId } = useLocation();
+  const industry = useIndustry();
   const [selectedVisit, setSelectedVisit] = useState<AnyFixMe | null>(null);
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -146,8 +181,6 @@ export default function ServiceDeskToday() {
     socket.emit('joinTenantRoom', tenant.id);
 
     const handleVisitEvent = (payload: AnyFixMe) => {
-      console.log('Real-time visit event:', payload);
-      // Invalidate queries to fetch the latest state
       queryClient.invalidateQueries({ queryKey: ['visits', 'today', activeLocationId] });
       queryClient.invalidateQueries({ queryKey: ['queues', activeLocationId] });
       queryClient.invalidateQueries({ queryKey: ['appointments', 'pending', activeLocationId] });
@@ -156,7 +189,7 @@ export default function ServiceDeskToday() {
     const events = [
       'VISIT_CREATED', 'VISIT_CALLED', 'VISIT_COMPLETED', 
       'VISIT_CHECKED_IN', 'VISIT_MISSED', 'VISIT_CANCELLED', 
-      'APPOINTMENT_CREATED', 'queue_status_changed'
+      'APPOINTMENT_CREATED', 'queue_status_changed', 'QUEUE_EMERGENCY_PAUSED'
     ];
     
     events.forEach(ev => socket.on(ev, handleVisitEvent));
@@ -170,6 +203,16 @@ export default function ServiceDeskToday() {
     mutationFn: (data: { id: string, resourceId: string }) => 
       fetchApi(`/visits/${data.id}`, { method: 'PATCH', body: JSON.stringify({ resourceId: data.resourceId }) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['visits'] }),
+  });
+
+  const pauseEmergencyMutation = useMutation({
+    mutationFn: (queueId: string) =>
+      fetchApi(`/queue/${queueId}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'PAUSED_FOR_EMERGENCY' }) }),
+    onSuccess: () => {
+      toast.warning('Queue paused for emergency. All waiting customers will be notified.');
+      queryClient.invalidateQueries({ queryKey: ['queues'] });
+    },
+    onError: () => toast.error('Failed to pause queue'),
   });
 
   const filteredQueues = React.useMemo(() => {
@@ -208,7 +251,6 @@ export default function ServiceDeskToday() {
   }, [pendingAppointments, user]);
 
   useEffect(() => {
-    // Clear selected visit when location changes to prevent cross-contamination
     if (selectedVisit && activeLocationId !== 'all' && selectedVisit.locationId !== activeLocationId) {
       setSelectedVisit(null);
     }
@@ -263,7 +305,7 @@ export default function ServiceDeskToday() {
       queryClient.invalidateQueries({ queryKey: ['visits'] });
     } catch (err) {
       console.error('Failed to start visit', err);
-      alert('Failed to start visit. Please check your connection.');
+      alert('Failed to start. Please check your connection.');
     }
   };
 
@@ -293,7 +335,7 @@ export default function ServiceDeskToday() {
       queryClient.invalidateQueries({ queryKey: ['visits'] });
     } catch (err) {
       console.error('Failed to advance queue', err);
-      alert('Failed to call next customer from queue. Ensure the queue has waiting customers.');
+      alert('Failed to call next. Ensure the queue has waiting customers.');
     }
   };
 
@@ -310,7 +352,7 @@ export default function ServiceDeskToday() {
       if (selectedVisit?.id === id) setSelectedVisit(null);
     } catch (err) {
       console.error('Failed to complete visit/token', err);
-      alert('Failed to complete visit. Please try again.');
+      alert('Failed to complete. Please try again.');
     }
   };
 
@@ -318,10 +360,11 @@ export default function ServiceDeskToday() {
     v.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     v.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
   return (
-    <AdminLayout pageTitle="Service Desk" noPadding={true}>
+    <AdminLayout pageTitle={industry.serviceDesk.pageTitle} noPadding={true}>
       <Head>
-        <title>Service Desk | Qmova</title>
+        <title>{industry.serviceDesk.pageTitle} | Qmova</title>
       </Head>
 
       <div className="flex-1 min-h-0 w-full flex flex-col md:grid md:grid-cols-12 overflow-hidden bg-canvas dark:bg-dark-canvas">
@@ -332,7 +375,7 @@ export default function ServiceDeskToday() {
             onClick={() => setMobileTab('pool')}
             className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-colors ${mobileTab === 'pool' ? 'bg-primary text-white shadow-md' : 'text-on-surface-variant bg-surface-container hover:bg-surface-container-high dark:bg-dark-canvas dark:hover:bg-inverse-surface'}`}
           >
-            Active Pool ({waitingVisits.length})
+            {industry.serviceDesk.poolTitle} ({waitingVisits.length})
           </button>
           <button 
             onClick={() => setMobileTab('pipeline')}
@@ -342,16 +385,19 @@ export default function ServiceDeskToday() {
           </button>
         </div>
 
-        {/* Column 1: Monitored Pipeline */}
+        {/* Column 1: Pipeline */}
         <section className={`${mobileTab === 'pipeline' ? 'flex' : 'hidden'} md:flex flex-col md:col-span-3 bg-card dark:bg-dark-card border-r border-border dark:border-dark-border p-4 md:p-6 min-h-0 overflow-y-auto`}>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold">Service Pipeline</h2>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px] text-outline">{industry.industryIcon}</span>
+              <h2 className="text-xl font-bold">{industry.serviceDesk.pipelineTitle}</h2>
+            </div>
           </div>
           
           {/* Pending Appointments Stack */}
           {filteredAppointments.length > 0 && (
             <div className="mb-6 relative z-10 space-y-3">
-              <h3 className="font-label-caps text-label-caps text-outline uppercase tracking-wider">Pending Approvals</h3>
+              <h3 className="font-label-caps text-label-caps text-outline uppercase tracking-wider">{industry.serviceDesk.pendingApprovalsLabel}</h3>
               <div className="relative">
                 {filteredAppointments.map((apt: AnyFixMe, index: number) => (
                   <div 
@@ -405,8 +451,12 @@ export default function ServiceDeskToday() {
           <div className="space-y-4 mb-8">
             {filteredQueues.length > 0 ? filteredQueues.map((q: AnyFixMe) => {
               const loc = tenant?.locations?.find((l: AnyFixMe) => l.id === q.locationId);
+              const isEmergencyPaused = q.status === 'PAUSED_FOR_EMERGENCY';
+              const isPaused = q.status === 'PAUSED' || isEmergencyPaused;
               return (
-              <div key={q.id} className="flex flex-col gap-2 p-3 border border-border dark:border-dark-border rounded-xl bg-surface-container-low dark:bg-inverse-surface shadow-sm">
+              <div key={q.id} className={`flex flex-col gap-2 p-3 border rounded-xl shadow-sm transition-all
+                ${isEmergencyPaused ? 'border-red-500/50 bg-red-50 dark:bg-red-950/30' : 'border-border dark:border-dark-border bg-surface-container-low dark:bg-inverse-surface'}
+              `}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex flex-col min-w-0 flex-1">
                     <div className="font-semibold text-body-md text-on-surface dark:text-white flex items-start sm:items-center gap-2 flex-wrap">
@@ -416,16 +466,52 @@ export default function ServiceDeskToday() {
                           {loc.name}
                         </span>
                       )}
+                      {isEmergencyPaused && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-red-100 dark:bg-red-900/50 text-red-600 font-bold border border-red-200 dark:border-red-800 shrink-0 animate-pulse">
+                          EMERGENCY PAUSED
+                        </span>
+                      )}
+                      {isPaused && !isEmergencyPaused && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 font-bold border border-amber-200 dark:border-amber-800 shrink-0">
+                          PAUSED
+                        </span>
+                      )}
                     </div>
                     <span className="text-xs text-outline mt-1">{q._count?.tokens || 0} Waiting</span>
                   </div>
-                  <button 
-                    onClick={() => handleCallNextQueue(q.id)}
-                    className="bg-primary hover:bg-primary-container text-on-primary px-3 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm flex items-center gap-1 shrink-0"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">campaign</span>
-                    Call Next
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Healthcare: Code Blue / Emergency Pause button */}
+                    {industry.uiFlags.showEmergencyPause && !isPaused && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`Pause "${q.name}" for emergency? All waiting patients will be notified.`)) {
+                            pauseEmergencyMutation.mutate(q.id);
+                          }
+                        }}
+                        title="Emergency Pause (Code Blue)"
+                        className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 hover:bg-red-200 border border-red-200 dark:border-red-800 rounded-lg transition-colors"
+                      >
+                        <AlertTriangle className="w-4 h-4" />
+                      </button>
+                    )}
+                    {!isPaused && (
+                      <button 
+                        onClick={() => handleCallNextQueue(q.id)}
+                        className="bg-primary hover:bg-primary-container text-on-primary px-3 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">campaign</span>
+                        Call Next
+                      </button>
+                    )}
+                    {isPaused && (
+                      <button
+                        onClick={() => fetchApi(`/queue/${q.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'ACTIVE' }) }).then(() => queryClient.invalidateQueries({ queryKey: ['queues'] }))}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                      >
+                        Resume
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}) : (
@@ -440,12 +526,12 @@ export default function ServiceDeskToday() {
                 <div key={v.id} onClick={() => setSelectedVisit(v)} className="flex items-center gap-3 p-3 bg-surface-container dark:bg-inverse-surface rounded-lg border border-border dark:border-dark-border cursor-pointer hover:border-primary transition-colors">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-body-sm font-semibold text-on-surface dark:text-white truncate">{v.customer?.name || 'Walk-in'}</p>
+                    <p className="text-body-sm font-semibold text-on-surface dark:text-white truncate">{v.customer?.name || industry.terminology.walkIn}</p>
                     <p className="text-[10px] text-outline font-data-mono">{v.ticketNumber || `#TKT-${v.id.substring(0,4)}`}</p>
                   </div>
                   <button 
                     onClick={(e) => handleComplete(v.id, e)}
-                    title="Complete Service"
+                    title={`Complete — ${industry.terminology.actionVerbPast}`}
                     className="p-1.5 text-on-surface-variant hover:text-emerald-600 dark:hover:text-emerald-400 bg-surface dark:bg-dark-card rounded shadow-sm border border-border dark:border-dark-border"
                   >
                     <span className="material-symbols-outlined text-[16px]">check</span>
@@ -459,13 +545,11 @@ export default function ServiceDeskToday() {
           </div>
         </section>
 
-        {/* Column 2: Priority Queue Pool */}
+        {/* Column 2: Pool */}
         <section className={`${mobileTab === 'pool' ? 'flex' : 'hidden'} md:flex md:col-span-1 ${selectedVisit ? 'md:col-span-6' : 'md:col-span-9'} bg-canvas dark:bg-dark-canvas p-4 md:p-6 flex-col min-h-0 overflow-hidden transition-all duration-300`}>
-          
-
           <div className="flex items-center justify-between mb-6 shrink-0">
             <div className="flex items-center gap-3">
-              <h2 className="font-headline-sm text-headline-sm text-on-surface dark:text-white">Active Processing Pool</h2>
+              <h2 className="font-headline-sm text-headline-sm text-on-surface dark:text-white">{industry.serviceDesk.poolTitle}</h2>
               <span className="bg-primary/10 text-primary dark:bg-primary-fixed-dim/20 dark:text-primary-fixed-dim px-2.5 py-0.5 rounded-full font-data-mono text-body-sm font-semibold">{waitingVisits.length}</span>
             </div>
             <div className="flex items-center gap-2">
@@ -475,7 +559,7 @@ export default function ServiceDeskToday() {
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search pool..." 
+                  placeholder={`Search ${industry.terminology.customers.toLowerCase()}...`} 
                   className="pl-9 pr-4 py-1.5 bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-lg text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                 />
               </div>
@@ -483,7 +567,7 @@ export default function ServiceDeskToday() {
                 <ScanLine className="w-[18px] h-[18px]" /> Scan QR
               </button>
               <button onClick={() => setIsVisitModalOpen(true)} className="bg-primary hover:bg-primary-container text-on-primary px-3 py-1.5 rounded-lg text-body-sm font-semibold transition-colors flex items-center gap-1">
-                <span className="material-symbols-outlined text-[18px]">add</span> Add
+                <span className="material-symbols-outlined text-[18px]">add</span> Add {industry.terminology.customer}
               </button>
             </div>
           </div>
@@ -502,14 +586,14 @@ export default function ServiceDeskToday() {
                 <div className="relative mb-6">
                   <div className="absolute inset-0 bg-primary/20 blur-[30px] rounded-full"></div>
                   <div className="w-24 h-24 bg-surface-container/50 dark:bg-inverse-surface border border-border dark:border-dark-border rounded-full flex items-center justify-center relative z-10 shadow-xl">
-                    <span className="material-symbols-outlined text-5xl text-primary opacity-80">sentiment_satisfied</span>
+                    <span className="material-symbols-outlined text-5xl text-primary opacity-80">{industry.serviceDesk.emptyIcon}</span>
                   </div>
                 </div>
-                <h3 className="font-headline-sm text-on-surface dark:text-white mb-2">Queue is crystal clear.</h3>
+                <h3 className="font-headline-sm text-on-surface dark:text-white mb-2">{industry.serviceDesk.emptyHeading}</h3>
                 {queues.length === 0 ? (
                   <>
                     <p className="text-body-md text-outline text-center max-w-sm mb-8 leading-relaxed">
-                      You haven't configured any queues yet. Set up a queue to start receiving customers.
+                      You haven't configured any queues yet. Set up a queue to start receiving {industry.terminology.customers.toLowerCase()}.
                     </p>
                     <Link
                       href="/dashboard/queues"
@@ -523,8 +607,8 @@ export default function ServiceDeskToday() {
                   <>
                     <p className="text-body-md text-outline text-center max-w-sm mb-8 leading-relaxed">
                       {visits.length === 0 
-                        ? "Your waiting room is empty. Share your booking page or have visitors scan your QR code to get started." 
-                        : "Inbox zero! All customers have been successfully routed and served."}
+                        ? industry.serviceDesk.emptyBody
+                        : `All ${industry.terminology.customers.toLowerCase()} have been successfully routed and served.`}
                     </p>
                     {visits.length === 0 && tenant?.subdomain && (
                       <a
@@ -551,12 +635,34 @@ export default function ServiceDeskToday() {
             )}
             
             <AnimatePresence mode="popLayout">
-              {displayPool.map((v: AnyFixMe, index: number) => {
+              {displayPool.map((v: AnyFixMe) => {
                 const waitTimeMs = v.waitingStart ? Date.now() - new Date(v.waitingStart).getTime() : 0;
                 const waitTimeMins = Math.floor(waitTimeMs / 60000);
                 const threshold = tenant?.reviewWaitThresholdMins || 15;
                 const isUrgent = waitTimeMins > threshold;
                 
+                // Industry-specific chip from formResponses
+                // For the 'general' (universal) mode, use the __dynamic__ sentinel
+                // to pick the first non-empty formResponse field.
+                const chipField = industry.visitCard.primaryChipField;
+                let chipValue: string | null = null;
+                let chipLabel: string | null = industry.visitCard.primaryChipLabel;
+                if (chipField === DYNAMIC_CHIP_SENTINEL) {
+                  // Universal mode: find the first populated formResponse entry
+                  const entries = Object.entries(v.formResponses || {}).filter(([, val]) => val && String(val).trim() !== '');
+                  if (entries.length > 0) {
+                    const [firstKey, firstVal] = entries[0];
+                    chipValue = String(firstVal);
+                    // Humanise the key: camelCase → Title Case
+                    chipLabel = firstKey.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
+                  }
+                } else if (chipField) {
+                  chipValue = v.formResponses?.[chipField] ?? null;
+                }
+
+                // Itinerary (healthcare)
+                const hasItinerary = industry.uiFlags.showItinerary && Array.isArray(v.itinerary) && v.itinerary.length > 0;
+
                 return (
                   <motion.div 
                     layout
@@ -566,17 +672,18 @@ export default function ServiceDeskToday() {
                     transition={{ duration: 0.2 }}
                     key={v.id} 
                     onClick={() => setSelectedVisit(v)}
-                    className={`bg-card dark:bg-dark-card border ${selectedVisit?.id === v.id ? 'border-primary' : 'border-border dark:border-dark-border'} rounded-xl p-4 flex items-center justify-between relative overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer ${v.source === 'APPOINTMENT' ? 'shadow-[0_0_15px_rgba(14,165,233,0.1)] border-sky-500/20' : 'shadow-[0_0_15px_rgba(16,185,129,0.1)] border-emerald-500/20'}`}
+                    className={`bg-card dark:bg-dark-card border ${selectedVisit?.id === v.id ? 'border-primary' : 'border-border dark:border-dark-border'} rounded-xl p-4 flex flex-col gap-2 relative overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer ${v.source === 'APPOINTMENT' ? 'shadow-[0_0_15px_rgba(14,165,233,0.1)] border-sky-500/20' : 'shadow-[0_0_15px_rgba(16,185,129,0.1)] border-emerald-500/20'}`}
                   >
                     <div className={`absolute left-0 top-0 bottom-0 w-1 ${isUrgent ? 'bg-alert shadow-[0_0_10px_rgba(239,68,68,0.8)]' : 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'}`}></div>
                     
-                      <div className="flex flex-col gap-1 pl-2">
-                        <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center justify-between pl-2">
+                      <div className="flex flex-col gap-1 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
                           <span className={`font-data-mono text-data-mono ${isUrgent ? 'text-alert' : 'text-on-surface dark:text-white'}`}>{v.ticketNumber || `#TKT-${v.id.substring(0,4)}`}</span>
-                          {isUrgent && <span className="font-label-caps text-[10px] bg-alert/10 text-alert px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Urgent</span>}
+                          {isUrgent && <span className="font-label-caps text-[10px] bg-alert/10 text-alert px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">{industry.visitCard.urgencyLabel || 'Urgent'}</span>}
                           {v.priority > 0 && <span className="font-label-caps text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">VIP</span>}
                           {(() => {
-                           if (v.source !== 'APPOINTMENT') return null;
+                           if (v.source !== 'APPOINTMENT' || !industry.uiFlags.highlightArrivalStatus) return null;
                            const sched = v.scheduledFor || v.scheduledTime;
                            if (!sched || !v.waitingStart) return null;
                            const diffMins = (new Date(v.waitingStart).getTime() - new Date(sched).getTime()) / 60000;
@@ -584,26 +691,48 @@ export default function ServiceDeskToday() {
                            if (diffMins > 15) return <span className="font-label-caps text-[10px] bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Late</span>;
                            return null;
                         })()}
+                        {/* Healthcare privacy badge */}
+                        {industry.uiFlags.showPrivacyBadge && <span className="font-label-caps text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider flex items-center gap-0.5"><span className="material-symbols-outlined text-[9px]">lock</span>PHI</span>}
+                        </div>
+                        <h3 className="font-semibold text-body-lg text-on-surface dark:text-white">{v.customer?.name || industry.terminology.walkIn}</h3>
+                        <div className="flex items-center gap-2 text-outline text-body-sm mt-0.5">
+                          <span className="material-symbols-outlined text-[14px]">{v.source === 'APPOINTMENT' ? 'calendar_today' : 'directions_walk'}</span>
+                          <span>{v.service?.name || industry.terminology.service}</span>
+                        </div>
+
+                        {/* Industry-specific chip from form responses */}
+                        {chipValue && (
+                          <div className={`flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-semibold w-fit ${industry.accentBg} ${industry.accentText} border border-current/20`}>
+                            <span className="material-symbols-outlined text-[12px]">{industry.visitCard.primaryChipIcon}</span>
+                            <span className="truncate max-w-[150px]">{chipLabel ? `${chipLabel}: ` : ''}{chipValue}</span>
+                          </div>
+                        )}
+
+                        {/* Healthcare: Accompanying guests chip */}
+                        {industry.uiFlags.showGuestCount && v.accompanyingGuests > 0 && (
+                          <div className="flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium w-fit bg-surface-container text-outline border border-border">
+                            <span className="material-symbols-outlined text-[12px]">group</span>
+                            <span>+{v.accompanyingGuests} accompanying</span>
+                          </div>
+                        )}
+
+                        {/* Multi-step Itinerary Progress (Healthcare) */}
+                        {hasItinerary && <ItineraryProgress itinerary={v.itinerary} />}
                       </div>
-                      <h3 className="font-semibold text-body-lg text-on-surface dark:text-white">{v.customer?.name || 'Walk-in Customer'}</h3>
-                      <div className="flex items-center gap-2 text-outline text-body-sm mt-0.5">
-                        <span className="material-symbols-outlined text-[14px]">{v.source === 'APPOINTMENT' ? 'calendar_today' : 'directions_walk'}</span>
-                        <span>{v.service?.name || 'Consultation'}</span>
+                      
+                      <div className="flex flex-col items-end gap-3 ml-3 shrink-0">
+                        <div className={`flex items-center gap-1.5 font-data-mono text-body-md font-semibold ${isUrgent ? 'text-alert' : 'text-amber-600 dark:text-amber-400'}`}>
+                          <span className="material-symbols-outlined text-[16px]">schedule</span>
+                          {waitTimeMins}m
+                        </div>
+                        <button 
+                          onClick={(e) => handleStart(v.id, e, v.isToken)}
+                          className={`${v.isToken ? 'bg-zinc-600 hover:bg-zinc-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white px-4 py-2 rounded-lg font-medium text-body-sm h-[36px] flex items-center gap-2 transition-colors shadow-sm`}
+                        >
+                          <span className="material-symbols-outlined text-[18px]">campaign</span>
+                          {v.isToken ? 'Queued' : industry.terminology.actionVerb}
+                        </button>
                       </div>
-                    </div>
-                    
-                    <div className="flex flex-col items-end gap-3">
-                      <div className={`flex items-center gap-1.5 font-data-mono text-body-md font-semibold ${isUrgent ? 'text-alert' : 'text-amber-600 dark:text-amber-400'}`}>
-                        <span className="material-symbols-outlined text-[16px]">schedule</span>
-                        {waitTimeMins}m wait
-                      </div>
-                      <button 
-                        onClick={(e) => handleStart(v.id, e, v.isToken)}
-                        className={`${v.isToken ? 'bg-zinc-600 hover:bg-zinc-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white px-4 py-2 rounded-lg font-medium text-body-sm h-[36px] flex items-center gap-2 transition-colors shadow-sm`}
-                      >
-                        <span className="material-symbols-outlined text-[18px]">campaign</span>
-                        {v.isToken ? 'Queued' : 'Call Next'}
-                      </button>
                     </div>
                   </motion.div>
                 );
@@ -612,14 +741,17 @@ export default function ServiceDeskToday() {
           </div>
         </section>
 
-        {/* Column 3: Visitor Context */}
+        {/* Column 3: Visitor/Patient Context Panel */}
         {selectedVisit && (
           <section className="hidden md:flex flex-col col-span-3 bg-card dark:bg-dark-card border-l border-border dark:border-dark-border min-h-0 relative animate-in slide-in-from-right-8">
             <div className="p-3 border-b border-border dark:border-dark-border shrink-0 relative flex flex-col gap-2">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${industry.accentBg} ${industry.accentText}`}>
+                    {industry.terminology.customer}
+                  </span>
                   <h2 className="text-lg text-on-surface dark:text-white font-bold truncate max-w-[150px]">
-                    {selectedVisit.customer?.name || 'Walk-in'}
+                    {selectedVisit.customer?.name || industry.terminology.walkIn}
                   </h2>
                   <span className="font-data-mono text-[11px] text-primary bg-primary/10 px-1.5 py-0.5 rounded font-bold">
                     {selectedVisit.ticketNumber || `#TKT-${selectedVisit.id.substring(0,4)}`}
@@ -644,25 +776,75 @@ export default function ServiceDeskToday() {
               </div>
               
               <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-border/50 text-xs">
+
+                {/* Industry-specific: Show form responses fields prominently */}
+                {(() => {
+                  const cf = industry.visitCard.primaryChipField;
+                  let panelVal: string | null = null;
+                  let panelLabel: string | null = industry.visitCard.primaryChipLabel;
+                  if (cf === DYNAMIC_CHIP_SENTINEL) {
+                    const entries = Object.entries(selectedVisit.formResponses || {}).filter(([, val]) => val && String(val).trim() !== '');
+                    if (entries.length > 0) {
+                      const [firstKey, firstVal] = entries[0];
+                      panelVal = String(firstVal);
+                      panelLabel = firstKey.replace(/([A-Z])/g, ' $1').replace(/^./, (s: string) => s.toUpperCase()).trim();
+                    }
+                  } else if (cf) {
+                    panelVal = selectedVisit.formResponses?.[cf] ?? null;
+                  }
+                  if (!panelVal) return null;
+                  return (
+                    <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${industry.accentBg} border border-current/20`}>
+                      <span className={`material-symbols-outlined text-[14px] ${industry.accentText}`}>{industry.visitCard.primaryChipIcon}</span>
+                      <div className="flex-1">
+                        <div className={`text-[10px] font-bold uppercase tracking-wider ${industry.accentText}`}>{panelLabel}</div>
+                        <div className="text-on-surface dark:text-white font-medium">{panelVal}</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Accompanying guests (hospital, salon, restaurant) */}
+                {industry.uiFlags.showGuestCount && selectedVisit.accompanyingGuests > 0 && (
+                  <div className="flex items-center gap-1 text-outline">
+                    <span className="material-symbols-outlined text-[14px]">group</span>
+                    <span className="font-medium text-on-surface dark:text-white">Accompanying:</span>
+                    <span>{selectedVisit.accompanyingGuests} person{selectedVisit.accompanyingGuests > 1 ? 's' : ''}</span>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-1 text-outline">
                   <span className="font-medium text-on-surface dark:text-white">Service:</span>
-                  <span className="truncate max-w-full">{selectedVisit.service?.name || 'General'}</span>
+                  <span className="truncate max-w-full">{selectedVisit.service?.name || industry.terminology.service}</span>
                 </div>
+
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-on-surface dark:text-white">Provider:</span>
+                  <span className="font-medium text-on-surface dark:text-white">{industry.providerView.providerAssignLabel}:</span>
                   <select 
                     value={selectedVisit.resourceId || ''}
                     onChange={(e) => updateVisitMutation.mutate({ id: selectedVisit.id, resourceId: e.target.value })}
                     className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded text-xs py-1 px-2 flex-1 outline-none"
                   >
-                    <option value="">Unassigned</option>
+                    <option value="">{industry.providerView.unassignedLabel}</option>
                     {resources.map((r: AnyFixMe) => (
                       <option key={r.id} value={r.id}>{r.name}</option>
                     ))}
                   </select>
                 </div>
+
+                {/* Healthcare Itinerary Stepper in right panel */}
+                {industry.uiFlags.showItinerary && Array.isArray(selectedVisit.itinerary) && selectedVisit.itinerary.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-outline mb-1.5">Patient Journey</div>
+                    <ItineraryProgress itinerary={selectedVisit.itinerary} />
+                  </div>
+                )}
                 
-                <InlineNotes visitId={selectedVisit.id} initialNotes={selectedVisit.notes} />
+                <InlineNotes 
+                  visitId={selectedVisit.id} 
+                  initialNotes={selectedVisit.notes} 
+                  placeholder={industry.terminology.notesPlaceholder}
+                />
               </div>
             </div>
 
@@ -693,8 +875,8 @@ export default function ServiceDeskToday() {
                   <div className="w-16 h-16 bg-surface-container dark:bg-zinc-800 rounded-full flex items-center justify-center relative z-10">
                     <span className="material-symbols-outlined text-[32px] text-outline">lock</span>
                   </div>
-                  <h3 className="text-lg font-bold text-on-surface dark:text-white relative z-10">WhatsApp Chat Locked</h3>
-                  <p className="text-body-sm text-outline relative z-10 max-w-[250px]">Upgrade your plan to unlock direct WhatsApp chat with customers.</p>
+                  <h3 className="text-lg font-bold text-on-surface dark:text-white relative z-10">Chat Locked</h3>
+                  <p className="text-body-sm text-outline relative z-10 max-w-[250px]">Upgrade your plan to unlock direct WhatsApp chat with {industry.terminology.customers.toLowerCase()}.</p>
                   <Link href="/dashboard/settings/billing" className="bg-surface-container-high hover:bg-inverse-surface dark:hover:bg-white text-on-surface dark:hover:text-black px-6 py-2 rounded-xl font-bold transition-colors relative z-10 border border-border">
                     Upgrade Plan
                   </Link>

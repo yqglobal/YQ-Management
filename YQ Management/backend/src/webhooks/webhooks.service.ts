@@ -52,17 +52,57 @@ export class WebhooksService {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
 
+        let finalPayload: any = {
+          event: eventName,
+          data: payload,
+          timestamp: new Date(),
+        };
+
+        if (endpoint.payloadFormat === 'FHIR_ENCOUNTER') {
+          // Translate to a simplified FHIR Encounter
+          finalPayload = {
+            resourceType: "Encounter",
+            status: payload.currentState === 'WAITING' ? 'planned' :
+                    payload.currentState === 'ACTIVE' ? 'in-progress' :
+                    payload.currentState === 'COMPLETED' ? 'finished' : 'unknown',
+            class: {
+              system: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+              code: "AMB",
+              display: "ambulatory"
+            },
+            subject: {
+              reference: `Patient/${payload.customerId || 'unknown'}`,
+              display: payload.customerName || "Walk-in"
+            },
+            period: {
+              start: payload.serviceStart || payload.createdAt,
+              end: payload.serviceEnd
+            },
+            location: [
+              {
+                location: {
+                  reference: `Location/${payload.locationId || 'unknown'}`
+                },
+                status: "active"
+              }
+            ],
+            // Include original payload in extension just in case
+            extension: [
+              {
+                url: "http://yq.management/original-event",
+                valueString: JSON.stringify(payload)
+              }
+            ]
+          };
+        }
+
         const res = await fetch(endpoint.url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'x-yq-event': eventName,
           },
-          body: JSON.stringify({
-            event: eventName,
-            data: payload,
-            timestamp: new Date(),
-          }),
+          body: JSON.stringify(finalPayload),
           signal: controller.signal,
         });
 

@@ -4,11 +4,13 @@ import { Save, Loader2, Copy, ExternalLink } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SelectServiceModal } from '../modals/SelectServiceModal';
+import { ALL_INDUSTRY_CONFIGS } from '../../lib/industryConfig';
 
 export default function WorkspaceSettingsPage() {
   const { user, refetch } = useAuth();
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [tenantName, setTenantName] = useState('');
   const [tenantSubdomain, setTenantSubdomain] = useState('');
@@ -17,6 +19,8 @@ export default function WorkspaceSettingsPage() {
   const [subdomainError, setSubdomainError] = useState('');
   const [tenantId, setTenantId] = useState('');
   const [isTvModalOpen, setIsTvModalOpen] = useState(false);
+  const [businessType, setBusinessType] = useState('general');
+  const [savingIndustry, setSavingIndustry] = useState(false);
   
   const [supportEmail, setSupportEmail] = useState('');
   const [supportPhone, setSupportPhone] = useState('');
@@ -44,6 +48,7 @@ export default function WorkspaceSettingsPage() {
           setSupportPhone(currentTenant.supportPhone || '');
           setShowSupportInfo(currentTenant.showSupportInfo ?? true);
           setTenantId(currentTenant.id);
+          setBusinessType(currentTenant.businessType || 'general');
         }
       }).catch(err => console.warn("Failed to fetch tenant details:", err));
     }
@@ -285,6 +290,90 @@ export default function WorkspaceSettingsPage() {
           setIsTvModalOpen(false);
         }}
       />
+
+      {/* Business Category / Industry Template Selector */}
+      <IndustryTemplateCard
+        businessType={businessType}
+        setBusinessType={setBusinessType}
+        tenantId={tenantId || user?.tenantId || ''}
+        queryClient={queryClient}
+      />
+    </div>
+  );
+}
+
+// ── Industry Template Selector (appended after main settings) ─────────────────
+function IndustryTemplateCard({ businessType, setBusinessType, tenantId, queryClient }: {
+  businessType: string;
+  setBusinessType: (v: string) => void;
+  tenantId: string;
+  queryClient: any;
+}) {
+  const [saving, setSaving] = useState(false);
+  const industryList = Object.values(ALL_INDUSTRY_CONFIGS);
+
+  const handleSave = async (newType: string) => {
+    if (!tenantId || newType === businessType) return;
+    setSaving(true);
+    try {
+      await fetchApi(`/tenant/${tenantId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ businessType: newType }),
+      });
+      setBusinessType(newType);
+      queryClient.invalidateQueries({ queryKey: ['tenant', 'me'] });
+      toast.success('Industry template updated! Your dashboard will adapt immediately.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update industry template');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden">
+      <div className="absolute left-0 top-0 bottom-0 w-2 bg-emerald-500"></div>
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-1">
+          <span className="material-symbols-outlined text-emerald-500 text-[22px]">category</span>
+          <h2 className="text-lg font-bold text-on-surface dark:text-white">Business Category</h2>
+          {saving && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+        </div>
+        <p className="text-sm text-on-surface-variant dark:text-zinc-400">
+          Select the industry that best describes your business. This adapts your dashboard terminology, service desk layout, and available features to fit your workflow perfectly.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {industryList.map(cfg => {
+          const isSelected = businessType === cfg.id;
+          return (
+            <button
+              key={cfg.id}
+              onClick={() => handleSave(cfg.id)}
+              disabled={saving}
+              className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center
+                ${isSelected
+                  ? 'border-primary bg-primary/5 shadow-md'
+                  : 'border-border dark:border-dark-border hover:border-primary/50 hover:bg-surface-container'
+                }`}
+            >
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center
+                ${isSelected ? 'bg-primary/10' : 'bg-surface-container'}`}
+              >
+                <span className={`material-symbols-outlined text-[22px] ${isSelected ? 'text-primary' : 'text-outline'}`}>
+                  {cfg.industryIcon}
+                </span>
+              </div>
+              <span className={`text-xs font-semibold ${isSelected ? 'text-primary' : 'text-on-surface dark:text-white'}`}>
+                {cfg.industryLabel}
+              </span>
+              {isSelected && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-white font-bold">Active</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -308,10 +308,32 @@ export class QueueService {
 
   async updateQueueStatus(queueId: string, status: QueueStatus) {
     const queue = await this.prisma.$transaction(async (tx) => {
-      return tx.queue.update({
+      const updatedQueue = await tx.queue.update({
         where: { id: queueId },
         data: { status },
       });
+
+      if (status === 'PAUSED_FOR_EMERGENCY') {
+        const waitingVisits = await tx.visit.findMany({
+          where: { queueId, currentState: 'WAITING' },
+          select: { id: true, tenantId: true }
+        });
+        
+        for (const visit of waitingVisits) {
+          await tx.outboxEvent.create({
+            data: {
+              type: 'QUEUE_EMERGENCY_PAUSED',
+              payload: {
+                visitId: visit.id,
+                queueId,
+                tenantId: visit.tenantId,
+              }
+            }
+          });
+        }
+      }
+
+      return updatedQueue;
     });
 
     try {

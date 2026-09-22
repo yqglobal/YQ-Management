@@ -17,6 +17,7 @@ enum Role {
 enum QueueStatus {
   ACTIVE
   PAUSED
+  PAUSED_FOR_EMERGENCY
   CLOSED
 }
 
@@ -59,6 +60,7 @@ enum AppointmentStatus {
   RESCHEDULED
   MISSED
   PENDING_APPROVAL
+  PENDING_VERIFICATION
   REJECTED
   BLOCKED
 }
@@ -158,6 +160,10 @@ model Tenant {
   communicationLogs CommunicationLog[]
   whatsappTemplates WhatsAppTemplate[]
   checkInOtps       CheckInOtp[]
+
+  strictPrivacyMode Boolean @default(false)
+  // Industry template selected during onboarding — drives UI/UX adaptations across the whole app
+  businessType      String  @default("general") // general | hospital | salon | bank | visa | fastfood | logistics
 }
 
 // OTP sessions for self-serve check-in (no receptionist mode)
@@ -333,6 +339,7 @@ model WebhookEndpoint {
   secret    String?
   events    String[] // Array of event names, e.g. ["TOKEN_COMPLETED", "TOKEN_JOINED"]
   active    Boolean  @default(true)
+  payloadFormat String @default("DEFAULT") // e.g. "DEFAULT", "FHIR_ENCOUNTER", "SALESFORCE"
   createdAt DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -788,6 +795,7 @@ model Visit {
   purpose            String?
   accompanyingGuests Int       @default(0)
   formResponses      Json?
+  itinerary          Json?     // Used for multi-stop patient journeys e.g. [{serviceId: '...', status: 'PENDING'}]
   messages           Message[]
 
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)

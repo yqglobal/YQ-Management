@@ -398,6 +398,7 @@ export class VisitService {
       scheduledFor?: string;
       formResponses?: any;
       accompanyingGuests?: number;
+      itinerary?: any;
     }[];
   }) {
     if (!data.bookings || data.bookings.length === 0) {
@@ -562,6 +563,7 @@ export class VisitService {
             language: data.language || 'en',
             accompanyingGuests: booking.accompanyingGuests || 0,
             formResponses: booking.formResponses || {},
+            itinerary: booking.itinerary || null,
             metadata: {
               customerName: data.customerName,
               phone: data.phone,
@@ -757,27 +759,60 @@ export class VisitService {
         );
       }
 
+      let nextState: any = 'COMPLETED';
+      let nextQueueId = visit.queueId;
+      let nextItinerary = visit.itinerary;
+
+      if (Array.isArray(visit.itinerary)) {
+        const currentIdx = visit.itinerary.findIndex((i: any) => i.status === 'ACTIVE');
+        if (currentIdx !== -1) (visit.itinerary[currentIdx] as any).status = 'COMPLETED';
+        
+        const nextIdx = visit.itinerary.findIndex((i: any) => i.status === 'PENDING');
+        if (nextIdx !== -1) {
+          (visit.itinerary[nextIdx] as any).status = 'ACTIVE';
+          nextQueueId = (visit.itinerary[nextIdx] as any).queueId;
+          nextState = 'WAITING';
+        }
+        nextItinerary = visit.itinerary;
+      }
+
       const updated = await tx.visit.update({
         where: { id },
         data: {
-          currentState: 'COMPLETED',
-          completedAt: new Date(),
+          currentState: nextState,
+          completedAt: nextState === 'COMPLETED' ? new Date() : visit.completedAt,
           serviceEnd: new Date(),
           operatorId: operatorId || visit.operatorId,
           serviceStart: visit.serviceStart || new Date(),
+          itinerary: nextItinerary as any,
+          queueId: nextQueueId,
         },
       });
 
-      await tx.outboxEvent.create({
-        data: {
-          type: 'VISIT_COMPLETED',
-          payload: {
-            visitId: updated.id,
-            queueId: updated.queueId,
-            tenantId: updated.tenantId,
+      if (nextState === 'COMPLETED') {
+        await tx.outboxEvent.create({
+          data: {
+            type: 'VISIT_COMPLETED',
+            payload: {
+              visitId: updated.id,
+              queueId: updated.queueId,
+              tenantId: updated.tenantId,
+            },
           },
-        },
-      });
+        });
+      } else {
+        await tx.outboxEvent.create({
+          data: {
+            type: 'TOKEN_TRANSFERRED',
+            payload: {
+              visitId: updated.id,
+              previousQueueId: visit.queueId,
+              queueId: updated.queueId,
+              tenantId: updated.tenantId,
+            },
+          },
+        });
+      }
 
       return updated;
     });
