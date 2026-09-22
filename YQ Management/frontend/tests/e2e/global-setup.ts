@@ -11,11 +11,7 @@ async function globalSetup() {
   }
 
   const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
+    datasourceUrl: process.env.DATABASE_URL,
   });
 
   try {
@@ -30,16 +26,15 @@ async function globalSetup() {
     console.log('Seeding initial test data...');
     // Seed standard base plans for billing tests
     await prisma.plan.upsert({
-      where: { code: 'TRIAL' },
+      where: { id: 'test-plan-trial' },
       update: {},
       create: {
+        id: 'test-plan-trial',
         name: 'Trial',
-        code: 'TRIAL',
         description: '14 days trial',
         price: 0,
         currency: 'USD',
         interval: 'MONTHLY',
-        stripePriceId: 'test_price_trial',
         features: ['basic'],
         limits: {
           services: 5,
@@ -51,16 +46,15 @@ async function globalSetup() {
     });
 
     await prisma.plan.upsert({
-      where: { code: 'PREMIUM' },
+      where: { id: 'test-plan-premium' },
       update: {},
       create: {
+        id: 'test-plan-premium',
         name: 'Premium',
-        code: 'PREMIUM',
         description: 'Premium Plan',
         price: 99,
         currency: 'USD',
         interval: 'MONTHLY',
-        stripePriceId: 'test_price_premium',
         features: ['premium'],
         limits: {
           services: 50,
@@ -86,8 +80,6 @@ async function globalSetup() {
       update: {},
       create: {
         email: 'admin@e2etest.com',
-        firstName: 'Admin',
-        lastName: 'E2E',
         // In reality, this would be a hashed password, but for E2E we usually 
         // bypass login API or seed a known hash. 
         // We'll use a bypass in test-utils.ts to login via cookie.

@@ -5,10 +5,34 @@ import { fetchApi } from '../../../lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Check, X, Shield, Loader2, BarChart } from 'lucide-react';
 
+interface PlanFeature {
+  whatsappNotifications: boolean;
+  whiteLabel: boolean;
+  advancedAnalytics: boolean;
+}
+
+interface PlanLimit {
+  maxTokens: number;
+  maxQueues: number;
+}
+
+export interface PlanData {
+  id?: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  billingInterval: string;
+  trialDays: number;
+  features: PlanFeature;
+  limits: PlanLimit;
+  active?: boolean;
+}
+
 export default function PricingHub() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
-  const [editingPlan, setEditingPlan] = useState<Record<string, unknown> | null>(null);
+  const [editingPlan, setEditingPlan] = useState<PlanData | null>(null);
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ['plans'],
@@ -16,7 +40,7 @@ export default function PricingHub() {
   });
 
   const savePlanMutation = useMutation({
-    mutationFn: (plan: Record<string, unknown>) => {
+    mutationFn: (plan: PlanData) => {
       const url = plan.id ? `/billing/plans/${plan.id}` : '/billing/plans';
       const method = plan.id ? 'PUT' : 'POST';
       return fetchApi(url, { method, body: JSON.stringify(plan) });
@@ -29,7 +53,7 @@ export default function PricingHub() {
   });
 
   const toggleStatusMutation = useMutation({
-    mutationFn: (plan: Record<string, unknown>) => fetchApi(`/billing/plans/${plan.id}/status`, { 
+    mutationFn: (plan: PlanData) => fetchApi(`/billing/plans/${plan.id}/status`, { 
       method: 'PATCH', 
       body: JSON.stringify({ status: plan.active ? 'inactive' : 'active' }) 
     }),
@@ -43,7 +67,7 @@ export default function PricingHub() {
     }
   };
 
-  const handleEdit = (plan: Record<string, unknown>) => {
+  const handleEdit = (plan: PlanData) => {
     setEditingPlan({
       ...plan,
       features: plan.features || { whatsappNotifications: false, whiteLabel: false, advancedAnalytics: false },
@@ -87,7 +111,7 @@ export default function PricingHub() {
           <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {(plans || []).map((plan: Record<string, unknown>) => (
+            {(plans || []).map((plan: PlanData) => (
               <div key={plan.id as string} className={`rounded-2xl border bg-white dark:bg-zinc-900 overflow-hidden flex flex-col ${!plan.active && 'opacity-60'}`}>
                 <div className="p-6 border-b border-gray-100 dark:border-white/5 relative">
                   <div className="flex justify-between items-start mb-2">
