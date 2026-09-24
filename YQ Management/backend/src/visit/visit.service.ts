@@ -42,10 +42,10 @@ export class VisitService {
     private readonly blockOffService: BlockOffService,
   ) {}
 
-  private async generateNextToken(queueId: string, prefix: string, timezone: string = 'UTC'): Promise<string> {
+  private async generateNextToken(locationId: string, prefix: string, timezone: string = 'UTC'): Promise<string> {
     const zonedNow = toZonedTime(new Date(), timezone);
     const dateStr = zonedNow.toISOString().split('T')[0]; // YYYY-MM-DD
-    const key = `queue:token_seq:${queueId}:${dateStr}`;
+    const key = `queue:token_seq:${locationId}:${prefix}:${dateStr}`;
     const seq = await this.redisService.client.incr(key);
     // Expire the key after 24 hours to prevent memory leak
     if (seq === 1) {
@@ -361,7 +361,7 @@ export class VisitService {
 
       const config = (queue.tokenDisplayConfig as any) || {};
       const prefix = config.prefix || 'Q';
-      const displayId = await this.generateNextToken(queueId, prefix, queue.location?.timezone || 'UTC');
+      const displayId = await this.generateNextToken(locationId, prefix, queue.location?.timezone || 'UTC');
 
       const visit = await tx.visit.create({
         data: {
@@ -495,7 +495,7 @@ export class VisitService {
         const q = await tx.queue.findUnique({ where: { id: queueId }, include: { location: true } });
         const config = (q?.tokenDisplayConfig as any) || {};
         const prefix = config.prefix || 'Q';
-        const displayId = await this.generateNextToken(queueId, prefix, q?.location?.timezone || 'UTC');
+        const displayId = await this.generateNextToken(q?.locationId || 'unknown', prefix, q?.location?.timezone || 'UTC');
 
         let scheduledTime: Date | undefined;
         let currentState = 'WAITING';

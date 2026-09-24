@@ -42,6 +42,7 @@ export class PrismaService
     const adapter = new PrismaPg(pool);
     super({ adapter });
 
+    const self = this;
     this.extendedClient = this.$extends({
       query: {
         $allModels: {
@@ -81,7 +82,7 @@ export class PrismaService
             if (model === 'Customer' && (operation === 'create' || operation === 'update')) {
               const data = (args as any).data;
               const tenantId = (args as any).data?.tenantId || (args as any).where?.tenantId;
-              if (tenantId && await this.isStrictPrivacyEnabled(tenantId)) {
+              if (tenantId && await self.isStrictPrivacyEnabled(tenantId)) {
                 if (data.name) data.name = encryptUtil.encrypt(data.name);
                 if (data.email) data.email = encryptUtil.encrypt(data.email);
                 if (data.phone) data.phone = encryptUtil.encrypt(data.phone);
@@ -90,7 +91,7 @@ export class PrismaService
             if (model === 'Visit' && (operation === 'create' || operation === 'update')) {
               const data = (args as any).data;
               const tenantId = (args as any).data?.tenantId || (args as any).where?.tenantId;
-              if (tenantId && await this.isStrictPrivacyEnabled(tenantId)) {
+              if (tenantId && await self.isStrictPrivacyEnabled(tenantId)) {
                 if (data.notes) data.notes = encryptUtil.encrypt(data.notes);
                 if (data.formResponses) data.formResponses = encryptUtil.encryptJson(data.formResponses);
               }

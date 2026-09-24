@@ -155,6 +155,15 @@ export class OutboxProcessorService implements OnModuleInit {
           payload,
         );
       }
+      
+      // Also broadcast to the tenant-wide room for global lobby displays
+      if (payload.tenantId) {
+        this.queueGateway.broadcastQueueUpdate(
+          payload.tenantId as string,
+          type.toLowerCase(),
+          payload,
+        );
+      }
 
       // 2. Fire tenant webhooks (Enqueue to BullMQ)
       if (payload.tenantId) {

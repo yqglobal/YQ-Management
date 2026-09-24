@@ -64,7 +64,6 @@ export class QueueGateway
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
-  @UseGuards(WsJwtGuard)
   @SubscribeMessage('joinQueueRoom')
   handleJoinQueueRoom(
     @MessageBody() queueId: string,
@@ -75,7 +74,6 @@ export class QueueGateway
     return { event: 'joinedRoom', data: `queue_${queueId}` };
   }
 
-  @UseGuards(WsJwtGuard)
   @SubscribeMessage('joinTenantRoom')
   handleJoinTenantRoom(
     @MessageBody() tenantId: string,

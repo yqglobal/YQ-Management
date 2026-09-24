@@ -14,6 +14,7 @@ interface CalledToken {
   customerName?: string;
   queueName?: string;
   resourceName?: string;
+  currentState?: string;
 }
 
 interface TTSConfig {
@@ -29,6 +30,7 @@ export default function TVDisplay() {
   const [calledTokens, setCalledTokens] = useState<CalledToken[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(false);
   const [ttsConfig, setTtsConfig] = useState<TTSConfig>({
     enabled: true,
     language: 'en-US',
@@ -44,8 +46,10 @@ export default function TVDisplay() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const isMutedRef = useRef(isMuted);
+  const audioEnabledRef = useRef(audioEnabled);
 
   useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
+  useEffect(() => { audioEnabledRef.current = audioEnabled; }, [audioEnabled]);
 
   // Clock
   useEffect(() => {
@@ -67,7 +71,11 @@ export default function TVDisplay() {
       .catch(console.error);
       
     // Fetch recently called tokens to populate history
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/queue/public/${queueId}/recently-called`)
+    const url = queueId 
+      ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/queue/public/${queueId}/recently-called`
+      : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/tenant/public/${tenantId}/recently-called`;
+
+    fetch(url)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -77,12 +85,13 @@ export default function TVDisplay() {
             customerName: d.customer?.name,
             queueName: d.queue?.name,
             resourceName: d.service?.name || d.resourceName,
+            currentState: d.currentState,
           }));
           setCalledTokens(tokens);
         }
       })
       .catch(console.error);
-  }, [queueId]);
+  }, [queueId, tenantId]);
 
   // Fetch tenant TTS config via public endpoint
   useEffect(() => {
@@ -116,7 +125,7 @@ export default function TVDisplay() {
   }, [tenantId]);
 
   const speakAnnouncement = useCallback((token: CalledToken) => {
-    if (isMutedRef.current || !ttsConfig.enabled) return;
+    if (isMutedRef.current || !ttsConfig.enabled || !audioEnabledRef.current) return;
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
     window.speechSynthesis.cancel();
@@ -176,24 +185,32 @@ export default function TVDisplay() {
       }
     });
 
-    socket.on('visit_called', () => {
+    const refreshCalledTokens = () => {
       // Re-fetch recently called to get full Visit objects including customer name and resource
-      if (queueId) {
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/queue/public/${queueId}/recently-called`)
-          .then(r => r.json())
-          .then(data => {
-            if (Array.isArray(data)) {
-              const tokens = data.map((d: any) => ({
-                id: d.id,
-                displayId: d.displayId,
-                customerName: d.customer?.name,
-                queueName: d.queue?.name,
-                resourceName: d.service?.name || d.resourceName,
-              }));
+      const url = queueId 
+        ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/queue/public/${queueId}/recently-called`
+        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/tenant/public/${tenantId}/recently-called`;
 
-              setCalledTokens(prev => {
-                const newMostRecent = tokens[0];
-                if (newMostRecent && (!prev.length || prev[0].id !== newMostRecent.id)) {
+      fetch(url)
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            const tokens = data.map((d: any) => ({
+              id: d.id,
+              displayId: d.displayId,
+              customerName: d.customer?.name,
+              queueName: d.queue?.name,
+              resourceName: d.service?.name || d.resourceName,
+              currentState: d.currentState,
+            }));
+
+            setCalledTokens(prev => {
+              // Find the newest IN_SERVICE token
+              const currentActive = tokens.find((t: any) => t.currentState === 'IN_SERVICE');
+              const prevActive = prev.find((t: any) => t.currentState === 'IN_SERVICE');
+
+              if (currentActive && (!prevActive || prevActive.id !== currentActive.id)) {
+                if (audioEnabledRef.current) {
                   // Play chime
                   try {
                     const audioCtx = new (window.AudioContext || (window as AnyFixMe).webkitAudioContext)();
@@ -214,15 +231,21 @@ export default function TVDisplay() {
                   }
 
                   // TTS: small delay after chime
-                  setTimeout(() => speakAnnouncement(newMostRecent), 800);
+                  setTimeout(() => speakAnnouncement(currentActive), 800);
                 }
-                return tokens;
-              });
-            }
-          })
-          .catch(console.error);
-      }
-    });
+              }
+              return tokens;
+            });
+          }
+        })
+        .catch(console.error);
+    };
+
+    socket.on('visit_called', refreshCalledTokens);
+    socket.on('visit_completed', refreshCalledTokens);
+    socket.on('visit_status_changed', refreshCalledTokens);
+    socket.on('visit_missed', refreshCalledTokens);
+    socket.on('visit_cancelled', refreshCalledTokens);
 
     return () => { socket.disconnect(); };
   }, [tenantId, speakAnnouncement]);
@@ -238,6 +261,9 @@ export default function TVDisplay() {
     ...(queueId && { queueId: queueId as string })
   }).toString()}` : ''}` : '';
 
+  const activeToken = calledTokens.find(t => t.currentState === 'IN_SERVICE');
+  const recentList = calledTokens.filter(t => t.id !== activeToken?.id);
+
   return (
     <div className="w-screen h-screen overflow-hidden bg-zinc-950 p-6 text-white select-none" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <Head>
@@ -250,11 +276,34 @@ export default function TVDisplay() {
           .wave-bar { animation: wave 1.2s ease-in-out infinite; }
           @keyframes wave { 0%, 100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
           .token-flash { animation: tokenFlash 0.6s ease-out; }
-          .token-flash { animation: tokenFlash 0.6s ease-out; }
           @keyframes tokenFlash { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
           :root { --primary-color: ${branding?.primaryColor || '#4f46e5'}; }
         `}</style>
       </Head>
+
+      {!audioEnabled && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center cursor-pointer backdrop-blur-sm"
+          onClick={() => {
+            setAudioEnabled(true);
+            try {
+              const audioCtx = new (window.AudioContext || (window as AnyFixMe).webkitAudioContext)();
+              audioCtx.resume();
+            } catch (e) {}
+            if ('speechSynthesis' in window) {
+              const utterance = new SpeechSynthesisUtterance('');
+              utterance.volume = 0;
+              window.speechSynthesis.speak(utterance);
+            }
+          }}
+        >
+          <div className="bg-zinc-900 border border-zinc-700 p-8 rounded-3xl flex flex-col items-center shadow-2xl">
+            <Volume2 className="w-16 h-16 text-amber-500 mb-4" />
+            <h2 className="text-3xl font-bold text-white mb-2">Click anywhere to start display</h2>
+            <p className="text-zinc-400">Audio announcements require user interaction to begin.</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-12 gap-6 h-full">
         {/* Left Panel — 8 cols */}
@@ -369,15 +418,15 @@ export default function TVDisplay() {
 
           {/* NOW CALLING card */}
           <div className={`rounded-2xl border-2 flex flex-col gap-4 p-6 h-[48%] transition-all duration-500 ${
-            calledTokens.length > 0
+            activeToken
               ? 'bg-amber-950/30 border-amber-500 shadow-[0_0_40px_rgba(245,158,11,0.2)]'
               : 'bg-zinc-900 border-zinc-800'
           }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${calledTokens.length > 0 ? 'bg-amber-500 animate-pulse' : 'bg-zinc-600'}`} />
-                <span className={`text-xs font-bold uppercase tracking-widest ${calledTokens.length > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
-                  {calledTokens.length > 0 ? 'Now Calling' : 'Waiting...'}
+                <span className={`w-2.5 h-2.5 rounded-full ${activeToken ? 'bg-amber-500 animate-pulse' : 'bg-zinc-600'}`} />
+                <span className={`text-xs font-bold uppercase tracking-widest ${activeToken ? 'text-amber-400' : 'text-zinc-500'}`}>
+                  {activeToken ? 'Now Calling' : 'Waiting...'}
                 </span>
               </div>
               {/* TTS Voice Wave */}
@@ -397,22 +446,22 @@ export default function TVDisplay() {
               )}
             </div>
 
-            {calledTokens.length > 0 ? (
+            {activeToken ? (
               <div className="flex flex-col items-center justify-center flex-grow gap-3 token-flash">
                 <div className="text-[72px] font-black text-amber-400 leading-none tabular-nums tracking-tight">
-                  {calledTokens[0].displayId || calledTokens[0].id?.substring(0, 5).toUpperCase()}
+                  {activeToken.displayId || activeToken.id?.substring(0, 5).toUpperCase()}
                 </div>
-                {calledTokens[0].customerName && (
-                  <p className="text-white/60 text-sm">{calledTokens[0].customerName}</p>
+                {activeToken.customerName && (
+                  <p className="text-white/60 text-sm">{activeToken.customerName}</p>
                 )}
                 <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 w-full justify-center mt-2">
                   <span className="text-amber-400">→</span>
                   <span className="text-amber-300 font-bold text-lg">
-                    {calledTokens[0].resourceName || 'Service Desk'}
+                    {activeToken.resourceName || 'Service Desk'}
                   </span>
                 </div>
-                {calledTokens[0].queueName && (
-                  <p className="text-zinc-500 text-xs">{calledTokens[0].queueName}</p>
+                {activeToken.queueName && (
+                  <p className="text-zinc-500 text-xs">{activeToken.queueName}</p>
                 )}
               </div>
             ) : (
@@ -426,11 +475,11 @@ export default function TVDisplay() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex flex-col flex-grow overflow-hidden">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-800">
               <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Recently Called</h3>
-              <span className="text-xs text-zinc-600">{calledTokens.length} total</span>
+              <span className="text-xs text-zinc-600">{recentList.length} total</span>
             </div>
             <div className="flex flex-col gap-2.5 overflow-y-auto flex-grow pr-1">
-              {calledTokens.slice(1).map((t, idx) => (
-                <div key={idx} className="flex items-center justify-between bg-zinc-800/50 rounded-xl px-4 py-3 border border-zinc-800">
+              {recentList.map((t, idx) => (
+                <div key={idx} className="flex items-center justify-between bg-zinc-800/50 rounded-xl px-4 py-3 border border-zinc-800 opacity-70">
                   <div className="flex items-center gap-3">
                     <div className="w-1.5 h-8 bg-zinc-700 rounded-full" />
                     <div>
@@ -440,12 +489,12 @@ export default function TVDisplay() {
                       <div className="text-zinc-500 text-xs">{t.queueName || 'General'}</div>
                     </div>
                   </div>
-                  <span className="text-xs text-zinc-600 bg-zinc-800 px-2.5 py-1 rounded-lg border border-zinc-700">
-                    Called
+                  <span className="text-xs text-zinc-600 bg-zinc-800 px-2.5 py-1 rounded-lg border border-zinc-700 uppercase tracking-widest">
+                    {t.currentState || 'CALLED'}
                   </span>
                 </div>
               ))}
-              {calledTokens.length <= 1 && (
+              {recentList.length === 0 && (
                 <div className="text-center py-8 text-zinc-600 text-sm">No recent calls yet</div>
               )}
             </div>

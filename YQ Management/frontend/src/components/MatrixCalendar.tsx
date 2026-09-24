@@ -176,15 +176,29 @@ function AppointmentCard({
   const colors = STATUS_COLORS[status] || STATUS_COLORS.SCHEDULED;
   const name = apt.customer?.name || apt.customerName || 'Walk-in';
   const isWalkin = apt._type === 'Visit' || apt._type?.includes('Walk-in') || apt.source === 'WALK_IN';
+  
+  // Calculate Start and End Time
+  const startTime = new Date(apt.scheduledStart || apt.scheduledTime || apt.waitingStart || apt.createdAt);
+  let durationMins = 30;
+  if (apt.scheduledStart && apt.scheduledEnd) {
+    durationMins = (new Date(apt.scheduledEnd).getTime() - new Date(apt.scheduledStart).getTime()) / 60000;
+  }
+  const endTime = new Date(startTime.getTime() + durationMins * 60000);
+  const timeStr = `${format(startTime, 'h:mm a')} - ${format(endTime, 'h:mm a')}`;
+
+  // Highlight IN_PROGRESS differently or if we are currently inside its time bounds
+  const now = new Date();
+  const isCurrentlyOngoing = startTime <= now && endTime >= now && status !== 'COMPLETED' && status !== 'CANCELLED';
+  const displayColors = isCurrentlyOngoing ? STATUS_COLORS.IN_PROGRESS : colors;
 
   return (
     <button
       className={`absolute rounded-xl p-2.5 flex flex-col justify-between items-start transition-all
         focus:outline-none focus:ring-2 focus:ring-indigo-400
         hover:shadow-lg hover:scale-[1.01] hover:z-30
-        ${colors.bg} border ${colors.border}
+        ${displayColors.bg} border ${displayColors.border}
         ${isDraggable ? 'cursor-move' : 'cursor-pointer'}
-        ${status === 'COMPLETED' ? 'opacity-60' : ''}
+        ${status === 'COMPLETED' ? 'opacity-60 bg-zinc-100 dark:bg-zinc-900/60 grayscale' : ''}
       `}
       style={{
         left: `${leftPx}px`,
@@ -199,21 +213,24 @@ function AppointmentCard({
         e.dataTransfer.effectAllowed = 'move';
       }}
       onClick={onClick}
-      title={`${name} — ${status}`}
+      title={`${name} — ${status}\n${timeStr}`}
     >
       <div className="flex items-center gap-1.5 w-full overflow-hidden">
-        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${colors.dot}`} />
-        <span className={`text-[10px] font-bold uppercase tracking-widest truncate ${colors.text} opacity-70`}>
+        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${displayColors.dot}`} />
+        <span className={`text-[10px] font-bold uppercase tracking-widest truncate ${displayColors.text} opacity-70`}>
           {isWalkin ? 'Walk-in' : 'Appt'} #{(apt.displayId || apt.id?.slice(0, 4) || '?').toUpperCase()}
         </span>
         {isDraggable && (
           <span className="ml-auto text-zinc-400 dark:text-zinc-600 text-[10px]">⠿</span>
         )}
       </div>
-      <span className={`text-xs font-semibold truncate w-full text-left ${colors.text}`}>{name}</span>
-      {apt.service?.name && (
-        <span className={`text-[10px] truncate w-full text-left opacity-60 ${colors.text}`}>{apt.service.name}</span>
-      )}
+      <span className={`text-xs font-semibold truncate w-full text-left ${displayColors.text}`}>{name}</span>
+      <div className="flex flex-col w-full text-left mt-0.5">
+        <span className={`text-[9px] font-medium truncate w-full opacity-75 ${displayColors.text}`}>{timeStr}</span>
+        {apt.service?.name && (
+          <span className={`text-[9px] truncate w-full opacity-60 ${displayColors.text}`}>{apt.service.name}</span>
+        )}
+      </div>
     </button>
   );
 }
@@ -241,6 +258,7 @@ export function MatrixCalendar({
   showBufferZones?: boolean;
   showWalkins?: boolean;
   rowDensity?: 'compact' | 'normal' | 'expanded';
+  onSelectApt?: (apt: AnyFixMe) => void;
 }) {
   const [now, setNow] = useState<Date | null>(null);
   const [dragOverRow, setDragOverRow] = useState<string | null>(null);
@@ -259,7 +277,8 @@ export function MatrixCalendar({
   useEffect(() => {
     if (now && currentDate.toDateString() === now.toDateString() && scrollRef.current && !hasScrolledRef.current) {
       const nowPx = LEFT_SIDEBAR_WIDTH + minutesToPx(now.getHours() * 60 + now.getMinutes());
-      scrollRef.current.scrollTo({ left: Math.max(0, nowPx - 400), behavior: 'smooth' });
+      // scroll so the current time is slightly offset from the left to show more of the future
+      scrollRef.current.scrollTo({ left: Math.max(0, nowPx - (LEFT_SIDEBAR_WIDTH + 80)), behavior: 'smooth' });
       hasScrolledRef.current = true;
     }
   }, [now, currentDate]);
@@ -398,7 +417,7 @@ export function MatrixCalendar({
           </div>
           {TIMES.map((time, i) => (
             <div key={time} className={`p-3 border-r border-border dark:border-dark-border font-data-mono text-[11px] text-on-surface-variant flex flex-col justify-end ${i % 2 === 0 ? '' : 'border-dashed opacity-60'}`}>
-              {i % 2 === 0 ? time : ''}
+              {time}
             </div>
           ))}
         </div>
@@ -590,6 +609,7 @@ export function MatrixCalendar({
                           widthPx={widthPx}
                           topPx={laneTopPx}
                           isDraggable={isDraggable}
+                          onClick={() => onSelectApt?.(item)}
                         />
                         {/* Buffer zone */}
                         {showBufferZones && row.bufferDuration > 0 && item._type === 'Appointment' && (

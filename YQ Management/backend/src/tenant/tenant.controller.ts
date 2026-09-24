@@ -116,4 +116,10 @@ export class TenantController {
       planFeatures: (tenant as any)?.planFeatures,
     };
   }
+
+  // Public endpoint for live TV display recently called history for an entire tenant
+  @Get('public/:tenantId/recently-called')
+  async getTenantRecentlyCalledTokens(@Param('tenantId') tenantId: string) {
+    return this.tenantService.getTenantRecentlyCalledTokens(tenantId);
+  }
 }

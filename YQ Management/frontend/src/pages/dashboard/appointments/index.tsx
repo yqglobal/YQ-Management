@@ -413,6 +413,7 @@ export default function AppointmentsPage() {
                 showBufferZones={false}
                 showWalkins={true}
                 rowDensity={'normal'}
+                onSelectApt={(apt) => setSelectedVisit(apt)}
               />
             </div>
             {showSidebar && (

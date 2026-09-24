@@ -166,6 +166,23 @@ export class TenantService {
     return tenant;
   }
 
+  async getTenantRecentlyCalledTokens(tenantId: string) {
+    return this.prisma.visit.findMany({
+      where: {
+        tenantId,
+        currentState: { in: ['IN_SERVICE', 'COMPLETED', 'NO_SHOW'] },
+        serviceStart: { not: null },
+      },
+      include: {
+        customer: { select: { name: true } },
+        queue: { select: { name: true } },
+        service: { select: { name: true } },
+      },
+      orderBy: { serviceStart: 'desc' },
+      take: 10,
+    });
+  }
+
   async createTenant(data: {
     name: string;
     subdomain: string;
