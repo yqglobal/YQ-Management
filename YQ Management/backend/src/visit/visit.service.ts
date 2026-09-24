@@ -65,11 +65,15 @@ export class VisitService {
     userTokenPayload: any,
     scope?: 'today' | 'history',
     locationId?: string,
+    queueId?: string,
     tzParam?: string,
   ) {
     const where: any = { tenantId: userTokenPayload.tenantId };
     if (locationId) {
       where.locationId = locationId;
+    }
+    if (queueId) {
+      where.queueId = queueId;
     }
     if (
       userTokenPayload.role === 'OPERATOR' ||

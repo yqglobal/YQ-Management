@@ -48,14 +48,29 @@ export class MessagesService {
         where: { tenantId, customerPhone: { in: phones } },
         orderBy: { lastMessageAt: 'desc' },
         take: 50,
-      });
+      }).then(convos => this.attachCustomerDetails(tenantId, convos));
     }
 
-    return this.prisma.customerConversation.findMany({
+    const convos = await this.prisma.customerConversation.findMany({
       where: { tenantId },
       orderBy: { lastMessageAt: 'desc' },
       take: 50,
     });
+    return this.attachCustomerDetails(tenantId, convos);
+  }
+
+  private async attachCustomerDetails(tenantId: string, convos: any[]) {
+    if (convos.length === 0) return convos;
+    const phones = convos.map(c => c.customerPhone);
+    const customers = await this.prisma.customer.findMany({
+      where: { tenantId, phone: { in: phones } },
+    });
+    const customerMap = new Map(customers.map(c => [c.phone, c]));
+    return convos.map(c => ({
+      ...c,
+      customerName: customerMap.get(c.customerPhone)?.name || null,
+      customerAvatar: customerMap.get(c.customerPhone)?.avatarUrl || null,
+    }));
   }
 
   async getInboxMessages(tenantId: string, phone: string) {

@@ -38,9 +38,10 @@ export class VisitController {
     @Req() req: AuthenticatedRequest,
     @Query('scope') scope?: 'today' | 'history',
     @Query('locationId') locationId?: string,
+    @Query('queueId') queueId?: string,
     @Query('tz') tz?: string,
   ) {
-    return this.visitService.findAll(req.user, scope, locationId, tz);
+    return this.visitService.findAll(req.user, scope, locationId, queueId, tz);
   }
 
   @Get(':id')

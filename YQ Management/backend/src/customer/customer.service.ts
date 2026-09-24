@@ -86,6 +86,13 @@ export class CustomerService {
   async findOne(id: string, tenantId: string) {
     const customer = await this.prisma.extendedClient.customer.findFirst({
       where: { id, tenantId },
+      include: {
+        visits: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          include: { service: true, queue: { include: { location: true } } },
+        }
+      }
     });
     if (!customer) throw new NotFoundException('Customer not found');
     return customer;

@@ -14,12 +14,13 @@ import { useAuth } from '../../../../components/AuthContext';
 import { PremiumFeatureGate } from '../../../../components/PremiumFeatureGate';
 import { CancelBookingModal } from '../../../../components/modals/CancelBookingModal';
 import { QueueBlockOffs } from '../../../../components/settings/QueueBlockOffs';
+import { QueueHistoryTab } from '../../../../components/queue/QueueHistoryTab';
 
 export default function QueueDetails() {
   const router = useRouter();
   const { id } = router.query;
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'board' | 'general' | 'token' | 'appointments' | 'links'>('board');
+  const [activeTab, setActiveTab] = useState<'board' | 'general' | 'token' | 'appointments' | 'links' | 'history'>('board');
   const [selectedToken, setSelectedToken] = useState<AnyFixMe | null>(null);
   const queryClient = useQueryClient();
 
@@ -293,6 +294,12 @@ export default function QueueDetails() {
             onClick={() => setActiveTab('links')}
             icon="link"
             label="Share Links"
+          />
+          <TabButton
+            active={activeTab === 'history'}
+            onClick={() => setActiveTab('history')}
+            icon="history"
+            label="History"
           />
         </div>
 

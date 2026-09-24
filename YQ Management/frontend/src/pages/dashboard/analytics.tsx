@@ -13,6 +13,7 @@ import type { AnalyticsResponse, Customer } from '@yq/shared';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Download, Medal, Star } from 'lucide-react';
+import { CustomerDrawer } from '../../components/CustomerDrawer';
 
 // ── Inline Heatmap Component ──────────────────────────────────────────────────
 function PeakHourHeatmap({ data }: { data: { matrix: number[][]; maxValue: number } }) {
@@ -78,6 +79,7 @@ export default function Analytics() {
   const [activeTab, setActiveTab] = useState<'insights' | 'customers'>('insights');
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerSort, setCustomerSort] = useState<'visits' | 'recent' | 'name'>('visits');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   const timeParam = timeRange === 'Day' ? 'today' : timeRange === 'Week' ? '7d' : timeRange === 'Month' ? '30d' : timeRange === 'All' ? 'all' : 'custom';
   const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
@@ -480,7 +482,7 @@ export default function Analytics() {
                       </thead>
                       <tbody className="divide-y divide-border dark:divide-dark-border">
                         {people.map((person: AnyFixMe) => (
-                          <tr key={person.id} className="hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors">
+                          <tr key={person.id} onClick={() => setSelectedCustomerId(person.id)} className="hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors cursor-pointer">
                             <td className="p-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center font-bold text-primary text-sm shrink-0">
@@ -536,6 +538,7 @@ export default function Analytics() {
           )}
         </div>
       </FeatureGuard>
+      <CustomerDrawer isOpen={!!selectedCustomerId} onClose={() => setSelectedCustomerId(null)} customerId={selectedCustomerId} />
     </AdminLayout>
   );
 }

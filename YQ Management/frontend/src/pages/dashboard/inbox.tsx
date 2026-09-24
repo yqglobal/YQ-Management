@@ -175,8 +175,9 @@ export default function InboxPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <Phone className="w-4 h-4 text-on-surface-variant" />
-                      <span className="font-semibold text-sm">{c.customerPhone}</span>
+                      <span className="font-semibold text-sm truncate">{c.customerName || c.customerPhone}</span>
                     </div>
+                    {c.customerName && <div className="text-[11px] text-on-surface-variant mb-1">{c.customerPhone}</div>}
                     <span className="text-xs text-on-surface-variant">
                       {new Date(c.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
@@ -203,10 +204,12 @@ export default function InboxPage() {
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">{selectedPhone}</h3>
+                    <h3 className="font-semibold">
+                      {filteredConversations.find((c: any) => c.customerPhone === selectedPhone)?.customerName || selectedPhone}
+                    </h3>
                     <p className="text-xs text-on-surface-variant flex items-center gap-1">
                       <CheckCircle className="w-3 h-3 text-emerald-500" />
-                      Human support active
+                      Human support active • {filteredConversations.find((c: any) => c.customerPhone === selectedPhone)?.customerName ? selectedPhone : ''}
                     </p>
                   </div>
                 </div>
