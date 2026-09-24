@@ -98,6 +98,42 @@ export class AnalyticsService {
       { email: string; name: string; served: number; serviceTimeMs: number; ratingSum: number; ratingCount: number; noShows: number }
     >();
 
+    // Pre-populate all services and their linked queues so they show up even with 0 visits
+    const allServices = await this.prisma.service.findMany({
+      where: { tenantId },
+      include: { queues: { select: { id: true, name: true } } },
+    });
+
+    for (const svc of allServices) {
+      const qMap = new Map<
+        string,
+        {
+          name: string;
+          totalWaitMs: number;
+          count: number;
+          violations: number;
+          walkaways: number;
+        }
+      >();
+      for (const q of svc.queues) {
+        qMap.set(q.id, {
+          name: q.name,
+          totalWaitMs: 0,
+          count: 0,
+          violations: 0,
+          walkaways: 0,
+        });
+      }
+      svcMap.set(svc.id, {
+        id: svc.id,
+        name: svc.name,
+        totalWaitMs: 0,
+        count: 0,
+        violations: 0,
+        walkaways: 0,
+        queues: qMap,
+      });
+    }
 
     tokens.forEach((t: any) => {
       const isWalkaway = ['NO_SHOW', 'CANCELLED', 'MISSED'].includes(
