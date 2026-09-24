@@ -610,15 +610,38 @@ export class VisitService {
 
   async advanceTurn(queueId: string, operatorId?: string) {
     return this.prisma.$transaction(async (tx) => {
-      const oldestWaiting = await tx.visit.findFirst({
+      let operatorSkills: string[] = [];
+      if (operatorId) {
+        const user = await tx.user.findUnique({ where: { id: operatorId }, select: { skills: true } });
+        if (user && user.skills) {
+          operatorSkills = user.skills;
+        }
+      }
+
+      const waitingVisits = await tx.visit.findMany({
         where: { queueId, currentState: { in: ['WAITING', 'CHECKED_IN'] } },
         orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+        include: { service: { select: { requiredSkills: true } } }
       });
 
-      if (!oldestWaiting) return null; // Queue is empty
+      if (waitingVisits.length === 0) return null; // Queue is empty
+
+      let selectedVisit = waitingVisits[0];
+
+      // Skill-based matchmaking: Try to find the highest-priority visit that the operator is qualified for
+      if (operatorSkills.length > 0) {
+        const qualifiedVisit = waitingVisits.find(v => {
+          const req = v.service?.requiredSkills || [];
+          if (req.length === 0) return true; // No skills required
+          return req.every(skill => operatorSkills.includes(skill));
+        });
+        if (qualifiedVisit) {
+          selectedVisit = qualifiedVisit;
+        }
+      }
 
       const visit = await tx.visit.update({
-        where: { id: oldestWaiting.id },
+        where: { id: selectedVisit.id },
         data: {
           currentState: 'IN_SERVICE',
           serviceStart: new Date(),
@@ -800,6 +823,21 @@ export class VisitService {
       });
 
       if (nextState === 'COMPLETED') {
+        const actualDurationMs = updated.completedAt!.getTime() - updated.serviceStart!.getTime();
+        const actualDurationMins = Math.max(1, Math.round(actualDurationMs / 60000));
+        
+        const service = await tx.service.findUnique({ where: { id: updated.serviceId } });
+        if (service) {
+          const currentEma = service.emaExpectedDuration || service.expectedDuration || 30;
+          const alpha = 0.2; 
+          const newEma = (actualDurationMins * alpha) + (currentEma * (1 - alpha));
+          
+          await tx.service.update({
+            where: { id: service.id },
+            data: { emaExpectedDuration: parseFloat(newEma.toFixed(2)) }
+          });
+        }
+
         await tx.outboxEvent.create({
           data: {
             type: 'VISIT_COMPLETED',

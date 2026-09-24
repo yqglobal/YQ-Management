@@ -45,6 +45,7 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
   const [status, setStatus] = useState('ACTIVE');
   const [capacity, setCapacity] = useState(1);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [skills, setSkills] = useState('');
   const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE);
 
   const { data: locations = [] } = useQuery({
@@ -79,6 +80,7 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
       setStatus(provider.status || 'ACTIVE');
       setCapacity(provider.capacity ?? 1);
       setSelectedServiceIds(provider.services?.map((s: AnyFixMe) => s.id) || []);
+      setSkills(provider.skills?.join(', ') || '');
       if (provider.weeklySchedule && Array.isArray(provider.weeklySchedule)) {
         setSchedule(provider.weeklySchedule);
       }
@@ -106,6 +108,7 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
       userId: linkedUserId || null, status, capacity,
       serviceIds: selectedServiceIds,
       weeklySchedule: schedule,
+      skills: skills.split(',').map(s => s.trim()).filter(Boolean)
     });
   };
 
@@ -288,6 +291,23 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
               </div>
             </section>
           )}
+
+          <section className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant dark:text-zinc-400 flex items-center gap-2">
+              <Briefcase className="w-3 h-3" /> Skills & Intelligent Routing
+            </h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Provider Skills</label>
+              <input
+                type="text"
+                value={skills}
+                onChange={(e) => setSkills(e.target.value)}
+                placeholder="e.g. Spanish, Pediatric, Advanced Certification (Comma separated)"
+                className="w-full bg-surface-container-lowest dark:bg-black/30 border border-border dark:border-dark-border rounded-xl px-4 py-3 text-sm text-on-surface dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0284C7] transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-600"
+              />
+              <p className="text-xs text-on-surface-variant dark:text-zinc-500 mt-1">Providers with matching skills can be automatically assigned to services requiring these skills.</p>
+            </div>
+          </section>
 
           {/* Weekly availability */}
           <section className="space-y-3">

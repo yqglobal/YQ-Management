@@ -180,6 +180,19 @@ export class OutboxProcessorService implements OnModuleInit {
           removeOnComplete: true,
         });
       }
+
+      // 4. Automated CSAT/NPS Surveys exactly 1 hour later
+      if (type === 'VISIT_COMPLETED') {
+        await this.whatsappQueue.add('process', {
+          type: 'VISIT_CSAT',
+          payload,
+        }, {
+          delay: 60 * 60 * 1000, // 1 hour delay
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 2000 },
+          removeOnComplete: true,
+        });
+      }
       return;
     }
 

@@ -651,6 +651,7 @@ model Service {
   avgActualDurationMins      Int? // Rolling avg from completed visits (auto-updated)
   emaExpectedDuration        Float? // Predictive ML: Exponential Moving Average
   slaPolicyId                String? // Dynamic SLA linking
+  requiredSkills             String[] @default([]) // Skill-based routing requirements
 
   // Cascading Scheduling & Availability
   useLocationHours       Boolean @default(true)

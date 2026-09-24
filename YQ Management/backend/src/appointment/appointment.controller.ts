@@ -23,6 +23,16 @@ import type { AuthenticatedRequest } from '../auth/types/auth.types';
 export class AppointmentController {
   constructor(private readonly appointmentService: AppointmentService) {}
 
+  @Get('available-slots')
+  getAvailableSlots(
+    @Query('tenantId') tenantId: string,
+    @Query('serviceId') serviceId: string,
+    @Query('date') date: string,
+    @Query('locationId') locationId?: string,
+  ) {
+    return this.appointmentService.getAvailableSlots(tenantId, serviceId, date, locationId);
+  }
+
   @Post()
   create(
     @Req() req: AuthenticatedRequest,

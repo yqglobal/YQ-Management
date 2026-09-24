@@ -17,6 +17,7 @@ const settingsNavLinks = [
   { label: 'Team & Security', href: '/dashboard/settings/team', icon: <Shield className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Operations', href: '/dashboard/settings/operations', icon: <Box className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Integrations & Comms', href: '/dashboard/settings/integrations', icon: <Workflow className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'SLA & Automation', href: '/dashboard/settings/sla', icon: <Workflow className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Billing & Usage', href: '/dashboard/settings/billing', icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
 ];
 

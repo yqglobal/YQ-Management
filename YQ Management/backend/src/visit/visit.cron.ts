@@ -21,6 +21,73 @@ export class VisitCron {
    * TODO (future): Store a timezone string on each Location and sweep per-location
    *                rather than using a global UTC time.
    */
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleSlaMonitor() {
+    this.logger.debug('Running SLA Monitor...');
+    
+    try {
+      const waitingVisits = await this.prisma.visit.findMany({
+        where: {
+          currentState: { in: ['WAITING', 'CHECKED_IN'] },
+          slaStatus: { not: 'BREACHED' },
+          service: { slaPolicyId: { not: null } }
+        },
+        include: {
+          service: { include: { slaPolicy: true } },
+          customer: true,
+          tenant: true
+        }
+      });
+
+      for (const visit of waitingVisits) {
+        if (!visit.waitingStart || !visit.service?.slaPolicy) continue;
+
+        const waitTimeMs = Date.now() - new Date(visit.waitingStart).getTime();
+        const waitTimeMins = Math.floor(waitTimeMs / 60000);
+        const policy = visit.service.slaPolicy;
+        
+        let newStatus = visit.slaStatus;
+        if (waitTimeMins >= policy.breachThresholdMins) {
+          newStatus = 'BREACHED';
+        } else if (waitTimeMins >= policy.warningThresholdMins) {
+          newStatus = 'WARNING';
+        }
+
+        if (newStatus !== visit.slaStatus) {
+          await this.prisma.visit.update({
+            where: { id: visit.id },
+            data: { slaStatus: newStatus }
+          });
+
+          this.logger.log(`Visit ${visit.id} SLA status changed to ${newStatus}`);
+
+          await this.prisma.outboxEvent.create({
+            data: {
+              type: 'queue_status_changed',
+              payload: { tenantId: visit.tenantId, queueId: visit.queueId }
+            }
+          });
+
+          // Notify managers on breach
+          if (newStatus === 'BREACHED' && policy.escalationPhones && policy.escalationPhones.length > 0) {
+            const message = `🚨 SLA BREACH: Customer ${visit.customer.name} has been waiting for ${waitTimeMins} mins for ${visit.service.name}.`;
+            for (const phone of policy.escalationPhones) {
+              if (visit.tenant?.whatsappConnected && visit.tenant?.whatsappInstanceId) {
+                try {
+                  await this.whatsappService.sendMessage(visit.tenant.whatsappInstanceId, phone, message);
+                } catch (e) {
+                  this.logger.error(`Failed to send SLA breach alert to ${phone}: ${e}`);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      this.logger.error('Error running SLA monitor', err);
+    }
+  }
+
   @Cron('0 23 * * *') // 23:00 UTC daily — safely past business hours for IST/AEST tenants
   async handleEndOfDaySweeps() {
     this.logger.log('Starting End-of-Day Visit Sweep...');
@@ -301,6 +368,100 @@ export class VisitCron {
       this.logger.log('Appointment Reminders check completed.');
     } catch (error) {
       this.logger.error('Error during Appointment Reminders check:', error);
+    }
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleSlaMonitor() {
+    try {
+      const now = new Date();
+      const waitingVisits = await this.prisma.visit.findMany({
+        where: {
+          currentState: 'WAITING',
+          waitingStart: { not: null },
+          slaStatus: { not: 'BREACHED' },
+          service: { slaPolicyId: { not: null } }
+        },
+        include: {
+          customer: true,
+          service: { include: { slaPolicy: true } },
+          tenant: true
+        }
+      });
+
+      for (const visit of waitingVisits) {
+        const policy = visit.service?.slaPolicy;
+        if (!policy) continue;
+
+        const waitMins = Math.floor((now.getTime() - visit.waitingStart!.getTime()) / 60000);
+        let newStatus = visit.slaStatus;
+
+        if (waitMins >= policy.breachThresholdMins) {
+          newStatus = 'BREACHED';
+        } else if (waitMins >= policy.warningThresholdMins && visit.slaStatus === 'OK') {
+          newStatus = 'WARNING';
+        }
+
+        if (newStatus !== visit.slaStatus) {
+          await this.prisma.visit.update({
+            where: { id: visit.id },
+            data: { slaStatus: newStatus }
+          });
+
+          if (visit.tenant?.whatsappConnected && visit.tenant?.whatsappInstanceId && policy.escalationPhones?.length > 0) {
+            const message = `\u26A0\uFE0F SLA ${newStatus}: Visit ${visit.displayId || visit.id} for ${visit.customer.name} has been waiting for ${waitMins} mins. (Service: ${visit.service.name})`;
+            for (const phone of policy.escalationPhones) {
+              try {
+                await this.whatsappService.sendMessage(visit.tenant.whatsappInstanceId, phone, message);
+              } catch (e) {
+                this.logger.error(`Failed to send SLA alert to ${phone}: ${e}`);
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      this.logger.error('Error during SLA Monitor sweep:', e);
+    }
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleCsatSurveys() {
+    try {
+      const oneHourAgoStart = new Date(Date.now() - 61 * 60000); // 61 mins ago
+      const oneHourAgoEnd = new Date(Date.now() - 60 * 60000);   // 60 mins ago
+
+      const completedVisits = await this.prisma.visit.findMany({
+        where: {
+          currentState: 'COMPLETED',
+          completedAt: { gte: oneHourAgoStart, lte: oneHourAgoEnd },
+          surveySent: false
+        },
+        include: {
+          customer: true,
+          tenant: true
+        }
+      });
+
+      for (const visit of completedVisits) {
+        if (!visit.customer?.phone || !visit.tenant?.whatsappConnected || !visit.tenant?.whatsappInstanceId) {
+          continue;
+        }
+
+        try {
+          const message = `Hi ${visit.customer.name}, thank you for visiting ${visit.tenant.name}! How would you rate your experience today out of 5? (Please reply with a number from 1 to 5)`;
+          await this.whatsappService.sendMessage(visit.tenant.whatsappInstanceId, visit.customer.phone, message);
+
+          await this.prisma.visit.update({
+            where: { id: visit.id },
+            data: { surveySent: true }
+          });
+        } catch (e) {
+          this.logger.error(`Failed to send CSAT survey to ${visit.customer.phone}: ${e}`);
+        }
+      }
+    } catch (e) {
+      this.logger.error('Error during CSAT Survey sweep:', e);
     }
   }
 }

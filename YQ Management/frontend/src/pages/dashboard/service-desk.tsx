@@ -484,9 +484,18 @@ export default function ServiceDeskToday() {
                     {industry.uiFlags.showEmergencyPause && !isPaused && (
                       <button
                         onClick={() => {
-                          if (confirm(`Pause "${q.name}" for emergency? All waiting patients will be notified.`)) {
-                            pauseEmergencyMutation.mutate(q.id);
-                          }
+                          toast('Pause for emergency?', {
+                            description: `All waiting patients in ${q.name} will be notified.`,
+                            action: {
+                              label: 'Pause',
+                              onClick: () => pauseEmergencyMutation.mutate(q.id)
+                            },
+                            cancel: {
+                              label: 'Cancel',
+                              onClick: () => {}
+                            },
+                            duration: 10000,
+                          });
                         }}
                         title="Emergency Pause (Code Blue)"
                         className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 hover:bg-red-200 border border-red-200 dark:border-red-800 rounded-lg transition-colors"

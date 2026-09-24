@@ -17,7 +17,8 @@ export type VisitNotificationType =
   | 'VISIT_CALLED'
   | 'VISIT_CANCELLED'
   | 'VISIT_MISSED'
-  | 'VISIT_COMPLETED';
+  | 'VISIT_COMPLETED'
+  | 'VISIT_CSAT';
 
 /** Minimal payload shape from the outbox event. */
 interface VisitEventPayload {
@@ -83,6 +84,7 @@ export class VisitNotificationService {
       VISIT_CANCELLED: (p) => this.handleVisitCancelled(p),
       VISIT_MISSED:    (p) => this.handleVisitMissed(p),
       VISIT_COMPLETED: (p) => this.handleVisitCompleted(p),
+      VISIT_CSAT:      (p) => this.handleVisitCsat(p),
     };
     return handlers[type] ?? null;
   }
@@ -431,6 +433,56 @@ export class VisitNotificationService {
         });
       } catch (err: any) {
         this.logger.error(`VISIT_COMPLETED: failed to set chat session step 20 — ${err.message}`);
+      }
+    }
+  }
+
+  private async handleVisitCsat(payload: VisitEventPayload) {
+    const visit = await this.fetchVisitCore(payload);
+    if (!this.canSendWhatsApp(visit, 'VISIT_CSAT')) return;
+
+    if (visit.surveySent || visit.rating) {
+      this.logger.log(`VISIT_CSAT: skipping for ${visit.id} — survey already sent or rating already exists`);
+      return;
+    }
+
+    const message = `Hi ${visit.customer.name}, it's been a little while since your visit. 🌟 *How did we do?*\n\nPlease reply with a number from *1 to 5* to rate your experience (5 being excellent). Your feedback is very important to us!`;
+
+    const result = await this.whatsappService.sendMessage(
+      visit.tenant.whatsappInstanceId!,
+      visit.customer.phone!,
+      message,
+    );
+
+    this.logger.log(`CSAT survey sent to ${visit.customer.phone}`);
+
+    await this.communicationLogService.log({
+      tenantId: visit.tenantId,
+      channel: CommunicationChannel.WHATSAPP,
+      type: 'visit_csat',
+      recipient: visit.customer.phone!,
+      body: message,
+      status: result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
+      provider: 'evolution',
+      providerId: (result as any).providerId,
+      errorMessage: result.error,
+    });
+
+    if (result.success) {
+      await this.prisma.visit.update({
+        where: { id: visit.id },
+        data: { surveySent: true },
+      });
+
+      try {
+        const normalizedPhone = this.normalizePhone(visit.customer.phone!);
+        await this.prisma.chatSession.upsert({
+          where: { tenantId_phone: { tenantId: visit.tenantId, phone: normalizedPhone } },
+          update: { step: 20, context: { locationId: visit.locationId } },
+          create: { tenantId: visit.tenantId, phone: normalizedPhone, step: 20, context: { locationId: visit.locationId } },
+        });
+      } catch (err: any) {
+        this.logger.error(`VISIT_CSAT: failed to set chat session step 20 — ${err.message}`);
       }
     }
   }

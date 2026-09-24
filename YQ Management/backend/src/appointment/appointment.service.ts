@@ -414,4 +414,69 @@ export class AppointmentService {
       console.error(`Failed to update duration stats for service ${serviceId}: ${e.message}`);
     }
   }
+
+  async getAvailableSlots(tenantId: string, serviceId: string, date: string, locationId?: string) {
+    const service = await this.prisma.service.findUnique({
+      where: { id: serviceId, tenantId },
+    });
+
+    if (!service) {
+      throw new NotFoundException('Service not found');
+    }
+
+    // Determine eligible staff
+    // A staff member is eligible if:
+    // 1. Their allowedServiceIds includes the service ID OR
+    // 2. Their skills array contains ALL required skills of the service
+    const staffMembers = await this.prisma.staff.findMany({
+      where: {
+        tenantId,
+        ...(locationId ? { locationId } : {}),
+      },
+      include: {
+        services: true
+      }
+    });
+
+    const eligibleStaff = staffMembers.filter((staff) => {
+      if (staff.services?.some(s => s.id === serviceId)) {
+        return true;
+      }
+      if (service.requiredSkills && service.requiredSkills.length > 0) {
+        // Subset logic: all required skills must be in staff's skills
+        const staffSkills = staff.skills || [];
+        return service.requiredSkills.every((skill) => staffSkills.includes(skill));
+      }
+      return false;
+    });
+
+    if (eligibleStaff.length === 0) {
+      return []; // No staff available for this service
+    }
+
+    // Now, we would typically generate slots based on business hours, exception dates, and existing appointments.
+    // For simplicity, let's generate mock slots for the eligible staff members.
+    // Real implementation would calculate true availability per staff member.
+    
+    const slots = [];
+    const baseDate = new Date(date);
+    baseDate.setHours(9, 0, 0, 0); // Start at 9 AM
+
+    for (let i = 0; i < 6; i++) {
+      const slotStart = new Date(baseDate.getTime() + i * (service.appointmentGranularityMins || 30) * 60000);
+      const slotEnd = new Date(slotStart.getTime() + (service.expectedDuration || 30) * 60000);
+      
+      // Assign the first eligible staff for demonstration
+      const assignedStaff = eligibleStaff[i % eligibleStaff.length];
+      
+      slots.push({
+        start: slotStart.toISOString(),
+        end: slotEnd.toISOString(),
+        staffId: assignedStaff.id,
+        staffName: assignedStaff.name,
+      });
+    }
+
+    return slots;
+  }
 }

@@ -47,14 +47,33 @@ export class WebhooksService {
       },
     });
 
+    // Enhance payload with full database context if it's a Visit event
+    let enrichedPayload = { ...payload };
+    if (payload.visitId) {
+      const fullVisit = await this.prisma.visit.findUnique({
+        where: { id: payload.visitId as string },
+        include: {
+          customer: true,
+          location: true,
+          service: true,
+          staff: true,
+        },
+      });
+      if (fullVisit) {
+        enrichedPayload = { ...enrichedPayload, ...fullVisit };
+      }
+    }
+
+    let hasErrors = false;
+
     for (const endpoint of endpoints) {
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
+        const timeout = setTimeout(() => controller.abort(), 10000);
 
         let finalPayload: any = {
           event: eventName,
-          data: payload,
+          data: enrichedPayload,
           timestamp: new Date(),
         };
 
@@ -62,26 +81,27 @@ export class WebhooksService {
           // Translate to a simplified FHIR Encounter
           finalPayload = {
             resourceType: "Encounter",
-            status: payload.currentState === 'WAITING' ? 'planned' :
-                    payload.currentState === 'ACTIVE' ? 'in-progress' :
-                    payload.currentState === 'COMPLETED' ? 'finished' : 'unknown',
+            status: enrichedPayload.currentState === 'WAITING' ? 'planned' :
+                    enrichedPayload.currentState === 'ACTIVE' ? 'in-progress' :
+                    enrichedPayload.currentState === 'COMPLETED' ? 'finished' : 'unknown',
             class: {
               system: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
               code: "AMB",
               display: "ambulatory"
             },
             subject: {
-              reference: `Patient/${payload.customerId || 'unknown'}`,
-              display: payload.customerName || "Walk-in"
+              reference: `Patient/${enrichedPayload.customerId || 'unknown'}`,
+              display: enrichedPayload.customer?.name || enrichedPayload.customerName || "Walk-in"
             },
             period: {
-              start: payload.serviceStart || payload.createdAt,
-              end: payload.serviceEnd
+              start: enrichedPayload.serviceStart || enrichedPayload.createdAt,
+              end: enrichedPayload.serviceEnd
             },
             location: [
               {
                 location: {
-                  reference: `Location/${payload.locationId || 'unknown'}`
+                  reference: `Location/${enrichedPayload.locationId || 'unknown'}`,
+                  display: enrichedPayload.location?.name
                 },
                 status: "active"
               }
@@ -90,7 +110,7 @@ export class WebhooksService {
             extension: [
               {
                 url: "http://yq.management/original-event",
-                valueString: JSON.stringify(payload)
+                valueString: JSON.stringify(enrichedPayload)
               }
             ]
           };
@@ -98,13 +118,13 @@ export class WebhooksService {
           // Translate to a Salesforce custom object (e.g. Visit__c)
           finalPayload = {
             attributes: { type: "Visit__c" },
-            External_ID__c: payload.id,
-            Tenant_ID__c: payload.tenantId,
-            Customer_Name__c: payload.customerName || "Walk-in",
-            Status__c: payload.currentState,
-            Service_ID__c: payload.serviceId,
-            Wait_Time_Mins__c: payload.waitingStart && payload.serviceStart 
-              ? (new Date(payload.serviceStart).getTime() - new Date(payload.waitingStart).getTime()) / 60000 
+            External_ID__c: enrichedPayload.id || enrichedPayload.visitId,
+            Tenant_ID__c: enrichedPayload.tenantId,
+            Customer_Name__c: enrichedPayload.customer?.name || enrichedPayload.customerName || "Walk-in",
+            Status__c: enrichedPayload.currentState,
+            Service_ID__c: enrichedPayload.serviceId,
+            Wait_Time_Mins__c: enrichedPayload.waitingStart && enrichedPayload.serviceStart 
+              ? (new Date(enrichedPayload.serviceStart).getTime() - new Date(enrichedPayload.waitingStart).getTime()) / 60000 
               : 0
           };
         }
@@ -122,14 +142,19 @@ export class WebhooksService {
         clearTimeout(timeout);
 
         if (!res.ok) {
-          throw new BadRequestException(`Webhook responded with ${res.status}`);
+          throw new Error(`Webhook responded with ${res.status}`);
         }
         this.logger.log(
           `Triggered webhook ${eventName} for tenant ${tenantId} at ${endpoint.url}`,
         );
       } catch (error) {
         this.logger.error(`Failed to trigger webhook ${endpoint.url}`, error);
+        hasErrors = true;
       }
+    }
+
+    if (hasErrors) {
+      throw new Error(`One or more webhooks failed to deliver. Triggering BullMQ retry with Exponential Backoff.`);
     }
   }
 }

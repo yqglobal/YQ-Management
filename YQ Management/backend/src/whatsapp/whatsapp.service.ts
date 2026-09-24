@@ -1554,6 +1554,34 @@ export class WhatsappService implements OnModuleInit {
         return { ignored: true };
       }
 
+      // 0) CHECK IF USER IS RESPONDING TO A CSAT SURVEY
+      try {
+        const pendingSurveyVisit = await this.prisma.visit.findFirst({
+          where: {
+            tenantId: tenant.id,
+            customer: { phone },
+            surveySent: true,
+            rating: null,
+            currentState: 'COMPLETED'
+          },
+          orderBy: { completedAt: 'desc' }
+        });
+
+        if (pendingSurveyVisit) {
+          const rating = parseInt(rawText.trim(), 10);
+          if (!isNaN(rating) && rating >= 1 && rating <= 5) {
+             await this.prisma.visit.update({
+               where: { id: pendingSurveyVisit.id },
+               data: { rating }
+             });
+             await this.sendMessage(instanceName, jid, "Thank you for your feedback! We appreciate it.");
+             return { handled: true, action: 'survey_collected' };
+          }
+        }
+      } catch (e) {
+        this.logger.error(`Error processing survey response: ${e}`);
+      }
+
       // 1) ALWAYS LOG INCOMING MESSAGE TO INBOX, REGARDLESS OF CHATBOT SETTINGS
       const conversation = await this.prisma.customerConversation.upsert({
         where: {

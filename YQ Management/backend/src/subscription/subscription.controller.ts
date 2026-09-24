@@ -31,6 +31,7 @@ export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
   @Get('current')
+  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.SUPER_ADMIN, Role.OPERATOR)
   async getCurrent(@Req() req: AuthenticatedRequest) {
     return this.subscriptionService.getSubscription(req.user.tenantId);
   }

@@ -51,6 +51,7 @@ import { GoogleModule } from './integrations/google/google.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { BlogsModule } from './blogs/blogs.module';
 import { PublicCheckinModule } from './public-checkin/public-checkin.module';
+import { SlaPolicyModule } from './sla-policy/sla-policy.module';
 
 @Module({
   imports: [
@@ -139,6 +140,7 @@ import { PublicCheckinModule } from './public-checkin/public-checkin.module';
     MarketingModule,
     BlogsModule,
     PublicCheckinModule,
+    SlaPolicyModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

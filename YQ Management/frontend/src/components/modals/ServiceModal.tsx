@@ -23,6 +23,8 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   const [allowProviderSelection, setAllowProviderSelection] = useState(false);
   const [requireManualCheckIn, setRequireManualCheckIn] = useState(false);
   const [appointmentGranularityMins, setAppointmentGranularityMins] = useState(15);
+  const [slaPolicyId, setSlaPolicyId] = useState<string>('');
+  const [requiredSkills, setRequiredSkills] = useState('');
   const [dateSelectionType, setDateSelectionType] = useState('calendar');
   const [maxDaysInAdvance, setMaxDaysInAdvance] = useState(30);
   const [formConfig, setFormConfig] = useState<AnyFixMe[]>([]);
@@ -45,6 +47,8 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setAllowProviderSelection(service.allowProviderSelection || false);
       setRequireManualCheckIn(service.requireManualCheckIn || false);
       setAppointmentGranularityMins(service.appointmentGranularityMins || 15);
+      setSlaPolicyId(service.slaPolicyId || '');
+      setRequiredSkills(service.requiredSkills?.join(', ') || '');
       setDateSelectionType(service.dateSelectionType || 'calendar');
       setMaxDaysInAdvance(service.maxDaysInAdvance ?? 30);
       let initialFormConfig = service.formConfig || [];
@@ -87,6 +91,8 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setAllowProviderSelection(false);
       setRequireManualCheckIn(false);
       setAppointmentGranularityMins(15);
+      setSlaPolicyId('');
+      setRequiredSkills('');
       setFormConfig([]);
       setUseLocationHours(true);
       setBusinessHoursOverride(null);
@@ -103,6 +109,12 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   const { data: queues = [], isLoading: queuesLoading } = useQuery({
     queryKey: ['queues'],
     queryFn: () => fetchApi('/queue'),
+    enabled: isOpen,
+  });
+
+  const { data: slaPolicies = [] } = useQuery({
+    queryKey: ['sla-policies'],
+    queryFn: () => fetchApi('/sla-policies'),
     enabled: isOpen,
   });
 
@@ -144,6 +156,8 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       allowProviderSelection,
       requireManualCheckIn,
       appointmentGranularityMins,
+      slaPolicyId: slaPolicyId || null,
+      requiredSkills: requiredSkills.split(',').map(s => s.trim()).filter(Boolean),
       dateSelectionType,
       maxDaysInAdvance,
       formConfig,
@@ -226,6 +240,35 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
               onChange={(e) => setExpectedDuration(e.target.value)}
               className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
             />
+          </div>
+
+          <div className="pt-4 border-t border-gray-200 dark:border-white/10 space-y-4">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">Intelligent Routing & SLA</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Required Skills</label>
+              <input
+                type="text"
+                value={requiredSkills}
+                onChange={(e) => setRequiredSkills(e.target.value)}
+                placeholder="e.g. Spanish, Advanced Certification (Comma separated)"
+                className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-600"
+              />
+              <p className="text-xs text-gray-500 dark:text-zinc-500 mt-2">Customers booking this service will only be assigned to staff members possessing these skills.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Service Level Agreement (SLA) Policy</label>
+              <select
+                value={slaPolicyId}
+                onChange={(e) => setSlaPolicyId(e.target.value)}
+                className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+              >
+                <option value="">No SLA Policy</option>
+                {slaPolicies.map((policy: any) => (
+                  <option key={policy.id} value={policy.id}>{policy.name} (Warn: {policy.warningThresholdMins}m, Breach: {policy.breachThresholdMins}m)</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 dark:text-zinc-500 mt-2">Assign an SLA to automatically track wait times and escalate delays.</p>
+            </div>
           </div>
 
           <div className="pt-4 border-t border-gray-200 dark:border-white/10 space-y-4">

@@ -36,7 +36,10 @@ async function bootstrap() {
   app.useWebSocketAdapter(redisIoAdapter);
 
   app.useLogger(app.get(Logger));
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: false,
+    crossOriginOpenerPolicy: false,
+  }));
   app.use(compression());
   app.use(cookieParser());
   app.use(passport.initialize());
