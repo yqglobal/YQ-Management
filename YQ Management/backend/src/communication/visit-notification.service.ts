@@ -117,6 +117,8 @@ export class VisitNotificationService {
         completedAt: true,
         queueId: true,
         createdAt: true,
+        surveySent: true,
+        rating: true,
         customer: { select: { name: true, phone: true } },
         service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true } },
         location: { select: { name: true, googlePlaceId: true } },
@@ -438,7 +440,7 @@ export class VisitNotificationService {
   }
 
   private async handleVisitCsat(payload: VisitEventPayload) {
-    const visit = await this.fetchVisitCore(payload);
+    const visit = await this.fetchVisitBase(payload.visitId!);
     if (!this.canSendWhatsApp(visit, 'VISIT_CSAT')) return;
 
     if (visit.surveySent || visit.rating) {
