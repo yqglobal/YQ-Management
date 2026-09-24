@@ -807,8 +807,7 @@ export default function AdminScanner() {
                           )}
                         </div>
                         
-                        </div>
-                        
+
                         {validationResult.checkedIn && validationResult.checkInTime && (
                           <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-200 dark:border-amber-500/30 mt-4 flex items-center justify-between">
                             <span className="text-amber-800 dark:text-amber-400 font-medium text-sm flex items-center gap-2">
