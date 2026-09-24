@@ -37,6 +37,7 @@ interface ValidationResult {
   isAppointment?: boolean;
   scheduledFor?: string;
   checkedIn?: boolean;
+  checkInTime?: string;
   multipleResults?: ValidationResult[];
 }
 
@@ -252,6 +253,7 @@ export default function AdminScanner() {
             isAppointment: result.isAppointment,
             scheduledFor: result.scheduledFor,
             checkedIn: result.checkedIn,
+            checkInTime: result.checkInTime,
           };
 
           setValidationResult(validationResult);
@@ -405,6 +407,7 @@ export default function AdminScanner() {
         isAppointment: result.isAppointment,
         scheduledFor: result.scheduledFor,
         checkedIn: result.checkedIn,
+        checkInTime: result.checkInTime,
       };
 
       setValidationResult(validationResult);
@@ -466,6 +469,7 @@ export default function AdminScanner() {
         isAppointment: !!result.scheduledTime,
         scheduledFor: result.scheduledTime,
         checkedIn: ['CHECKED_IN', 'WAITING', 'IN_SERVICE'].includes(result.currentState),
+        checkInTime: result.checkInTime,
         serviceBooked: result.service?.name,
         locationName: result.location?.name,
       }));
@@ -708,9 +712,13 @@ export default function AdminScanner() {
                         {validationResult.customerName ? validationResult.customerName.substring(0, 2).toUpperCase() : (validationResult.valid ? <Check strokeWidth={1.5} className="w-8 h-8"/> : <XCircle strokeWidth={1.5} className="w-8 h-8" />)}
                       </div>
                       <div>
-                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mb-2 ${validationResult.valid ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'}`}>
+                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mb-2 ${validationResult.valid ? (validationResult.checkedIn ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400') : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'}`}>
                           {validationResult.valid ? (
-                            <><CheckCircle2 strokeWidth={1.5} className="w-3.5 h-3.5" /> Access Granted</>
+                            validationResult.checkedIn ? (
+                              <><AlertTriangle strokeWidth={1.5} className="w-3.5 h-3.5" /> Already Scanned</>
+                            ) : (
+                              <><CheckCircle2 strokeWidth={1.5} className="w-3.5 h-3.5" /> Access Granted</>
+                            )
                           ) : (
                             <><XCircle strokeWidth={1.5} className="w-3.5 h-3.5" /> Access Denied</>
                           )}
@@ -799,7 +807,21 @@ export default function AdminScanner() {
                           )}
                         </div>
                         
-                        <div className="bg-surface-container-low dark:bg-inverse-surface rounded-xl p-4 border border-border dark:border-dark-border flex justify-between items-center">
+                        </div>
+                        
+                        {validationResult.checkedIn && validationResult.checkInTime && (
+                          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-200 dark:border-amber-500/30 mt-4 flex items-center justify-between">
+                            <span className="text-amber-800 dark:text-amber-400 font-medium text-sm flex items-center gap-2">
+                              <AlertTriangle strokeWidth={1.5} className="w-4 h-4" /> 
+                              Ticket was scanned on:
+                            </span>
+                            <span className="font-bold text-amber-900 dark:text-amber-300">
+                              {new Date(validationResult.checkInTime).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                        
+                        <div className="bg-surface-container-low dark:bg-inverse-surface rounded-xl p-4 border border-border dark:border-dark-border flex justify-between items-center mt-4">
                           <span className="text-outline text-sm font-medium">Token Status</span>
                           <span className={`font-semibold font-data-mono ${validationResult.status === 'WAITING' ? 'text-amber-500' : validationResult.status === 'SERVING' || validationResult.status === 'IN_SERVICE' ? 'text-emerald-500' : validationResult.status === 'MISSED' ? 'text-red-500' : 'text-on-surface dark:text-white'}`}>{validationResult.status}</span>
                         </div>

@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
-import { Sun, Moon, Download, Maximize2, X } from 'lucide-react';
+import { Sun, Moon, Download, Maximize2, X, CheckCircle2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
 const baseUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') : 'http://localhost:3000';
@@ -345,12 +345,20 @@ export default function StatusPage() {
                 </div>
 
                 <div className="flex justify-center mb-4 relative">
-                  <div className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm relative group cursor-pointer" onClick={() => setExpandedVisit(visit)}>
-                    <QRCode value={visit.id} size={100} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
-                    <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Maximize2 className="text-white w-6 h-6" />
+                  {['WAITING', 'CHECKED_IN', 'SERVING', 'COMPLETED'].includes(visit.currentState) ? (
+                    <div className="flex flex-col items-center justify-center p-6 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl w-full text-emerald-700 dark:text-emerald-400">
+                      <CheckCircle2 strokeWidth={1.5} className="w-16 h-16 mb-2" />
+                      <span className="font-bold text-lg">Ticket Scanned</span>
+                      <span className="text-sm opacity-80 mt-1 text-center font-medium">Please wait for your turn</span>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm relative group cursor-pointer" onClick={() => setExpandedVisit(visit)}>
+                      <QRCode value={visit.id} size={100} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                      <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Maximize2 className="text-white w-6 h-6" />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-center gap-2 mb-4">
@@ -461,7 +469,14 @@ export default function StatusPage() {
               </p>
               
               <div className="p-4 bg-white border border-gray-100 rounded-3xl shadow-sm mb-6 w-full flex justify-center">
-                <QRCode value={expandedVisit.id} size={200} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                {['WAITING', 'CHECKED_IN', 'SERVING', 'COMPLETED'].includes(expandedVisit.currentState) ? (
+                  <div className="flex flex-col items-center justify-center p-6 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl w-full text-emerald-700 dark:text-emerald-400">
+                    <CheckCircle2 strokeWidth={1.5} className="w-24 h-24 mb-4" />
+                    <span className="font-bold text-2xl text-center">Ticket Scanned</span>
+                  </div>
+                ) : (
+                  <QRCode value={expandedVisit.id} size={200} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                )}
               </div>
               
               <p className="text-sm text-gray-500 mb-6">Show this QR code to the staff at {expandedVisit.location?.name || 'the service desk'}.</p>

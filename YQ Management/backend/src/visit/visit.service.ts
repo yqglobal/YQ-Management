@@ -1013,7 +1013,8 @@ export class VisitService {
       locationName: visit.queue?.location?.name || 'Unknown Location',
       serviceBooked: visit.service?.name || 'Unknown Service',
       scheduledFor: visit.scheduledTime,
-      checkedIn: visit.currentState !== 'SCHEDULED',
+      checkedIn: visit.currentState !== 'SCHEDULED' && visit.currentState !== 'CREATED',
+      checkInTime: visit.checkInTime,
     };
   }
 
