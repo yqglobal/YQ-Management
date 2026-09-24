@@ -69,7 +69,7 @@ export class MessagesService {
     return convos.map(c => ({
       ...c,
       customerName: customerMap.get(c.customerPhone)?.name || null,
-      customerAvatar: customerMap.get(c.customerPhone)?.avatarUrl || null,
+      customerAvatar: (customerMap.get(c.customerPhone) as any)?.avatarUrl || null,
     }));
   }
 
