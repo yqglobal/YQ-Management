@@ -457,7 +457,7 @@ export default function ServiceDeskToday() {
               <div key={q.id} className={`flex flex-col gap-2 p-3 border rounded-xl shadow-sm transition-all
                 ${isEmergencyPaused ? 'border-red-500/50 bg-red-50 dark:bg-red-950/30' : 'border-border dark:border-dark-border bg-surface-container-low dark:bg-inverse-surface'}
               `}>
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-wrap items-start xl:items-center justify-between gap-3">
                   <div className="flex flex-col min-w-0 flex-1">
                     <div className="font-semibold text-body-md text-on-surface dark:text-white flex items-start sm:items-center gap-2 flex-wrap">
                       <span className="break-words">{q.name}</span>
@@ -479,7 +479,7 @@ export default function ServiceDeskToday() {
                     </div>
                     <span className="text-xs text-outline mt-1">{q._count?.tokens || 0} Waiting</span>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 w-full xl:w-auto mt-1 xl:mt-0 flex-wrap">
                     {/* Emergency Pause button */}
                     {industry.uiFlags.showEmergencyPause && !isPaused && (
                       <button
@@ -557,20 +557,20 @@ export default function ServiceDeskToday() {
 
         {/* Column 2: Pool */}
         <section className={`${mobileTab === 'pool' ? 'flex' : 'hidden'} md:flex md:col-span-1 ${selectedVisit ? 'md:col-span-6' : 'md:col-span-9'} bg-canvas dark:bg-dark-canvas p-4 md:p-6 flex-col min-h-0 overflow-hidden transition-all duration-300`}>
-          <div className="flex items-center justify-between mb-6 shrink-0">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap xl:flex-nowrap items-start xl:items-center justify-between gap-4 mb-6 shrink-0">
+            <div className="flex items-center gap-3 w-full xl:w-auto">
               <h2 className="font-headline-sm text-headline-sm text-on-surface dark:text-white">{industry.serviceDesk.poolTitle}</h2>
               <span className="bg-primary/10 text-primary dark:bg-primary-fixed-dim/20 dark:text-primary-fixed-dim px-2.5 py-0.5 rounded-full font-data-mono text-body-sm font-semibold">{waitingVisits.length}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+              <div className="relative flex-1 min-w-[150px]">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
                 <input 
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={`Search ${industry.terminology.customers.toLowerCase()}...`} 
-                  className="pl-9 pr-4 py-1.5 bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-lg text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full pl-9 pr-4 py-1.5 bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-lg text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                 />
               </div>
               <button onClick={() => setIsScannerOpen(true)} className="bg-surface-container hover:bg-surface-container-high text-on-surface px-3 py-1.5 rounded-lg text-body-sm font-semibold transition-colors flex items-center gap-1 border border-border">
