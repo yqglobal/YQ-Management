@@ -39,6 +39,7 @@ async function bootstrap() {
   app.use(helmet({
     crossOriginResourcePolicy: false,
     crossOriginOpenerPolicy: false,
+    // @ts-expect-error permissionsPolicy may not exist in current @types/helmet
     permissionsPolicy: false,
   }));
   app.use(compression());
