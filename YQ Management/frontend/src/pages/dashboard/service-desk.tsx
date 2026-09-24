@@ -480,12 +480,12 @@ export default function ServiceDeskToday() {
                     <span className="text-xs text-outline mt-1">{q._count?.tokens || 0} Waiting</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {/* Healthcare: Code Blue / Emergency Pause button */}
+                    {/* Emergency Pause button */}
                     {industry.uiFlags.showEmergencyPause && !isPaused && (
                       <button
                         onClick={() => {
                           toast('Pause for emergency?', {
-                            description: `All waiting patients in ${q.name} will be notified.`,
+                            description: `All waiting customers in ${q.name} will be notified.`,
                             action: {
                               label: 'Pause',
                               onClick: () => pauseEmergencyMutation.mutate(q.id)
@@ -497,10 +497,11 @@ export default function ServiceDeskToday() {
                             duration: 10000,
                           });
                         }}
-                        title="Emergency Pause (Code Blue)"
-                        className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 hover:bg-red-200 border border-red-200 dark:border-red-800 rounded-lg transition-colors"
+                        title="Emergency Pause"
+                        className="p-2 bg-red-50 dark:bg-red-950/20 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800/50 rounded-lg transition-colors flex items-center gap-1.5 text-sm font-semibold shadow-sm"
                       >
                         <AlertTriangle className="w-4 h-4" />
+                        Pause
                       </button>
                     )}
                     {!isPaused && (
