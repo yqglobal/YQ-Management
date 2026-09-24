@@ -35,6 +35,14 @@ export function DashboardTour({ canStart = true }: { canStart?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
 
+  // Load saved step from session storage on mount
+  useEffect(() => {
+    const savedStep = sessionStorage.getItem('yq_tour_step');
+    if (savedStep) {
+      setCurrentStep(parseInt(savedStep, 10));
+    }
+  }, []);
+
   useEffect(() => {
     if (!canStart) return;
     const hasSeenTour = localStorage.getItem('yq_has_seen_tour');
@@ -65,7 +73,9 @@ export function DashboardTour({ canStart = true }: { canStart?: boolean }) {
 
   const handleNext = () => {
     if (currentStep < STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
+      const next = currentStep + 1;
+      setCurrentStep(next);
+      sessionStorage.setItem('yq_tour_step', next.toString());
     } else {
       handleClose();
     }
@@ -74,6 +84,7 @@ export function DashboardTour({ canStart = true }: { canStart?: boolean }) {
   const handleClose = () => {
     setIsOpen(false);
     localStorage.setItem('yq_has_seen_tour', 'true');
+    sessionStorage.removeItem('yq_tour_step');
   };
 
   if (!isOpen) return null;
@@ -81,7 +92,7 @@ export function DashboardTour({ canStart = true }: { canStart?: boolean }) {
   const step = STEPS[currentStep];
 
   return (
-    <div className="fixed bottom-6 right-6 z-[200] flex items-end justify-end p-4 pointer-events-none">
+    <div className="fixed bottom-6 right-6 z-[90] flex items-end justify-end p-4 pointer-events-none">
       <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] w-full max-w-sm p-6 pointer-events-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">{step.title}</h3>
