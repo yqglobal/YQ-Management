@@ -150,11 +150,12 @@ export class WhatsappChatbot {
       return { handled: true, isHumanPaused: false };
     }
 
-    // Fallback: If they typed something we didn't understand, prompt them
-    await this.sendMsg(
-      jid,
-      "I didn't understand that. Please reply '0' or 'Hi' to see the main menu.",
-    );
+    // Fallback: If they typed something we didn't understand, reset step and show menu
+    await this.prisma.chatSession.update({
+      where: { id: session.id },
+      data: { step: 0, context: {} },
+    });
+    await this.sendMenu(jid, config);
     return { handled: true, isHumanPaused: false };
   }
 
