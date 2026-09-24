@@ -91,13 +91,6 @@ export class SubscriptionCron {
               },
             );
 
-            this.emailService.sendTrialExpiringEmail(email, days).catch((e) => {
-              this.logger.error(
-                `Failed to send ${days}-day trial reminder email to ${email}`,
-                e,
-              );
-            });
-
             this.logger.log(
               `Sent ${days}-day trial reminder for workspace ${sub.tenantId}`,
             );
@@ -158,16 +151,6 @@ export class SubscriptionCron {
             const email =
               workspaceOwner?.email || adminOwner?.email || 'admin@example.com';
             const planName = sub.plan?.name || 'Standard';
-
-            await this.communicationService.publish(
-              CommunicationEvent.BILLING_TRIAL_ENDING,
-              {
-                email,
-                workspaceName: sub.tenant?.name || 'Your Workspace',
-                daysRemaining: days,
-                tenantId: sub.tenantId,
-              },
-            );
 
             this.emailService
               .sendPlanExpiringEmail(email, planName, days)
