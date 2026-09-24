@@ -39,6 +39,7 @@ async function bootstrap() {
   app.use(helmet({
     crossOriginResourcePolicy: false,
     crossOriginOpenerPolicy: false,
+    permissionsPolicy: false,
   }));
   app.use(compression());
   app.use(cookieParser());
