@@ -5,15 +5,16 @@ import { format } from 'date-fns';
 const HOUR_WIDTH = 240; // px per hour  (= 4px per minute)
 const LEFT_SIDEBAR_WIDTH = 260; // px for the row label
 const ROW_HEIGHT_NORMAL = 108; // px base row height
-const HALF_HOUR_COLS = 48;
+const QUARTER_HOUR_COLS = 96;
 
-// Generate time labels: 12:00 AM → 11:30 PM (48 slots × 30 min)
-const TIMES = Array.from({ length: HALF_HOUR_COLS }, (_, i) => {
-  const hr = Math.floor(i / 2);
-  const min = i % 2 === 0 ? '00' : '30';
+// Generate time labels: 12:00 AM → 11:45 PM (96 slots × 15 min)
+const TIMES = Array.from({ length: QUARTER_HOUR_COLS }, (_, i) => {
+  const hr = Math.floor(i / 4);
+  const min = (i % 4) * 15;
   const ampm = hr < 12 ? 'AM' : 'PM';
   const displayHr = hr === 0 ? 12 : hr > 12 ? hr - 12 : hr;
-  return `${displayHr.toString().padStart(2, '0')}:${min} ${ampm}`;
+  const minStr = min === 0 ? '00' : min.toString();
+  return { time: `${displayHr}:${minStr} ${ampm}`, isHour: min === 0 };
 });
 
 // ------- Helpers -------
@@ -188,7 +189,7 @@ function AppointmentCard({
 
   // Highlight IN_PROGRESS differently or if we are currently inside its time bounds
   const now = new Date();
-  const isCurrentlyOngoing = startTime <= now && endTime >= now && status !== 'COMPLETED' && status !== 'CANCELLED';
+  const isCurrentlyOngoing = status === 'IN_SERVICE' || status === 'IN_PROGRESS' || (startTime <= now && endTime >= now && status !== 'COMPLETED' && status !== 'CANCELLED' && status !== 'MISSED');
   const displayColors = isCurrentlyOngoing ? STATUS_COLORS.IN_PROGRESS : colors;
 
   return (
@@ -247,6 +248,7 @@ export function MatrixCalendar({
   showBufferZones = true,
   showWalkins = true,
   rowDensity = 'normal',
+  onSelectApt,
 }: {
   scheduleData?: ScheduleViewData;
   appointments?: AnyFixMe[];
@@ -278,7 +280,7 @@ export function MatrixCalendar({
     if (now && currentDate.toDateString() === now.toDateString() && scrollRef.current && !hasScrolledRef.current) {
       const nowPx = LEFT_SIDEBAR_WIDTH + minutesToPx(now.getHours() * 60 + now.getMinutes());
       // scroll so the current time is slightly offset from the left to show more of the future
-      scrollRef.current.scrollTo({ left: Math.max(0, nowPx - (LEFT_SIDEBAR_WIDTH + 80)), behavior: 'smooth' });
+      scrollRef.current.scrollTo({ left: Math.max(0, nowPx - (LEFT_SIDEBAR_WIDTH + 20)), behavior: 'smooth' });
       hasScrolledRef.current = true;
     }
   }, [now, currentDate]);
@@ -408,16 +410,21 @@ export function MatrixCalendar({
         {/* Time header */}
         <div
           className="sticky top-0 z-20 bg-card/95 dark:bg-dark-card/95 backdrop-blur-sm border-b border-border dark:border-dark-border"
-          style={{ display: 'grid', gridTemplateColumns: `${LEFT_SIDEBAR_WIDTH}px repeat(${HALF_HOUR_COLS}, ${HOUR_WIDTH / 2}px)` }}
+          style={{ display: 'grid', gridTemplateColumns: `${LEFT_SIDEBAR_WIDTH}px repeat(${QUARTER_HOUR_COLS}, ${HOUR_WIDTH / 4}px)` }}
         >
           <div className="sticky left-0 z-30 bg-card/95 dark:bg-dark-card/95 backdrop-blur-sm border-r border-border dark:border-dark-border p-4 flex items-end">
             <span className="font-label-caps text-label-caps text-on-surface-variant uppercase text-[11px]">
               {format(currentDate, 'EEE, MMM d')}
             </span>
           </div>
-          {TIMES.map((time, i) => (
-            <div key={time} className={`p-3 border-r border-border dark:border-dark-border font-data-mono text-[11px] text-on-surface-variant flex flex-col justify-end ${i % 2 === 0 ? '' : 'border-dashed opacity-60'}`}>
-              {time}
+          {TIMES.map((t, i) => (
+            <div
+              key={t.time}
+              className={`p-1 pl-2 border-r border-border dark:border-dark-border font-data-mono flex flex-col justify-end ${
+                t.isHour ? 'font-semibold text-on-surface text-[11px]' : 'border-dashed text-on-surface-variant opacity-60 text-[9px]'
+              }`}
+            >
+              {t.isHour ? t.time.replace(':00 ', '') : t.time.split(' ')[0]}
             </div>
           ))}
         </div>
@@ -510,7 +517,7 @@ export function MatrixCalendar({
                 {/* Timeline content area */}
                 <div
                   className="relative"
-                  style={{ width: `${HALF_HOUR_COLS * (HOUR_WIDTH / 2)}px` }}
+                  style={{ width: `${QUARTER_HOUR_COLS * (HOUR_WIDTH / 4)}px` }}
                   onDragOver={(e) => {
                     if (onReschedule) { e.preventDefault(); setDragOverRow(row.id); }
                   }}
@@ -588,13 +595,19 @@ export function MatrixCalendar({
 
                   {/* Appointment + walk-in cards */}
                   {allItems.map((item, i) => {
-                    const timeStr = item.scheduledStart || item.scheduledTime || item.waitingStart || item.createdAt;
+                    let timeStr = item.scheduledStart || item.scheduledTime || item.waitingStart || item.createdAt;
+                    if (item._type === 'Visit' && item.serviceStart) {
+                      timeStr = item.serviceStart;
+                    }
                     const startMins = minutesFromMidnight(timeStr);
                     const leftPx = minutesToPx(startMins);
 
                     let durationMins = row.effectiveDurationMins;
                     if (item._type === 'Appointment' && item.scheduledStart && item.scheduledEnd) {
                       durationMins = (new Date(item.scheduledEnd).getTime() - new Date(item.scheduledStart).getTime()) / 60000;
+                    } else if (item._type === 'Visit' && item.serviceStart) {
+                      const end = item.serviceEnd || item.completedAt || new Date().toISOString();
+                      durationMins = Math.max((new Date(end).getTime() - new Date(item.serviceStart).getTime()) / 60000, 15); // min 15m display
                     }
 
                     const widthPx = minutesToPx(Math.max(durationMins, row.effectiveDurationMins));

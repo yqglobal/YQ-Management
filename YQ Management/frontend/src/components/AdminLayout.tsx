@@ -118,6 +118,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     { label: 'Inbox', href: '/dashboard/inbox', icon: 'chat', pageId: 'inbox' },
     { label: 'Schedule', href: '/dashboard/appointments', icon: 'calendar_today', pageId: 'appointments' },
     { label: 'Queues', href: '/dashboard/queues', icon: 'list_alt', pageId: 'service-desk', id: 'tour-queues-nav' },
+    { label: 'History', href: '/dashboard/history', icon: 'history', pageId: 'analytics' },
     { label: 'Analytics', href: '/dashboard/analytics', icon: 'analytics', pageId: 'analytics' },
   ];
 

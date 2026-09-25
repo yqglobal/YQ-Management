@@ -163,7 +163,7 @@ export const fetchApi = async <T = AnyFixMe>(endpoint: string, options: RequestI
       if (response.status === 401) {
         console.warn(`[API Auth Error] [${requestId}] ${options.method || 'GET'} ${endpoint} → 401 Unauthorized`);
         if (router && !redirecting) {
-          const publicPaths = ['/login', '/register', '/auth/', '/_tenant', '/t/'];
+          const publicPaths = ['/login', '/register', '/auth/', '/_tenant', '/t/', '/404'];
           const isPublic = publicPaths.some(p => router.pathname.startsWith(p));
           if (!isPublic) {
             redirecting = true;

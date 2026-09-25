@@ -11,7 +11,7 @@ import { getTenantUrl } from '@/lib/utils';
 export default function QueueDisplay() {
   const router = useRouter();
   const { id } = router.query;
-  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [audioEnabled, setAudioEnabled] = useState(false);
   const [previousServingId, setPreviousServingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -39,6 +39,12 @@ export default function QueueDisplay() {
   const { data: tokens = [], refetch } = useQuery({
     queryKey: ['queueTokens', id],
     queryFn: () => fetchApi(`/queue/public/${id}/tokens`),
+    enabled: !!id,
+  });
+
+  const { data: recentlyCalled = [] } = useQuery({
+    queryKey: ['queueRecentlyCalled', id],
+    queryFn: () => fetchApi(`/queue/public/${id}/recently-called`),
     enabled: !!id,
   });
 
@@ -87,10 +93,16 @@ export default function QueueDisplay() {
     });
     socket.emit('joinQueueRoom', id);
 
-    socket.on('token_joined', () => queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }));
-    socket.on('token_serving', () => queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }));
-    socket.on('token_completed', () => queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }));
-    socket.on('token_missed', () => queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }));
+    socket.on('visit_created', () => { queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }); queryClient.invalidateQueries({ queryKey: ['queueRecentlyCalled', id] }); });
+    socket.on('visit_called', () => { queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }); queryClient.invalidateQueries({ queryKey: ['queueRecentlyCalled', id] }); });
+    socket.on('visit_completed', () => { queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }); queryClient.invalidateQueries({ queryKey: ['queueRecentlyCalled', id] }); });
+    socket.on('visit_missed', () => { queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }); queryClient.invalidateQueries({ queryKey: ['queueRecentlyCalled', id] }); });
+    socket.on('visit_checked_in', () => { queryClient.invalidateQueries({ queryKey: ['queueTokens', id] }); queryClient.invalidateQueries({ queryKey: ['queueRecentlyCalled', id] }); });
+    socket.on('queue_status_changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['queueTokens', id] });
+      queryClient.invalidateQueries({ queryKey: ['queueRecentlyCalled', id] });
+      queryClient.invalidateQueries({ queryKey: ['queue', id] });
+    });
 
     return () => {
       socket.disconnect();
@@ -213,11 +225,27 @@ export default function QueueDisplay() {
                 )}
               </div>
             ) : (
-              <div className="text-center text-zinc-600">
-                <div className="w-16 h-16 rounded-full border-2 border-zinc-700/50 flex items-center justify-center mx-auto mb-6">
-                  <div className="w-2 h-2 rounded-full bg-zinc-600"></div>
-                </div>
-                <p className="text-xl font-bold tracking-widest uppercase">Waiting for next customer</p>
+              <div className="text-center text-zinc-600 animate-in fade-in duration-500">
+                {recentlyCalled.length > 0 ? (
+                  <>
+                    <h3 className="text-xl font-bold tracking-widest uppercase mb-6 text-emerald-500">Recently Processed</h3>
+                    {showTokenNumber && (
+                      <p className="text-6xl font-black text-emerald-400/50 tracking-tight mb-4">
+                        {recentlyCalled[0].displayId || recentlyCalled[0].id.split('-')[0].toUpperCase()}
+                      </p>
+                    )}
+                    {showName && (
+                      <p className="text-2xl text-emerald-400/40 font-medium">{recentlyCalled[0].customer?.name || recentlyCalled[0].customerName}</p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 rounded-full border-2 border-zinc-700/50 flex items-center justify-center mx-auto mb-6">
+                      <div className="w-2 h-2 rounded-full bg-zinc-600"></div>
+                    </div>
+                    <p className="text-xl font-bold tracking-widest uppercase">Waiting for next customer</p>
+                  </>
+                )}
               </div>
             )}
           </div>

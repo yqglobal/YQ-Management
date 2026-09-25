@@ -160,37 +160,23 @@ export class WhatsappChatbot {
   }
 
   private async sendMenu(jid: string, config: any) {
-    const rows = [];
+    const botName = config?.botName || 'Assistant';
+    const welcome = config?.welcomeMessage || 'Hi there! How can I help you today?';
     
-    if (config.quickReplies?.status) {
-      rows.push({ title: 'Check Status', description: 'See your current queue position', rowId: 'check_status' });
-    }
-    rows.push({ title: 'Book Appointment', description: 'Schedule a new visit', rowId: 'book_new' });
-    if (config.quickReplies?.human) {
-      rows.push({ title: 'Chat with Human', description: 'Speak to a support executive', rowId: 'chat_human' });
-    }
-
-    try {
-      await this.sendListMsg(jid, {
-        title: config.botName,
-        description: config.welcomeMessage,
-        buttonText: 'View Options',
-        footerText: 'Powered by YQ',
-        sections: [
-          {
-            title: 'Main Menu',
-            rows
-          }
-        ]
-      });
-    } catch (e) {
-      // Fallback if list message fails (e.g., Baileys limitation on some numbers)
-      let msg = `*${config.botName}*\n\n${config.welcomeMessage}\n\n`;
+    let msg = `*${botName}*\n\n${welcome}\n\n`;
+    
+    const quickReplies = config?.quickReplies || { status: true, cancel: true, human: true };
+    
+    if (quickReplies.status !== false) {
       msg += `1. Check Status\n`;
-      msg += `2. Chat with Human\n`;
-      msg += `3. Book an Appointment\n`;
-      await this.sendMsg(jid, msg);
     }
+    msg += `3. Book an Appointment\n`;
+    if (quickReplies.human !== false) {
+      msg += `2. Chat with Human\n`;
+    }
+    msg += `\nReply with a number to proceed.`;
+    
+    await this.sendMsg(jid, msg);
   }
 
   /**

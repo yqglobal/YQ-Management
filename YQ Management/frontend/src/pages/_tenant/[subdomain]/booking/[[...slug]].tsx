@@ -917,13 +917,13 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                                 const d = String(date.getDate()).padStart(2, '0');
                                 return availableDatesMap[key].includes(`${yr}-${mo}-${d}`);
                               }}
-                              minDate={new Date()}
-                              maxDate={(() => {
+                              minDate={React.useMemo(() => new Date(), [])}
+                              maxDate={React.useMemo(() => {
                                 const maxDays = currentService.maxDaysInAdvance ?? 30;
                                 const d = new Date();
                                 d.setDate(d.getDate() + maxDays);
                                 return d;
-                              })()}
+                              }, [currentService.maxDaysInAdvance])}
                               inline
                               calendarClassName="custom-calendar-container border border-gray-200 dark:border-zinc-800 rounded-xl w-full"
                             />

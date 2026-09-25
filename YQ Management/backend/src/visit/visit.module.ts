@@ -10,6 +10,7 @@ import { TokenController } from './token.controller';
 import { CommunicationModule } from '../communication/communication.module';
 import { ServiceModule } from '../service/service.module';
 import { BlockOffModule } from '../block-off/block-off.module';
+import { VisitStepModule } from '../visit-step/visit-step.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { BlockOffModule } from '../block-off/block-off.module';
     forwardRef(() => CommunicationModule),
     forwardRef(() => ServiceModule),
     forwardRef(() => BlockOffModule),
+    VisitStepModule,
   ],
   providers: [VisitService, VisitCron],
   controllers: [VisitController, PublicVisitController, TokenController],

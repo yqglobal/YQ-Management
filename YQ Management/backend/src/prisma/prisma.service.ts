@@ -18,20 +18,6 @@ export class PrismaService
 
   private tenantPrivacyCache = new Map<string, { strictPrivacyMode: boolean; expiresAt: number }>();
 
-  private async isStrictPrivacyEnabled(tenantId: string): Promise<boolean> {
-    if (!tenantId) return false;
-    const now = Date.now();
-    const cached = this.tenantPrivacyCache.get(tenantId);
-    if (cached && cached.expiresAt > now) {
-      return cached.strictPrivacyMode;
-    }
-    // Perform a raw query to avoid interceptor loops
-    const res: any = await this.$queryRaw`SELECT "strictPrivacyMode" FROM "Tenant" WHERE id = ${tenantId} LIMIT 1`;
-    const mode = res && res.length > 0 ? res[0].strictPrivacyMode : false;
-    this.tenantPrivacyCache.set(tenantId, { strictPrivacyMode: mode, expiresAt: now + 60000 }); // Cache for 1 minute
-    return mode;
-  }
-
   constructor() {
     const connectionString = process.env.DATABASE_URL;
     const pool = new Pool({
@@ -41,6 +27,21 @@ export class PrismaService
     });
     const adapter = new PrismaPg(pool);
     super({ adapter });
+
+    const tenantPrivacyCache = this.tenantPrivacyCache;
+    const isStrictPrivacyEnabled = async (tenantId: string): Promise<boolean> => {
+      if (!tenantId) return false;
+      const now = Date.now();
+      const cached = tenantPrivacyCache.get(tenantId);
+      if (cached && cached.expiresAt > now) {
+        return cached.strictPrivacyMode;
+      }
+      // Perform a raw query to avoid interceptor loops
+      const res: any = await this.$queryRaw`SELECT "strictPrivacyMode" FROM "Tenant" WHERE id = ${tenantId} LIMIT 1`;
+      const mode = res && res.length > 0 ? res[0].strictPrivacyMode : false;
+      tenantPrivacyCache.set(tenantId, { strictPrivacyMode: mode, expiresAt: now + 60000 });
+      return mode;
+    };
 
     const self = this;
     this.extendedClient = this.$extends({
@@ -82,7 +83,7 @@ export class PrismaService
             if (model === 'Customer' && (operation === 'create' || operation === 'update')) {
               const data = (args as any).data;
               const tenantId = (args as any).data?.tenantId || (args as any).where?.tenantId;
-              if (tenantId && await self.isStrictPrivacyEnabled(tenantId)) {
+              if (tenantId && await isStrictPrivacyEnabled(tenantId)) {
                 if (data.name) data.name = encryptUtil.encrypt(data.name);
                 if (data.email) data.email = encryptUtil.encrypt(data.email);
                 if (data.phone) data.phone = encryptUtil.encrypt(data.phone);
@@ -91,7 +92,7 @@ export class PrismaService
             if (model === 'Visit' && (operation === 'create' || operation === 'update')) {
               const data = (args as any).data;
               const tenantId = (args as any).data?.tenantId || (args as any).where?.tenantId;
-              if (tenantId && await self.isStrictPrivacyEnabled(tenantId)) {
+              if (tenantId && await isStrictPrivacyEnabled(tenantId)) {
                 if (data.notes) data.notes = encryptUtil.encrypt(data.notes);
                 if (data.formResponses) data.formResponses = encryptUtil.encryptJson(data.formResponses);
               }

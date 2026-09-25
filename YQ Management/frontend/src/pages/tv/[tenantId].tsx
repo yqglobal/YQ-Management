@@ -489,8 +489,14 @@ export default function TVDisplay() {
                       <div className="text-zinc-500 text-xs">{t.queueName || 'General'}</div>
                     </div>
                   </div>
-                  <span className="text-xs text-zinc-600 bg-zinc-800 px-2.5 py-1 rounded-lg border border-zinc-700 uppercase tracking-widest">
-                    {t.currentState || 'CALLED'}
+                  <span className={`text-xs px-2.5 py-1 rounded-lg border uppercase tracking-widest ${
+                    t.currentState === 'COMPLETED' ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' :
+                    t.currentState === 'IN_SERVICE' ? 'text-amber-500 bg-amber-500/10 border-amber-500/20' :
+                    'text-zinc-600 bg-zinc-800 border-zinc-700'
+                  }`}>
+                    {t.currentState === 'COMPLETED' ? 'PROCESSED' :
+                     t.currentState === 'IN_SERVICE' ? 'IN PROGRESS' :
+                     t.currentState || 'CALLED'}
                   </span>
                 </div>
               ))}

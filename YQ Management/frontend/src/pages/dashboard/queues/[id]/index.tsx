@@ -656,6 +656,10 @@ export default function QueueDetails() {
               </div>
             );
           })()}
+
+          {activeTab === 'history' && (
+            <QueueHistoryTab queueId={id as string} />
+          )}
         </div>
       </div>
     </AdminLayout>

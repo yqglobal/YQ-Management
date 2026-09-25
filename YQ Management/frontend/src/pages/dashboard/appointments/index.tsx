@@ -462,7 +462,8 @@ export default function AppointmentsPage() {
                               return (
                                 <tr
                                   key={apt.id}
-                                  className={`hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors ${isCancelled ? 'opacity-60' : ''}`}
+                                  onClick={() => setSelectedVisit(apt)}
+                                  className={`hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors cursor-pointer ${isCancelled ? 'opacity-60' : ''}`}
                                 >
                                   <td className="px-6 py-4 text-sm font-data-mono text-on-surface dark:text-white">
                                     {format(d, 'h:mm a')}

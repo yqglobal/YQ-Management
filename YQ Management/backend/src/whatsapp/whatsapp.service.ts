@@ -1488,6 +1488,7 @@ export class WhatsappService implements OnModuleInit {
       const jid = payload.data.key?.remoteJid;
       const fromMe = payload.data.key?.fromMe;
       const messageId = payload.data.key?.id;
+      const pushName = payload.data.pushName;
 
       if (fromMe || !jid || jid.includes('@g.us')) {
         this.logger.debug(`Ignoring outgoing or group message from ${jid}`);
@@ -1700,7 +1701,8 @@ export class WhatsappService implements OnModuleInit {
             });
           },
           async (jidToSend, listPayload) => {
-            await this.sendListMessage(instanceName, jidToSend, listPayload);
+            const res = await this.sendListMessage(instanceName, jidToSend, listPayload);
+            if (!res.success) throw new Error(res.error || 'Failed to send list message');
             // Log outgoing bot list message to Inbox as text summary
             await this.prisma.message.create({
               data: {

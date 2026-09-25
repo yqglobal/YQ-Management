@@ -7,7 +7,7 @@ import { GetServerSideProps } from 'next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../../lib/api';
 import { t } from '../../../../lib/i18n';
-import { MapPin, Clock, Info, XCircle, CalendarCheck, Star } from 'lucide-react';
+import { MapPin, Clock, Info, XCircle, CalendarCheck, Star, CheckCircle, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
 
@@ -392,6 +392,85 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
             )}
           </AnimatePresence>
         </motion.div>
+
+        {/* Wayfinding Journey */}
+        {token?.visitSteps && token.visitSteps.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm mb-6"
+          >
+            <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-indigo-500" />
+              Your Service Journey
+            </h3>
+            <div className="relative">
+              {/* Vertical line connecting steps */}
+              <div className="absolute left-[15px] top-4 bottom-8 w-0.5 bg-gray-100 z-0" />
+              
+              <div className="flex flex-col gap-6 relative z-10">
+                {token.visitSteps.map((step: any, idx: number) => {
+                  const isActive = step.status === 'ACTIVE' || step.status === 'UNLOCKED';
+                  const isCompleted = step.status === 'COMPLETED';
+                  const isSkipped = step.status === 'SKIPPED';
+                  const isPending = step.status === 'PENDING' || step.status === 'LOCKED';
+                  
+                  return (
+                    <div key={step.id} className={`flex gap-4 ${isSkipped ? 'opacity-40' : ''}`}>
+                      <div className="shrink-0 mt-1 relative z-10 bg-white">
+                        {isCompleted ? (
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <CheckCircle className="w-5 h-5 text-emerald-600" />
+                          </div>
+                        ) : isActive ? (
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center border-2 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]">
+                            <ArrowRight className="w-4 h-4 text-indigo-600" />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gray-50 border-2 border-gray-200 flex items-center justify-center">
+                            <div className="w-2 h-2 rounded-full bg-gray-300" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className={`flex-1 ${isActive ? '' : 'pt-1'}`}>
+                        <div className="flex justify-between items-start mb-1">
+                          <h4 className={`font-semibold ${isActive ? 'text-indigo-900' : isCompleted ? 'text-gray-900' : 'text-gray-500'}`}>
+                            {step.name}
+                          </h4>
+                          <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${isActive ? 'bg-indigo-100 text-indigo-700' : isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                            {step.status}
+                          </span>
+                        </div>
+                        
+                        {isActive && (
+                          <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            className="bg-indigo-50 rounded-xl p-4 mt-3 border border-indigo-100"
+                          >
+                            {step.templateStep?.locationDescription && (
+                              <div className="flex items-start gap-2 text-indigo-900 font-medium mb-2">
+                                <MapPin className="w-4 h-4 mt-0.5 text-indigo-500 shrink-0" />
+                                <span>{step.templateStep.locationDescription}</span>
+                              </div>
+                            )}
+                            {step.templateStep?.customerInstruction && (
+                              <div className="flex items-start gap-2 text-indigo-800 text-sm">
+                                <Info className="w-4 h-4 mt-0.5 text-indigo-500 shrink-0" />
+                                <span>{step.templateStep.customerInstruction}</span>
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Info Box */}
         <AnimatePresence>

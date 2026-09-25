@@ -20,6 +20,7 @@ import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 import { ServiceService } from '../service/service.service';
 import { BlockOffService } from '../block-off/block-off.service';
+import { VisitStepService } from '../visit-step/visit-step.service';
 
 @Injectable()
 export class VisitService {
@@ -40,7 +41,9 @@ export class VisitService {
     private readonly serviceService: ServiceService,
     @Inject(forwardRef(() => BlockOffService))
     private readonly blockOffService: BlockOffService,
+    private readonly visitStepService: VisitStepService,
   ) {}
+
 
   private async generateNextToken(locationId: string, prefix: string, timezone: string = 'UTC'): Promise<string> {
     const zonedNow = toZonedTime(new Date(), timezone);
@@ -330,7 +333,7 @@ export class VisitService {
     if (!locationId)
       throw new BadRequestException('Queue is not assigned to a Location');
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // FIX (2C): Check subscription visit quota before creating a new visit
       const tz = queue.location?.timezone || 'UTC';
       const zonedNow = toZonedTime(new Date(), tz);
@@ -399,6 +402,17 @@ export class VisitService {
 
       return visit;
     });
+
+    if (result.serviceId) {
+      await this.visitStepService.instantiateStepsForVisit(
+        result.tenantId,
+        result.id,
+        result.serviceId,
+        { accompanyingGuests: result.accompanyingGuests || 0 }
+      );
+    }
+
+    return result;
   }
 
   async joinMultiple(data: {
@@ -608,6 +622,18 @@ export class VisitService {
     this.redisService.client.publish('outbox_events', 'WAKE_UP').catch(e => 
       console.error('Failed to publish outbox wake-up event', e)
     );
+
+    // Instantiate SEF steps for each created visit
+    for (const v of result) {
+      if (v.serviceId) {
+        await this.visitStepService.instantiateStepsForVisit(
+          v.tenantId,
+          v.id,
+          v.serviceId,
+          { accompanyingGuests: v.accompanyingGuests || 0 }
+        );
+      }
+    }
 
     return result;
   }

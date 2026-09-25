@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Phone, Mail, Calendar, Hash, User } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
+import { VisitDrawer } from './VisitDrawer';
 
 interface CustomerDrawerProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface CustomerDrawerProps {
 }
 
 export function CustomerDrawer({ isOpen, onClose, customerId }: CustomerDrawerProps) {
+  const [selectedVisit, setSelectedVisit] = React.useState<any>(null);
+
   const { data: customer, isLoading } = useQuery({
     queryKey: ['customer', customerId],
     queryFn: () => {
@@ -97,7 +100,11 @@ export function CustomerDrawer({ isOpen, onClose, customerId }: CustomerDrawerPr
                     <p className="text-sm text-gray-500 text-center py-4">No visits found</p>
                   ) : (
                     customer.visits.map((v: any) => (
-                      <div key={v.id} className="p-4 rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-sm relative overflow-hidden">
+                      <div 
+                        key={v.id} 
+                        onClick={() => setSelectedVisit(v)}
+                        className="p-4 rounded-xl border border-gray-100 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-sm relative overflow-hidden cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                      >
                         <div className={`absolute top-0 left-0 w-1 h-full ${
                           v.currentState === 'COMPLETED' ? 'bg-emerald-500' :
                           v.currentState === 'MISSED' ? 'bg-amber-500' :
@@ -115,18 +122,36 @@ export function CustomerDrawer({ isOpen, onClose, customerId }: CustomerDrawerPr
                             {v.currentState}
                           </span>
                         </div>
-                        <div className="pl-2 space-y-1">
-                          <div className="text-xs text-gray-500 flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5" /> 
-                            {new Date(v.createdAt).toLocaleDateString()} at {new Date(v.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <div className="pl-2 space-y-2 mt-2">
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5" /> 
+                              {v.scheduledTime 
+                                ? `Booked for ${new Date(v.scheduledTime).toLocaleDateString()} at ${new Date(v.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                : `Created ${new Date(v.createdAt).toLocaleDateString()} at ${new Date(v.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                              }
+                            </div>
                           </div>
+                          
                           <div className="text-xs text-gray-500 flex items-center gap-1">
                             <Hash className="w-3.5 h-3.5" /> 
                             Queue: {v.queue?.name || 'Unknown'} {v.queue?.location?.name ? `(${v.queue.location.name})` : ''}
                           </div>
+
+                          {v.formResponses && Object.keys(v.formResponses).length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-gray-100 dark:border-white/5 space-y-1">
+                              {Object.entries(v.formResponses).map(([key, value]) => (
+                                <div key={key} className="flex flex-col">
+                                  <span className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                  <span className="text-xs text-gray-700 dark:text-gray-300">{String(value)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
                           {v.completedAt && (
-                            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-2 font-medium">
-                              Completed on {new Date(v.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            <div className="text-[11px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 p-2 rounded mt-2 border border-emerald-100 dark:border-emerald-500/20">
+                              <span className="font-semibold">Finished Service:</span> {new Date(v.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} on {new Date(v.completedAt).toLocaleDateString()}
                             </div>
                           )}
                         </div>
@@ -139,6 +164,13 @@ export function CustomerDrawer({ isOpen, onClose, customerId }: CustomerDrawerPr
           )}
         </div>
       </div>
+
+      {/* Render VisitDrawer on top */}
+      <VisitDrawer 
+        isOpen={!!selectedVisit} 
+        onClose={() => setSelectedVisit(null)} 
+        visit={selectedVisit} 
+      />
     </>
   );
 }

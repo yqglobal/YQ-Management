@@ -1,0 +1,595 @@
+/**
+ * Industry Flow Templates
+ * Ready-made multi-stage journey blueprints for common business types.
+ */
+
+export interface StepTemplateData {
+  stepOrder: number;
+  name: string;
+  description?: string;
+  type: string;
+  trigger: string;
+  isOptional?: boolean;
+  requiresQrScan?: boolean;
+  requiresStaffAction?: boolean;
+  deferredByDays?: number;
+  deferredByHours?: number;
+  entitlementUnit?: string;
+  entitlementFormula?: string;
+  entitlementFixed?: number;
+  allowPartialRedemption?: boolean;
+  preventDoubleRedemption?: boolean;
+  customerInstruction?: string;
+  staffInstruction?: string;
+  locationDescription?: string;
+  notifyCustomerOnActivation?: boolean;
+  outcomeOptions?: string[];
+  stepPrice?: number;
+  isPriceVariable?: boolean;
+}
+
+export interface FlowTemplate {
+  key: string;
+  name: string;
+  description: string;
+  businessTypes: string[];
+  steps: StepTemplateData[];
+}
+
+export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
+  // ── HOSPITAL / CLINIC ───────────────────────────────────────────────────────
+  {
+    key: 'hospital_consultation',
+    name: 'Hospital Consultation Journey',
+    description: 'Full outpatient consultation flow: registration → vitals → doctor → billing → pharmacy',
+    businessTypes: ['hospital', 'clinic', 'medical'],
+    steps: [
+      {
+        stepOrder: 1,
+        name: 'Registration & Check-In',
+        description: 'Patient arrives and checks in at reception',
+        type: 'CHECKPOINT',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: true,
+        requiresStaffAction: true,
+        customerInstruction: 'Please present your QR code at the reception desk.',
+        staffInstruction: 'Verify patient details and confirm appointment.',
+        locationDescription: 'Ground Floor – Reception Desk',
+        notifyCustomerOnActivation: true,
+      },
+      {
+        stepOrder: 2,
+        name: 'Vitals & Triage',
+        description: 'Nurse records vitals before doctor consultation',
+        type: 'SERVICE',
+        trigger: 'AUTOMATIC',
+        requiresQrScan: false,
+        requiresStaffAction: true,
+        customerInstruction: 'Please proceed to the nursing station for vitals.',
+        staffInstruction: 'Record BP, temp, weight, and oxygen levels.',
+        locationDescription: 'Ground Floor – Nursing Station, Room N1',
+        outcomeOptions: ['Vitals Normal', 'Vitals Abnormal – Priority', 'Referred to Emergency'],
+        notifyCustomerOnActivation: true,
+      },
+      {
+        stepOrder: 3,
+        name: 'Doctor Consultation',
+        description: 'Primary consultation with assigned doctor',
+        type: 'SERVICE',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: false,
+        requiresStaffAction: true,
+        customerInstruction: 'Please wait to be called by your doctor.',
+        staffInstruction: 'Conduct consultation. Select outcome to route the patient.',
+        outcomeOptions: ['Prescription Only', 'Requires Tests', 'Refer to Specialist', 'Admit Patient', 'All Clear'],
+        notifyCustomerOnActivation: true,
+      },
+      {
+        stepOrder: 4,
+        name: 'Laboratory Tests',
+        description: 'Blood/urine/other tests (optional – triggered by doctor outcome)',
+        type: 'SERVICE',
+        trigger: 'MANUAL_STAFF',
+        isOptional: true,
+        requiresQrScan: true,
+        customerInstruction: 'Please proceed to the Laboratory on Floor 1.',
+        staffInstruction: 'Collect samples and capture results in the system.',
+        locationDescription: 'Floor 1 – Laboratory, Room L3',
+        notifyCustomerOnActivation: true,
+      },
+      {
+        stepOrder: 5,
+        name: 'Await Test Results',
+        description: 'Patient waits (may leave and return) for results',
+        type: 'WAITING_PERIOD',
+        trigger: 'SCHEDULED',
+        isOptional: true,
+        deferredByHours: 24,
+        requiresQrScan: false,
+        requiresStaffAction: false,
+        customerInstruction: 'Your test results will be ready in approximately 24 hours. You will be notified via WhatsApp when ready.',
+      },
+      {
+        stepOrder: 6,
+        name: 'Results Review Consultation',
+        description: 'Follow-up consultation after test results (optional)',
+        type: 'SERVICE',
+        trigger: 'MANUAL_STAFF',
+        isOptional: true,
+        requiresQrScan: false,
+        requiresStaffAction: true,
+        outcomeOptions: ['Normal – Prescribe', 'Abnormal – Refer', 'Admit'],
+        notifyCustomerOnActivation: true,
+      },
+      {
+        stepOrder: 7,
+        name: 'Billing',
+        description: 'Patient pays for services rendered',
+        type: 'PAYMENT',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: true,
+        isPriceVariable: true,
+        customerInstruction: 'Please proceed to the cashier to complete payment.',
+        staffInstruction: 'Issue invoice and collect payment.',
+        locationDescription: 'Ground Floor – Cashier, Counter C2',
+      },
+      {
+        stepOrder: 8,
+        name: 'Pharmacy / Prescription Collection',
+        description: 'Patient collects prescribed medication',
+        type: 'COLLECTION',
+        trigger: 'AUTOMATIC',
+        isOptional: true,
+        requiresQrScan: true,
+        requiresStaffAction: true,
+        entitlementUnit: 'prescription items',
+        entitlementFormula: '1',
+        allowPartialRedemption: false,
+        preventDoubleRedemption: true,
+        customerInstruction: 'Please present your QR code at the pharmacy counter.',
+        staffInstruction: 'Scan QR code, verify prescription, and dispense medication.',
+        locationDescription: 'Ground Floor – Pharmacy',
+      },
+    ],
+  },
+
+  // ── SCHOOL / EVENT (Catering + Attendance) ─────────────────────────────────
+  {
+    key: 'school_event_catering',
+    name: 'School Event with Catering',
+    description: 'Event entry + catering entitlement system for school concerts, graduations, etc.',
+    businessTypes: ['school', 'education', 'event'],
+    steps: [
+      {
+        stepOrder: 1,
+        name: 'Event Entry / Gate Check-In',
+        description: 'Scan QR at entrance to record attendance',
+        type: 'CHECKPOINT',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: true,
+        requiresStaffAction: false,
+        customerInstruction: 'Welcome! Please scan your QR code at the entrance.',
+        staffInstruction: 'Scan parent/guardian QR code to check in the family.',
+        locationDescription: 'Main Entrance Gate',
+        notifyCustomerOnActivation: false,
+      },
+      {
+        stepOrder: 2,
+        name: 'Meal Collection',
+        description: 'Collect pre-purchased meal plates at catering station',
+        type: 'COLLECTION',
+        trigger: 'AUTOMATIC',
+        requiresQrScan: true,
+        requiresStaffAction: true,
+        entitlementUnit: 'meal plates',
+        entitlementFormula: 'accompanyingGuests + 1',
+        allowPartialRedemption: true,
+        preventDoubleRedemption: false,
+        customerInstruction: 'Present your QR code at the catering station to collect your meal(s).',
+        staffInstruction: 'Scan QR code. The system will show the exact number of plates allocated. Dispense accordingly.',
+        locationDescription: 'School Hall – Catering Station',
+        notifyCustomerOnActivation: true,
+      },
+    ],
+  },
+
+  // ── SALON / SPA ────────────────────────────────────────────────────────────
+  {
+    key: 'salon_appointment',
+    name: 'Salon / Spa Appointment Flow',
+    description: 'Arrival → consultation → service → payment → optional retail',
+    businessTypes: ['salon', 'spa', 'beauty'],
+    steps: [
+      {
+        stepOrder: 1,
+        name: 'Arrival Check-In',
+        type: 'CHECKPOINT',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: true,
+        customerInstruction: 'Welcome! Please check in at the front desk.',
+        locationDescription: 'Reception',
+        notifyCustomerOnActivation: true,
+      },
+      {
+        stepOrder: 2,
+        name: 'Consultation & Colour Mix',
+        description: 'Stylist consults with client before starting',
+        type: 'SERVICE',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: false,
+        requiresStaffAction: true,
+        isOptional: true,
+        outcomeOptions: ['Proceed as planned', 'Change requested', 'Allergy test required'],
+        customerInstruction: 'Your stylist will discuss your requirements.',
+      },
+      {
+        stepOrder: 3,
+        name: 'Service Delivery',
+        description: 'Main service (cut, colour, treatment, etc.)',
+        type: 'SERVICE',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: false,
+        requiresStaffAction: true,
+        customerInstruction: 'Please relax while your stylist works.',
+        outcomeOptions: ['Completed', 'Requires additional treatment', 'Client requested changes'],
+      },
+      {
+        stepOrder: 4,
+        name: 'Blow-dry & Finishing',
+        type: 'SERVICE',
+        trigger: 'AUTOMATIC',
+        isOptional: true,
+        requiresStaffAction: true,
+      },
+      {
+        stepOrder: 5,
+        name: 'Payment',
+        type: 'PAYMENT',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: true,
+        isPriceVariable: true,
+        customerInstruction: 'Please proceed to the front desk for payment.',
+        locationDescription: 'Reception – Checkout',
+      },
+      {
+        stepOrder: 6,
+        name: 'Product Retail (Optional)',
+        type: 'COLLECTION',
+        trigger: 'MANUAL_STAFF',
+        isOptional: true,
+        requiresQrScan: false,
+        customerInstruction: 'Ask your stylist about recommended products.',
+      },
+    ],
+  },
+
+  // ── FAST FOOD / RESTAURANT ────────────────────────────────────────────────
+  {
+    key: 'restaurant_order',
+    name: 'Restaurant Order & Collection',
+    description: 'Order placement → payment → food collection notification',
+    businessTypes: ['restaurant', 'fastfood', 'cafe'],
+    steps: [
+      {
+        stepOrder: 1,
+        name: 'Order Placement',
+        type: 'CHECKPOINT',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: true,
+        customerInstruction: 'Please present your QR code at the counter.',
+        staffInstruction: 'Scan QR to link order to customer. Capture order items.',
+        notifyCustomerOnActivation: true,
+      },
+      {
+        stepOrder: 2,
+        name: 'Payment',
+        type: 'PAYMENT',
+        trigger: 'AUTOMATIC',
+        requiresQrScan: true,
+        isPriceVariable: true,
+        customerInstruction: 'Please tap your QR to pay.',
+      },
+      {
+        stepOrder: 3,
+        name: 'Order Preparation',
+        type: 'WAITING_PERIOD',
+        trigger: 'AUTOMATIC',
+        requiresQrScan: false,
+        requiresStaffAction: false,
+        customerInstruction: 'Your order is being prepared. We will notify you when ready.',
+        notifyCustomerOnActivation: true,
+      },
+      {
+        stepOrder: 4,
+        name: 'Food Collection',
+        type: 'COLLECTION',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: true,
+        entitlementUnit: 'order',
+        entitlementFixed: 1,
+        preventDoubleRedemption: true,
+        customerInstruction: 'Present your QR code to collect your order.',
+        staffInstruction: 'Scan QR to confirm collection.',
+        notifyCustomerOnActivation: true,
+      },
+    ],
+  },
+
+  // ── BANK / FINANCIAL SERVICES ─────────────────────────────────────────────
+  {
+    key: 'bank_service',
+    name: 'Bank Branch Service Flow',
+    description: 'Queue ticket → teller service → verification → completion',
+    businessTypes: ['bank', 'financial'],
+    steps: [
+      {
+        stepOrder: 1,
+        name: 'Ticket Issuance & Queue Join',
+        type: 'CHECKPOINT',
+        trigger: 'MANUAL_CUSTOMER',
+        requiresQrScan: false,
+        requiresStaffAction: false,
+        customerInstruction: 'Your queue ticket has been issued. Please take a seat.',
+        notifyCustomerOnActivation: true,
+      },
+      {
+        stepOrder: 2,
+        name: 'Teller Service',
+        type: 'SERVICE',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: false,
+        requiresStaffAction: true,
+        customerInstruction: 'Please proceed to the teller counter.',
+        outcomeOptions: ['Completed', 'Escalate to Manager', 'Additional Docs Required', 'Return Tomorrow'],
+        notifyCustomerOnActivation: true,
+      },
+      {
+        stepOrder: 3,
+        name: 'Manager Approval',
+        type: 'SERVICE',
+        trigger: 'MANUAL_STAFF',
+        isOptional: true,
+        requiresStaffAction: true,
+        outcomeOptions: ['Approved', 'Declined', 'Pending Documentation'],
+        customerInstruction: 'The manager will be with you shortly.',
+        notifyCustomerOnActivation: true,
+      },
+    ],
+  },
+
+  // ── VISA / GOVERNMENT SERVICES ────────────────────────────────────────────
+  {
+    key: 'visa_application',
+    name: 'Visa / Government Application Flow',
+    description: 'Document submission → biometrics → processing → collection',
+    businessTypes: ['visa', 'government', 'embassy'],
+    steps: [
+      {
+        stepOrder: 1,
+        name: 'Document Submission',
+        type: 'CHECKPOINT',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: true,
+        requiresStaffAction: true,
+        customerInstruction: 'Present your documents and QR code at the counter.',
+        staffInstruction: 'Verify all required documents. Reject if incomplete.',
+        outcomeOptions: ['Documents Complete', 'Documents Incomplete – Return'],
+        notifyCustomerOnActivation: true,
+      },
+      {
+        stepOrder: 2,
+        name: 'Biometrics Capture',
+        type: 'SERVICE',
+        trigger: 'AUTOMATIC',
+        requiresQrScan: true,
+        customerInstruction: 'Please proceed to the biometrics room.',
+        locationDescription: 'Room B2 – Biometrics',
+      },
+      {
+        stepOrder: 3,
+        name: 'Processing Period',
+        type: 'WAITING_PERIOD',
+        trigger: 'SCHEDULED',
+        deferredByDays: 5,
+        requiresQrScan: false,
+        requiresStaffAction: false,
+        customerInstruction: 'Your application is being processed. You will receive an SMS/WhatsApp update within 5 working days.',
+      },
+      {
+        stepOrder: 4,
+        name: 'Collection / Decision Notification',
+        type: 'COLLECTION',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: true,
+        entitlementUnit: 'document',
+        entitlementFixed: 1,
+        preventDoubleRedemption: true,
+        outcomeOptions: ['Approved – Collected', 'Rejected – Notified', 'Additional Info Required'],
+        customerInstruction: 'Present your QR code to collect your documents.',
+        notifyCustomerOnActivation: true,
+      },
+    ],
+  },
+
+  // ── LOGISTICS / PARCEL ────────────────────────────────────────────────────
+  {
+    key: 'parcel_collection',
+    name: 'Parcel / Logistics Collection',
+    description: 'Parcel arrival → notification → customer collection',
+    businessTypes: ['logistics', 'courier', 'warehouse'],
+    steps: [
+      {
+        stepOrder: 1,
+        name: 'Parcel Arrival (Staff)',
+        type: 'CHECKPOINT',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: false,
+        requiresStaffAction: true,
+        staffInstruction: 'Scan parcel barcode and link to customer booking.',
+        notifyCustomerOnActivation: true,
+        customerInstruction: 'Your parcel has arrived! You can collect it during business hours.',
+      },
+      {
+        stepOrder: 2,
+        name: 'Customer Collection',
+        type: 'COLLECTION',
+        trigger: 'MANUAL_CUSTOMER',
+        requiresQrScan: true,
+        entitlementUnit: 'parcel',
+        entitlementFixed: 1,
+        preventDoubleRedemption: true,
+        customerInstruction: 'Scan your QR code at the collection point.',
+        staffInstruction: 'Verify ID and scan QR before handing over parcel.',
+      },
+    ],
+  },
+
+  // ── CORPORATE / HR ONBOARDING ─────────────────────────────────────────────
+  {
+    key: 'hr_onboarding',
+    name: 'Employee Onboarding Journey',
+    description: 'New hire multi-department onboarding flow',
+    businessTypes: ['corporate', 'hr'],
+    steps: [
+      {
+        stepOrder: 1,
+        name: 'HR Registration',
+        type: 'CHECKPOINT',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: true,
+        customerInstruction: 'Welcome! Please check in at the HR desk.',
+        notifyCustomerOnActivation: true,
+      },
+      {
+        stepOrder: 2,
+        name: 'IT Equipment & System Access',
+        type: 'SERVICE',
+        trigger: 'AUTOMATIC',
+        requiresStaffAction: true,
+        customerInstruction: 'Proceed to the IT department to collect your equipment.',
+        locationDescription: 'Floor 2 – IT Department',
+        outcomeOptions: ['Completed', 'Equipment Pending'],
+      },
+      {
+        stepOrder: 3,
+        name: 'Security Badge Issuance',
+        type: 'COLLECTION',
+        trigger: 'AUTOMATIC',
+        requiresQrScan: true,
+        entitlementUnit: 'access badge',
+        entitlementFixed: 1,
+        preventDoubleRedemption: true,
+        locationDescription: 'Ground Floor – Security Office',
+        customerInstruction: 'Collect your access badge from the security office.',
+      },
+      {
+        stepOrder: 4,
+        name: 'Orientation Session',
+        type: 'SERVICE',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: false,
+        requiresStaffAction: true,
+        customerInstruction: 'Please attend the orientation session.',
+        outcomeOptions: ['Attended', 'Rescheduled'],
+      },
+    ],
+  },
+
+  // ── GYM / FITNESS ─────────────────────────────────────────────────────────
+  {
+    key: 'gym_class',
+    name: 'Gym Class / Personal Training',
+    description: 'Class booking → entry → session → optional post-session',
+    businessTypes: ['gym', 'fitness', 'sports'],
+    steps: [
+      {
+        stepOrder: 1,
+        name: 'Entry Check-In',
+        type: 'CHECKPOINT',
+        trigger: 'MANUAL_CUSTOMER',
+        requiresQrScan: true,
+        requiresStaffAction: false,
+        customerInstruction: 'Scan your QR at the turnstile to enter.',
+        notifyCustomerOnActivation: false,
+      },
+      {
+        stepOrder: 2,
+        name: 'Class / Session',
+        type: 'SERVICE',
+        trigger: 'MANUAL_STAFF',
+        requiresStaffAction: true,
+        outcomeOptions: ['Completed', 'No Show', 'Partial Attendance'],
+        customerInstruction: 'Enjoy your session!',
+      },
+      {
+        stepOrder: 3,
+        name: 'Nutritional Supplement Collection',
+        type: 'COLLECTION',
+        trigger: 'AUTOMATIC',
+        isOptional: true,
+        requiresQrScan: true,
+        entitlementUnit: 'supplement pack',
+        entitlementFixed: 1,
+        preventDoubleRedemption: true,
+        locationDescription: 'Reception – Supplement Counter',
+      },
+    ],
+  },
+
+  // ── HOTEL / HOSPITALITY ───────────────────────────────────────────────────
+  {
+    key: 'hotel_checkin',
+    name: 'Hotel Check-In / Check-Out Flow',
+    description: 'Arrival → room assignment → amenity access → checkout',
+    businessTypes: ['hotel', 'hospitality', 'accommodation'],
+    steps: [
+      {
+        stepOrder: 1,
+        name: 'Arrival & Identity Verification',
+        type: 'CHECKPOINT',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: true,
+        requiresStaffAction: true,
+        customerInstruction: 'Present your QR code and ID at the front desk.',
+        outcomeOptions: ['Verified', 'ID Mismatch – Flag'],
+        notifyCustomerOnActivation: true,
+        locationDescription: 'Lobby – Front Desk',
+      },
+      {
+        stepOrder: 2,
+        name: 'Room Key / Card Issuance',
+        type: 'COLLECTION',
+        trigger: 'AUTOMATIC',
+        requiresQrScan: false,
+        entitlementUnit: 'room key',
+        entitlementFixed: 1,
+        preventDoubleRedemption: false,
+        customerInstruction: 'Your room key has been prepared.',
+      },
+      {
+        stepOrder: 3,
+        name: 'Stay Period',
+        type: 'WAITING_PERIOD',
+        trigger: 'SCHEDULED',
+        deferredByDays: 1,
+        requiresQrScan: false,
+        requiresStaffAction: false,
+        customerInstruction: 'Enjoy your stay! Check-out is at 11:00 AM.',
+      },
+      {
+        stepOrder: 4,
+        name: 'Check-Out & Final Billing',
+        type: 'PAYMENT',
+        trigger: 'MANUAL_STAFF',
+        requiresQrScan: true,
+        isPriceVariable: true,
+        customerInstruction: 'Please present your QR code at checkout for final billing.',
+        locationDescription: 'Lobby – Front Desk',
+      },
+    ],
+  },
+];
+
+export function getTemplate(key: string): FlowTemplate | undefined {
+  return INDUSTRY_TEMPLATES.find((t) => t.key === key);
+}

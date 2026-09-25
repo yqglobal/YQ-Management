@@ -149,8 +149,8 @@ export class OutboxProcessorService implements OnModuleInit {
       }
       // Also broadcast to the visit-specific room for the customer wait screen
       if (payload.visitId) {
-        this.queueGateway.broadcastQueueUpdate(
-          `visit_${payload.visitId as string}`,
+        this.queueGateway.broadcastVisitUpdate(
+          payload.visitId as string,
           type.toLowerCase(),
           payload,
         );
@@ -158,7 +158,7 @@ export class OutboxProcessorService implements OnModuleInit {
       
       // Also broadcast to the tenant-wide room for global lobby displays
       if (payload.tenantId) {
-        this.queueGateway.broadcastQueueUpdate(
+        this.queueGateway.broadcastTenantUpdate(
           payload.tenantId as string,
           type.toLowerCase(),
           payload,

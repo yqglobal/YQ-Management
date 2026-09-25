@@ -90,7 +90,11 @@ export class CustomerService {
         visits: {
           orderBy: { createdAt: 'desc' },
           take: 10,
-          include: { service: true, queue: { include: { location: true } } },
+          include: { 
+            service: true, 
+            queue: { include: { location: true } },
+            // include all visit fields that VisitDrawer needs
+          }
         }
       }
     });

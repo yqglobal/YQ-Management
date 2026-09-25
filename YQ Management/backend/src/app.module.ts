@@ -52,6 +52,9 @@ import { MarketingModule } from './marketing/marketing.module';
 import { BlogsModule } from './blogs/blogs.module';
 import { PublicCheckinModule } from './public-checkin/public-checkin.module';
 import { SlaPolicyModule } from './sla-policy/sla-policy.module';
+import { ServiceFlowModule } from './service-flow/service-flow.module';
+import { VisitStepModule } from './visit-step/visit-step.module';
+import { TenantPaymentsModule } from './tenant-payments/tenant-payments.module';
 
 @Module({
   imports: [
@@ -141,6 +144,9 @@ import { SlaPolicyModule } from './sla-policy/sla-policy.module';
     BlogsModule,
     PublicCheckinModule,
     SlaPolicyModule,
+    ServiceFlowModule,
+    VisitStepModule,
+    TenantPaymentsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
