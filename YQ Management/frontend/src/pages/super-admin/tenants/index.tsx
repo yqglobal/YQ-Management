@@ -138,6 +138,7 @@ export default function SuperAdminTenants() {
               <thead className="bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-zinc-200 font-bold uppercase tracking-wider text-xs border-b border-gray-200 dark:border-white/10 rounded-t-2xl">
                 <tr>
                   <th className="px-6 py-4">Business</th>
+                  <th className="px-6 py-4">Owner Email</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Subscription</th>
                   <th className="px-6 py-4">Users</th>
@@ -149,11 +150,11 @@ export default function SuperAdminTenants() {
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 dark:text-zinc-500">Loading businesses...</td>
+                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400 dark:text-zinc-500">Loading businesses...</td>
                   </tr>
                 ) : filteredAndSortedTenants.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-20 text-center">
+                    <td colSpan={8} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center justify-center space-y-4">
                         <div className="w-16 h-16 bg-gray-50 dark:bg-zinc-900 rounded-full flex items-center justify-center">
                           <Building2 className="w-8 h-8 text-gray-400 dark:text-zinc-500" />
@@ -179,6 +180,9 @@ export default function SuperAdminTenants() {
                       >
                         <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900 dark:text-white">
                           {tenant.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-zinc-400">
+                          {tenant.users?.[0]?.email || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400">

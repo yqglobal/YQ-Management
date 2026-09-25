@@ -126,7 +126,10 @@ export class SuperAdminService {
             queues: { where: { status: { not: 'CLOSED' } } },
           },
         },
-
+        users: {
+          where: { role: 'OWNER' },
+          select: { email: true, name: true },
+        },
         subscriptions: {
           where: {
             status: { in: ['ACTIVE', 'TRIAL', 'PAST_DUE'] },
