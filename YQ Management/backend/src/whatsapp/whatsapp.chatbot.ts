@@ -110,6 +110,16 @@ export class WhatsappChatbot {
       }
 
       if (
+        config.quickReplies?.cancel &&
+        (upperText === '4' ||
+          upperText.includes('CANCEL') ||
+          upperText === 'cancel_ticket')
+      ) {
+        await this.handleCancel(tenantId, phone, jid);
+        return { handled: true, isHumanPaused: false };
+      }
+
+      if (
         upperText === '3' ||
         upperText.includes('BOOK') ||
         upperText.includes('APPOINTMENT') ||
@@ -173,6 +183,9 @@ export class WhatsappChatbot {
     msg += `3. Book an Appointment\n`;
     if (quickReplies.human !== false) {
       msg += `2. Chat with Human\n`;
+    }
+    if (quickReplies.cancel !== false) {
+      msg += `4. Cancel Ticket\n`;
     }
     msg += `\nReply with a number to proceed.`;
     
@@ -267,11 +280,24 @@ export class WhatsappChatbot {
       return;
     }
 
-    await this.prisma.visit.update({
+    const updated = await this.prisma.visit.update({
       where: { id: visit.id },
       data: {
         currentState: 'CANCELLED',
         completedAt: new Date(),
+        cancelledBy: 'CUSTOMER'
+      },
+    });
+
+    await this.prisma.outboxEvent.create({
+      data: {
+        type: 'VISIT_CANCELLED',
+        payload: {
+          visitId: updated.id,
+          queueId: updated.queueId,
+          tenantId: updated.tenantId,
+          cancelledBy: updated.cancelledBy,
+        },
       },
     });
 
@@ -312,7 +338,7 @@ export class WhatsappChatbot {
           },
         },
       });
-      await this.promptServices(tenantId, locations[0].id, jid);
+      await this.promptServices(tenantId, locations[0].id, jid, session);
       return;
     }
 
@@ -365,13 +391,14 @@ export class WhatsappChatbot {
       },
     });
 
-    await this.promptServices(tenantId, locationId, jid);
+    await this.promptServices(tenantId, locationId, jid, session);
   }
 
   private async promptServices(
     tenantId: string,
     locationId: string,
     jid: string,
+    session: any
   ) {
     const services = await this.prisma.service.findMany({
       where: { tenantId, locationId: locationId },
@@ -392,10 +419,10 @@ export class WhatsappChatbot {
     });
     msg += `\nReply with a number, or '0' to cancel.`;
 
-    await this.prisma.chatSession.updateMany({
-      where: { tenantId, phone: jid.split('@')[0] },
+    await this.prisma.chatSession.update({
+      where: { id: session.id },
       data: {
-        context: { services: services.map((s) => s.id) },
+        context: { ...(session.context || {}), services: services.map((s) => s.id) },
       },
     });
 
