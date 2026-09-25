@@ -1,5 +1,6 @@
 import React from 'react';
-import { X, Play, CheckCircle2, Calendar, Hash, MoreVertical } from 'lucide-react';
+import { useRouter } from 'next/router';
+import { X, Play, CheckCircle2, Calendar, Hash, MoreVertical, ExternalLink } from 'lucide-react';
 import { fetchApi } from '../lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -11,6 +12,7 @@ interface VisitDrawerProps {
 
 export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const startMutation = useMutation({
     mutationFn: () => fetchApi(`/visits/${visit?.id}/start`, { method: 'POST' }),
@@ -95,8 +97,19 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
           <div className="p-6 border-b border-gray-100 dark:border-white/5">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{visit.customer?.name || 'Walk-in Customer'}</h3>
-                <p className="text-sm text-gray-500">{visit.customer?.phone || 'No phone provided'}</p>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{visit.customer?.name || visit.customerName || 'Walk-in Customer'}</h3>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-gray-500">{visit.customer?.phone || visit.phone || 'No phone provided'}</p>
+                  {(visit.customerId || visit.customer?.id) && (
+                    <button
+                      onClick={() => router.push(`/dashboard/analytics?tab=customers&customerId=${visit.customerId || visit.customer?.id}`)}
+                      className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-md transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      More Info
+                    </button>
+                  )}
+                </div>
               </div>
               <StateBadge state={visit.currentState} />
             </div>
@@ -183,6 +196,42 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
               </div>
             </div>
           </div>
+
+          {/* Scheduled Info */}
+          {(visit.scheduledTime || visit.notes) && (
+            <div className="px-6 pb-2">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Booking Details</h4>
+              <div className="bg-gray-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-gray-100 dark:border-white/5 space-y-2">
+                {visit.scheduledTime && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500 dark:text-zinc-400">Scheduled For</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{new Date(visit.scheduledTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                  </div>
+                )}
+                {visit.notes && (
+                  <div className="text-sm pt-2 border-t border-gray-200 dark:border-white/5 mt-2">
+                    <span className="text-gray-500 dark:text-zinc-400 block mb-1">Notes</span>
+                    <span className="text-gray-900 dark:text-white whitespace-pre-wrap">{visit.notes}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Form Responses */}
+          {visit.formResponses && Object.keys(visit.formResponses).length > 0 && (
+            <div className="px-6 pb-2 mt-4">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Form Data</h4>
+              <div className="bg-gray-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-gray-100 dark:border-white/5 space-y-3">
+                {Object.entries(visit.formResponses).map(([key, val]) => (
+                  <div key={key} className="text-sm">
+                    <span className="block text-xs text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-0.5">{key.replace(/_/g, ' ')}</span> 
+                    <span className="font-medium text-gray-900 dark:text-white">{String(val)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Timeline / Status Info */}
           <div className="p-6">

@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import AdminLayout from '../../components/AdminLayout';
 import dynamic from 'next/dynamic';
@@ -80,6 +81,19 @@ export default function Analytics() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerSort, setCustomerSort] = useState<'visits' | 'recent' | 'name'>('visits');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (router.isReady) {
+      if (router.query.tab === 'customers') {
+        setActiveTab('customers');
+      }
+      if (router.query.customerId) {
+        setSelectedCustomerId(router.query.customerId as string);
+      }
+    }
+  }, [router.isReady, router.query.tab, router.query.customerId]);
 
   const timeParam = timeRange === 'Day' ? 'today' : timeRange === 'Week' ? '7d' : timeRange === 'Month' ? '30d' : timeRange === 'All' ? 'all' : 'custom';
   const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
