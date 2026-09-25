@@ -324,113 +324,174 @@ export default function StatusPage() {
             <p className="text-sm text-gray-500">Bookmark this page to track your status</p>
           </div>
           
-          {visits.map((visit: AnyFixMe) => {
-            const isDone = visit.currentState === 'COMPLETED' || visit.currentState === 'NO_SHOW' || visit.currentState === 'CANCELLED';
-            const isServing = visit.currentState === 'SERVING';
-            const isAppointment = visit.isScheduled || visit.appointmentId != null || visit.scheduledTime != null;
+          {(() => {
+            const pastVisits = visits.filter(v => ['COMPLETED', 'NO_SHOW', 'CANCELLED'].includes(v.currentState));
+            const currentVisits = visits.filter(v => !['COMPLETED', 'NO_SHOW', 'CANCELLED'].includes(v.currentState));
             
-            return (
-              <div key={visit.id} id={`ticket-${visit.id}`} className="bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full shadow-lg relative overflow-hidden border border-gray-100 dark:border-zinc-800">
-                <div className="absolute top-0 left-0 right-0 h-2" style={{ backgroundColor: primaryColor }} />
-                
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-bold text-lg">{visit.service?.name}</h3>
-                    <p className="text-xs text-gray-500 uppercase tracking-wider">{isAppointment ? 'Appointment' : 'Walk-in'}</p>
-                  </div>
-                  <div className="text-right">
-                     <span className="uppercase tracking-widest text-[10px] font-bold text-gray-400 block">Ticket</span>
-                     <div className="font-mono text-xl font-extrabold">{visit.displayId || visit.id.substring(0,6).toUpperCase()}</div>
-                  </div>
-                </div>
+            // Sort current visits: SERVING > WAITING/CHECKED_IN > Upcoming Appointments
+            currentVisits.sort((a, b) => {
+              const getPriority = (v: any) => {
+                if (v.currentState === 'SERVING') return 1;
+                if (v.currentState === 'WAITING' || v.currentState === 'CHECKED_IN') return 2;
+                if (v.scheduledTime) return 3;
+                return 4;
+              };
+              const pA = getPriority(a);
+              const pB = getPriority(b);
+              
+              if (pA !== pB) return pA - pB;
+              if (pA === 3 && a.scheduledTime && b.scheduledTime) {
+                return new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime();
+              }
+              return 0;
+            });
 
-                <div className="flex justify-center mb-4 relative">
-                  {['WAITING', 'CHECKED_IN', 'SERVING', 'COMPLETED'].includes(visit.currentState) ? (
-                    <div className="flex flex-col items-center justify-center p-6 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl w-full text-emerald-700 dark:text-emerald-400">
-                      <CheckCircle2 strokeWidth={1.5} className="w-16 h-16 mb-2" />
-                      <span className="font-bold text-lg">Ticket Scanned</span>
-                      <span className="text-sm opacity-80 mt-1 text-center font-medium">Please wait for your turn</span>
+            const renderVisitCard = (visit: any, isPast: boolean) => {
+              const isDone = isPast;
+              const isServing = visit.currentState === 'SERVING';
+              const isAppointment = visit.isScheduled || visit.appointmentId != null || visit.scheduledTime != null;
+              
+              // Determine if booking is "soon" (within 2 hours)
+              const isSoon = isAppointment && visit.scheduledTime && !isDone && !isServing && 
+                (new Date(visit.scheduledTime).getTime() - Date.now() < 2 * 60 * 60 * 1000) &&
+                (new Date(visit.scheduledTime).getTime() - Date.now() > 0);
+
+              return (
+                <div key={visit.id} id={`ticket-${visit.id}`} className={`bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full shadow-lg relative overflow-hidden border ${isDone ? 'border-gray-200 dark:border-zinc-800 opacity-80' : 'border-gray-100 dark:border-zinc-800'}`}>
+                  {!isDone && <div className="absolute top-0 left-0 right-0 h-2" style={{ backgroundColor: primaryColor }} />}
+                  
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-bold text-lg">{visit.service?.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-gray-500 uppercase tracking-wider">{isAppointment ? 'Appointment' : 'Walk-in'}</p>
+                        {isSoon && (
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
+                            Happening Soon
+                          </span>
+                        )}
+                        {isServing && (
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+                            Happening Now
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm relative group cursor-pointer" onClick={() => setExpandedVisit(visit)}>
-                      <QRCode value={visit.id} size={100} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
-                      <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Maximize2 className="text-white w-6 h-6" />
+                    <div className="text-right">
+                       <span className="uppercase tracking-widest text-[10px] font-bold text-gray-400 block">Ticket</span>
+                       <div className="font-mono text-xl font-extrabold">{visit.displayId || visit.id.substring(0,6).toUpperCase()}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center mb-4 relative">
+                    {['WAITING', 'CHECKED_IN', 'SERVING', 'COMPLETED'].includes(visit.currentState) ? (
+                      <div className="flex flex-col items-center justify-center p-6 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl w-full text-emerald-700 dark:text-emerald-400">
+                        <CheckCircle2 strokeWidth={1.5} className="w-16 h-16 mb-2" />
+                        <span className="font-bold text-lg">Ticket Scanned</span>
+                        <span className="text-sm opacity-80 mt-1 text-center font-medium">Please wait for your turn</span>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm relative group cursor-pointer" onClick={() => setExpandedVisit(visit)}>
+                        <QRCode value={visit.id} size={100} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                        <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Maximize2 className="text-white w-6 h-6" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-center gap-2 mb-4">
+                    <button 
+                      onClick={() => downloadTicket(`ticket-${visit.id}`, `Ticket-${visit.displayId || visit.id.substring(0,6)}.png`)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-sm font-bold rounded-xl transition-colors"
+                    >
+                      <Download className="w-4 h-4" /> Download
+                    </button>
+                    <button 
+                      onClick={() => setExpandedVisit(visit)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-sm font-bold rounded-xl transition-colors"
+                    >
+                      <Maximize2 className="w-4 h-4" /> Expand
+                    </button>
+                  </div>
+
+                  {isServing && (
+                    <div className="bg-amber-100 dark:bg-amber-900/40 border border-amber-500 rounded-xl p-3 text-center mb-4 animate-pulse">
+                      <p className="text-amber-700 dark:text-amber-400 font-bold text-sm">Please proceed to {visit.location?.name || 'the service desk'}</p>
+                    </div>
+                  )}
+                  
+                  {visit.queue?.status === 'PAUSED' && !isDone && !isServing && (
+                    <div className="bg-orange-100 dark:bg-orange-900/40 border border-orange-500 rounded-xl p-3 text-center mb-4 animate-pulse">
+                      <p className="text-orange-700 dark:text-orange-400 font-bold text-sm">Service temporarily paused. Operator is on a short break.</p>
+                    </div>
+                  )}
+
+                  {!isDone && !isServing && (
+                    <div className="flex justify-between items-center bg-gray-50 dark:bg-zinc-950 p-4 rounded-xl border border-gray-100 dark:border-zinc-800">
+                      {isAppointment ? (
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase">Scheduled For</p>
+                          <p className="font-bold">{visit.scheduledTime ? new Date(visit.scheduledTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—'}</p>
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <p className="text-xs text-gray-500 uppercase">Status</p>
+                            <p className="font-bold capitalize">{visit.currentState.toLowerCase()}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500 uppercase">Started Waiting</p>
+                            <p className="font-bold">{visit.waitingStart ? new Date(visit.waitingStart).toLocaleTimeString([], { timeStyle: 'short' }) : '—'}</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {!isDone && !isServing && !isAppointment && visit.position > 0 && (
+                    <div className="flex justify-between items-center bg-gray-50 dark:bg-zinc-950 p-4 rounded-xl border border-gray-100 dark:border-zinc-800 mt-2">
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Live Position</p>
+                        <p className="font-bold text-lg" style={{ color: primaryColor }}>#{visit.position}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500 uppercase">Est. Wait</p>
+                        <p className="font-bold">{visit.estimatedWaitTime} min</p>
                       </div>
                     </div>
                   )}
-                </div>
 
-                <div className="flex justify-center gap-2 mb-4">
-                  <button 
-                    onClick={() => downloadTicket(`ticket-${visit.id}`, `Ticket-${visit.displayId || visit.id.substring(0,6)}.png`)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-sm font-bold rounded-xl transition-colors"
-                  >
-                    <Download className="w-4 h-4" /> Download
-                  </button>
-                  <button 
-                    onClick={() => setExpandedVisit(visit)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-sm font-bold rounded-xl transition-colors"
-                  >
-                    <Maximize2 className="w-4 h-4" /> Expand
-                  </button>
-                </div>
-
-                {isServing && (
-                  <div className="bg-amber-100 dark:bg-amber-900/40 border border-amber-500 rounded-xl p-3 text-center mb-4 animate-pulse">
-                    <p className="text-amber-700 dark:text-amber-400 font-bold text-sm">Please proceed to {visit.location?.name || 'the service desk'}</p>
-                  </div>
-                )}
-                
-                {visit.queue?.status === 'PAUSED' && !isDone && !isServing && (
-                  <div className="bg-orange-100 dark:bg-orange-900/40 border border-orange-500 rounded-xl p-3 text-center mb-4 animate-pulse">
-                    <p className="text-orange-700 dark:text-orange-400 font-bold text-sm">Service temporarily paused. Operator is on a short break.</p>
-                  </div>
-                )}
-
-                {!isDone && !isServing && (
-                  <div className="flex justify-between items-center bg-gray-50 dark:bg-zinc-950 p-4 rounded-xl border border-gray-100 dark:border-zinc-800">
-                    {isAppointment ? (
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">Scheduled For</p>
-                        <p className="font-bold">{visit.scheduledTime ? new Date(visit.scheduledTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—'}</p>
-                      </div>
-                    ) : (
-                      <>
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase">Status</p>
-                          <p className="font-bold capitalize">{visit.currentState.toLowerCase()}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500 uppercase">Started Waiting</p>
-                          <p className="font-bold">{visit.waitingStart ? new Date(visit.waitingStart).toLocaleTimeString([], { timeStyle: 'short' }) : '—'}</p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {!isDone && !isServing && !isAppointment && visit.position > 0 && (
-                  <div className="flex justify-between items-center bg-gray-50 dark:bg-zinc-950 p-4 rounded-xl border border-gray-100 dark:border-zinc-800 mt-2">
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase">Live Position</p>
-                      <p className="font-bold text-lg" style={{ color: primaryColor }}>#{visit.position}</p>
+                  {isDone && (
+                    <div className="bg-gray-100 dark:bg-zinc-800 rounded-xl p-3 text-center mt-4">
+                      <p className="text-gray-600 dark:text-gray-300 font-bold text-sm">Ticket {visit.currentState.toLowerCase()}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500 uppercase">Est. Wait</p>
-                      <p className="font-bold">{visit.estimatedWaitTime} min</p>
+                  )}
+                </div>
+              );
+            };
+
+            return (
+              <>
+                <div className="flex flex-col gap-6 w-full">
+                  {currentVisits.map(v => renderVisitCard(v, false))}
+                </div>
+
+                {pastVisits.length > 0 && (
+                  <div className="w-full mt-8">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="h-px bg-gray-200 dark:bg-zinc-800 flex-1"></div>
+                      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Past Tickets</h3>
+                      <div className="h-px bg-gray-200 dark:bg-zinc-800 flex-1"></div>
+                    </div>
+                    <div className="flex flex-col gap-6 w-full">
+                      {pastVisits.map(v => renderVisitCard(v, true))}
                     </div>
                   </div>
                 )}
-
-                {isDone && (
-                  <div className="bg-gray-100 dark:bg-zinc-800 rounded-xl p-3 text-center mt-4">
-                    <p className="text-gray-600 dark:text-gray-300 font-bold text-sm">Ticket {visit.currentState.toLowerCase()}</p>
-                  </div>
-                )}
-              </div>
+              </>
             );
-          })}
+          })()}
           <button 
             onClick={() => router.push(`/booking`)}
             className="w-full py-4 rounded-xl font-bold text-primary bg-primary/10 transition-colors hover:bg-primary/20"
