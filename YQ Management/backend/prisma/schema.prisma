@@ -172,6 +172,7 @@ model Tenant {
   whatsappPhone      String?
   chatbotEnabled     Boolean @default(false)
   chatbotConfig      Json? // Stores custom button menus and automated replies
+  aiConfig           Json? // Stores LLM provider keys (Gemini, Groq) and prompts
   customerExperience Json? // Global settings for forms, feedback, and portal experience
 
   // Customer Support Integration

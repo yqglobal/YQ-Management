@@ -59,8 +59,12 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // Global paths that should never be rewritten to a tenant folder
+  const globalPaths = ['/login', '/register', '/onboarding', '/dashboard', '/super-admin', '/404'];
+  const isGlobalPath = globalPaths.some(p => url.pathname.startsWith(p) || url.pathname === p);
+
   // Rewrite to the _tenant dynamic route for subdomains
-  if (subdomain && subdomain !== 'www' && !url.pathname.startsWith('/_tenant')) {
+  if (subdomain && subdomain !== 'www' && !url.pathname.startsWith('/_tenant') && !isGlobalPath) {
     url.pathname = `/_tenant/${subdomain}${url.pathname}`;
     return NextResponse.rewrite(url);
   }

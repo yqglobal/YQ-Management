@@ -240,6 +240,21 @@ export default function ServiceDeskToday() {
     return v;
   }, [visits, user]);
 
+  const eventMetrics = React.useMemo(() => {
+    if (tenant?.industry !== 'school_event_catering') return null;
+    const metrics = { totalPaid: 0, checkedIn: 0, mealsAllocated: 0, mealsGiven: 0 };
+    (filteredVisits || []).forEach((v: AnyFixMe) => {
+       metrics.totalPaid++;
+       if (v.currentState !== 'SCHEDULED' && v.currentState !== 'CREATED') metrics.checkedIn++;
+       const collectionStep = v.visitSteps?.find((s: AnyFixMe) => s.templateStep?.type === 'COLLECTION');
+       if (collectionStep) {
+         metrics.mealsAllocated += (collectionStep.quantityAllocated || 0);
+         metrics.mealsGiven += (collectionStep.quantityRedeemed || 0);
+       }
+    });
+    return metrics;
+  }, [filteredVisits, tenant]);
+
   const filteredAppointments = React.useMemo(() => {
     let a = pendingAppointments || [];
     if (user && user.role === 'OPERATOR') {
@@ -528,6 +543,30 @@ export default function ServiceDeskToday() {
               <p className="text-body-sm text-outline italic">No active queues.</p>
             )}
           </div>
+
+          {eventMetrics && (
+            <div className="mt-4 pt-6 border-t border-border dark:border-dark-border">
+              <h3 className="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-4">Event Flow Metrics</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-surface-container p-3 rounded-lg border border-border">
+                  <div className="text-xs text-outline font-semibold mb-1">Registered</div>
+                  <div className="text-lg font-bold font-data-mono text-on-surface">{eventMetrics.totalPaid}</div>
+                </div>
+                <div className="bg-surface-container p-3 rounded-lg border border-border">
+                  <div className="text-xs text-outline font-semibold mb-1">Checked In</div>
+                  <div className="text-lg font-bold font-data-mono text-emerald-600">{eventMetrics.checkedIn}</div>
+                </div>
+                <div className="bg-surface-container p-3 rounded-lg border border-border">
+                  <div className="text-xs text-outline font-semibold mb-1">Meals Allocated</div>
+                  <div className="text-lg font-bold font-data-mono text-on-surface">{eventMetrics.mealsAllocated}</div>
+                </div>
+                <div className="bg-surface-container p-3 rounded-lg border border-border">
+                  <div className="text-xs text-outline font-semibold mb-1">Meals Given</div>
+                  <div className="text-lg font-bold font-data-mono text-primary">{eventMetrics.mealsGiven} <span className="text-xs text-outline ml-1 font-sans font-normal">/ {eventMetrics.mealsAllocated}</span></div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="mt-4 pt-6 border-t border-border dark:border-dark-border">
             <h3 className="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-4">Active Allocations</h3>

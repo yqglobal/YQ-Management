@@ -81,6 +81,7 @@ export default function CustomerLiveStatus() {
     socket.on('visit_called', triggerRefetch);
     socket.on('visit_completed', triggerRefetch);
     socket.on('visit_missed', triggerRefetch);
+    socket.on('visit_cancelled', triggerRefetch);
     socket.on('visit_checked_in', triggerRefetch);
     socket.on('queue_status_changed', triggerRefetch);
 
@@ -192,9 +193,18 @@ export default function CustomerLiveStatus() {
                   {displayId || (data.id as string)?.substring(0, 8).toUpperCase() || '—'}
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-right flex flex-col items-end gap-2">
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                   {serviceName}
+                </span>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
+                  currentState === 'WAITING' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                  currentState === 'IN_SERVICE' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                  currentState === 'SCHEDULED' ? 'bg-purple-50 text-purple-600 border-purple-200' :
+                  ['CANCELLED', 'MISSED', 'NO_SHOW'].includes(currentState) ? 'bg-red-50 text-red-600 border-red-200' :
+                  'bg-gray-50 text-gray-600 border-gray-200'
+                }`}>
+                  Status: {currentState.replace('_', ' ')}
                 </span>
               </div>
             </div>

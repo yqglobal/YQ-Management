@@ -14,8 +14,16 @@ export const useTracking = () => useContext(TrackingContext);
 
 export const TrackingProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
+  const lastTrackRef = React.useRef<Record<string, number>>({});
 
   const trackAction = useCallback(async (actionName: string, details: Record<string, AnyFixMe> = {}) => {
+    const now = Date.now();
+    const key = `${actionName}:${JSON.stringify(details)}`;
+    if (lastTrackRef.current[key] && now - lastTrackRef.current[key] < 5000) {
+      return; // Throttle identical events within 5 seconds
+    }
+    lastTrackRef.current[key] = now;
+
     try {
       await fetchApi('/audit/log', {
         method: 'POST',

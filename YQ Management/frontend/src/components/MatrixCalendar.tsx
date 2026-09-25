@@ -2,15 +2,18 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 
 // ------- Constants -------
-const HOUR_WIDTH = 240; // px per hour  (= 4px per minute)
+const START_HOUR = 8;
+const END_HOUR = 20;
+const TOTAL_HOURS = END_HOUR - START_HOUR;
+const QUARTER_HOUR_COLS = TOTAL_HOURS * 4;
 const LEFT_SIDEBAR_WIDTH = 260; // px for the row label
 const ROW_HEIGHT_NORMAL = 108; // px base row height
-const QUARTER_HOUR_COLS = 96;
 
-// Generate time labels: 12:00 AM → 11:45 PM (96 slots × 15 min)
+// Generate time labels: 8:00 AM → 7:45 PM
 const TIMES = Array.from({ length: QUARTER_HOUR_COLS }, (_, i) => {
-  const hr = Math.floor(i / 4);
-  const min = (i % 4) * 15;
+  const absoluteQuarter = (START_HOUR * 4) + i;
+  const hr = Math.floor(absoluteQuarter / 4);
+  const min = (absoluteQuarter % 4) * 15;
   const ampm = hr < 12 ? 'AM' : 'PM';
   const displayHr = hr === 0 ? 12 : hr > 12 ? hr - 12 : hr;
   const minStr = min === 0 ? '00' : min.toString();
@@ -23,12 +26,37 @@ function minutesFromMidnight(isoStr: string): number {
   return d.getHours() * 60 + d.getMinutes();
 }
 
-function minutesToPx(mins: number): number {
-  return (mins / 60) * HOUR_WIDTH;
+function minutesToPercent(mins: number): number {
+  const startMins = START_HOUR * 60;
+  const totalMins = TOTAL_HOURS * 60;
+  const pct = ((mins - startMins) / totalMins) * 100;
+  return Math.max(0, Math.min(100, pct));
 }
 
-function pxToMinutes(px: number): number {
-  return (px / HOUR_WIDTH) * 60;
+function durationToPercent(durationMins: number, startMins: number): number {
+  const startDayMins = START_HOUR * 60;
+  const totalMins = TOTAL_HOURS * 60;
+  let effectiveStart = startMins;
+  let effectiveDuration = durationMins;
+  
+  if (effectiveStart < startDayMins) {
+    effectiveDuration -= (startDayMins - effectiveStart);
+    effectiveStart = startDayMins;
+  }
+  
+  if (effectiveStart + effectiveDuration > startDayMins + totalMins) {
+     effectiveDuration = (startDayMins + totalMins) - effectiveStart;
+  }
+  
+  const pct = (effectiveDuration / totalMins) * 100;
+  return Math.max(0, pct);
+}
+
+function pxToMinutes(px: number, containerWidth: number): number {
+  const totalMins = TOTAL_HOURS * 60;
+  const startMins = START_HOUR * 60;
+  const pct = px / containerWidth;
+  return startMins + pct * totalMins;
 }
 
 function snapToGranularity(mins: number, granularity = 15): number {
@@ -79,7 +107,7 @@ interface RowConfig {
 // ------- Sub-components -------
 
 // Ghost slot placeholder (dotted rectangle)
-function SlotPlaceholder({ leftPx, widthPx, onDrop }: { leftPx: number; widthPx: number; onDrop?: (isoTime: string) => void }) {
+function SlotPlaceholder({ leftPct, widthPct, onDrop }: { leftPct: number; widthPct: number; onDrop?: (isoTime: string) => void }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -93,8 +121,8 @@ function SlotPlaceholder({ leftPx, widthPx, onDrop }: { leftPx: number; widthPx:
             : 'border-zinc-300/60 dark:border-zinc-700/50 bg-transparent'
         }`}
       style={{
-        left: `${leftPx}px`,
-        width: `${Math.max(widthPx - 4, 20)}px`,
+        left: `${leftPct}%`,
+        width: `max(${widthPct}%, 20px)`,
         height: '88px',
       }}
       onMouseEnter={() => setIsHovered(true)}
@@ -119,19 +147,19 @@ function SlotPlaceholder({ leftPx, widthPx, onDrop }: { leftPx: number; widthPx:
 }
 
 // Idle/gap block
-function IdleBlock({ leftPx, widthPx, durationMins }: { leftPx: number; widthPx: number; durationMins: number }) {
-  if (widthPx < 24) return null;
+function IdleBlock({ leftPct, widthPct, durationMins }: { leftPct: number; widthPct: number; durationMins: number }) {
+  if (widthPct < 1) return null;
   return (
     <div
       className="absolute top-2 bottom-2 rounded-lg flex items-center justify-center overflow-hidden pointer-events-none"
       style={{
-        left: `${leftPx}px`,
-        width: `${Math.max(widthPx, 16)}px`,
+        left: `${leftPct}%`,
+        width: `max(${widthPct}%, 16px)`,
         background: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(113,113,122,0.05) 5px, rgba(113,113,122,0.05) 10px)',
         border: '1px dashed rgba(161,161,170,0.3)',
       }}
     >
-      {widthPx > 60 && (
+      {widthPct > 5 && (
         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-600 bg-white/80 dark:bg-zinc-900/80 px-1.5 py-0.5 rounded-full whitespace-nowrap">
           ⏸ {durationMins} min
         </span>
@@ -141,14 +169,14 @@ function IdleBlock({ leftPx, widthPx, durationMins }: { leftPx: number; widthPx:
 }
 
 // Buffer zone after appointment
-function BufferZone({ leftPx, widthPx }: { leftPx: number; widthPx: number }) {
-  if (widthPx < 4) return null;
+function BufferZone({ leftPct, widthPct }: { leftPct: number; widthPct: number }) {
+  if (widthPct < 0.5) return null;
   return (
     <div
       className="absolute top-3 bottom-3 rounded-r-md pointer-events-none opacity-60"
       style={{
-        left: `${leftPx}px`,
-        width: `${widthPx}px`,
+        left: `${leftPct}%`,
+        width: `${widthPct}%`,
         background: 'repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(251,191,36,0.2) 3px, rgba(251,191,36,0.2) 6px)',
         border: '1px solid rgba(251,191,36,0.3)',
         borderLeft: 'none',
@@ -160,15 +188,14 @@ function BufferZone({ leftPx, widthPx }: { leftPx: number; widthPx: number }) {
 // Appointment card
 function AppointmentCard({
   apt,
-  leftPx,
-  widthPx,
+  leftPct,
+  widthPct,
   topPx,
   isDraggable,
   onClick,
 }: {
   apt: AnyFixMe;
-  leftPx: number;
-  widthPx: number;
+  leftPct: number; widthPct: number;
   topPx: number;
   isDraggable: boolean;
   onClick?: () => void;
@@ -202,8 +229,8 @@ function AppointmentCard({
         ${status === 'COMPLETED' ? 'opacity-60 bg-zinc-100 dark:bg-zinc-900/60 grayscale' : ''}
       `}
       style={{
-        left: `${leftPx}px`,
-        width: `${Math.max(widthPx - 4, 40)}px`,
+        left: `${leftPct}%`,
+        width: `max(${widthPct}%, 20px)`,
         top: `${topPx}px`,
         height: '88px',
         zIndex: 10,
@@ -394,7 +421,7 @@ export function MatrixCalendar({
 
     const rowRect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rowRect.left;
-    const mins = snapToGranularity(pxToMinutes(x));
+    const mins = snapToGranularity(pxToMinutes(x, rowRect.width));
 
     const newTime = new Date(currentDate);
     newTime.setHours(0, 0, 0, 0);
@@ -408,25 +435,25 @@ export function MatrixCalendar({
       <div ref={scrollRef} className="flex-1 overflow-auto relative custom-scrollbar">
 
         {/* Time header */}
-        <div
-          className="sticky top-0 z-20 bg-card/95 dark:bg-dark-card/95 backdrop-blur-sm border-b border-border dark:border-dark-border"
-          style={{ display: 'grid', gridTemplateColumns: `${LEFT_SIDEBAR_WIDTH}px repeat(${QUARTER_HOUR_COLS}, ${HOUR_WIDTH / 4}px)` }}
-        >
-          <div className="sticky left-0 z-30 bg-card/95 dark:bg-dark-card/95 backdrop-blur-sm border-r border-border dark:border-dark-border p-4 flex items-end">
+        <div className="sticky top-0 z-20 bg-card/95 dark:bg-dark-card/95 backdrop-blur-sm border-b border-border dark:border-dark-border flex">
+          <div className="sticky left-0 z-30 bg-card/95 dark:bg-dark-card/95 backdrop-blur-sm border-r border-border dark:border-dark-border p-4 flex items-end flex-shrink-0" style={{ width: `${LEFT_SIDEBAR_WIDTH}px` }}>
             <span className="font-label-caps text-label-caps text-on-surface-variant uppercase text-[11px]">
               {format(currentDate, 'EEE, MMM d')}
             </span>
           </div>
-          {TIMES.map((t, i) => (
-            <div
-              key={t.time}
-              className={`p-1 pl-2 border-r border-border dark:border-dark-border font-data-mono flex flex-col justify-end ${
-                t.isHour ? 'font-semibold text-on-surface text-[11px]' : 'border-dashed text-on-surface-variant opacity-60 text-[9px]'
-              }`}
-            >
-              {t.isHour ? t.time.replace(':00 ', '') : t.time.split(' ')[0]}
-            </div>
-          ))}
+          <div className="flex flex-1 min-w-0">
+            {TIMES.map((t, i) => (
+              <div
+                key={t.time}
+                style={{ flex: 1 }}
+                className={`p-1 pl-1 sm:pl-2 border-r border-border dark:border-dark-border font-data-mono flex flex-col justify-end overflow-hidden ${
+                  t.isHour ? 'font-semibold text-on-surface text-[11px]' : 'border-dashed text-on-surface-variant opacity-60 text-[9px]'
+                }`}
+              >
+                {t.isHour ? t.time.replace(':00 ', '') : ''}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Timeline body */}
@@ -435,11 +462,11 @@ export function MatrixCalendar({
           {/* Live time needle */}
           {now && currentDate.toDateString() === now.toDateString() && (() => {
             const nowMins = now.getHours() * 60 + now.getMinutes();
-            const leftPx = LEFT_SIDEBAR_WIDTH + minutesToPx(nowMins);
+            const leftPct = minutesToPercent(nowMins);
             return (
               <div
                 className="absolute top-0 bottom-0 z-20 pointer-events-none"
-                style={{ left: `${leftPx}px`, width: '2px', background: 'linear-gradient(to bottom, #f43f5e, #fb7185)' }}
+                style={{ left: `${leftPct}%`, width: '2px', background: 'linear-gradient(to bottom, #f43f5e, #fb7185)' }}
               >
                 <div className="w-3 h-3 bg-rose-500 rounded-full absolute -top-1.5 -left-[5px] shadow-[0_0_10px_rgba(244,63,94,0.7)]" />
               </div>
@@ -487,7 +514,7 @@ export function MatrixCalendar({
                 }}
               >
                 {/* Row label */}
-                <div className="sticky left-0 z-10 bg-card dark:bg-dark-card border-r border-border dark:border-dark-border p-4 flex flex-col justify-start gap-2 group-hover:bg-surface-container-low dark:group-hover:bg-white/5 transition-colors">
+                <div className="sticky left-0 z-10 bg-card dark:bg-dark-card border-r border-border dark:border-dark-border p-4 flex flex-col justify-start gap-2 group-hover:bg-surface-container-low dark:group-hover:bg-white/5 transition-colors flex-shrink-0" style={{ width: `${LEFT_SIDEBAR_WIDTH}px` }}>
                   <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${row.color}`}>
                       {row.initials}
@@ -570,8 +597,8 @@ export function MatrixCalendar({
                         placeholders.push(
                           <SlotPlaceholder
                             key={`slot-${mins}`}
-                            leftPx={leftPx}
-                            widthPx={widthPx}
+                            leftPct={leftPx}
+                            widthPct={widthPx}
                           />
                         );
                       }
@@ -586,8 +613,8 @@ export function MatrixCalendar({
                     return (
                       <IdleBlock
                         key={`gap-${gi}`}
-                        leftPx={minutesToPx(startMins)}
-                        widthPx={minutesToPx(endMins - startMins)}
+                        leftPct={minutesToPercent(startMins)}
+                        widthPct={minutesToPx(endMins - startMins)}
                         durationMins={gap.durationMins}
                       />
                     );
@@ -618,8 +645,8 @@ export function MatrixCalendar({
                       <React.Fragment key={item.id || i}>
                         <AppointmentCard
                           apt={item}
-                          leftPx={leftPx}
-                          widthPx={widthPx}
+                          leftPct={leftPx}
+                          widthPct={widthPx}
                           topPx={laneTopPx}
                           isDraggable={isDraggable}
                           onClick={() => onSelectApt?.(item)}
@@ -627,8 +654,8 @@ export function MatrixCalendar({
                         {/* Buffer zone */}
                         {showBufferZones && row.bufferDuration > 0 && item._type === 'Appointment' && (
                           <BufferZone
-                            leftPx={leftPx + widthPx - 2}
-                            widthPx={minutesToPx(row.bufferDuration)}
+                            leftPct={leftPx + widthPx - 2}
+                            widthPct={minutesToPx(row.bufferDuration)}
                           />
                         )}
                       </React.Fragment>

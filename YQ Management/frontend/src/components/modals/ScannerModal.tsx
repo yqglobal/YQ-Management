@@ -27,6 +27,7 @@ interface ValidationResult {
   isAppointment?: boolean;
   scheduledFor?: string;
   checkedIn?: boolean;
+  activeStep?: any;
 }
 
 const SCANNER_CONFIG = {
@@ -219,6 +220,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
             isAppointment: result.isAppointment,
             scheduledFor: result.scheduledFor,
             checkedIn: result.checkedIn,
+            activeStep: result.activeStep,
           };
 
           setValidationResult(validationResult);
@@ -375,6 +377,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
         isAppointment: result.isAppointment,
         scheduledFor: result.scheduledFor,
         checkedIn: result.checkedIn,
+        activeStep: result.activeStep,
       };
 
       setValidationResult(validationResult);
@@ -409,7 +412,34 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
     } catch (e: AnyFixMe) {
       alert(e.message || 'Failed to check in');
     }
-  }, [validationResult?.tokenId]);
+  }, [validationResult?.tokenId, onScanSuccess]);
+
+  const handleAdvanceStep = useCallback(async () => {
+    if (!validationResult?.activeStep?.id) return;
+    try {
+      // If it's a CHECKPOINT, we first activate it, then advance it.
+      await fetchApi(`/visit-steps/${validationResult.activeStep.id}/activate`, { method: 'POST' });
+      await fetchApi(`/visit-steps/${validationResult.activeStep.id}/advance`, { method: 'POST', body: JSON.stringify({ outcome: 'Cleared' }) });
+      setValidationResult((prev) => prev ? { ...prev, status: 'Advanced' } : prev);
+      onScanSuccess({ ...validationResult, checkedIn: true, status: 'Advanced' });
+    } catch (e: AnyFixMe) {
+      alert(e.message || 'Failed to advance step');
+    }
+  }, [validationResult, onScanSuccess]);
+
+  const handleRedeem = useCallback(async (quantity: number) => {
+    if (!validationResult?.activeStep?.id) return;
+    try {
+      await fetchApi(`/visit-steps/${validationResult.activeStep.id}/redeem`, { 
+        method: 'POST',
+        body: JSON.stringify({ quantity, notes: 'Redeemed via scanner' })
+      });
+      // Re-validate to get updated state
+      validateManualToken(); 
+    } catch (e: AnyFixMe) {
+      alert(e.message || 'Failed to redeem');
+    }
+  }, [validationResult?.activeStep?.id, validateManualToken]);
 
   const lookupByPhone = useCallback(async () => {
     if (!manualPhone.trim()) {
@@ -652,23 +682,73 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
                               <span className="font-medium">{validationResult.scheduledFor ? new Date(validationResult.scheduledFor).toLocaleTimeString() : 'Yes'}</span>
                             </div>
                           )}
+                          {validationResult.activeStep && (
+                            <div className="mt-4 pt-4 border-t border-border">
+                              <div className="flex justify-between font-bold text-on-surface mb-2">
+                                <span>Active Stage:</span>
+                                <span>{validationResult.activeStep.name}</span>
+                              </div>
+                              {validationResult.activeStep.templateStep?.type === 'COLLECTION' && (
+                                <div className="space-y-1">
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-outline">Entitlement:</span>
+                                    <span className="font-medium text-on-surface">{validationResult.activeStep.quantityAllocated} {validationResult.activeStep.templateStep?.entitlementUnit}</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-outline">Redeemed:</span>
+                                    <span className="font-medium text-primary">{validationResult.activeStep.quantityRedeemed || 0}</span>
+                                  </div>
+                                  {(validationResult.activeStep.quantityAllocated || 0) <= (validationResult.activeStep.quantityRedeemed || 0) && (
+                                    <div className="mt-2 p-2 bg-red-100 text-red-700 font-bold rounded text-center">
+                                      Fully Redeemed / Collected
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
 
-                    <div className="mt-auto pt-4 border-t border-border flex gap-3">
+                    <div className="mt-auto pt-4 border-t border-border flex flex-col gap-3">
                       {validationResult.valid ? (
-                         validationResult.isAppointment && !validationResult.checkedIn ? (
-                           <button onClick={handleCheckIn} className="flex-1 h-12 bg-emerald-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">
-                             <CheckCircle2 className="w-5 h-5"/> Check In
-                           </button>
+                         validationResult.activeStep ? (
+                           // SEF Step Actions
+                           validationResult.activeStep.templateStep?.type === 'CHECKPOINT' ? (
+                             <button onClick={handleAdvanceStep} className="w-full h-12 bg-emerald-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">
+                               <CheckCircle2 className="w-5 h-5"/> Check In / Clear
+                             </button>
+                           ) : validationResult.activeStep.templateStep?.type === 'COLLECTION' && ((validationResult.activeStep.quantityAllocated || 0) > (validationResult.activeStep.quantityRedeemed || 0)) ? (
+                             <div className="flex flex-col gap-2 w-full">
+                               <button onClick={() => handleRedeem(1)} className="w-full h-12 bg-primary/10 text-primary hover:bg-primary/20 font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                                 <CheckCircle2 className="w-5 h-5"/> Redeem 1 {validationResult.activeStep.templateStep?.entitlementUnit}
+                               </button>
+                               {((validationResult.activeStep.quantityAllocated || 0) - (validationResult.activeStep.quantityRedeemed || 0)) > 1 && (
+                                 <button onClick={() => handleRedeem((validationResult.activeStep.quantityAllocated || 0) - (validationResult.activeStep.quantityRedeemed || 0))} className="w-full h-12 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors">
+                                   <CheckCircle2 className="w-5 h-5"/> Redeem All {((validationResult.activeStep.quantityAllocated || 0) - (validationResult.activeStep.quantityRedeemed || 0))}
+                                 </button>
+                               )}
+                             </div>
+                           ) : (
+                             <button onClick={() => { stopScanning(); onScanSuccess(validationResult); }} className="w-full h-12 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2">
+                               Open Record
+                             </button>
+                           )
                          ) : (
-                           <button onClick={() => { stopScanning(); onScanSuccess(validationResult); }} className="flex-1 h-12 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2">
-                             Open Record
-                           </button>
+                           // Legacy Fallback Actions
+                           validationResult.isAppointment && !validationResult.checkedIn ? (
+                             <button onClick={handleCheckIn} className="w-full h-12 bg-emerald-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">
+                               <CheckCircle2 className="w-5 h-5"/> Check In
+                             </button>
+                           ) : (
+                             <button onClick={() => { stopScanning(); onScanSuccess(validationResult); }} className="w-full h-12 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2">
+                               Open Record
+                             </button>
+                           )
                          )
                       ) : null}
-                      <button onClick={() => { setValidationResult(null); startScanning(); }} className="flex-1 h-12 bg-surface-container text-on-surface font-semibold rounded-xl flex items-center justify-center gap-2">
+                      <button onClick={() => { setValidationResult(null); startScanning(); }} className="w-full h-12 bg-surface-container text-on-surface font-semibold rounded-xl flex items-center justify-center gap-2">
                         <RefreshCcw className="w-5 h-5"/> Scan Next
                       </button>
                     </div>

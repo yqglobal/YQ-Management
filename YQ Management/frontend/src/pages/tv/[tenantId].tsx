@@ -47,6 +47,7 @@ export default function TVDisplay() {
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const isMutedRef = useRef(isMuted);
   const audioEnabledRef = useRef(audioEnabled);
+  const announcedIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
   useEffect(() => { audioEnabledRef.current = audioEnabled; }, [audioEnabled]);
@@ -128,8 +129,6 @@ export default function TVDisplay() {
     if (isMutedRef.current || !ttsConfig.enabled || !audioEnabledRef.current) return;
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
-    window.speechSynthesis.cancel();
-
     const tokenId = token.displayId || token.id?.substring(0, 4).toUpperCase() || '####';
     const resource = token.resourceName || 'the service desk';
     const text = ttsConfig.template
@@ -205,13 +204,16 @@ export default function TVDisplay() {
             }));
 
             setCalledTokens(prev => {
-              // Find the newest IN_SERVICE token
-              const currentActive = tokens.find((t: any) => t.currentState === 'IN_SERVICE');
-              const prevActive = prev.find((t: any) => t.currentState === 'IN_SERVICE');
+              // Find all IN_SERVICE tokens
+              const activeTokens = tokens.filter((t: any) => t.currentState === 'IN_SERVICE');
+              
+              const newTokensToAnnounce = activeTokens.filter((t: any) => !announcedIdsRef.current.has(t.id));
 
-              if (currentActive && (!prevActive || prevActive.id !== currentActive.id)) {
+              if (newTokensToAnnounce.length > 0) {
+                newTokensToAnnounce.forEach((t: any) => announcedIdsRef.current.add(t.id));
+
                 if (audioEnabledRef.current) {
-                  // Play chime
+                  // Play chime once for the batch
                   try {
                     const audioCtx = new (window.AudioContext || (window as AnyFixMe).webkitAudioContext)();
                     [440, 550].forEach((freq, i) => {
@@ -230,10 +232,21 @@ export default function TVDisplay() {
                     console.error('Audio play failed', e);
                   }
 
-                  // TTS: small delay after chime
-                  setTimeout(() => speakAnnouncement(currentActive), 800);
+                  // TTS: queue all new announcements
+                  setTimeout(() => {
+                    newTokensToAnnounce.forEach((t: any) => speakAnnouncement(t));
+                  }, 800);
                 }
               }
+              
+              // Cleanup Set to avoid memory leaks: keep only tokens that are in the fetched list
+              const currentFetchedIds = new Set(tokens.map((t: any) => t.id));
+              for (const id of Array.from(announcedIdsRef.current)) {
+                if (!currentFetchedIds.has(id)) {
+                  announcedIdsRef.current.delete(id);
+                }
+              }
+
               return tokens;
             });
           }

@@ -118,6 +118,10 @@ export class VisitService {
         customer: true,
         service: true,
         location: true,
+        visitSteps: {
+          include: { templateStep: true },
+          orderBy: { stepOrder: 'asc' },
+        },
       },
     });
   }
@@ -129,6 +133,24 @@ export class VisitService {
     });
     if (!visit) throw new NotFoundException(`Visit with ID ${id} not found`);
     return visit;
+  }
+
+  async findVisitsByPhone(phone: string) {
+    return this.prisma.visit.findMany({
+      where: { customer: { phone } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        accessToken: true,
+        displayId: true,
+        currentState: true,
+        scheduledTime: true,
+        waitingStart: true,
+        service: { select: { name: true } },
+        queue: { select: { name: true, location: { select: { name: true } } } },
+        tenant: { select: { name: true } },
+      }
+    });
   }
 
   async findOnePublic(accessToken: string) {
@@ -1029,6 +1051,10 @@ export class VisitService {
           include: { location: true },
         },
         service: true,
+        visitSteps: {
+          include: { templateStep: true },
+          orderBy: { stepOrder: 'asc' },
+        },
       },
     });
 
@@ -1050,6 +1076,11 @@ export class VisitService {
       };
     }
 
+    const actionableSteps = visit.visitSteps?.filter(
+      (s) => s.status === 'PENDING' || s.status === 'ACTIVE' || s.status === 'DEFERRED'
+    );
+    const activeStep = actionableSteps && actionableSteps.length > 0 ? actionableSteps[0] : null;
+
     return {
       valid: true,
       status: visit.currentState,
@@ -1061,6 +1092,7 @@ export class VisitService {
       scheduledFor: visit.scheduledTime,
       checkedIn: visit.currentState !== 'SCHEDULED' && visit.currentState !== 'CREATED',
       checkInTime: visit.checkInTime,
+      activeStep,
     };
   }
 

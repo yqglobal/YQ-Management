@@ -12,6 +12,7 @@ import {
   Res,
   Sse,
   MessageEvent,
+  BadRequestException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Observable, timer, from, merge, interval } from 'rxjs';
@@ -220,6 +221,12 @@ export class PublicVisitController {
     return { success: true, tokens };
   }
 
+  @Get('by-phone')
+  async getVisitsByPhone(@Query('phone') phone: string) {
+    if (!phone) throw new BadRequestException('Phone is required');
+    return this.visitService.findVisitsByPhone(phone);
+  }
+
   @Get(':accessToken')
   async getPublicVisit(@Param('accessToken') accessToken: string) {
     // In a real scenario, this would only return non-sensitive data
@@ -267,10 +274,11 @@ export class PublicVisitController {
       language?: string;
       bookings: {
         serviceId: string;
-        queueId?: string; // Made optional so frontend can specify or we infer
+        queueId?: string; 
         providerId?: string;
         scheduledFor?: string;
         formResponses?: any;
+        accompanyingGuests?: number;
       }[];
     },
     @Res({ passthrough: true }) res: Response,

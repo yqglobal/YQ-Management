@@ -1,3 +1,4 @@
+import { fetchApi } from "../../../../lib/api";
 /* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
@@ -167,15 +168,10 @@ export default function StatusPage() {
     setRecoveryError('');
     setIsRecovering(true);
     try {
-      const res = await fetch(`${baseUrl}/public-visit/request-recovery-otp`, {
+      await fetchApi(`/public-visit/request-recovery-otp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: recoveryPhone, tenantId: tenant?.id }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Failed to send OTP');
-      }
       setOtpSent(true);
     } catch (err: AnyFixMe) {
       setRecoveryError(err.message);
@@ -189,14 +185,10 @@ export default function StatusPage() {
     setRecoveryError('');
     setIsRecovering(true);
     try {
-      const res = await fetch(`${baseUrl}/public-visit/recover`, {
+      const data = await fetchApi(`/public-visit/recover`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Ensure cookies are sent
         body: JSON.stringify({ phone: recoveryPhone, tenantId: tenant?.id, otp: recoveryOtp }),
       });
-      if (!res.ok) throw new Error('Invalid OTP');
-      const data = await res.json();
       
       if (data.tokens && data.tokens.length > 0) {
         localStorage.setItem('qmova_active_tokens', JSON.stringify(data.tokens));

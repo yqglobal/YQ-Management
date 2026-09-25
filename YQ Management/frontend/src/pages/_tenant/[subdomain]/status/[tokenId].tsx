@@ -23,10 +23,8 @@ function RatingWidget({ accessToken, lang }: { accessToken: string; lang: string
     if (!selected) return;
     setSubmitting(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || '';
-      await fetch(`${apiBase}/public-visit/${accessToken}/rate`, {
+      await fetchApi(`/public-visit/${accessToken}/rate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating: selected, feedbackText: comment.trim() || undefined }),
       });
       setSubmitted(true);

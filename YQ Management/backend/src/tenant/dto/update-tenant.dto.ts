@@ -33,4 +33,7 @@ export class UpdateTenantDto {
   @IsOptional()
   @IsBoolean()
   showSupportInfo?: boolean;
+
+  @IsOptional()
+  aiConfig?: any;
 }

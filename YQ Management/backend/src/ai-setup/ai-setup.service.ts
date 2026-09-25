@@ -1,5 +1,7 @@
 import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 
+import { PrismaService } from '../prisma/prisma.service';
+
 const SYSTEM_PROMPT = `You are an expert operations consultant for Qmova, a SaaS platform that manages queueing, appointments, and multi-stage customer journeys (Service Execution Flows).
 
 Your task is to take a natural language description of a business or service process and generate a structured JSON ServiceFlow with steps.
@@ -56,20 +58,25 @@ Example Output:
 export class AiSetupService {
   private readonly logger = new Logger(AiSetupService.name);
 
-  async generateServiceFlow(prompt: string) {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async generateServiceFlow(prompt: string, tenantId: string) {
     if (!prompt) {
       throw new BadRequestException('Prompt is required');
     }
 
-    const geminiKey = process.env.GEMINI_API_KEY;
-    const groqKey = process.env.GROQ_API_KEY;
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+    const aiConfig = tenant?.aiConfig as any || {};
+
+    const geminiKey = aiConfig.geminiKey || process.env.GEMINI_API_KEY;
+    const groqKey = aiConfig.groqKey || process.env.GROQ_API_KEY;
 
     if (geminiKey) {
       return this.callGemini(prompt, geminiKey);
     } else if (groqKey) {
       return this.callGroq(prompt, groqKey);
     } else {
-      throw new InternalServerErrorException('No AI provider configured (Missing GEMINI_API_KEY or GROQ_API_KEY)');
+      throw new InternalServerErrorException('No AI provider configured (Configure Gemini or Groq keys in settings)');
     }
   }
 

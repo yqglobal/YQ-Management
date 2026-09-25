@@ -12,6 +12,7 @@ import { Sun, Moon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
+import { fetchApi } from '../../../../lib/api';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { LocationStep } from '../../../../components/booking/LocationStep';
@@ -80,10 +81,46 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [accompanyingGuests, setAccompanyingGuests] = useState(0);
   const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>('US');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [regionBlocked, setRegionBlocked] = useState(false);
   const idempotencyKey = React.useMemo(() => crypto.randomUUID(), []);
+
+  // Load persisted state
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(`booking_state_${tenant?.id}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.step) setStep(parsed.step);
+        if (parsed.selectedLocationId) setSelectedLocationId(parsed.selectedLocationId);
+        if (parsed.name) setName(parsed.name);
+        if (parsed.phone) setPhone(parsed.phone);
+        if (parsed.accompanyingGuests !== undefined) setAccompanyingGuests(parsed.accompanyingGuests);
+        if (parsed.selectedServiceIds) setSelectedServiceIds(parsed.selectedServiceIds);
+      }
+    } catch (e) {
+      console.error('Failed to load booking state', e);
+    }
+  }, [tenant?.id]);
+
+  // Save state on change
+  useEffect(() => {
+    if (!tenant?.id) return;
+    try {
+      sessionStorage.setItem(`booking_state_${tenant.id}`, JSON.stringify({
+        step,
+        selectedLocationId,
+        name,
+        phone,
+        accompanyingGuests,
+        selectedServiceIds
+      }));
+    } catch (e) {
+      console.error('Failed to save booking state', e);
+    }
+  }, [step, selectedLocationId, name, phone, accompanyingGuests, selectedServiceIds, tenant?.id]);
 
   useEffect(() => {
     import('../../../../lib/country-codes').then(({ detectCountryCode }) => {
@@ -248,13 +285,14 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
     
     const refreshStatus = () => {
       tokens.forEach(t => {
-        fetch(`${baseUrl}/token/${t.id}/status`)
-          .then(r => r.ok ? r.json() : null)
+        if (!t.accessToken) return;
+        fetchApi(`/public-visit/${t.accessToken}`)
           .then(d => {
             if (d) {
               setStatusDataMap(prev => ({ ...prev, [t.id]: d }));
             }
-          });
+          })
+          .catch(() => {});
       });
     };
     
@@ -431,22 +469,21 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
       if (phone) {
         // Pass serviceId for the first selected service
         const firstServiceId = selectedServiceIds[0];
-        const otpRes = await fetch(`${baseUrl}/token/request-otp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, serviceId: firstServiceId }),
-        });
-        if (otpRes.ok) {
+        try {
+          await fetchApi(`/token/request-otp`, {
+            method: 'POST',
+            body: JSON.stringify({ phone, serviceId: firstServiceId }),
+          });
           setOtpSent(true);
           setLoading(false);
           return;
-        } else if (otpRes.status === 503 || otpRes.status === 404) {
-          // WhatsApp not connected or number not registered, silently bypass OTP
-          await submitJoin();
-          return;
-        } else {
-          const errData = await otpRes.json();
-          throw new Error(errData.message || 'Failed to request OTP');
+        } catch (e: any) {
+          if (e.status === 503 || e.status === 404) {
+            // WhatsApp not connected or number not registered, silently bypass OTP
+            await submitJoin();
+            return;
+          }
+          throw e;
         }
       }
       await submitJoin();
@@ -476,17 +513,16 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
           serviceId: sid,
           providerId: d.providerId || undefined,
           scheduledFor: d.joinMode === 'appointment' && d.selectedSlot ? d.selectedSlot : undefined,
-          formResponses: d.responses || {}
+          formResponses: d.responses || {},
+          accompanyingGuests
         };
       });
 
-      const res = await fetch(`${baseUrl}/public-visit/join-multiple`, {
+      const data = await fetchApi(`/public-visit/join-multiple`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
           'Idempotency-Key': idempotencyKey
         },
-        credentials: 'include',
         body: JSON.stringify({
           customerName: name,
           phone: phone || undefined,
@@ -495,12 +531,9 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
           bookings
         }),
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Failed to complete booking.');
-      }
-      const data = await res.json();
-      const accessTokens = data.map((d: AnyFixMe) => d.accessToken).filter(Boolean);
+      if (!data) throw new Error('Failed to complete booking.');
+      
+      const accessTokens = Array.isArray(data) ? data.map((d: AnyFixMe) => d.accessToken).filter(Boolean) : [];
       
       let tokenStr = accessTokens.join(',');
       if (accessTokens.length > 0) {
@@ -548,13 +581,13 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
 
   const handleCancel = async (tokenId: string) => {
     try {
-      // It might be Visit cancel not Token, but let's assume /visit/cancel exists. Actually let's use the visit ID.
-      await fetch(`${baseUrl}/visit/${tokenId}/cancel`, { method: 'POST' });
-      setTokens(prev => prev.filter(t => t.id !== tokenId));
-      if (tokens.length <= 1) {
-        setStep(1); // Reset if all cancelled
-      }
-    } catch {}
+      const accessToken = tokens.find(t => t.id === tokenId)?.accessToken;
+      if (!accessToken) return;
+      await fetchApi(`/public-visit/${accessToken}/cancel`, { method: 'POST' });
+      // Remove filtering to keep ticket visible and rely on SSE/WebSocket updates
+    } catch (e) {
+      console.error('Failed to cancel ticket', e);
+    }
   };
 
   if (error || !tenant || regionBlocked) {
@@ -971,6 +1004,9 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               setName={setName}
               phone={phone}
               setPhone={setPhone}
+              accompanyingGuests={accompanyingGuests}
+              setAccompanyingGuests={setAccompanyingGuests}
+              showGuestCount={tenant?.industry === 'school_event_catering' || (tenant?.uiFlags?.showGuestCount)}
               defaultCountry={defaultCountry}
               errorMsg={errorMsg}
               primaryColor={primaryColor}
@@ -1095,7 +1131,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               {tokens.map(token => {
                 const statusData = statusDataMap[token.id] || { token };
                 const t = statusData.token || token;
-                const isDone = t.status === 'COMPLETED' || t.status === 'MISSED';
+                const isDone = t.status === 'COMPLETED' || t.status === 'MISSED' || t.status === 'CANCELLED';
                 const isServing = t.status === 'SERVING';
                 
                 // Which service is this for?
@@ -1135,7 +1171,13 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                       </div>
                     )}
 
-                    {!isDone && !isServing && (
+                    {isDone ? (
+                      <div className="bg-gray-100 dark:bg-zinc-800 rounded-xl p-4 text-center mb-4">
+                        <p className="font-bold text-gray-700 dark:text-gray-300">
+                          {t.status === 'CANCELLED' ? '❌ Canceled' : t.status === 'COMPLETED' ? '✅ Completed' : t.status === 'MISSED' ? '⚠️ Missed' : 'Ended'}
+                        </p>
+                      </div>
+                    ) : !isServing && (
                       <div className="flex justify-between items-center bg-gray-50 dark:bg-zinc-950 p-4 rounded-xl border border-gray-100 dark:border-zinc-800">
                         {t.isAppointment ? (
                           <div>
