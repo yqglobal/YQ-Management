@@ -480,11 +480,14 @@ export class CommunicationService {
   }
 
   private async handleQueueCancelled(payload: any) {
-    const { phone, name, queueName } = payload;
-    if (!phone) return;
+    const { phone, name, queueName, customerPhone, customerName } = payload;
+    const finalPhone = phone || customerPhone;
+    const finalName = name || customerName;
+    
+    if (!finalPhone) return;
 
     const body = await this.templateService.renderWhatsAppForWorkspace(payload.tenantId, 'queue_cancelled', {
-      name: name || 'Customer',
+      name: finalName || 'Customer',
       queue_name: queueName || 'the queue',
     });
     const result = payload.tenantId

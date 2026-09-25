@@ -156,6 +156,22 @@ export class VisitService {
         scheduledTime: true,
         language: true,
         tenant: { select: { name: true } },
+        visitSteps: {
+          select: {
+            id: true,
+            stepOrder: true,
+            name: true,
+            status: true,
+            templateStep: {
+              select: {
+                type: true,
+                customerInstruction: true,
+                locationDescription: true,
+              }
+            }
+          },
+          orderBy: { stepOrder: 'asc' }
+        },
       },
     });
     if (!visit)
@@ -1070,6 +1086,18 @@ export class VisitService {
       where: { id: visit.id },
       data: { currentState: 'CANCELLED', cancelledBy: 'CUSTOMER' },
       include: { customer: true, queue: true, service: true, tenant: true },
+    });
+
+    await this.prisma.outboxEvent.create({
+      data: {
+        type: 'VISIT_CANCELLED',
+        payload: {
+          visitId: updated.id,
+          queueId: updated.queueId,
+          tenantId: updated.tenantId,
+          cancelledBy: updated.cancelledBy,
+        },
+      },
     });
 
     await this.communicationService.publish(

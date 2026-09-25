@@ -427,24 +427,25 @@ export default function StatusPage() {
                     </div>
                   )}
 
-                  {!isDone && !isServing && (
+                  {!isServing && (
                     <div className="flex justify-between items-center bg-gray-50 dark:bg-zinc-950 p-4 rounded-xl border border-gray-100 dark:border-zinc-800">
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Status</p>
+                        <p className={`font-bold capitalize ${isDone ? 'text-gray-500' : 'text-primary'}`}>
+                          {visit.currentState.toLowerCase()}
+                        </p>
+                      </div>
+                      
                       {isAppointment ? (
-                        <div>
+                        <div className="text-right">
                           <p className="text-xs text-gray-500 uppercase">Scheduled For</p>
                           <p className="font-bold">{visit.scheduledTime ? new Date(visit.scheduledTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—'}</p>
                         </div>
                       ) : (
-                        <>
-                          <div>
-                            <p className="text-xs text-gray-500 uppercase">Status</p>
-                            <p className="font-bold capitalize">{visit.currentState.toLowerCase()}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-gray-500 uppercase">Started Waiting</p>
-                            <p className="font-bold">{visit.waitingStart ? new Date(visit.waitingStart).toLocaleTimeString([], { timeStyle: 'short' }) : '—'}</p>
-                          </div>
-                        </>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500 uppercase">Started Waiting</p>
+                          <p className="font-bold">{visit.waitingStart ? new Date(visit.waitingStart).toLocaleTimeString([], { timeStyle: 'short' }) : '—'}</p>
+                        </div>
                       )}
                     </div>
                   )}
@@ -459,12 +460,6 @@ export default function StatusPage() {
                         <p className="text-xs text-gray-500 uppercase">Est. Wait</p>
                         <p className="font-bold">{visit.estimatedWaitTime} min</p>
                       </div>
-                    </div>
-                  )}
-
-                  {isDone && (
-                    <div className="bg-gray-100 dark:bg-zinc-800 rounded-xl p-3 text-center mt-4">
-                      <p className="text-gray-600 dark:text-gray-300 font-bold text-sm">Ticket {visit.currentState.toLowerCase()}</p>
                     </div>
                   )}
                 </div>

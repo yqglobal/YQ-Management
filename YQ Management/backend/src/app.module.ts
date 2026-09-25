@@ -55,6 +55,7 @@ import { SlaPolicyModule } from './sla-policy/sla-policy.module';
 import { ServiceFlowModule } from './service-flow/service-flow.module';
 import { VisitStepModule } from './visit-step/visit-step.module';
 import { TenantPaymentsModule } from './tenant-payments/tenant-payments.module';
+import { AiSetupModule } from './ai-setup/ai-setup.module';
 
 @Module({
   imports: [
@@ -138,6 +139,7 @@ import { TenantPaymentsModule } from './tenant-payments/tenant-payments.module';
     CustomerModule,
     TasksModule,
     SystemLogModule,
+    AiSetupModule,
     PoliciesModule,
     GoogleModule,
     MarketingModule,
