@@ -41,6 +41,9 @@ echo "====> Running Safe Database Migrations..."
 docker exec yq-postgres psql -U postgres -d yq_queue -c "DELETE FROM _prisma_migrations WHERE finished_at IS NULL;" || true
 docker compose -f docker-compose.production.yml run --rm backend npx prisma migrate deploy
 
+echo "====> Seeding/Updating Industry Blueprints..."
+docker compose -f docker-compose.production.yml run --rm backend npx ts-node src/service-flow/seed-blueprints.ts
+
 echo "====> Starting new containers..."
 # Recreate only the containers that have changed images or configs
 docker compose -f docker-compose.production.yml up -d --remove-orphans --wait
