@@ -127,8 +127,8 @@ export class SuperAdminService {
           },
         },
         users: {
-          where: { role: 'OWNER' },
-          select: { email: true, name: true },
+          where: { role: 'OWNER' as any },
+          select: { email: true },
         },
         subscriptions: {
           where: {

@@ -21,8 +21,6 @@ enum QueueStatus {
   CLOSED
 }
 
-
-
 enum SubscriptionStatus {
   TRIAL
   ACTIVE
@@ -105,48 +103,48 @@ enum PolicyType {
 // ── Service Execution Flow (SEF) Enums ───────────────────────────────────────
 
 enum StepType {
-  SERVICE        // Routes to a queue/service for active serving
-  CHECKPOINT     // QR scan only — no service time, just gate validation
-  COLLECTION     // Entitlement redemption (meals, prescriptions, vouchers)
+  SERVICE // Routes to a queue/service for active serving
+  CHECKPOINT // QR scan only — no service time, just gate validation
+  COLLECTION // Entitlement redemption (meals, prescriptions, vouchers)
   WAITING_PERIOD // Time-based deferred gap (e.g. await lab results)
-  NOTIFICATION   // System sends message, no physical action
-  PAYMENT        // Triggers a payment flow at this step
-  FORM           // Customer fills a form before proceeding
+  NOTIFICATION // System sends message, no physical action
+  PAYMENT // Triggers a payment flow at this step
+  FORM // Customer fills a form before proceeding
 }
 
 enum StepTrigger {
-  AUTOMATIC       // System auto-advances when current step completes
-  MANUAL_STAFF    // Staff must explicitly advance
+  AUTOMATIC // System auto-advances when current step completes
+  MANUAL_STAFF // Staff must explicitly advance
   MANUAL_CUSTOMER // Customer self-advances (scan own QR)
-  SCHEDULED       // Advances at a specific future time
-  CONDITION       // Based on outcome/data condition
+  SCHEDULED // Advances at a specific future time
+  CONDITION // Based on outcome/data condition
 }
 
 enum VisitStepStatus {
-  LOCKED      // Prerequisites not met
-  PENDING     // Next up, prerequisites met, not started
-  DEFERRED    // Waiting for time-based delay to pass
-  QUEUED      // In a service queue waiting to be called
-  ACTIVE      // Currently being served at this step
-  DONE        // Completed
-  SKIPPED     // Optional step that was skipped
-  EXPIRED     // Time window passed without completion
-  FAILED      // Step failed (e.g. payment declined)
+  LOCKED // Prerequisites not met
+  PENDING // Next up, prerequisites met, not started
+  DEFERRED // Waiting for time-based delay to pass
+  QUEUED // In a service queue waiting to be called
+  ACTIVE // Currently being served at this step
+  DONE // Completed
+  SKIPPED // Optional step that was skipped
+  EXPIRED // Time window passed without completion
+  FAILED // Step failed (e.g. payment declined)
 }
 
 enum StepEventType {
-  UNLOCKED             // Prerequisites cleared, step became available
-  QUEUED               // Visit entered a service queue for this step
-  ACTIVATED            // Staff started / customer arrived at this step
-  QR_SCANNED           // QR code was scanned at this step
+  UNLOCKED // Prerequisites cleared, step became available
+  QUEUED // Visit entered a service queue for this step
+  ACTIVATED // Staff started / customer arrived at this step
+  QR_SCANNED // QR code was scanned at this step
   ENTITLEMENT_REDEEMED // Partial or full entitlement collected
-  OUTCOME_SET          // Staff selected an outcome
-  COMPLETED            // Step marked done
-  SKIPPED              // Step was skipped (optional)
-  DEFERRED             // Step pushed to a future date/time
-  EXPIRED              // Time window passed without action
-  STAFF_NOTE           // Staff added a note
-  PAYMENT_MADE         // Payment processed at this step
+  OUTCOME_SET // Staff selected an outcome
+  COMPLETED // Step marked done
+  SKIPPED // Step was skipped (optional)
+  DEFERRED // Step pushed to a future date/time
+  EXPIRED // Time window passed without action
+  STAFF_NOTE // Staff added a note
+  PAYMENT_MADE // Payment processed at this step
 }
 
 // ── Booking Payment Enums ────────────────────────────────────────────────────
@@ -176,9 +174,9 @@ model Tenant {
   customerExperience Json? // Global settings for forms, feedback, and portal experience
 
   // Customer Support Integration
-  supportEmail       String?
-  supportPhone       String?
-  showSupportInfo    Boolean @default(true)
+  supportEmail    String?
+  supportPhone    String?
+  showSupportInfo Boolean @default(true)
 
   // Google Business Profile Integration
   enableSmartReviews      Boolean @default(false)
@@ -217,18 +215,19 @@ model Tenant {
   selfServeOtpEnabled  Boolean @default(true)
 
   googleIntegrations GoogleIntegration[]
-  communicationLogs CommunicationLog[]
-  whatsappTemplates WhatsAppTemplate[]
-  checkInOtps       CheckInOtp[]
+  communicationLogs  CommunicationLog[]
+  whatsappTemplates  WhatsAppTemplate[]
+  checkInOtps        CheckInOtp[]
 
   strictPrivacyMode Boolean @default(false)
   businessType      String  @default("general")
 
-  slaPolicies       SlaPolicy[]
+  slaPolicies SlaPolicy[]
 
   // SEF + Payments relations
-  paymentAccount    TenantPaymentAccount?
-  bookingPayments   BookingPayment[]
+  paymentAccount  TenantPaymentAccount?
+  bookingPayments BookingPayment[]
+  blueprintFlows  BlueprintFlow[]
 }
 
 // OTP sessions for self-serve check-in (no receptionist mode)
@@ -237,7 +236,7 @@ model CheckInOtp {
   tenantId   String
   phone      String
   locationId String?
-  code       String   // 6-digit OTP
+  code       String // 6-digit OTP
   expiresAt  DateTime
   verified   Boolean  @default(false)
   createdAt  DateTime @default(now())
@@ -274,15 +273,15 @@ model User {
 }
 
 model SlaPolicy {
-  id                  String    @id @default(uuid())
-  tenantId            String
-  name                String
+  id                   String   @id @default(uuid())
+  tenantId             String
+  name                 String
   warningThresholdMins Int
   breachThresholdMins  Int
-  escalationPhones    String[] @default([])
+  escalationPhones     String[] @default([])
 
-  services            Service[]
-  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  services Service[]
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model PasswordReset {
@@ -344,13 +343,11 @@ model Queue {
   frozenAt      DateTime?
   createdAt     DateTime  @default(now())
 
-  blockOffs     BlockOff[]
+  blockOffs BlockOff[]
 
   @@index([tenantId])
   @@index([locationId])
 }
-
-
 
 model CustomerConversation {
   id            String   @id @default(uuid())
@@ -405,26 +402,25 @@ model Transaction {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-}
-
-model WebhookEndpoint {
-  id        String   @id @default(uuid())
-  tenantId  String
-  url       String
-  secret    String?
-  events    String[] // Array of event names, e.g. ["TOKEN_COMPLETED", "TOKEN_JOINED"]
-  active    Boolean  @default(true)
-  payloadFormat String @default("DEFAULT") // e.g. "DEFAULT", "FHIR_ENCOUNTER", "SALESFORCE"
-  createdAt DateTime @default(now())
-
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }
 
+model WebhookEndpoint {
+  id            String   @id @default(uuid())
+  tenantId      String
+  url           String
+  secret        String?
+  events        String[] // Array of event names, e.g. ["TOKEN_COMPLETED", "TOKEN_JOINED"]
+  active        Boolean  @default(true)
+  payloadFormat String   @default("DEFAULT") // e.g. "DEFAULT", "FHIR_ENCOUNTER", "SALESFORCE"
+  createdAt     DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
 
 model Plan {
   id                    String         @id @default(uuid())
@@ -528,16 +524,16 @@ model TenantUsage {
 }
 
 model WhatsAppTemplate {
-  id          String   @id @default(uuid())
-  key         String   @unique
-  name        String
-  content     String
-  active      Boolean  @default(true)
-  isActive    Boolean  @default(true)
-  variables   Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  tenantId    String?
+  id        String   @id @default(uuid())
+  key       String   @unique
+  name      String
+  content   String
+  active    Boolean  @default(true)
+  isActive  Boolean  @default(true)
+  variables Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenantId  String?
 
   tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -618,7 +614,7 @@ model WebhookEvent {
   error            String?
   createdAt        DateTime                @default(now())
 
-  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([eventType])
@@ -655,8 +651,8 @@ model Location {
   updatedAt      DateTime @updatedAt
 
   // ── Wayfinding (for SEF step navigation instructions) ────────────────────
-  totalFloors  Int?  // Number of floors in the building
-  buildingMap  Json? // [{floor:1,label:"Ground",rooms:["A1","B1"],description:"Reception"}]
+  totalFloors Int? // Number of floors in the building
+  buildingMap Json? // [{floor:1,label:"Ground",rooms:["A1","B1"],description:"Reception"}]
 
   services     Service[]
   staff        Staff[]
@@ -666,7 +662,7 @@ model Location {
   queues       Queue[]
   blockOffs    BlockOff[]
 
-  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   googleIntegrationId String?
   googlePlaceId       String?
@@ -698,22 +694,22 @@ model GoogleIntegration {
 }
 
 model Service {
-  id                         String  @id @default(uuid())
+  id                         String   @id @default(uuid())
   tenantId                   String
   locationId                 String?
   name                       String
   description                String?
-  expectedDuration           Int     @default(30)
-  bufferDuration             Int     @default(0)
-  concurrentSlots            Int     @default(1)
+  expectedDuration           Int      @default(30)
+  bufferDuration             Int      @default(0)
+  concurrentSlots            Int      @default(1)
   minDuration                Int?
   maxDuration                Int?
   formConfig                 Json?
-  allowAppointments          Boolean @default(false)
-  requireManualCheckIn       Boolean @default(false)
-  appointmentGranularityMins Int     @default(15)
-  dateSelectionType          String  @default("calendar")
-  maxDaysInAdvance           Int     @default(30)
+  allowAppointments          Boolean  @default(false)
+  requireManualCheckIn       Boolean  @default(false)
+  appointmentGranularityMins Int      @default(15)
+  dateSelectionType          String   @default("calendar")
+  maxDaysInAdvance           Int      @default(30)
   avgActualDurationMins      Int?
   emaExpectedDuration        Float?
   slaPolicyId                String?
@@ -725,10 +721,10 @@ model Service {
   exceptionDatesOverride Json?
 
   // ── Booking Payments ─────────────────────────────────────────────────────
-  requiresPayment  Boolean @default(false)
-  basePrice        Float?  // Base price in minor units' currency
-  priceCurrency    String  @default("ZAR")
-  paymentMode      String  @default("NONE") // NONE | PREPAY | PAY_AT_SERVICE | OPTIONAL_PREPAY
+  requiresPayment Boolean @default(false)
+  basePrice       Float? // Base price in minor units' currency
+  priceCurrency   String  @default("ZAR")
+  paymentMode     String  @default("NONE") // NONE | PREPAY | PAY_AT_SERVICE | OPTIONAL_PREPAY
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -740,7 +736,7 @@ model Service {
   slaPolicy    SlaPolicy?    @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
 
   allowProviderSelection Boolean @default(false)
-  staff Staff[] @relation("StaffToService")
+  staff                  Staff[] @relation("StaffToService")
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
@@ -756,7 +752,7 @@ model Service {
 }
 
 model Staff {
-  id         String  @id @default(uuid())
+  id         String   @id @default(uuid())
   tenantId   String
   locationId String?
   userId     String? // Optional link to a User (Member) account
@@ -767,8 +763,8 @@ model Staff {
   bio        String? // Short public-facing bio shown to customers
   avatarUrl  String?
   color      String? // Hex color for calendar/UI color-coding
-  status     String  @default("ACTIVE") // ACTIVE | INACTIVE | ON_LEAVE
-  capacity   Int     @default(1) // Max simultaneous active bookings
+  status     String   @default("ACTIVE") // ACTIVE | INACTIVE | ON_LEAVE
+  capacity   Int      @default(1) // Max simultaneous active bookings
   skills     String[] @default([]) // Skills this staff member possesses
 
   // Availability (JSON for speed; migrate to relational later if needed)
@@ -812,17 +808,17 @@ model Resource {
 }
 
 model Appointment {
-  id             String            @id @default(uuid())
-  tenantId       String
-  customerId     String?
-  locationId     String
-  serviceId      String
-  staffId        String?
-  resourceId     String?
-  scheduledStart DateTime
-  scheduledEnd   DateTime
-  status         AppointmentStatus @default(SCHEDULED)
-  bookingSource  VisitSource       @default(APPOINTMENT)
+  id                 String            @id @default(uuid())
+  tenantId           String
+  customerId         String?
+  locationId         String
+  serviceId          String
+  staffId            String?
+  resourceId         String?
+  scheduledStart     DateTime
+  scheduledEnd       DateTime
+  status             AppointmentStatus @default(SCHEDULED)
+  bookingSource      VisitSource       @default(APPOINTMENT)
   customerNotes      String?
   accompanyingGuests Int               @default(0)
   formData           Json?
@@ -831,8 +827,8 @@ model Appointment {
   updatedAt          DateTime          @updatedAt
 
   // ── Booking Payment ───────────────────────────────────────────────────────
-  requiresPayment  Boolean  @default(false)
-  paymentStatus    String   @default("NOT_REQUIRED") // NOT_REQUIRED | PENDING | PAID | WAIVED
+  requiresPayment        Boolean @default(false)
+  paymentStatus          String  @default("NOT_REQUIRED") // NOT_REQUIRED | PENDING | PAID | WAIVED
   pendingPaymentIntentId String? // Stripe PaymentIntent ID awaiting confirmation
 
   visits          Visit[]
@@ -879,29 +875,29 @@ model Visit {
   updatedAt          DateTime    @updatedAt
 
   // Hybrid Queue Fields
-  displayId     String?
-  accessToken   String    @unique @default(uuid())
-  operatorId    String?
-  operatorUser  User?     @relation("OperatorVisits", fields: [operatorId], references: [id])
-  cancelledBy   String?
-  cancelReason  String?
-  language      String    @default("en")
-  rating        Int?
+  displayId          String?
+  accessToken        String    @unique @default(uuid())
+  operatorId         String?
+  operatorUser       User?     @relation("OperatorVisits", fields: [operatorId], references: [id])
+  cancelledBy        String?
+  cancelReason       String?
+  language           String    @default("en")
+  rating             Int?
   feedbackText       String?
   surveySent         Boolean   @default(false)
   purpose            String?
   accompanyingGuests Int       @default(0)
   formResponses      Json?
-  itinerary          Json?     // Legacy: [{serviceId,status}]. Superseded by VisitStep for flow-enabled visits.
+  itinerary          Json? // Legacy: [{serviceId,status}]. Superseded by VisitStep for flow-enabled visits.
   slaStatus          String    @default("OK")
   messages           Message[]
 
   // ── Service Execution Flow ────────────────────────────────────────────────
-  flowId        String?  // FK to ServiceFlow (if this visit uses a flow)
-  currentStepId String?  // FK to current active VisitStep (denormalized for perf)
-  flowStatus    String   @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | ABANDONED
+  flowId        String? // FK to ServiceFlow (if this visit uses a flow)
+  currentStepId String? // FK to current active VisitStep (denormalized for perf)
+  flowStatus    String  @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | ABANDONED
 
-  visitSteps    VisitStep[]
+  visitSteps      VisitStep[]
   bookingPayments BookingPayment[]
 
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -1061,19 +1057,19 @@ model MarketingSubscriber {
 }
 
 model BlockOff {
-  id        String   @id @default(uuid())
-  tenantId  String
+  id         String   @id @default(uuid())
+  tenantId   String
   locationId String?
-  queueId   String?  // Optional: if null, applies to all queues in location/tenant
-  startTime DateTime
-  endTime   DateTime
-  reason    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  queueId    String? // Optional: if null, applies to all queues in location/tenant
+  startTime  DateTime
+  endTime    DateTime
+  reason     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  location  Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  queue     Queue?    @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  queue    Queue?    @relation(fields: [queueId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, startTime])
   @@index([locationId])
@@ -1086,18 +1082,18 @@ model BlockOff {
 
 // The BLUEPRINT — defines the multi-stage journey for a service
 model ServiceFlow {
-  id          String   @id @default(uuid())
-  tenantId    String
-  serviceId   String   @unique  // One flow per service
-  name        String
-  description String?
-  isActive    Boolean  @default(true)
+  id                     String  @id @default(uuid())
+  tenantId               String
+  serviceId              String  @unique // One flow per service
+  name                   String
+  description            String?
+  isActive               Boolean @default(true)
   allowPartialCompletion Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  service Service            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   steps   FlowStepTemplate[]
   visits  Visit[]
 
@@ -1115,15 +1111,15 @@ model FlowStepTemplate {
   trigger     StepTrigger @default(MANUAL_STAFF)
 
   // ── Service / Queue Linkage ──────────────────────────────────────────────
-  serviceId String?  // Which service handles this step
-  queueId   String?  // Which queue (null = service's default queue)
+  serviceId String? // Which service handles this step
+  queueId   String? // Which queue (null = service's default queue)
 
   // ── Behaviour Flags ──────────────────────────────────────────────────────
   isOptional          Boolean @default(false)
   isRepeatable        Boolean @default(false)
   requiresQrScan      Boolean @default(true)
   requiresStaffAction Boolean @default(true)
-  prerequisites       Json?   // [{stepOrder: 2, status: "DONE"}]
+  prerequisites       Json? // [{stepOrder: 2, status: "DONE"}]
 
   // ── Timing & Deferral ────────────────────────────────────────────────────
   deferredByDays   Int?
@@ -1132,19 +1128,19 @@ model FlowStepTemplate {
 
   // ── Entitlement / Collection ─────────────────────────────────────────────
   entitlementUnit         String?
-  entitlementFixed        Int?    // Fixed quantity (e.g. 4 plates)
+  entitlementFixed        Int? // Fixed quantity (e.g. 4 plates)
   entitlementFormula      String? // e.g. "accompanyingGuests + 1"
   allowPartialRedemption  Boolean @default(false)
   preventDoubleRedemption Boolean @default(true)
 
   // ── Wayfinding & Instructions ────────────────────────────────────────────
-  customerInstruction  String?  // Shown on customer's digital ticket / WhatsApp
-  staffInstruction     String?  // Shown on staff scanner result screen
-  locationDescription  String?  // e.g. "Ground Floor, Counter B, near Reception"
-  floorNumber          Int?
-  roomNumber           String?
-  buildingWing         String?
-  mapImageUrl          String?
+  customerInstruction String? // Shown on customer's digital ticket / WhatsApp
+  staffInstruction    String? // Shown on staff scanner result screen
+  locationDescription String? // e.g. "Ground Floor, Counter B, near Reception"
+  floorNumber         Int?
+  roomNumber          String?
+  buildingWing        String?
+  mapImageUrl         String?
 
   // ── Notifications ────────────────────────────────────────────────────────
   notifyCustomerOnActivation Boolean @default(true)
@@ -1157,7 +1153,7 @@ model FlowStepTemplate {
   isPriceVariable   Boolean @default(false)
 
   // ── Post-Step Outcomes ───────────────────────────────────────────────────
-  outcomeOptions Json?  // String[] — staff selects outcome after completing step
+  outcomeOptions Json? // String[] — staff selects outcome after completing step
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1174,13 +1170,13 @@ model FlowStepTemplate {
 model FlowStepTransition {
   id         String  @id @default(uuid())
   fromStepId String
-  toStepId   String?  // null = end of journey
+  toStepId   String? // null = end of journey
   flowId     String
 
-  condition Json?    // e.g. {"outcome": "Needs Tests"} — null = default/always
-  label     String?  // e.g. "Normal Result", "Abnormal — Refer"
-  priority  Int      @default(0)
-  isDefault Boolean  @default(false)
+  condition Json? // e.g. {"outcome": "Needs Tests"} — null = default/always
+  label     String? // e.g. "Normal Result", "Abnormal — Refer"
+  priority  Int     @default(0)
+  isDefault Boolean @default(false)
 
   fromStep FlowStepTemplate @relation("FromStep", fields: [fromStepId], references: [id], onDelete: Cascade)
 
@@ -1190,12 +1186,12 @@ model FlowStepTransition {
 
 // The RUNTIME INSTANCE — one VisitStep per FlowStepTemplate per Visit
 model VisitStep {
-  id             String          @id @default(uuid())
+  id             String   @id @default(uuid())
   visitId        String
   templateStepId String
   tenantId       String
   stepOrder      Int
-  name           String          // Copied from template at instantiation
+  name           String // Copied from template at instantiation
   type           StepType
 
   status VisitStepStatus @default(LOCKED)
@@ -1207,7 +1203,7 @@ model VisitStep {
 
   // ── Timestamps ────────────────────────────────────────────────────────────
   unlockedAt    DateTime?
-  deferredUntil DateTime?  // Earliest actionable time (for deferred steps)
+  deferredUntil DateTime? // Earliest actionable time (for deferred steps)
   expiresAt     DateTime?
   queuedAt      DateTime?
   activatedAt   DateTime?
@@ -1215,19 +1211,19 @@ model VisitStep {
   skippedAt     DateTime?
 
   // ── Entitlement Tracking ─────────────────────────────────────────────────
-  quantityAllocated Int?     // e.g. 4 plates (resolved from formula at instantiation)
-  quantityRedeemed  Int      @default(0)
+  quantityAllocated Int? // e.g. 4 plates (resolved from formula at instantiation)
+  quantityRedeemed  Int       @default(0)
   lastRedeemedAt    DateTime?
-  lastRedeemedBy    String?  // Staff userId
+  lastRedeemedBy    String? // Staff userId
 
   // ── Staff Outcome ─────────────────────────────────────────────────────────
-  outcome    String?  // Selected from template's outcomeOptions
+  outcome    String? // Selected from template's outcomeOptions
   staffNotes String?
 
   // ── Payment ───────────────────────────────────────────────────────────────
   amountCharged Float?
   paymentRef    String?
-  paymentStatus String?  // PENDING | PAID | WAIVED
+  paymentStatus String? // PENDING | PAID | WAIVED
 
   // ── Runtime Overrides ─────────────────────────────────────────────────────
   isSkipped Boolean @default(false)
@@ -1248,14 +1244,14 @@ model VisitStep {
 
 // Append-only event log for every action on a VisitStep
 model VisitStepEvent {
-  id          String        @id @default(uuid())
+  id          String @id @default(uuid())
   visitStepId String
   visitId     String
   tenantId    String
 
   eventType StepEventType
-  actorType String         // STAFF | CUSTOMER | SYSTEM
-  actorId   String?        // User ID of staff, or null
+  actorType String // STAFF | CUSTOMER | SYSTEM
+  actorId   String? // User ID of staff, or null
 
   payload Json?
   notes   String?
@@ -1278,13 +1274,13 @@ model TenantPaymentAccount {
   id       String @id @default(uuid())
   tenantId String @unique
 
-  provider           String  @default("stripe")  // stripe | adyen | payfast
-  connectedAccountId String?                      // Stripe: acct_xxxx
+  provider           String  @default("stripe") // stripe | adyen | payfast
+  connectedAccountId String? // Stripe: acct_xxxx
   accountStatus      String  @default("NOT_CONNECTED")
   // NOT_CONNECTED | ONBOARDING | RESTRICTED | ENABLED | DISABLED
 
   onboardingCompletedAt DateTime?
-  stripeOnboardingUrl   String?   // Temp URL for onboarding redirect
+  stripeOnboardingUrl   String? // Temp URL for onboarding redirect
 
   // Stripe capabilities (synced via webhook)
   chargesEnabled   Boolean @default(false)
@@ -1297,14 +1293,14 @@ model TenantPaymentAccount {
   pendingVerification Json?
 
   // Platform fee config (overrides global default if set per tenant)
-  platformFeePercent Float?  // e.g. 5.0. Null = use plan default
-  platformFeeFixed   Float?  // Flat fee per transaction (additional)
-  feeMode            String  @default("PERCENT")  // PERCENT | FIXED | PERCENT_PLUS_FIXED
+  platformFeePercent Float? // e.g. 5.0. Null = use plan default
+  platformFeeFixed   Float? // Flat fee per transaction (additional)
+  feeMode            String @default("PERCENT") // PERCENT | FIXED | PERCENT_PLUS_FIXED
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   payments BookingPayment[]
 
   @@index([connectedAccountId])
@@ -1312,19 +1308,19 @@ model TenantPaymentAccount {
 
 // One per booking payment transaction
 model BookingPayment {
-  id                   String @id @default(uuid())
-  tenantId             String
-  tenantPaymentAccountId String?  // FK to TenantPaymentAccount
-  appointmentId        String?
-  visitId              String?
-  visitStepId          String?
-  customerId           String?
+  id                     String  @id @default(uuid())
+  tenantId               String
+  tenantPaymentAccountId String? // FK to TenantPaymentAccount
+  appointmentId          String?
+  visitId                String?
+  visitStepId            String?
+  customerId             String?
 
   // Amounts (in currency units, e.g. ZAR)
-  amount            Float                // Total charged to customer
-  platformFeeAmount Float                // Amount going to Qmova
-  tenantNetAmount   Float                // Amount going to tenant
-  currency          String               @default("ZAR")
+  amount            Float // Total charged to customer
+  platformFeeAmount Float // Amount going to Qmova
+  tenantNetAmount   Float // Amount going to tenant
+  currency          String @default("ZAR")
 
   status BookingPaymentStatus @default(PENDING)
 
@@ -1339,7 +1335,7 @@ model BookingPayment {
   metadata    Json?
 
   // Refund tracking
-  refundedAmount Float    @default(0)
+  refundedAmount Float     @default(0)
   refundedAt     DateTime?
   refundReason   String?
 
@@ -1357,4 +1353,62 @@ model BookingPayment {
   @@index([appointmentId])
   @@index([visitId])
   @@index([stripePaymentIntentId])
+}
+
+// ── Blueprint Templates (Dynamic Industry Templates) ───────────────────────
+model BlueprintFlow {
+  id            String   @id @default(uuid())
+  key           String   @unique // e.g., 'hospital_consultation'
+  name          String
+  description   String?
+  businessTypes String[] @default([]) // Array of strings like ['hospital', 'clinic']
+  tenantId      String? // If null, it's a global platform template. If set, it's a private tenant template.
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  steps  BlueprintStep[]
+  tenant Tenant?         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model BlueprintStep {
+  id          String      @id @default(uuid())
+  blueprintId String
+  stepOrder   Int
+  name        String
+  description String?
+  type        StepType    @default(SERVICE)
+  trigger     StepTrigger @default(MANUAL_STAFF)
+
+  // Behaviour
+  isOptional          Boolean @default(false)
+  requiresQrScan      Boolean @default(true)
+  requiresStaffAction Boolean @default(true)
+
+  // Deferral
+  deferredByDays  Int?
+  deferredByHours Int?
+
+  // Entitlement
+  entitlementUnit         String?
+  entitlementFixed        Int?
+  entitlementFormula      String?
+  allowPartialRedemption  Boolean @default(false)
+  preventDoubleRedemption Boolean @default(true)
+
+  // Wayfinding
+  customerInstruction String?
+  staffInstruction    String?
+  locationDescription String?
+
+  // Notifications & Outcomes
+  notifyCustomerOnActivation Boolean  @default(true)
+  outcomeOptions             String[] @default([])
+  stepPrice                  Float?
+  isPriceVariable            Boolean  @default(false)
+
+  blueprint BlueprintFlow @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+
+  @@index([blueprintId])
 }

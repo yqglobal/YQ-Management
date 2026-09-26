@@ -6,7 +6,7 @@ import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
 import { CreateStepDto } from './dto/create-step.dto';
 import { UpdateStepDto } from './dto/update-step.dto';
-import { INDUSTRY_TEMPLATES, getTemplate } from './industry-templates';
+
 
 @Injectable()
 export class ServiceFlowService {
@@ -250,16 +250,38 @@ export class ServiceFlowService {
 
   // ── Industry Templates ──────────────────────────────────────────────────────
 
-  listIndustryTemplates() {
-    return INDUSTRY_TEMPLATES.map(({ key, name, description, businessTypes }) => ({
-      key, name, description, businessTypes,
-      stepCount: INDUSTRY_TEMPLATES.find((t) => t.key === key)?.steps.length ?? 0,
+  async listIndustryTemplates(tenantId?: string) {
+    const templates = await this.prisma.blueprintFlow.findMany({
+      where: tenantId ? {
+        OR: [
+          { tenantId: null },
+          { tenantId: tenantId }
+        ]
+      } : { tenantId: null },
+      include: {
+        _count: { select: { steps: true } }
+      }
+    });
+
+    return templates.map(t => ({
+      key: t.key,
+      name: t.name,
+      description: t.description,
+      businessTypes: t.businessTypes,
+      stepCount: t._count.steps,
     }));
   }
 
   async applyIndustryTemplate(tenantId: string, serviceId: string, templateKey: string) {
-    const template = getTemplate(templateKey);
+    const template = await this.prisma.blueprintFlow.findUnique({
+      where: { key: templateKey },
+      include: { steps: { orderBy: { stepOrder: 'asc' } } }
+    });
+
     if (!template) throw new BadRequestException(`Template "${templateKey}" not found`);
+    if (template.tenantId && template.tenantId !== tenantId) {
+      throw new BadRequestException(`Template "${templateKey}" not available for this tenant`);
+    }
 
     // Remove existing flow if any
     const existing = await this.prisma.serviceFlow.findUnique({ where: { serviceId } });
@@ -281,13 +303,11 @@ export class ServiceFlowService {
 
     // Create all steps
     for (const stepData of template.steps) {
-      const { transitions: _, ...data } = stepData as any;
+      const { id, blueprintId, ...data } = stepData as any;
       await this.prisma.flowStepTemplate.create({
         data: {
           flowId: flow.id,
           ...data,
-          type: data.type ?? 'SERVICE',
-          trigger: data.trigger ?? 'MANUAL_STAFF',
         },
       });
     }

@@ -67,8 +67,8 @@ export class ServiceFlowController {
   }
 
   @Get('templates/list')
-  listTemplates() {
-    return this.serviceFlowService.listIndustryTemplates();
+  async listTemplates(@Req() req: any) {
+    return this.serviceFlowService.listIndustryTemplates(req.user.tenantId);
   }
 
   @Post('templates/:templateKey/apply')
