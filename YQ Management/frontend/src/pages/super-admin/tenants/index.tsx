@@ -141,8 +141,6 @@ export default function SuperAdminTenants() {
                   <th className="px-6 py-4">Owner Email</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Subscription</th>
-                  <th className="px-6 py-4">Users</th>
-                  <th className="px-6 py-4">Queues</th>
                   <th className="px-6 py-4">Joined</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -150,11 +148,11 @@ export default function SuperAdminTenants() {
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400 dark:text-zinc-500">Loading businesses...</td>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400 dark:text-zinc-500">Loading businesses...</td>
                   </tr>
                 ) : filteredAndSortedTenants.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-20 text-center">
+                    <td colSpan={6} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center justify-center space-y-4">
                         <div className="w-16 h-16 bg-gray-50 dark:bg-zinc-900 rounded-full flex items-center justify-center">
                           <Building2 className="w-8 h-8 text-gray-400 dark:text-zinc-500" />
@@ -178,10 +176,10 @@ export default function SuperAdminTenants() {
                           isMenuOpen ? 'relative z-[100]' : 'relative'
                         }`}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 font-bold text-gray-900 dark:text-white break-words">
                           {tenant.name}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-zinc-400">
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-zinc-400 break-words">
                           {tenant.users?.[0]?.email || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -198,14 +196,8 @@ export default function SuperAdminTenants() {
                             {tenant.subscriptions?.[0]?.plan?.name || tenant.subscriptionStatus || 'TRIAL'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white font-medium">
-                          {tenant._count?.users || 0}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white font-medium">
-                          {tenant._count?.queues || 0}
-                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-zinc-300 font-medium">
-                          {tenant.createdAt ? format(new Date(tenant.createdAt), 'MMM d, yyyy • h:mm a') : '-'}
+                          {tenant.createdAt ? format(new Date(tenant.createdAt), 'MMM d, yyyy') : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right relative">
                           <div className="inline-block">
