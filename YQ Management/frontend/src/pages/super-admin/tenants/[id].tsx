@@ -437,7 +437,8 @@ export default function SuperAdminTenantDetail() {
                 <Users className="w-5 h-5 text-indigo-500" />
                 <h2 className="text-base font-bold text-gray-900 dark:text-white">System Users</h2>
               </div>
-              <table className="w-full text-left text-sm text-gray-600 dark:text-zinc-400">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-gray-600 dark:text-zinc-400">
                 <thead className="bg-gray-50 dark:bg-white/5 text-xs font-bold uppercase tracking-wider border-b border-gray-200 dark:border-white/10 text-gray-900 dark:text-zinc-200">
                   <tr>
                     <th className="px-6 py-4">User ID</th>
@@ -450,7 +451,7 @@ export default function SuperAdminTenantDetail() {
                     <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-400 dark:text-zinc-500">No users found.</td></tr>
                   ) : tenant.users.map((user: any) => (
                     <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4 font-mono text-xs text-gray-500">{user.id}</td>
+                      <td className="px-6 py-4 font-mono text-xs text-gray-500 break-all max-w-[150px] sm:max-w-none">{user.id}</td>
                       <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{user.email}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -465,6 +466,7 @@ export default function SuperAdminTenantDetail() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -482,7 +484,8 @@ export default function SuperAdminTenantDetail() {
                   )}
                 </div>
               </div>
-              <table className="w-full text-left text-sm text-gray-600 dark:text-zinc-400">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-gray-600 dark:text-zinc-400">
                 <thead className="bg-gray-50 dark:bg-white/5 text-xs font-bold uppercase tracking-wider border-b border-gray-200 dark:border-white/10 text-gray-900 dark:text-zinc-200">
                   <tr>
                     <th className="px-6 py-4">Transaction ID</th>
@@ -496,8 +499,8 @@ export default function SuperAdminTenantDetail() {
                     <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-400 dark:text-zinc-500">No payment history found.</td></tr>
                   ) : tenant.transactions.map((tx: any) => (
                     <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4 font-mono text-xs text-gray-500">{tx.id}</td>
-                      <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">{tx.currency} {tx.amount?.toFixed(2)}</td>
+                      <td className="px-6 py-4 font-mono text-xs text-gray-500 break-all max-w-[150px] sm:max-w-none">{tx.id}</td>
+                      <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">{tx.currency} {Number(tx.amount || 0).toFixed(2)}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           ['COMPLETE','SUCCEEDED'].includes(tx.status) ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' :
@@ -515,6 +518,7 @@ export default function SuperAdminTenantDetail() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
