@@ -176,10 +176,10 @@ export class WhatsappChatbot {
     if (quickReplies.status !== false) {
       msg += `1. Check Status\n`;
     }
-    msg += `3. Book an Appointment\n`;
     if (quickReplies.human !== false) {
       msg += `2. Chat with Human\n`;
     }
+    msg += `3. Book an Appointment\n`;
     if (quickReplies.cancel !== false) {
       msg += `4. Cancel Ticket\n`;
     }
@@ -424,26 +424,67 @@ export class WhatsappChatbot {
 
     const serviceId = services[index];
 
-    // Prompt date
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    const dayAfter = new Date(today);
-    dayAfter.setDate(today.getDate() + 2);
+    // Prompt date (dynamically finding dates with available slots)
+    const availableDates: string[] = [];
+    const maxDaysToCheck = 14;
+    let daysChecked = 0;
+    const dateToCheck = new Date();
+    const now = new Date();
 
-    const dates = [
-      today.toISOString().split('T')[0],
-      tomorrow.toISOString().split('T')[0],
-      dayAfter.toISOString().split('T')[0],
-    ];
+    if (!this.serviceService) {
+      await this.sendMsg(jid, 'Booking service unavailable at this moment.');
+      return;
+    }
+
+    while (availableDates.length < 3 && daysChecked < maxDaysToCheck) {
+      const dateStr = dateToCheck.toISOString().split('T')[0];
+      const slots = await this.serviceService.getAvailableSlots(serviceId, dateStr);
+
+      let hasAvailable = false;
+      if (slots && slots.length > 0) {
+        if (dateStr === now.toISOString().split('T')[0]) {
+          hasAvailable = slots.some((s) => new Date(s.time) > now && s.available);
+        } else {
+          hasAvailable = slots.some((s) => s.available);
+        }
+      }
+
+      if (hasAvailable) {
+        availableDates.push(dateStr);
+      }
+
+      dateToCheck.setDate(dateToCheck.getDate() + 1);
+      daysChecked++;
+    }
+
+    if (availableDates.length === 0) {
+      await this.sendMsg(
+        jid,
+        'No available dates found in the next 14 days. Please try again later.',
+      );
+      return;
+    }
 
     let msg = `When would you like to book?\n\n`;
-    msg += `1. Today (${dates[0]})\n`;
-    msg += `2. Tomorrow (${dates[1]})\n`;
-    msg += `3. Day after tomorrow (${dates[2]})\n`;
+    availableDates.forEach((d, i) => {
+      const isToday = d === now.toISOString().split('T')[0];
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      const isTomorrow = d === tomorrow.toISOString().split('T')[0];
+      
+      let label = d;
+      if (isToday) label = `Today (${d})`;
+      else if (isTomorrow) label = `Tomorrow (${d})`;
+      else {
+        const dayOfWeek = new Date(d).toLocaleDateString('en-US', { weekday: 'long' });
+        label = `${dayOfWeek} (${d})`;
+      }
+      
+      msg += `${i + 1}. ${label}\n`;
+    });
     msg += `\nReply with a number, or '0' to cancel.`;
 
-    await this.updateSession(session.id, 12, { serviceId, dates, services: undefined });
+    await this.updateSession(session.id, 12, { serviceId, dates: availableDates, services: undefined });
 
     await this.sendMsg(jid, msg);
   }
