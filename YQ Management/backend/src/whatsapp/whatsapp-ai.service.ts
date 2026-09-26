@@ -49,55 +49,56 @@ export class WhatsappAiService {
       return { handled: true, isHumanPaused: true };
     }
 
-    // Configure Gemini Tools
+    // Configure Gemini Tools for Interactions API
     const tools = [
       {
-        functionDeclarations: [
-          {
-            name: 'getQueuePosition',
-            description: 'Check the customers current position in the queue. No arguments needed, uses the customers phone number.',
-            parameters: {
-              type: 'OBJECT',
-              properties: {},
-            },
+        type: 'function',
+        name: 'getQueuePosition',
+        description: 'Check the customers current position in the queue. No arguments needed, uses the customers phone number.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {},
+        },
+      },
+      {
+        type: 'function',
+        name: 'getWaitTime',
+        description: 'Get an estimated wait time for the customer based on their current queue position.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {},
+        },
+      },
+      {
+        type: 'function',
+        name: 'cancelVisit',
+        description: 'Cancel the customers current ticket/visit in the queue.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {},
+        },
+      },
+      {
+        type: 'function',
+        name: 'bookAppointment',
+        description: 'Book an appointment for a service. Use this when the user says they want to book.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            date: { type: 'STRING', description: 'YYYY-MM-DD format date' },
+            time: { type: 'STRING', description: 'HH:MM format time (24 hour)' },
+            serviceName: { type: 'STRING', description: 'Name of the service (optional)' },
           },
-          {
-            name: 'getWaitTime',
-            description: 'Get an estimated wait time for the customer based on their current queue position.',
-            parameters: {
-              type: 'OBJECT',
-              properties: {},
-            },
-          },
-          {
-            name: 'cancelVisit',
-            description: 'Cancel the customers current ticket/visit in the queue.',
-            parameters: {
-              type: 'OBJECT',
-              properties: {},
-            },
-          },
-          {
-            name: 'bookAppointment',
-            description: 'Book an appointment for a service. Use this when the user says they want to book.',
-            parameters: {
-              type: 'OBJECT',
-              properties: {
-                date: { type: 'STRING', description: 'YYYY-MM-DD format date' },
-                time: { type: 'STRING', description: 'HH:MM format time (24 hour)' },
-                serviceName: { type: 'STRING', description: 'Name of the service (optional)' },
-              },
-            },
-          },
-          {
-            name: 'transferToHuman',
-            description: 'Transfer the conversation to a human operator. Use this if the user asks for a human, or if you cannot help them.',
-            parameters: {
-              type: 'OBJECT',
-              properties: {},
-            },
-          }
-        ]
+        },
+      },
+      {
+        type: 'function',
+        name: 'transferToHuman',
+        description: 'Transfer the conversation to a human operator. Use this if the user asks for a human, or if you cannot help them.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {},
+        },
       }
     ];
 
@@ -134,8 +135,12 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
 
     // Execute tool calls sequentially
     while (currentToolCalls && currentToolCalls.length > 0) {
+      const toolResults = [];
+
       for (const call of currentToolCalls) {
-        const { id, name, args } = call.functionCall;
+        const id = call.id;
+        const name = call.name;
+        const args = call.arguments || {};
         
         let result: any = { error: 'Unknown tool' };
         try {
@@ -161,11 +166,13 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
           result = { error: err.message };
         }
 
-        // Return tool result to AI
-        const followUp = await this.aiService.returnToolResult(currentInteractionId, id, name, result);
-        finalResponseText = followUp.responseText;
-        currentToolCalls = followUp.toolCalls;
+        toolResults.push({ toolCallId: id, toolName: name, result });
       }
+
+      // Return all tool results to AI in a single turn
+      const followUp = await this.aiService.returnToolResults(currentInteractionId, toolResults);
+      finalResponseText = followUp.responseText;
+      currentToolCalls = followUp.toolCalls;
     }
 
     if (finalResponseText) {

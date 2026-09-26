@@ -75,7 +75,8 @@ export class SuperAdminController {
   }
 
   @Put('tenants/:id')
-  async updateTenant(@Param('id') id: string, @Body() body: any) {
+  async updateTenant(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    this.checkSuperAdmin(req);
     return this.superAdminService.updateTenant(id, body);
   }
 
@@ -445,4 +446,142 @@ export class SuperAdminController {
       body.status,
     );
   }
+
+  // ── Enterprise Blueprint Management ─────────────────────────────────────
+
+  /** List all global blueprints and any tenant-specific ones */
+  @Get('blueprints')
+  async listBlueprints(
+    @Req() req: any,
+    @Query('tenantId') tenantId?: string,
+  ) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.listBlueprints(tenantId);
+  }
+
+  /** Create a new global OR tenant-specific blueprint */
+  @Post('blueprints')
+  async createBlueprint(@Req() req: any, @Body() dto: any) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.createBlueprint(dto);
+  }
+
+  /** Update an existing blueprint (name, description, businessTypes) */
+  @Put('blueprints/:id')
+  async updateBlueprint(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: any,
+  ) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.updateBlueprint(id, dto);
+  }
+
+  /** Delete a blueprint (only custom ones, not global seeds) */
+  @Delete('blueprints/:id')
+  async deleteBlueprint(@Req() req: any, @Param('id') id: string) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.deleteBlueprint(id);
+  }
+
+  /** Add a step to a blueprint */
+  @Post('blueprints/:id/steps')
+  async addBlueprintStep(
+    @Req() req: any,
+    @Param('id') blueprintId: string,
+    @Body() dto: any,
+  ) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.addBlueprintStep(blueprintId, dto);
+  }
+
+  /** Update a specific blueprint step */
+  @Put('blueprints/:id/steps/:stepId')
+  async updateBlueprintStep(
+    @Req() req: any,
+    @Param('stepId') stepId: string,
+    @Body() dto: any,
+  ) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.updateBlueprintStep(stepId, dto);
+  }
+
+  /** Delete a blueprint step */
+  @Delete('blueprints/:id/steps/:stepId')
+  async deleteBlueprintStep(
+    @Req() req: any,
+    @Param('stepId') stepId: string,
+  ) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.deleteBlueprintStep(stepId);
+  }
+
+  /**
+   * Push a global blueprint to a specific tenant as a private copy.
+   * Useful for white-glove enterprise onboarding.
+   */
+  @Post('blueprints/:id/push-to-tenant')
+  async pushBlueprintToTenant(
+    @Req() req: any,
+    @Param('id') blueprintId: string,
+    @Body() dto: { tenantId: string; name?: string; description?: string },
+  ) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.pushBlueprintToTenant(
+      blueprintId,
+      dto.tenantId,
+      dto.name,
+      dto.description,
+    );
+  }
+
+  /**
+   * Apply a blueprint directly to a tenant's service from the admin panel.
+   * This is the "white-glove" setup action.
+   */
+  @Post('tenants/:tenantId/apply-blueprint')
+  async applyBlueprintToService(
+    @Req() req: any,
+    @Param('tenantId') tenantId: string,
+    @Body() dto: { blueprintId: string; serviceId: string },
+  ) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.applyBlueprintToTenantService(
+      tenantId,
+      dto.blueprintId,
+      dto.serviceId,
+    );
+  }
+
+  /**
+   * Set custom plan limits override for a specific tenant subscription.
+   * Enterprise-grade: overrides any plan-level limits with per-tenant values.
+   */
+  @Patch('tenants/:tenantId/custom-limits')
+  async setCustomLimits(
+    @Req() req: any,
+    @Param('tenantId') tenantId: string,
+    @Body() dto: {
+      maxVisits?: number;
+      maxQueues?: number;
+      maxLocations?: number;
+      maxStaff?: number;
+      customFeatures?: Record<string, boolean | string | number>;
+      note?: string;
+    },
+  ) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.setTenantCustomLimits(tenantId, dto);
+  }
+
+  /** View effective limits for a tenant (plan + overrides combined) */
+  @Get('tenants/:tenantId/effective-limits')
+  async getEffectiveLimits(
+    @Req() req: any,
+    @Param('tenantId') tenantId: string,
+  ) {
+    this.checkSuperAdmin(req);
+    return this.superAdminService.getTenantEffectiveLimits(tenantId);
+  }
 }
+

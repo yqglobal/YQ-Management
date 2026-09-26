@@ -1,6 +1,6 @@
 import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException, Param } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -22,7 +22,7 @@ export class UploadController {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    const fileId = uuidv4();
+    const fileId = randomUUID();
     const ext = path.extname(file.originalname);
     const fileName = `${fileId}${ext}`;
     const filePath = path.join(uploadDir, fileName);

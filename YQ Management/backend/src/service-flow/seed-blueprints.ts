@@ -9,46 +9,34 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('Seeding BlueprintFlows...');
+  console.log(`Seeding ${INDUSTRY_TEMPLATES.length} BlueprintFlows...`);
 
   for (const tpl of INDUSTRY_TEMPLATES) {
-    let key = tpl.key;
-    let name = tpl.name;
-    let description = tpl.description;
+    const flow = await prisma.$transaction(async (tx) => {
+      const f = await tx.blueprintFlow.upsert({
+        where: { key: tpl.key },
+        update: {
+          name: tpl.name,
+          description: tpl.description,
+          businessTypes: tpl.businessTypes,
+        },
+        create: {
+          key: tpl.key,
+          name: tpl.name,
+          description: tpl.description,
+          businessTypes: tpl.businessTypes,
+          tenantId: null, // Global — available to all tenants
+        },
+      });
 
-    // Generalization logic
-    if (key === 'school_event_catering') {
-      key = 'catering_and_events';
-      name = 'Catering & General Events';
-      description = 'Event entry + catering entitlement system for concerts, graduations, parties, etc.';
-    }
+      // Delete existing steps to recreate them cleanly
+      await tx.blueprintStep.deleteMany({
+        where: { blueprintId: f.id },
+      });
 
-    const flow = await prisma.blueprintFlow.upsert({
-      where: { key: key },
-      update: {
-        name,
-        description,
-        businessTypes: tpl.businessTypes,
-      },
-      create: {
-        key: key,
-        name,
-        description,
-        businessTypes: tpl.businessTypes,
-      },
-    });
-
-    console.log(`Upserted BlueprintFlow: ${flow.name}`);
-
-    // Delete existing steps to recreate them cleanly
-    await prisma.blueprintStep.deleteMany({
-      where: { blueprintId: flow.id },
-    });
-
-    for (const step of tpl.steps) {
-      await prisma.blueprintStep.create({
-        data: {
-          blueprintId: flow.id,
+      await tx.blueprintStep.createMany({
+        data: tpl.steps.map((step) => ({
+          blueprintId: f.id,
           stepOrder: step.stepOrder,
           name: step.name,
           description: step.description,
@@ -71,12 +59,16 @@ async function main() {
           outcomeOptions: step.outcomeOptions || [],
           stepPrice: step.stepPrice,
           isPriceVariable: step.isPriceVariable || false,
-        },
+        })),
       });
-    }
+
+      return f;
+    });
+
+    console.log(`✓ Upserted: [${tpl.industry}] ${flow.name} (${tpl.steps.length} steps)`);
   }
 
-  console.log('Seeding complete.');
+  console.log(`\n✅ Seeding complete. ${INDUSTRY_TEMPLATES.length} blueprints ready.`);
 }
 
 main()
@@ -87,3 +79,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

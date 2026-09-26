@@ -35,14 +35,16 @@ export class WhatsappLogger {
 
       fs.appendFileSync(this.logFilePath, JSON.stringify(logEntry) + '\n');
 
-      // Also write to global SystemLog table
-      await this.prisma.systemLog.create({
-        data: {
-          level,
-          message,
-          context: { source, data: data || null },
-        },
-      });
+      // Also write to global SystemLog table, but only for WARN and ERROR to prevent DB bloat
+      if (level === 'WARN' || level === 'ERROR') {
+        await this.prisma.systemLog.create({
+          data: {
+            level,
+            message,
+            context: { source, data: data || null },
+          },
+        });
+      }
     } catch (e) {
       this.logger.error(
         `Failed to write to whatsapp log file or SystemLog: ${e}`,

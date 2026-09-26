@@ -53,10 +53,7 @@ export class WhatsappChatbot {
     if (session.context && (session.context as any).isHumanPaused) {
       if (isGreeting) {
         // User wants to exit human mode and go back to bot
-        await this.prisma.chatSession.update({
-          where: { id: session.id },
-          data: { step: 0, context: {} },
-        });
+        await this.updateSession(session.id, 0, {});
         await this.sendMenu(jid, config);
         return { handled: true, isHumanPaused: false };
       }
@@ -102,10 +99,7 @@ export class WhatsappChatbot {
           jid,
           'I have paused automated replies. A human agent will respond to you shortly.',
         );
-        await this.prisma.chatSession.update({
-          where: { id: session.id },
-          data: { context: { isHumanPaused: true } },
-        });
+        await this.updateSession(session.id, undefined, { isHumanPaused: true });
         return { handled: true, isHumanPaused: true }; // Trigger inbox saving
       }
 
@@ -161,10 +155,12 @@ export class WhatsappChatbot {
     }
 
     // Fallback: If they typed something we didn't understand, reset step and show menu
-    await this.prisma.chatSession.update({
-      where: { id: session.id },
-      data: { step: 0, context: {} },
-    });
+    await this.updateSession(session.id, 0, {});
+    
+    if (['[IMAGE]', '[AUDIO]', '[VIDEO]', '[DOCUMENT]', '[STICKER]'].includes(upperText)) {
+      await this.sendMsg(jid, "I am an automated assistant and cannot process media files like images or audio right now. Please select an option from the menu below:");
+    }
+
     await this.sendMenu(jid, config);
     return { handled: true, isHumanPaused: false };
   }
@@ -328,16 +324,7 @@ export class WhatsappChatbot {
 
     if (locations.length === 1) {
       // Skip location selection if only one exists
-      await this.prisma.chatSession.update({
-        where: { id: session.id },
-        data: {
-          step: 11,
-          context: {
-            ...(session.context || {}),
-            locationId: locations[0].id,
-          },
-        },
-      });
+      await this.updateSession(session.id, 11, { locationId: locations[0].id });
       await this.promptServices(tenantId, locations[0].id, jid, session);
       return;
     }
@@ -349,16 +336,7 @@ export class WhatsappChatbot {
     });
     msg += `\nReply with a number, or '0' to cancel.`;
 
-    await this.prisma.chatSession.update({
-      where: { id: session.id },
-      data: {
-        step: 10,
-        context: {
-          ...(session.context || {}),
-          locations: locations.map((l) => l.id),
-        },
-      },
-    });
+    await this.updateSession(session.id, 10, { locations: locations.map((l) => l.id) });
 
     await this.sendMsg(jid, msg);
   }
@@ -383,13 +361,7 @@ export class WhatsappChatbot {
     }
 
     const locationId = locations[index];
-    await this.prisma.chatSession.update({
-      where: { id: session.id },
-      data: {
-        step: 11,
-        context: { ...ctx, locationId, locations: undefined },
-      },
-    });
+    await this.updateSession(session.id, 11, { locationId, locations: undefined });
 
     await this.promptServices(tenantId, locationId, jid, session);
   }
@@ -419,12 +391,7 @@ export class WhatsappChatbot {
     });
     msg += `\nReply with a number, or '0' to cancel.`;
 
-    await this.prisma.chatSession.update({
-      where: { id: session.id },
-      data: {
-        context: { ...(session.context || {}), services: services.map((s) => s.id) },
-      },
-    });
+    await this.updateSession(session.id, undefined, { services: services.map((s) => s.id) });
 
     await this.sendMsg(jid, msg);
   }
@@ -476,13 +443,7 @@ export class WhatsappChatbot {
     msg += `3. Day after tomorrow (${dates[2]})\n`;
     msg += `\nReply with a number, or '0' to cancel.`;
 
-    await this.prisma.chatSession.update({
-      where: { id: session.id },
-      data: {
-        step: 12,
-        context: { ...currentCtx, serviceId, dates, services: undefined },
-      },
-    });
+    await this.updateSession(session.id, 12, { serviceId, dates, services: undefined });
 
     await this.sendMsg(jid, msg);
   }
@@ -545,13 +506,7 @@ export class WhatsappChatbot {
     });
     msg += `\nReply with a number, or '0' to cancel.`;
 
-    await this.prisma.chatSession.update({
-      where: { id: session.id },
-      data: {
-        step: 13,
-        context: { ...ctx, date, slots: futureSlots, dates: undefined },
-      },
-    });
+    await this.updateSession(session.id, 13, { date, slots: futureSlots, dates: undefined });
 
     await this.sendMsg(jid, msg);
   }
@@ -577,13 +532,7 @@ export class WhatsappChatbot {
 
     const selectedSlot = slots[index];
 
-    await this.prisma.chatSession.update({
-      where: { id: session.id },
-      data: {
-        step: 14,
-        context: { ...ctx, selectedSlot, slots: undefined },
-      },
-    });
+    await this.updateSession(session.id, 14, { selectedSlot, slots: undefined });
 
     await this.sendMsg(
       jid,
@@ -668,10 +617,7 @@ export class WhatsappChatbot {
       );
     }
 
-    await this.prisma.chatSession.update({
-      where: { id: session.id },
-      data: { step: 0, context: {} },
-    });
+    await this.updateSession(session.id, 0, {});
   }
 
   private async handleReviewRating(
@@ -712,9 +658,24 @@ export class WhatsappChatbot {
       await this.sendMsg(jid, "Thank you for your feedback. We are sorry your experience wasn't perfect. Our team has been notified and we will strive to do better next time.");
     }
 
-    await this.prisma.chatSession.update({
-      where: { id: session.id },
-      data: { step: 0, context: {} },
+    await this.updateSession(session.id, 0, {});
+  }
+
+  private async updateSession(sessionId: string, step: number | undefined, updates: Record<string, any>) {
+    const session = await this.prisma.chatSession.findUnique({ where: { id: sessionId } });
+    const currentContext = (session?.context as object) || {};
+    const newContext = { ...currentContext, ...updates };
+
+    for (const key of Object.keys(newContext)) {
+      if (newContext[key] === undefined) delete newContext[key];
+    }
+
+    return this.prisma.chatSession.update({
+      where: { id: sessionId },
+      data: {
+        ...(step !== undefined ? { step } : {}),
+        context: newContext,
+      },
     });
   }
 }

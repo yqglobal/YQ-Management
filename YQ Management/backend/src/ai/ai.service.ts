@@ -50,25 +50,23 @@ export class AiService {
     }
   }
 
-  async returnToolResult(
+  async returnToolResults(
     interactionId: string,
-    toolCallId: string,
-    toolName: string,
-    result: any,
+    results: { toolCallId: string; toolName: string; result: any }[],
   ): Promise<{ responseText: string | null; toolCalls: any[] }> {
     try {
+      const input = results.map((r) => ({
+        type: 'function_result',
+        name: r.toolName,
+        call_id: r.toolCallId,
+        result: r.result,
+      }));
+
       // NOTE: Using the API to provide function_result back to an ongoing interaction
       const interaction = await this.client.interactions.create({
         model: 'gemini-3.6-flash',
         previous_interaction_id: interactionId,
-        input: [
-          {
-            functionResponse: {
-              name: toolName,
-              response: { result },
-            }
-          }
-        ] as any, // Temporary cast, mapping standard gemini tool response
+        input: input as any, // Temporary cast until SDK types are fully updated
         store: true,
       });
 

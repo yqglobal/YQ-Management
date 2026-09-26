@@ -89,10 +89,11 @@ export class WhatsappService implements OnModuleInit {
    */
   async syncAllInstances() {
     try {
-      const evoRes = await this.fetchEvo('/instance/fetchInstances', 'GET');
+      // Use silent=true to prevent log flooding on background syncs when API is completely down
+      const evoRes = await this.fetchEvo('/instance/fetchInstances', 'GET', undefined, 15000, true);
       // If Evolution API is unreachable (cold start, restart), skip sync entirely
       if (evoRes.error) {
-        this.logger.warn(
+        this.logger.debug(
           `syncAllInstances: Evolution API unreachable (${evoRes.error.message}). Skipping sync to avoid false disconnects.`,
         );
         return;
@@ -394,6 +395,7 @@ export class WhatsappService implements OnModuleInit {
     method: string = 'GET',
     body?: any,
     timeoutMs: number = 15000,
+    silent: boolean = false,
   ): Promise<FetchEvoResult> {
     const startTime = Date.now();
     const fullUrl = `${this.evoUrl}${path}`;
@@ -447,19 +449,21 @@ export class WhatsappService implements OnModuleInit {
 
       if (!res.ok) {
         const evolutionError = this.buildEvolutionError(res.status, text);
-        this.logger.error(
-          {
-            evoRequest: { method, url: fullUrl, path, body },
-            evoResponse: { status: res.status, raw: text, parsed },
-            durationMs,
-          },
-          `Evolution API Failed [Status ${res.status}]: ${method} ${path} (${durationMs}ms) -> ${evolutionError.message}`,
-        );
-        this.whatsappLogger.logResponse(fullUrl, method, res.status, {
-          raw: text,
-          parsed,
-          error: evolutionError,
-        });
+        if (!silent) {
+          this.logger.error(
+            {
+              evoRequest: { method, url: fullUrl, path, body },
+              evoResponse: { status: res.status, raw: text, parsed },
+              durationMs,
+            },
+            `Evolution API Failed [Status ${res.status}]: ${method} ${path} (${durationMs}ms) -> ${evolutionError.message}`,
+          );
+          this.whatsappLogger.logResponse(fullUrl, method, res.status, {
+            raw: text,
+            parsed,
+            error: evolutionError,
+          });
+        }
         return { status: res.status, data: parsed, error: evolutionError };
       }
 
@@ -476,18 +480,20 @@ export class WhatsappService implements OnModuleInit {
     } catch (error) {
       const durationMs = Date.now() - startTime;
       const evolutionError = this.classifyNetworkError(path, error);
-      this.logger.error(
-        {
-          evoRequest: { method, url: fullUrl, path, body },
-          evolutionError,
-          durationMs,
-        },
-        `Evolution API Network/Timeout Error: ${method} ${path} (${durationMs}ms) -> ${evolutionError.message}`,
-      );
-      this.whatsappLogger.error(
-        'Evolution-API-Network',
-        `Network error for ${method} ${path}: ${evolutionError.message}`,
-      );
+      if (!silent) {
+        this.logger.error(
+          {
+            evoRequest: { method, url: fullUrl, path, body },
+            evolutionError,
+            durationMs,
+          },
+          `Evolution API Network/Timeout Error: ${method} ${path} (${durationMs}ms) -> ${evolutionError.message}`,
+        );
+        this.whatsappLogger.error(
+          'Evolution-API-Network',
+          `Network error for ${method} ${path}: ${evolutionError.message}`,
+        );
+      }
       return {
         status: evolutionError.status ?? 502,
         data: null,
@@ -1521,15 +1527,17 @@ export class WhatsappService implements OnModuleInit {
 
       let text = '';
       if (message?.conversation) text = message.conversation;
-      else if (message?.extendedTextMessage?.text)
-        text = message.extendedTextMessage.text;
-      else if (message?.buttonsResponseMessage?.selectedButtonId)
-        text = message.buttonsResponseMessage.selectedButtonId;
-      else if (message?.listResponseMessage?.title)
-        text = message.listResponseMessage.title;
+      else if (message?.extendedTextMessage?.text) text = message.extendedTextMessage.text;
+      else if (message?.buttonsResponseMessage?.selectedButtonId) text = message.buttonsResponseMessage.selectedButtonId;
+      else if (message?.listResponseMessage?.title) text = message.listResponseMessage.title;
+      else if (message?.imageMessage) text = message.imageMessage.caption || '[Image]';
+      else if (message?.audioMessage) text = '[Audio]';
+      else if (message?.videoMessage) text = message.videoMessage.caption || '[Video]';
+      else if (message?.documentMessage) text = message.documentMessage.fileName || '[Document]';
+      else if (message?.stickerMessage) text = '[Sticker]';
 
       if (!text || !text.trim()) {
-        this.logger.debug(`Empty message from ${phone}`);
+        this.logger.debug(`Empty message or unsupported media type from ${phone}`);
         return { ignored: true };
       }
 

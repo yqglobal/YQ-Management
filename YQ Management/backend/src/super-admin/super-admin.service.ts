@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 
@@ -130,7 +130,7 @@ export class SuperAdminService {
           },
         },
         users: {
-          where: { role: 'OWNER' as any },
+          where: { role: 'TENANT_ADMIN' },
           select: { email: true },
         },
         subscriptions: {
@@ -160,6 +160,7 @@ export class SuperAdminService {
           take: 10,
         },
         locations: { select: { id: true, name: true, address: true, timezone: true } },
+        services: { select: { id: true, name: true } },
         _count: {
           select: {
             queues: true,
@@ -735,4 +736,347 @@ export class SuperAdminService {
 
     return updatedSub;
   }
+
+  // ── Enterprise Blueprint Management ────────────────────────────────────────
+
+  async listBlueprints(tenantId?: string) {
+    return this.prisma.blueprintFlow.findMany({
+      where: tenantId
+        ? { OR: [{ tenantId: null }, { tenantId }] }
+        : {},
+      include: {
+        steps: { orderBy: { stepOrder: 'asc' } },
+        tenant: { select: { name: true, subdomain: true } },
+        _count: { select: { steps: true } },
+      },
+      orderBy: [{ tenantId: 'asc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  async createBlueprint(dto: {
+    key: string;
+    name: string;
+    description?: string;
+    industry?: string;
+    businessTypes?: string[];
+    tenantId?: string | null;
+    steps?: any[];
+  }) {
+    // Atomic: flow + all steps created together or not at all
+    const result = await this.prisma.$transaction(async (tx) => {
+      const flow = await tx.blueprintFlow.create({
+        data: {
+          key: dto.key,
+          name: dto.name,
+          description: dto.description,
+          businessTypes: dto.businessTypes || [],
+          tenantId: dto.tenantId || null,
+        },
+      });
+      if (dto.steps && dto.steps.length > 0) {
+        await tx.blueprintStep.createMany({
+          data: dto.steps.map(s => ({ ...s, blueprintId: flow.id })),
+        });
+      }
+      return flow;
+    });
+
+    return this.prisma.blueprintFlow.findUnique({
+      where: { id: result.id },
+      include: { steps: { orderBy: { stepOrder: 'asc' } } },
+    });
+  }
+
+  async updateBlueprint(id: string, dto: {
+    name?: string;
+    description?: string;
+    businessTypes?: string[];
+  }) {
+    const existing = await this.prisma.blueprintFlow.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Blueprint ${id} not found`);
+    return this.prisma.blueprintFlow.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.businessTypes !== undefined && { businessTypes: dto.businessTypes }),
+      },
+      include: { steps: { orderBy: { stepOrder: 'asc' } } },
+    });
+  }
+
+  async deleteBlueprint(id: string) {
+    const blueprint = await this.prisma.blueprintFlow.findUnique({ where: { id } });
+    if (!blueprint) throw new NotFoundException(`Blueprint ${id} not found`);
+    if (blueprint.tenantId === null) {
+      throw new BadRequestException(
+        'Cannot delete global seed blueprints — they are platform-managed. Archive the tenant copy instead.',
+      );
+    }
+    await this.prisma.blueprintFlow.delete({ where: { id } });
+    return { success: true, deletedId: id };
+  }
+
+  async addBlueprintStep(blueprintId: string, dto: any) {
+    const blueprint = await this.prisma.blueprintFlow.findUnique({ where: { id: blueprintId } });
+    if (!blueprint) throw new NotFoundException(`Blueprint ${blueprintId} not found`);
+    return this.prisma.blueprintStep.create({
+      data: { ...dto, blueprintId },
+    });
+  }
+
+  async updateBlueprintStep(stepId: string, dto: any) {
+    const step = await this.prisma.blueprintStep.findUnique({ where: { id: stepId } });
+    if (!step) throw new NotFoundException(`Blueprint step ${stepId} not found`);
+    return this.prisma.blueprintStep.update({
+      where: { id: stepId },
+      data: dto,
+    });
+  }
+
+  async deleteBlueprintStep(stepId: string) {
+    const step = await this.prisma.blueprintStep.findUnique({ where: { id: stepId } });
+    if (!step) throw new NotFoundException(`Blueprint step ${stepId} not found`);
+    await this.prisma.blueprintStep.delete({ where: { id: stepId } });
+    return { success: true, deletedId: stepId };
+  }
+
+  /**
+   * Creates a tenant-specific private copy of a global blueprint.
+   * The tenant will see it in their template picker alongside global templates.
+   */
+  async pushBlueprintToTenant(
+    sourceBlueprintId: string,
+    tenantId: string,
+    name?: string,
+    description?: string,
+  ) {
+    const [source, tenant] = await Promise.all([
+      this.prisma.blueprintFlow.findUnique({
+        where: { id: sourceBlueprintId },
+        include: { steps: { orderBy: { stepOrder: 'asc' } } },
+      }),
+      this.prisma.tenant.findUnique({ where: { id: tenantId } }),
+    ]);
+    if (!source) throw new NotFoundException(`Blueprint ${sourceBlueprintId} not found`);
+    if (!tenant) throw new NotFoundException(`Tenant ${tenantId} not found`);
+
+    const uniqueKey = `custom_${tenantId.slice(0, 8)}_${source.key}_${Date.now()}`;
+
+    // Atomic: copy flow + all steps — prevents partial writes
+    const copy = await this.prisma.$transaction(async (tx) => {
+      const newFlow = await tx.blueprintFlow.create({
+        data: {
+          key: uniqueKey,
+          name: name || `${source.name} (Custom)`,
+          description: description || source.description,
+          businessTypes: source.businessTypes,
+          tenantId,
+        },
+      });
+      await tx.blueprintStep.createMany({
+        data: source.steps.map(({ id: _id, blueprintId: _bid, ...stepData }) => ({
+          ...stepData,
+          blueprintId: newFlow.id,
+        })),
+      });
+      return newFlow;
+    });
+
+    this.logger.log(
+      `Pushed blueprint "${source.name}" (${source.steps.length} steps) to tenant "${tenant.name}" as "${copy.name}"`,
+    );
+
+    return this.prisma.blueprintFlow.findUnique({
+      where: { id: copy.id },
+      include: { steps: { orderBy: { stepOrder: 'asc' } } },
+    });
+  }
+
+  /**
+   * Applies a blueprint directly to a service on behalf of a tenant.
+   * Super Admin white-glove setup — does not require tenant action.
+   * Fully atomic: old flow removed and new one written in a single transaction.
+   */
+  async applyBlueprintToTenantService(
+    tenantId: string,
+    blueprintId: string,
+    serviceId: string,
+  ) {
+    const [blueprint, service] = await Promise.all([
+      this.prisma.blueprintFlow.findUnique({
+        where: { id: blueprintId },
+        include: { steps: { orderBy: { stepOrder: 'asc' } } },
+      }),
+      this.prisma.service.findFirst({ where: { id: serviceId, tenantId } }),
+    ]);
+    if (!blueprint) throw new NotFoundException(`Blueprint ${blueprintId} not found`);
+    if (!service) throw new NotFoundException(`Service ${serviceId} not found for tenant ${tenantId}`);
+
+    // Atomic replace: delete old flow + create new one in a single transaction
+    const flow = await this.prisma.$transaction(async (tx) => {
+      // Remove existing flow (cascade deletes its steps via FK)
+      const existing = await tx.serviceFlow.findUnique({ where: { serviceId } });
+      if (existing) {
+        await tx.serviceFlow.delete({ where: { id: existing.id } });
+      }
+
+      const newFlow = await tx.serviceFlow.create({
+        data: {
+          tenantId,
+          serviceId,
+          name: blueprint.name,
+          description: blueprint.description,
+          isActive: true,
+        },
+      });
+
+      await tx.flowStepTemplate.createMany({
+        data: blueprint.steps.map(({ id: _id, blueprintId: _bid, ...stepData }: any) => ({
+          ...stepData,
+          flowId: newFlow.id,
+        })),
+      });
+
+      return newFlow;
+    });
+
+    this.logger.log(
+      `Admin applied blueprint "${blueprint.name}" (${blueprint.steps.length} steps) → service "${service.name}" (tenant: ${tenantId})`,
+    );
+
+    return this.prisma.serviceFlow.findUnique({
+      where: { id: flow.id },
+      include: { steps: { orderBy: { stepOrder: 'asc' } } },
+    });
+  }
+
+  // ── Per-Tenant Custom Limits (Enterprise Override) ──────────────────────────
+
+  /**
+   * Store a per-tenant limits override in the active subscription metadata.
+   * These values take PRIORITY over the plan's default limits.
+   * This allows enterprise deals with custom seats, visit caps, and feature flags.
+   */
+  async setTenantCustomLimits(
+    tenantId: string,
+    dto: {
+      maxVisits?: number | null;
+      maxQueues?: number | null;
+      maxLocations?: number | null;
+      maxStaff?: number | null;
+      customFeatures?: Record<string, boolean | string | number>;
+      note?: string;
+    },
+  ) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { tenantId, status: { in: ['ACTIVE', 'TRIAL'] } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!sub) throw new NotFoundException(`No active subscription found for tenant ${tenantId}`);
+
+    const existingMeta = (sub.metadata as any) || {};
+    const prevLimits = { ...(existingMeta.customLimits || {}) };
+
+    // null means "remove this override" — delete the key entirely
+    // undefined means "leave unchanged"
+    // a number means "set to this value"
+    const limitKeys = ['maxVisits', 'maxQueues', 'maxLocations', 'maxStaff'] as const;
+    for (const key of limitKeys) {
+      if (dto[key] === null) {
+        delete prevLimits[key];               // Remove override → revert to plan default
+      } else if (dto[key] !== undefined) {
+        prevLimits[key] = dto[key] as number; // Set override
+      }
+    }
+
+    const updatedMeta = {
+      ...existingMeta,
+      customLimits: prevLimits,
+      customFeatures: {
+        ...(existingMeta.customFeatures || {}),
+        ...(dto.customFeatures || {}),
+      },
+      customLimitsNote: dto.note !== undefined ? dto.note : existingMeta.customLimitsNote,
+      customLimitsSetAt: new Date().toISOString(),
+      customLimitsSetBy: 'super_admin',
+    };
+
+    const updated = await this.prisma.subscription.update({
+      where: { id: sub.id },
+      data: { metadata: updatedMeta },
+      include: { plan: true },
+    });
+
+    this.logger.log(
+      `Custom limits updated for tenant ${tenantId} — active overrides: ${JSON.stringify(prevLimits)}`,
+    );
+
+    return {
+      subscriptionId: updated.id,
+      tenantId,
+      customLimits: updatedMeta.customLimits,
+      customFeatures: updatedMeta.customFeatures,
+      note: updatedMeta.customLimitsNote,
+      activeOverrideCount: Object.keys(updatedMeta.customLimits).length,
+    };
+  }
+
+  /**
+   * Returns the fully resolved, effective limits for a tenant.
+   * Merges plan-level limits with any enterprise custom overrides.
+   * This is the authoritative source of truth for all limit enforcement.
+   */
+  async getTenantEffectiveLimits(tenantId: string) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { tenantId, status: { in: ['ACTIVE', 'TRIAL'] } },
+      include: { plan: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!sub) {
+      return {
+        tenantId,
+        effectiveLimits: {},
+        effectiveFeatures: {},
+        customOverrides: {},
+        customFeatureOverrides: {},
+        source: 'no_subscription',
+      };
+    }
+
+    const planLimits = (sub.plan?.limits as any) || {};
+    const planFeatures = (sub.plan?.features as any) || {};
+    const subMeta = (sub.metadata as any) || {};
+    const customLimits: Record<string, number> = subMeta.customLimits || {};
+    const customFeatures: Record<string, boolean | string | number> = subMeta.customFeatures || {};
+
+    const effectiveLimits = {
+      maxVisits: customLimits.maxVisits ?? sub.plan?.maxVisits ?? planLimits.maxTokens ?? null,
+      maxQueues: customLimits.maxQueues ?? sub.plan?.maxQueues ?? planLimits.maxQueues ?? null,
+      maxLocations: customLimits.maxLocations ?? planLimits.maxLocations ?? null,
+      maxStaff: customLimits.maxStaff ?? planLimits.maxStaff ?? null,
+    };
+
+    const effectiveFeatures = { ...planFeatures, ...customFeatures };
+
+    const hasLimitOverrides = Object.keys(customLimits).length > 0;
+    const hasFeatureOverrides = Object.keys(customFeatures).length > 0;
+
+    return {
+      tenantId,
+      planId: sub.plan?.id,
+      planName: sub.plan?.name,
+      subscriptionStatus: sub.status,
+      effectiveLimits,
+      effectiveFeatures,
+      customOverrides: customLimits,
+      customFeatureOverrides: customFeatures,
+      note: subMeta.customLimitsNote,
+      customLimitsSetAt: subMeta.customLimitsSetAt ?? null,
+      // enterprise_override if ANY override exists (limits OR features)
+      source: hasLimitOverrides || hasFeatureOverrides ? 'enterprise_override' : 'plan_defaults',
+    };
+  }
 }
+

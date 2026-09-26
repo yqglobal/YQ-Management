@@ -52,9 +52,14 @@ export class SubscriptionService {
     const limitsStr = sub.plan.limits;
     const parsedLimits =
       typeof limitsStr === 'string' ? JSON.parse(limitsStr) : limitsStr || {};
-    const maxQueues = parsedLimits?.maxQueues ?? sub.plan.maxQueues;
+
+    // Enterprise override: custom limits stored in subscription metadata
+    // take ABSOLUTE PRIORITY over plan-level limits.
+    const subMeta = (sub.metadata as any) || {};
+    const customLimits = subMeta.customLimits || {};
 
     if (resource === 'queues') {
+      const maxQueues = customLimits.maxQueues ?? parsedLimits?.maxQueues ?? sub.plan.maxQueues;
       if (maxQueues !== undefined && maxQueues !== null) {
         if (currentCount >= maxQueues) {
           throw new BillingException(
@@ -65,7 +70,7 @@ export class SubscriptionService {
     }
 
     if (resource === 'locations') {
-      const maxLocations = parsedLimits?.maxLocations;
+      const maxLocations = customLimits.maxLocations ?? parsedLimits?.maxLocations;
       if (maxLocations !== undefined && maxLocations !== null) {
         if (currentCount >= maxLocations) {
           throw new BillingException(
@@ -75,10 +80,8 @@ export class SubscriptionService {
       }
     }
 
-    // FIX (2C): Enforce visit/token quota against the plan's maxVisits limit or limits.maxTokens.
     if (resource === 'visits') {
-      const maxVisits = sub.plan.maxVisits ?? parsedLimits?.maxTokens;
-
+      const maxVisits = customLimits.maxVisits ?? sub.plan.maxVisits ?? parsedLimits?.maxTokens;
       if (maxVisits !== undefined && maxVisits !== null) {
         if (currentCount >= maxVisits) {
           throw new BillingException(
@@ -88,6 +91,7 @@ export class SubscriptionService {
       }
     }
   }
+
 
   async createSubscription(
     tenantId: string,
