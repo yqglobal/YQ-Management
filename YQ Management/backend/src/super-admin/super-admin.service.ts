@@ -114,7 +114,10 @@ export class SuperAdminService {
   async getAllTenants(params?: { search?: string }) {
     const where: any = {};
     if (params?.search) {
-      where.name = { contains: params.search, mode: 'insensitive' as const };
+      where.OR = [
+        { name: { contains: params.search, mode: 'insensitive' as const } },
+        { users: { some: { email: { contains: params.search, mode: 'insensitive' as const } } } }
+      ];
     }
 
     return this.prisma.tenant.findMany({
@@ -147,17 +150,46 @@ export class SuperAdminService {
   }
 
   async getTenantById(id: string) {
-    return this.prisma.tenant.findUnique({
+    const tenant = await this.prisma.tenant.findUnique({
       where: { id },
       include: {
         users: { select: { id: true, email: true, role: true } },
-
         transactions: {
-          select: { id: true, amount: true, status: true, createdAt: true },
+          select: { id: true, amount: true, currency: true, status: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
           take: 10,
         },
+        locations: { select: { id: true, name: true, address: true, timezone: true } },
+        _count: {
+          select: {
+            queues: true,
+            customers: true,
+            staffMembers: true,
+            visits: true,
+            appointments: true,
+            services: true,
+          }
+        }
       },
+    });
+    
+    if (!tenant) return null;
+    
+    // Determine active subscription status
+    const activeSub = await this.prisma.subscription.findFirst({
+      where: { tenantId: id, status: { in: ['ACTIVE', 'TRIAL'] } },
+    });
+    
+    return {
+      ...tenant,
+      subscriptionStatus: activeSub ? activeSub.status : 'INACTIVE',
+    };
+  }
+
+  async updateTenant(id: string, data: any) {
+    return this.prisma.tenant.update({
+      where: { id },
+      data,
     });
   }
 

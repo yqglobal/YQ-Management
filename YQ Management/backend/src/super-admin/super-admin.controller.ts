@@ -74,6 +74,11 @@ export class SuperAdminController {
     return this.superAdminService.deleteTenant(id);
   }
 
+  @Put('tenants/:id')
+  async updateTenant(@Param('id') id: string, @Body() body: any) {
+    return this.superAdminService.updateTenant(id, body);
+  }
+
   @Get('users')
   async getUsers(
     @Req() req: any,
