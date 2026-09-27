@@ -1563,6 +1563,14 @@ export class WhatsappService implements OnModuleInit {
         return { ignored: true };
       }
 
+      const sub = tenant.subscriptions?.[0];
+      if (!sub || (sub.status !== 'ACTIVE' && sub.status !== 'TRIAL')) {
+        this.logger.warn(
+          `Tenant ${tenant.id} subscription is ${sub?.status || 'missing'}. Ignoring incoming WhatsApp message from ${phone}.`
+        );
+        return { ignored: true, reason: 'subscription_inactive' };
+      }
+
       // 0) CHECK IF USER IS RESPONDING TO A CSAT SURVEY
       try {
         const pendingSurveyVisit = await this.prisma.visit.findFirst({
@@ -1786,6 +1794,24 @@ export class WhatsappService implements OnModuleInit {
       return { success: false, error: 'Invalid parameters' };
     }
 
+    const tenant = await this.prisma.tenant.findFirst({
+      where: { whatsappInstanceId: instanceName },
+      include: {
+        subscriptions: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (tenant) {
+      const sub = tenant.subscriptions?.[0];
+      if (!sub || (sub.status !== 'ACTIVE' && sub.status !== 'TRIAL')) {
+        this.logger.warn(`Tenant ${tenant.id} subscription is ${sub?.status}. Blocking outbound WhatsApp message.`);
+        return { success: false, error: 'Subscription inactive' };
+      }
+    }
+
     const normalizedNumber = number.replace(/\D/g, '');
     this.logger.debug(
       `Sending message on ${instanceName} to normalized number: ${normalizedNumber}`,
@@ -1807,9 +1833,6 @@ export class WhatsappService implements OnModuleInit {
       this.logger.error(
         `Failed to send WhatsApp message to ${normalizedNumber} on ${instanceName}: ${result.error.message}`,
       );
-      const tenant = await this.prisma.tenant.findFirst({
-        where: { whatsappInstanceId: instanceName },
-      });
       if (tenant) {
         await this.logTenantEvent(tenant.id, 'MESSAGE_SEND_FAILED', {
           number: normalizedNumber,
@@ -1854,9 +1877,6 @@ export class WhatsappService implements OnModuleInit {
     this.logger.log(
       `Sent WhatsApp message to ${normalizedNumber} on ${instanceName}`,
     );
-    const tenant = await this.prisma.tenant.findFirst({
-      where: { whatsappInstanceId: instanceName },
-    });
     if (tenant)
       await this.logTenantEvent(tenant.id, 'MESSAGE_SENT', {
         number: normalizedNumber,

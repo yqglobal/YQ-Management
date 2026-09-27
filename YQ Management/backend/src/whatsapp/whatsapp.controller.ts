@@ -35,6 +35,12 @@ export class WhatsappController {
     const sub = await this.subscriptionService.getSubscription(tenantId);
     if (!sub || !sub.plan) return;
 
+    if (sub.status !== 'ACTIVE' && sub.status !== 'TRIAL') {
+      throw new BillingException(
+        'Active subscription required to use WhatsApp features. Please renew your plan.',
+      );
+    }
+
     const features = (sub.plan.features as any) || {};
     if (
       features.whatsappNotifications === false &&
