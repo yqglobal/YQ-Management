@@ -10,6 +10,10 @@ export class UpdateTenantDto {
   subdomain?: string;
 
   @IsOptional()
+  @IsString()
+  businessType?: string;
+
+  @IsOptional()
   branding?: any;
 
   @IsOptional()
