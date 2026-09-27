@@ -239,7 +239,12 @@ export class QueueService {
       if (!hasCustomBranding) {
         tenant.branding = null;
       }
+      
+      const sub = tenant.subscriptions?.[0];
+      const isSubscriptionActive = sub && (sub.status === 'ACTIVE' || sub.status === 'TRIAL');
+      
       tenant.planFeatures = { customBranding: hasCustomBranding };
+      tenant.isPaused = !isSubscriptionActive;
       delete tenant.subscriptions; // Don't expose billing details publicly
     }
 

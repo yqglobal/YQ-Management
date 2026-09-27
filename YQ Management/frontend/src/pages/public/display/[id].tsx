@@ -121,6 +121,18 @@ export default function QueueDisplay() {
     }
   };
 
+  if (queue?.tenant?.isPaused) {
+    return (
+      <div className="min-h-screen bg-[#0A0F1C] flex flex-col items-center justify-center p-6 text-white font-sans">
+        <div className="w-24 h-24 bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mb-6 border border-red-900/50">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h1 className="text-4xl font-bold mb-4">Display Paused</h1>
+        <p className="text-xl text-gray-400">The services for {queue?.tenant?.name || 'this business'} are currently paused.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0A0F1C] text-white flex flex-col lg:flex-row overflow-hidden font-sans">
       <Head>

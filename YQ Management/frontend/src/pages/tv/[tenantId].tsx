@@ -121,6 +121,9 @@ export default function TVDisplay() {
         if (data?.selfServeModeEnabled) {
           setSelfServeModeEnabled(true);
         }
+        if (data?.isPaused) {
+          setIsPaused(true);
+        }
       })
       .catch(() => {/* use defaults */});
   }, [tenantId]);
@@ -276,6 +279,18 @@ export default function TVDisplay() {
 
   const activeToken = calledTokens.find(t => t.currentState === 'IN_SERVICE');
   const recentList = calledTokens.filter(t => t.id !== activeToken?.id);
+
+  if (isPaused) {
+    return (
+      <div className="w-screen h-screen bg-black flex flex-col items-center justify-center p-6 text-white font-sans">
+        <div className="w-24 h-24 bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mb-6 border border-red-900/50">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h1 className="text-4xl font-bold mb-4">Display Paused</h1>
+        <p className="text-xl text-gray-400">The services for {tenantName} are currently paused.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-zinc-950 p-6 text-white select-none" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>

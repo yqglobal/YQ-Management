@@ -77,7 +77,8 @@ export class TenantService {
     }
 
     // Enforce customBranding feature toggle
-    const plan = tenant.subscriptions?.[0]?.plan;
+    const sub = tenant.subscriptions?.[0];
+    const plan = sub?.plan;
     const hasCustomBranding = plan?.features
       ? (plan.features as any).customBranding === true
       : false;
@@ -86,7 +87,10 @@ export class TenantService {
       tenant.branding = null;
     }
 
+    const isSubscriptionActive = sub && (sub.status === 'ACTIVE' || sub.status === 'TRIAL');
+
     (tenant as any).planFeatures = { customBranding: hasCustomBranding };
+    (tenant as any).isPaused = !isSubscriptionActive;
 
     try {
       await this.redisService.client.set(
@@ -161,7 +165,10 @@ export class TenantService {
       tenant.branding = null;
     }
 
+    const isSubscriptionActive = subscription && (subscription.status === 'ACTIVE' || subscription.status === 'TRIAL');
+
     (tenant as any).planFeatures = { customBranding: hasCustomBranding };
+    (tenant as any).isPaused = !isSubscriptionActive;
 
     return tenant;
   }
