@@ -1564,9 +1564,24 @@ export class WhatsappService implements OnModuleInit {
       }
 
       const sub = tenant.subscriptions?.[0];
-      if (!sub || (sub.status !== 'ACTIVE' && sub.status !== 'TRIAL')) {
+      let isActive = false;
+      const now = new Date();
+
+      if (sub) {
+        if (sub.status === 'ACTIVE') {
+          // Add a 3-day grace period for active subscriptions pending payment
+          const graceEnd = new Date(sub.currentPeriodEnd);
+          graceEnd.setDate(graceEnd.getDate() + 3);
+          isActive = graceEnd > now;
+        } else if (sub.status === 'TRIAL') {
+          const endDate = sub.trialEndDate ? new Date(sub.trialEndDate) : new Date(sub.currentPeriodEnd);
+          isActive = endDate > now;
+        }
+      }
+
+      if (!isActive) {
         this.logger.warn(
-          `Tenant ${tenant.id} subscription is ${sub?.status || 'missing'}. Ignoring incoming WhatsApp message from ${phone}.`
+          `Tenant ${tenant.id} subscription is ${sub?.status || 'missing'} or expired. Ignoring incoming WhatsApp message from ${phone}.`
         );
         return { ignored: true, reason: 'subscription_inactive' };
       }
@@ -1754,6 +1769,41 @@ export class WhatsappService implements OnModuleInit {
     }
   }
 
+  async checkCanSendWhatsApp(instanceName: string): Promise<{ active: boolean, tenant: any }> {
+    const tenant = await this.prisma.tenant.findFirst({
+      where: { whatsappInstanceId: instanceName },
+      include: {
+        subscriptions: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!tenant) return { active: false, tenant: null };
+
+    const sub = tenant.subscriptions?.[0];
+    let isActive = false;
+    const now = new Date();
+
+    if (sub) {
+      if (sub.status === 'ACTIVE') {
+        const graceEnd = new Date(sub.currentPeriodEnd);
+        graceEnd.setDate(graceEnd.getDate() + 3);
+        isActive = graceEnd > now;
+      } else if (sub.status === 'TRIAL') {
+        const endDate = sub.trialEndDate ? new Date(sub.trialEndDate) : new Date(sub.currentPeriodEnd);
+        isActive = endDate > now;
+      }
+    }
+
+    if (!isActive) {
+      this.logger.warn(`Tenant ${tenant.id} subscription is inactive/expired. Blocking outbound WhatsApp message.`);
+    }
+
+    return { active: isActive, tenant };
+  }
+
   async sendListMessage(
     instanceName: string,
     number: string,
@@ -1767,6 +1817,11 @@ export class WhatsappService implements OnModuleInit {
   ) {
     const normalizedNumber = number.replace(/\D/g, '');
     this.logger.debug(`Sending list message on ${instanceName} to: ${normalizedNumber}`);
+
+    const check = await this.checkCanSendWhatsApp(instanceName);
+    if (!check.active) {
+      return { success: false, error: 'Subscription inactive' };
+    }
 
     const result = await this.fetchEvo(
       `/message/sendList/${instanceName}`,
@@ -1794,23 +1849,11 @@ export class WhatsappService implements OnModuleInit {
       return { success: false, error: 'Invalid parameters' };
     }
 
-    const tenant = await this.prisma.tenant.findFirst({
-      where: { whatsappInstanceId: instanceName },
-      include: {
-        subscriptions: {
-          take: 1,
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
-
-    if (tenant) {
-      const sub = tenant.subscriptions?.[0];
-      if (!sub || (sub.status !== 'ACTIVE' && sub.status !== 'TRIAL')) {
-        this.logger.warn(`Tenant ${tenant.id} subscription is ${sub?.status}. Blocking outbound WhatsApp message.`);
-        return { success: false, error: 'Subscription inactive' };
-      }
+    const check = await this.checkCanSendWhatsApp(instanceName);
+    if (!check.active) {
+      return { success: false, error: 'Subscription inactive' };
     }
+    const tenant = check.tenant;
 
     const normalizedNumber = number.replace(/\D/g, '');
     this.logger.debug(
@@ -1981,6 +2024,11 @@ export class WhatsappService implements OnModuleInit {
       return { success: false, error: 'Invalid parameters' };
     }
     const normalizedNumber = number.replace(/\D/g, '');
+
+    const check = await this.checkCanSendWhatsApp(instanceName);
+    if (!check.active) {
+      return { success: false, error: 'Subscription inactive' };
+    }
     const result = await this.fetchEvo(
       `/message/sendMedia/${instanceName}`,
       'POST',
@@ -2061,6 +2109,11 @@ export class WhatsappService implements OnModuleInit {
     }
 
     const normalizedNumber = number.replace(/\D/g, '');
+
+    const check = await this.checkCanSendWhatsApp(instanceName);
+    if (!check.active) {
+      return { success: false, error: 'Subscription inactive' };
+    }
 
     const result = await this.fetchEvo(
       `/message/sendButtons/${instanceName}`,
@@ -2345,6 +2398,11 @@ export class WhatsappService implements OnModuleInit {
     }
 
     const normalizedNumber = number.replace(/\D/g, '');
+
+    const check = await this.checkCanSendWhatsApp(instanceName);
+    if (!check.active) {
+      return { success: false, error: 'Subscription inactive' };
+    }
     const result = await this.fetchEvo(
       `/message/sendList/${instanceName}`,
       'POST',

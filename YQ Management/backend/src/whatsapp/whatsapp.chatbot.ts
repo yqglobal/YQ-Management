@@ -77,9 +77,15 @@ export class WhatsappChatbot {
 
     // Process Menu Options
     if (session.step === 0) {
+      let index = 1;
+      const statusOption = config.quickReplies?.status !== false ? (index++).toString() : null;
+      const humanOption = config.quickReplies?.human !== false ? (index++).toString() : null;
+      const bookOption = (index++).toString();
+      const cancelOption = config.quickReplies?.cancel !== false ? (index++).toString() : null;
+
       if (
-        config.quickReplies?.status &&
-        (upperText === '1' ||
+        statusOption &&
+        (upperText === statusOption ||
           upperText.includes('STATUS') ||
           upperText === 'check_status')
       ) {
@@ -88,8 +94,8 @@ export class WhatsappChatbot {
       }
 
       if (
-        config.quickReplies?.human &&
-        (upperText === '2' ||
+        humanOption &&
+        (upperText === humanOption ||
           upperText.includes('HUMAN') ||
           upperText.includes('AGENT') ||
           upperText.includes('SUPPORT') ||
@@ -104,8 +110,8 @@ export class WhatsappChatbot {
       }
 
       if (
-        config.quickReplies?.cancel &&
-        (upperText === '4' ||
+        cancelOption &&
+        (upperText === cancelOption ||
           upperText.includes('CANCEL') ||
           upperText === 'cancel_ticket')
       ) {
@@ -114,7 +120,7 @@ export class WhatsappChatbot {
       }
 
       if (
-        upperText === '3' ||
+        upperText === bookOption ||
         upperText.includes('BOOK') ||
         upperText.includes('APPOINTMENT') ||
         upperText === 'book_new'
@@ -173,15 +179,16 @@ export class WhatsappChatbot {
     
     const quickReplies = config?.quickReplies || { status: true, cancel: true, human: true };
     
+    let index = 1;
     if (quickReplies.status !== false) {
-      msg += `1. Check Status\n`;
+      msg += `${index++}. Check Status\n`;
     }
     if (quickReplies.human !== false) {
-      msg += `2. Chat with Human\n`;
+      msg += `${index++}. Chat with Human\n`;
     }
-    msg += `3. Book an Appointment\n`;
+    msg += `${index++}. Book an Appointment\n`;
     if (quickReplies.cancel !== false) {
-      msg += `4. Cancel Ticket\n`;
+      msg += `${index++}. Cancel Ticket\n`;
     }
     msg += `\nReply with a number to proceed.`;
     
@@ -424,12 +431,25 @@ export class WhatsappChatbot {
 
     const serviceId = services[index];
 
+    const service = await this.prisma.service.findUnique({
+      where: { id: serviceId },
+      include: { location: true },
+    });
+    const timezone = service?.location?.timezone || 'UTC';
+
+    const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+    const now = new Date();
+    const todayStr = formatter.format(now);
+    
+    // Tomorrow
+    const tomorrowDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const tomorrowStr = formatter.format(tomorrowDate);
+
     // Prompt date (dynamically finding dates with available slots)
     const availableDates: string[] = [];
     const maxDaysToCheck = 14;
     let daysChecked = 0;
-    const dateToCheck = new Date();
-    const now = new Date();
+    const dateToCheck = new Date(now);
 
     if (!this.serviceService) {
       await this.sendMsg(jid, 'Booking service unavailable at this moment.');
@@ -437,12 +457,12 @@ export class WhatsappChatbot {
     }
 
     while (availableDates.length < 3 && daysChecked < maxDaysToCheck) {
-      const dateStr = dateToCheck.toISOString().split('T')[0];
+      const dateStr = formatter.format(dateToCheck);
       const slots = await this.serviceService.getAvailableSlots(serviceId, dateStr);
 
       let hasAvailable = false;
       if (slots && slots.length > 0) {
-        if (dateStr === now.toISOString().split('T')[0]) {
+        if (dateStr === todayStr) {
           hasAvailable = slots.some((s) => new Date(s.time) > now && s.available);
         } else {
           hasAvailable = slots.some((s) => s.available);
@@ -450,7 +470,10 @@ export class WhatsappChatbot {
       }
 
       if (hasAvailable) {
-        availableDates.push(dateStr);
+        // Prevent duplicate push if same formatted date happens twice during daylight savings transitions
+        if (!availableDates.includes(dateStr)) {
+          availableDates.push(dateStr);
+        }
       }
 
       dateToCheck.setDate(dateToCheck.getDate() + 1);
@@ -467,16 +490,15 @@ export class WhatsappChatbot {
 
     let msg = `When would you like to book?\n\n`;
     availableDates.forEach((d, i) => {
-      const isToday = d === now.toISOString().split('T')[0];
-      const tomorrow = new Date(now);
-      tomorrow.setDate(now.getDate() + 1);
-      const isTomorrow = d === tomorrow.toISOString().split('T')[0];
+      const isToday = d === todayStr;
+      const isTomorrow = d === tomorrowStr;
       
       let label = d;
       if (isToday) label = `Today (${d})`;
       else if (isTomorrow) label = `Tomorrow (${d})`;
       else {
-        const dayOfWeek = new Date(d).toLocaleDateString('en-US', { weekday: 'long' });
+        const localDate = new Date(d + 'T00:00:00');
+        const dayOfWeek = localDate.toLocaleDateString('en-US', { weekday: 'long' });
         label = `${dayOfWeek} (${d})`;
       }
       

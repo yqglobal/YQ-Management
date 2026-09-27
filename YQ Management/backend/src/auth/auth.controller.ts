@@ -46,7 +46,8 @@ export class AuthController {
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
   ) {
-    const user = await this.authService.validateUser(body.email, body.password);
+    const email = body.email?.trim();
+    const user = await this.authService.validateUser(email, body.password);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -67,6 +68,7 @@ export class AuthController {
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         path: '/',
+        domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined),
         maxAge: 30 * 24 * 60 * 60 * 1000,
       });
       return { success: true, requiresOtp: false, user, access_token };
@@ -113,6 +115,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
+      domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     return { success: true, user, access_token };
@@ -129,7 +132,10 @@ export class AuthController {
         7 * 24 * 60 * 60,
       );
     }
-    res.clearCookie('token', { path: '/' });
+    res.clearCookie('token', { 
+      path: '/',
+      domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined)
+    });
     return { success: true, message: 'Logged out successfully' };
   }
 
@@ -182,6 +188,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
+      domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -229,6 +236,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
+      domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -527,6 +535,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
+      domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     return {
