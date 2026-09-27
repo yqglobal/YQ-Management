@@ -130,7 +130,7 @@ export class SuperAdminService {
           },
         },
         users: {
-          where: { role: 'TENANT_ADMIN' },
+          where: { role: { in: ['TENANT_ADMIN', 'SUPER_ADMIN'] } },
           select: { email: true },
         },
         subscriptions: {
