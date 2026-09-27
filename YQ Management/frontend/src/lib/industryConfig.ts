@@ -16,7 +16,8 @@ export type BusinessType =
   | 'bank'
   | 'visa'
   | 'fastfood'
-  | 'logistics';
+  | 'logistics'
+  | 'catering';
 
 /**
  * Sentinel value for visitCard.primaryChipField that means:
@@ -507,6 +508,59 @@ const CONFIGS: Record<BusinessType, IndustryConfig> = {
     accentColor: 'emerald-600',
     accentBg: 'bg-emerald-500/10',
     accentText: 'text-emerald-600 dark:text-emerald-400',
+  },
+
+  catering: {
+    id: 'catering',
+    industryLabel: 'Catering & Events',
+    industryIcon: 'restaurant',
+    terminology: {
+      customer: 'Client',
+      customers: 'Clients',
+      ticket: 'Event Order',
+      tickets: 'Event Orders',
+      provider: 'Event Manager',
+      actionVerb: 'Start Prep',
+      actionVerbPast: 'Prepared',
+      service: 'Catering Package',
+      notesLabel: 'Dietary & Event Notes',
+      notesPlaceholder: 'Allergies, venue details, special requests...',
+      walkIn: 'Direct Order',
+      appointment: 'Scheduled Event',
+    },
+    serviceDesk: {
+      pageTitle: 'Catering Kitchen Pipeline',
+      pipelineTitle: 'Incoming Orders',
+      poolTitle: 'Preparation Queue',
+      emptyHeading: 'All events prepped!',
+      emptyBody: 'No pending catering orders right now.',
+      emptyIcon: 'soup_kitchen',
+      pendingApprovalsLabel: 'Quotes to Approve',
+    },
+    visitCard: {
+      primaryChipField: 'eventDate',
+      primaryChipLabel: 'Event Date:',
+      primaryChipIcon: 'event',
+      urgencyLabel: 'Rush Order',
+    },
+    providerView: {
+      title: 'Order Details',
+      providerAssignLabel: 'Lead Chef / Manager',
+      unassignedLabel: 'Unassigned',
+    },
+    uiFlags: {
+      showItinerary: false,
+      showEmergencyPause: false,
+      showDocumentStatus: false,
+      showGuestCount: true,
+      showPrivacyBadge: false,
+      highlightArrivalStatus: false,
+      enableVitalsMock: false,
+    },
+    navLabel: 'Kitchen Pipeline',
+    accentColor: 'amber-600',
+    accentBg: 'bg-amber-500/10',
+    accentText: 'text-amber-600 dark:text-amber-400',
   },
 };
 

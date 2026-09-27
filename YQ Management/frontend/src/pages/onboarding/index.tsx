@@ -3,7 +3,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
-import { QrCode, Loader2, Store, Activity, Pizza, Briefcase, Check, Keyboard, Copy, CheckCircle2, Users, Scissors, Landmark, Truck } from 'lucide-react';
+import { QrCode, Loader2, Store, Activity, Pizza, Briefcase, Check, Keyboard, Copy, CheckCircle2, Users, Scissors, Landmark, Truck, Utensils } from 'lucide-react';
 import { Logo } from '../../components/Logo';
 import { QRCodeSVG } from 'qrcode.react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -166,6 +166,28 @@ const BUSINESS_TEMPLATES = [
         name: 'Dispatch / Drop-off',
         formConfig: [
           { id: 'reference', type: 'text', label: 'Drop-off Reference', required: false, system: false }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'catering',
+    title: 'Catering & Events',
+    description: 'Manage kitchen orders and event prep.',
+    icon: Utensils,
+    services: [
+      {
+        name: 'Wedding Catering',
+        formConfig: [
+          { id: 'eventDate', type: 'text', label: 'Event Date (YYYY-MM-DD)', required: true, system: false },
+          { id: 'guestCount', type: 'text', label: 'Number of Guests', required: true, system: false }
+        ]
+      },
+      {
+        name: 'Corporate Lunch',
+        formConfig: [
+          { id: 'companyName', type: 'text', label: 'Company Name', required: true, system: false },
+          { id: 'deliveryTime', type: 'text', label: 'Delivery Time', required: true, system: false }
         ]
       }
     ]
