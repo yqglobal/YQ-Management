@@ -75,7 +75,7 @@ export function useNotifications() {
           message: 'Automated SMS & WhatsApp ticket messaging is not connected. Reconnect immediately to notify waiting customers.',
           category: 'WHATSAPP',
           timestamp: 'Live Alert',
-          actionUrl: '/dashboard/settings/whatsapp',
+          actionUrl: '/dashboard/settings/integrations',
           actionText: 'Connect WhatsApp',
         });
       } else {
@@ -85,7 +85,7 @@ export function useNotifications() {
           message: 'Evolution API messaging instance is online and dispatching real-time token alerts.',
           category: 'WHATSAPP',
           timestamp: 'System Status',
-          actionUrl: '/dashboard/settings/whatsapp',
+          actionUrl: '/dashboard/settings/integrations',
           actionText: 'View Settings',
         });
       }
@@ -96,7 +96,7 @@ export function useNotifications() {
         message: 'Could not verify WhatsApp connection. Ensure your Evolution API service is running.',
         category: 'WHATSAPP',
         timestamp: 'Just now',
-        actionUrl: '/dashboard/settings/whatsapp',
+        actionUrl: '/dashboard/settings/integrations',
         actionText: 'Check Status',
       });
     }

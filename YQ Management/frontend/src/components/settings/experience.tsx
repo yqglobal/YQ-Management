@@ -298,7 +298,7 @@ export default function CustomerExperienceSettings() {
           featureKey="customBranding_logo"
           message="✨ Your plan includes Custom Branding — add your logo and brand colors to impress customers!"
           ctaLabel="Set Up Branding"
-          ctaHref="/dashboard/settings/experience"
+          ctaHref="#branding-settings"
           className="mb-6"
         />
       )}
@@ -330,7 +330,7 @@ export default function CustomerExperienceSettings() {
       <div>
         {activeTab === 'portal' && (
           <div className="bg-surface-bright dark:bg-zinc-900 rounded-2xl border border-border dark:border-dark-border p-6 space-y-8">
-            <div>
+            <div id="branding-settings">
               <h3 className="font-body-lg text-body-lg font-semibold text-on-surface dark:text-white mb-6 border-b border-border dark:border-dark-border pb-4">Custom Branding</h3>
               
               <div className="space-y-6">

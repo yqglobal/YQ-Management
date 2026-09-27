@@ -37,7 +37,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
     { label: 'Workspace Settings', href: '/dashboard/settings/workspace', icon: <Settings className="w-5 h-5 text-slate-500" />, category: 'Settings' },
     { label: 'Team & Security', href: '/dashboard/settings/team', icon: <Users className="w-5 h-5 text-indigo-500" />, category: 'Settings' },
     { label: 'Billing & Usage', href: '/dashboard/settings/billing', icon: <FileText className="w-5 h-5 text-emerald-500" />, category: 'Settings' },
-    { label: 'Audit Logs', href: '/dashboard/settings/security', icon: <FileText className="w-5 h-5 text-rose-500" />, category: 'Settings' },
+    { label: 'Audit Logs', href: '/dashboard/settings/team', icon: <FileText className="w-5 h-5 text-rose-500" />, category: 'Settings' },
   ];
 
   const filteredLinks = query 
