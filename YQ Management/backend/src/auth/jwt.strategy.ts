@@ -46,8 +46,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         throw new UnauthorizedException('Access revoked');
       }
 
-      // Removed database lookup to improve performance. 
-      // Relies purely on JWT signature and Redis blocklists for session invalidation.
+      // Verify user still exists in database to prevent orphaned JWT errors
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, role: true, tenantId: true },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('User no longer exists');
+      }
+
+      // Sync role and tenantId from DB in case they were updated
+      payload.role = user.role;
+      payload.tenantId = user.tenantId;
     }
 
     return {
