@@ -19,15 +19,26 @@ export class VisitStepService {
   ) {
     const flow = await this.prisma.serviceFlow.findUnique({
       where: { serviceId },
-      include: { steps: { orderBy: { stepOrder: 'asc' } } },
+      include: { steps: { include: { transitions: true }, orderBy: { stepOrder: 'asc' } } },
     });
 
-    if (!flow || !flow.isActive) {
+    if (!flow || !flow.isActive || flow.steps.length === 0) {
       this.logger.debug(`No active flow found for service ${serviceId}.`);
       return;
     }
 
-    const stepsToCreate = flow.steps.map((template) => {
+    const allTransitions = flow.steps.flatMap(s => s.transitions);
+    const targetStepIds = new Set(allTransitions.map(t => t.toStepId));
+    
+    let rootSteps = flow.steps.filter(s => !targetStepIds.has(s.id));
+    if (rootSteps.length === 0) {
+      rootSteps = flow.steps.filter(s => s.stepOrder === 1);
+    }
+    if (rootSteps.length === 0) {
+      rootSteps = [flow.steps[0]];
+    }
+
+    const stepsToCreate = rootSteps.map((template) => {
       let allocated = template.entitlementFixed;
       if (template.entitlementFormula === 'accompanyingGuests + 1') {
         const guests = bookingContext?.accompanyingGuests || 0;
@@ -41,32 +52,30 @@ export class VisitStepService {
         stepOrder: template.stepOrder,
         name: template.name,
         type: template.type,
-        status: template.stepOrder === 1 ? 'PENDING' : 'LOCKED',
+        status: 'PENDING',
         serviceId: template.serviceId,
         queueId: template.queueId,
         quantityAllocated: allocated,
       };
     });
 
-    if (stepsToCreate.length > 0) {
-      await this.prisma.visitStep.createMany({
-        data: stepsToCreate as any,
-      });
+    await this.prisma.visitStep.createMany({
+      data: stepsToCreate as any,
+    });
 
-      const createdSteps = await this.prisma.visitStep.findMany({
-        where: { visitId },
-      });
+    const createdSteps = await this.prisma.visitStep.findMany({
+      where: { visitId },
+    });
 
-      await this.prisma.visitStepEvent.createMany({
-        data: createdSteps.map((s) => ({
-          visitStepId: s.id,
-          visitId,
-          tenantId,
-          eventType: 'UNLOCKED' as any,
-          actorType: 'SYSTEM',
-        })).filter((e, i) => stepsToCreate[i].status === 'PENDING'),
-      });
-    }
+    await this.prisma.visitStepEvent.createMany({
+      data: createdSteps.map((s) => ({
+        visitStepId: s.id,
+        visitId,
+        tenantId,
+        eventType: 'UNLOCKED' as any,
+        actorType: 'SYSTEM',
+      })),
+    });
   }
 
   async getVisitSteps(tenantId: string, visitId: string) {
@@ -162,7 +171,7 @@ export class VisitStepService {
     });
 
     await this.logEvent(step.id, step.visitId, tenantId, 'COMPLETED', 'STAFF', staffId, { outcome: dto.outcome });
-    await this.evaluateNextSteps(step.visitId);
+    await this.evaluateNextSteps(step.visitId, step.id, dto.outcome);
 
     return updated;
   }
@@ -203,32 +212,106 @@ export class VisitStepService {
     });
 
     if (isCompleted) {
-       await this.evaluateNextSteps(step.visitId);
+       await this.evaluateNextSteps(step.visitId, step.id);
     }
 
     return updated;
   }
 
-  private async evaluateNextSteps(visitId: string) {
-    const steps = await this.prisma.visitStep.findMany({
-      where: { visitId },
-      orderBy: { stepOrder: 'asc' },
-    });
+  private async evaluateNextSteps(visitId: string, completedVisitStepId?: string, outcome?: any) {
+    if (!completedVisitStepId) return;
 
-    let allPreviousCompleted = true;
-    for (const step of steps) {
-      if (step.status === 'DONE' || step.status === 'SKIPPED') {
-        continue;
+    const completedStep = await this.prisma.visitStep.findUnique({
+      where: { id: completedVisitStepId },
+      include: { templateStep: { include: { transitions: true } } },
+    });
+    
+    if (!completedStep || !completedStep.templateStep) return;
+
+    const activeSteps = await this.prisma.visitStep.findMany({
+      where: { visitId, status: { in: ['PENDING', 'ACTIVE', 'DEFERRED'] } }
+    });
+    if (activeSteps.length > 0) return; // Wait until all parallel branches resolve
+
+    const transitions = completedStep.templateStep.transitions;
+    let nextTemplateIds: string[] = [];
+
+    if (transitions.length > 0) {
+      for (const t of transitions) {
+        if (!t.condition) {
+          if (t.toStepId) nextTemplateIds.push(t.toStepId);
+          continue;
+        }
+        
+        const condition = t.condition as any;
+        if (condition?.outcome && outcome === condition.outcome) {
+           if (t.toStepId) nextTemplateIds.push(t.toStepId);
+        }
       }
       
-      if (allPreviousCompleted && step.status === 'LOCKED') {
-        await this.prisma.visitStep.update({
-          where: { id: step.id },
-          data: { status: 'PENDING', unlockedAt: new Date() },
-        });
-        break; 
+      if (nextTemplateIds.length === 0) {
+        const defaultTransition = transitions.find(t => t.isDefault);
+        if (defaultTransition && defaultTransition.toStepId) {
+          nextTemplateIds.push(defaultTransition.toStepId);
+        }
       }
-      allPreviousCompleted = false;
+    } else {
+       const flow = await this.prisma.serviceFlow.findUnique({
+         where: { id: completedStep.templateStep.flowId },
+         include: { steps: { orderBy: { stepOrder: 'asc' } } }
+       });
+       if (flow) {
+         const currentIndex = flow.steps.findIndex(s => s.id === completedStep.templateStepId);
+         if (currentIndex !== -1 && currentIndex < flow.steps.length - 1) {
+           nextTemplateIds.push(flow.steps[currentIndex + 1].id);
+         }
+       }
+    }
+
+    nextTemplateIds = [...new Set(nextTemplateIds.filter(Boolean))];
+
+    if (nextTemplateIds.length > 0) {
+       const nextTemplates = await this.prisma.flowStepTemplate.findMany({
+         where: { id: { in: nextTemplateIds } }
+       });
+       
+       const stepsToCreate = nextTemplates.map((template) => ({
+          visitId,
+          tenantId: completedStep.tenantId,
+          templateStepId: template.id,
+          stepOrder: template.stepOrder,
+          name: template.name,
+          type: template.type,
+          status: 'PENDING',
+          serviceId: template.serviceId,
+          queueId: template.queueId,
+          quantityAllocated: template.entitlementFixed,
+       }));
+       
+       if (stepsToCreate.length > 0) {
+         await this.prisma.visitStep.createMany({
+            data: stepsToCreate as any,
+         });
+
+         const newSteps = await this.prisma.visitStep.findMany({
+            where: { visitId, templateStepId: { in: nextTemplateIds }, status: 'PENDING' }
+         });
+
+         await this.prisma.visitStepEvent.createMany({
+            data: newSteps.map((s) => ({
+              visitStepId: s.id,
+              visitId,
+              tenantId: s.tenantId,
+              eventType: 'UNLOCKED' as any,
+              actorType: 'SYSTEM',
+            })),
+         });
+       }
+    } else {
+       await this.prisma.visit.update({
+         where: { id: visitId },
+         data: { currentState: 'COMPLETED' }
+       });
     }
   }
 
