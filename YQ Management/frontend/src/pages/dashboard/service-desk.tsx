@@ -356,6 +356,7 @@ export default function ServiceDeskToday() {
 
   const handleComplete = async (id: string, e: React.MouseEvent, isToken?: boolean) => {
     e.stopPropagation();
+    if (!window.confirm('Are you sure you want to mark this as completed?')) return;
     try {
       if (isToken) {
         await fetchApi(`/queue/tokens/${id}/complete`, { method: 'POST' });
@@ -569,21 +570,27 @@ export default function ServiceDeskToday() {
           )}
 
           <div className="mt-4 pt-6 border-t border-border dark:border-dark-border">
-            <h3 className="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-4">Active Allocations</h3>
+            <div>
+              <h3 className="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-1">{industry.serviceDesk.activeServicesTitle || 'Active Services'}</h3>
+              <p className="text-[10px] text-outline mb-4">Clients currently being served.</p>
+            </div>
             <div className="flex flex-col gap-3">
               {inServiceVisits.map((v: AnyFixMe) => (
-                <div key={v.id} onClick={() => setSelectedVisit(v)} className="flex items-center gap-3 p-3 bg-surface-container dark:bg-inverse-surface rounded-lg border border-border dark:border-dark-border cursor-pointer hover:border-primary transition-colors">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-body-sm font-semibold text-on-surface dark:text-white truncate">{v.customer?.name || industry.terminology.walkIn}</p>
-                    <p className="text-[10px] text-outline font-data-mono">{v.ticketNumber || `#TKT-${v.id.substring(0,4)}`}</p>
+                <div key={v.id} onClick={() => setSelectedVisit(v)} className="flex flex-col gap-2 p-3 bg-surface-container dark:bg-inverse-surface rounded-lg border border-border dark:border-dark-border cursor-pointer hover:border-primary transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-sm font-semibold text-on-surface dark:text-white truncate">{v.customer?.name || industry.terminology.walkIn}</p>
+                      <p className="text-[10px] text-outline font-data-mono">{v.ticketNumber || `#TKT-${v.id.substring(0,4)}`}</p>
+                    </div>
                   </div>
                   <button 
-                    onClick={(e) => handleComplete(v.id, e)}
+                    onClick={(e) => handleComplete(v.id, e, v.isToken)}
                     title={`Complete — ${industry.terminology.actionVerbPast}`}
-                    className="p-1.5 text-on-surface-variant hover:text-emerald-600 dark:hover:text-emerald-400 bg-surface dark:bg-dark-card rounded shadow-sm border border-border dark:border-dark-border"
+                    className="mt-1 flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 dark:text-emerald-400 dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50 rounded transition-colors w-full border border-emerald-200 dark:border-emerald-800/50"
                   >
-                    <span className="material-symbols-outlined text-[16px]">check</span>
+                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                    Mark Completed
                   </button>
                 </div>
               ))}
@@ -597,9 +604,12 @@ export default function ServiceDeskToday() {
         {/* Column 2: Pool */}
         <section className={`${mobileTab === 'pool' ? 'flex' : 'hidden'} md:flex md:col-span-1 ${selectedVisit ? 'md:col-span-6' : 'md:col-span-9'} bg-canvas dark:bg-dark-canvas p-4 md:p-6 flex-col min-h-0 overflow-hidden transition-all duration-300`}>
           <div className="flex flex-wrap xl:flex-nowrap items-start xl:items-center justify-between gap-4 mb-6 shrink-0">
-            <div className="flex items-center gap-3 w-full xl:w-auto">
-              <h2 className="font-headline-sm text-headline-sm text-on-surface dark:text-white">{industry.serviceDesk.poolTitle}</h2>
-              <span className="bg-primary/10 text-primary dark:bg-primary-fixed-dim/20 dark:text-primary-fixed-dim px-2.5 py-0.5 rounded-full font-data-mono text-body-sm font-semibold">{waitingVisits.length}</span>
+            <div className="flex flex-col w-full xl:w-auto">
+              <div className="flex items-center gap-3">
+                <h2 className="font-headline-sm text-headline-sm text-on-surface dark:text-white">{industry.serviceDesk.poolTitle}</h2>
+                <span className="bg-primary/10 text-primary dark:bg-primary-fixed-dim/20 dark:text-primary-fixed-dim px-2.5 py-0.5 rounded-full font-data-mono text-body-sm font-semibold">{waitingVisits.length}</span>
+              </div>
+              <p className="text-xs text-outline mt-1">The queue of incoming clients waiting to be served.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
               <div className="relative flex-1 min-w-[150px]">
@@ -915,6 +925,27 @@ export default function ServiceDeskToday() {
                   initialNotes={selectedVisit.notes} 
                   placeholder={industry.terminology.notesPlaceholder}
                 />
+                
+                <div className="mt-4 flex gap-2">
+                  {['WAITING', 'QUEUED'].includes(selectedVisit.currentState) && (
+                    <button 
+                      onClick={(e) => handleStart(selectedVisit.id, e, selectedVisit.isToken)}
+                      className={`flex-1 ${selectedVisit.isToken ? 'bg-zinc-600 hover:bg-zinc-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white px-4 py-2 rounded-lg font-medium text-body-sm flex items-center justify-center gap-2 transition-colors shadow-sm`}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">campaign</span>
+                      {selectedVisit.isToken ? 'Queued' : industry.terminology.actionVerb}
+                    </button>
+                  )}
+                  {['IN_SERVICE', 'SERVING'].includes(selectedVisit.currentState) && (
+                    <button 
+                      onClick={(e) => handleComplete(selectedVisit.id, e, selectedVisit.isToken)}
+                      className="flex-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50 dark:text-emerald-400 px-4 py-2 rounded-lg font-medium text-body-sm flex items-center justify-center gap-2 transition-colors shadow-sm border border-emerald-200 dark:border-emerald-800/50"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                      Mark Completed
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
