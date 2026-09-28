@@ -35,6 +35,11 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   const [exceptionDatesOverride, setExceptionDatesOverride] = useState<string[]>([]);
   const [newExceptionDate, setNewExceptionDate] = useState('');
 
+  // Pricing & Payments
+  const [basePrice, setBasePrice] = useState<string>('');
+  const [priceCurrency, setPriceCurrency] = useState('ZAR');
+  const [paymentMode, setPaymentMode] = useState('NONE');
+
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -51,6 +56,9 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setRequiredSkills(service.requiredSkills?.join(', ') || '');
       setDateSelectionType(service.dateSelectionType || 'calendar');
       setMaxDaysInAdvance(service.maxDaysInAdvance ?? 30);
+      setBasePrice(service.basePrice?.toString() || '');
+      setPriceCurrency(service.priceCurrency || 'ZAR');
+      setPaymentMode(service.paymentMode || 'NONE');
       let initialFormConfig = service.formConfig || [];
       if (initialFormConfig.length === 0 && service.queues && service.queues.length > 0) {
         const queueWithConfig = service.queues.find((q: AnyFixMe) => q.formConfig && q.formConfig.length > 0);
@@ -94,6 +102,9 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setSlaPolicyId('');
       setRequiredSkills('');
       setFormConfig([]);
+      setBasePrice('');
+      setPriceCurrency('ZAR');
+      setPaymentMode('NONE');
       setUseLocationHours(true);
       setBusinessHoursOverride(null);
       setExceptionDatesOverride([]);
@@ -160,6 +171,9 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       requiredSkills: requiredSkills.split(',').map(s => s.trim()).filter(Boolean),
       dateSelectionType,
       maxDaysInAdvance,
+      basePrice: basePrice ? parseFloat(basePrice) : null,
+      priceCurrency,
+      paymentMode,
       formConfig,
       useLocationHours,
       businessHoursOverride: useLocationHours ? null : businessHoursOverride,
@@ -229,6 +243,49 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
               placeholder="Brief description of the service..."
               className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none h-24 placeholder:text-gray-400 dark:placeholder:text-zinc-600"
             />
+          </div>
+
+          <div className="pt-4 mt-2 border-t border-gray-200 dark:border-white/10">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Pricing & Payments</h3>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Base Price</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={basePrice}
+                  onChange={(e) => setBasePrice(e.target.value)}
+                  placeholder="e.g. 50.00"
+                  className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-600"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Currency</label>
+                <select
+                  value={priceCurrency}
+                  onChange={(e) => setPriceCurrency(e.target.value)}
+                  className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+                >
+                  <option value="USD">USD ($)</option>
+                  <option value="ZAR">ZAR (R)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Payment Mode</label>
+              <select
+                value={paymentMode}
+                onChange={(e) => setPaymentMode(e.target.value)}
+                className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+              >
+                <option value="NONE">None (Free or Offline)</option>
+                <option value="PREPAY">Prepay Required (During Booking)</option>
+                <option value="OPTIONAL_PREPAY">Optional Prepay (During Booking)</option>
+                <option value="PAY_AT_SERVICE">Pay at Service (Via DAG Ticket checkout)</option>
+              </select>
+            </div>
           </div>
 
           <div>
