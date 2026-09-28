@@ -49,12 +49,9 @@ export class TokenController {
 
     const tenant = service.tenant;
 
-    // If WhatsApp is not connected for this tenant, throw 503 so frontend bypasses OTP
+    // If WhatsApp is not connected for this tenant, return a graceful bypass payload
     if (!tenant.whatsappConnected || !tenant.whatsappInstanceId) {
-      throw new HttpException(
-        'WhatsApp not connected for this tenant',
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
+      return { bypassOtp: true, reason: 'WhatsApp not connected' };
     }
 
     // Generate 6-digit OTP

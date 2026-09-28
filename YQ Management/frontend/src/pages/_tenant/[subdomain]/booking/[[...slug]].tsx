@@ -484,16 +484,22 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         // Pass serviceId for the first selected service
         const firstServiceId = selectedServiceIds[0];
         try {
-          await fetchApi(`/token/request-otp`, {
+          const res = await fetchApi(`/token/request-otp`, {
             method: 'POST',
             body: JSON.stringify({ phone, serviceId: firstServiceId }),
           });
+          
+          if (res?.bypassOtp) {
+            await submitJoin();
+            return;
+          }
+
           setOtpSent(true);
           setLoading(false);
           return;
         } catch (e: any) {
-          if (e.status === 503 || e.status === 404) {
-            // WhatsApp not connected or number not registered, silently bypass OTP
+          if (e.status === 404) {
+            // Number not registered or service not found, silently bypass OTP
             await submitJoin();
             return;
           }
