@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { Workflow, Trash2, Plus, Loader2, ArrowRight, Settings2, GripVertical, CheckCircle2, ChevronRight, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FlowBuilder } from './FlowBuilder';
 
 export function FlowsSettings() {
   const queryClient = useQueryClient();
@@ -102,9 +103,9 @@ export function FlowsSettings() {
     }
   });
 
-  const handleReorder = (newOrder: any[]) => {
-    setLocalSteps(newOrder);
-    reorderMutation.mutate(newOrder.map(s => s.id));
+  const handleSaveTransitions = (fromStepId: string, transitions: any[]) => {
+    // We update the step with the new transitions
+    updateStepMutation.mutate({ id: fromStepId, transitions });
   };
 
   const handleSaveStep = () => {
@@ -195,55 +196,18 @@ export function FlowsSettings() {
                   </button>
                 </div>
 
-                <div className="relative py-4 pl-4">
-                  {/* Timeline Line */}
-                  <div className="absolute left-[31px] top-6 bottom-6 w-0.5 bg-gradient-to-b from-indigo-200 via-indigo-500 to-purple-200 dark:from-indigo-900 dark:via-indigo-500 dark:to-purple-900 rounded-full" />
-                  
-                  <Reorder.Group axis="y" values={localSteps} onReorder={handleReorder} className="space-y-4 relative z-10">
-                    {localSteps.map((step: any, idx: number) => (
-                      <Reorder.Item key={step.id} value={step} className="relative cursor-grab active:cursor-grabbing group">
-                        <div className="flex items-center gap-6">
-                          {/* Node Connector */}
-                          <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-bold text-sm shadow-sm transition-transform ${
-                            editingStep?.id === step.id 
-                            ? 'bg-indigo-600 text-white scale-110 ring-4 ring-indigo-100 dark:ring-indigo-900/50' 
-                            : 'bg-white dark:bg-zinc-800 border-2 border-indigo-500 text-indigo-700 dark:text-indigo-300'
-                          }`}>
-                            {idx + 1}
-                          </div>
-                          
-                          {/* Node Card */}
-                          <div 
-                            onClick={() => openEdit(step)}
-                            className={`flex-1 flex items-center gap-4 p-4 border rounded-2xl transition-all ${
-                              editingStep?.id === step.id 
-                              ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 shadow-md' 
-                              : 'border-border dark:border-dark-border bg-surface dark:bg-black hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm'
-                            }`}
-                          >
-                            <GripVertical className="w-5 h-5 text-zinc-300 dark:text-zinc-600 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <div className="flex-1">
-                              <h4 className="font-bold text-on-surface dark:text-white text-base">{step.name}</h4>
-                              {step.description && <p className="text-xs text-on-surface-variant dark:text-zinc-400 mt-0.5 line-clamp-1">{step.description}</p>}
-                            </div>
-                            <div className="flex flex-col gap-1.5 items-end shrink-0">
-                              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-                                {step.type}
-                              </span>
-                              {step.isOptional && <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">Optional Route</span>}
-                            </div>
-                            <ChevronRight className={`w-5 h-5 transition-colors ${editingStep?.id === step.id ? 'text-indigo-500' : 'text-zinc-300 dark:text-zinc-600'}`} />
-                          </div>
-                        </div>
-                      </Reorder.Item>
-                    ))}
-                  </Reorder.Group>
+                <div className="relative">
+                  <FlowBuilder 
+                    flow={flow} 
+                    onEditStep={openEdit} 
+                    onSaveTransitions={handleSaveTransitions}
+                  />
 
                   <motion.button 
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={openAdd}
-                    className="mt-6 ml-[72px] flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-semibold text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                    className="absolute bottom-4 left-4 z-10 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/50 shadow-lg transition-colors"
                   >
                     <Plus className="w-4 h-4" /> Add New Stage
                   </motion.button>
