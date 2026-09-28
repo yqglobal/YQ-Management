@@ -166,7 +166,8 @@ export class PaymentsService {
   }
 
   async handleWebhook(body: any, headers: any) {
-    const transactionReference = body.TransactionReference || body.transactionReference;
+    const transactionReference =
+      body.TransactionReference || body.transactionReference;
     const status = body.Status || body.status;
     const hashCheck = body.HashCheck || body.hashCheck;
 

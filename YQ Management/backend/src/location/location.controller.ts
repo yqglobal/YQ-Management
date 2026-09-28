@@ -24,7 +24,15 @@ export class LocationController {
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   create(
     @Req() req: AuthenticatedRequest,
-    @Body() body: { name: string; address?: string; city?: string; totalFloors?: number; businessHours?: any; exceptionDates?: string[] },
+    @Body()
+    body: {
+      name: string;
+      address?: string;
+      city?: string;
+      totalFloors?: number;
+      businessHours?: any;
+      exceptionDates?: string[];
+    },
   ) {
     return this.locationService.create(req.user.tenantId, body);
   }
@@ -44,7 +52,15 @@ export class LocationController {
   update(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { name?: string; address?: string; city?: string; totalFloors?: number; businessHours?: any; exceptionDates?: string[] },
+    @Body()
+    body: {
+      name?: string;
+      address?: string;
+      city?: string;
+      totalFloors?: number;
+      businessHours?: any;
+      exceptionDates?: string[];
+    },
   ) {
     return this.locationService.update(id, req.user.tenantId, body);
   }

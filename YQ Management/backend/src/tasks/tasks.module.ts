@@ -28,12 +28,10 @@ import { WhatsappConsumer } from './consumers/whatsapp.consumer';
     ),
   ],
   providers: [
-    TasksService, 
+    TasksService,
     OutboxProcessorService,
     WebhookConsumer,
     WhatsappConsumer,
   ],
 })
 export class TasksModule {}
-
-

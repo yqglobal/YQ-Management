@@ -111,7 +111,7 @@ describe('Service Flow Engine (e2e)', () => {
     await prisma.visitStepEvent.deleteMany({ where: { tenantId } });
     await prisma.visitStep.deleteMany({ where: { tenantId } });
     await prisma.visit.deleteMany({ where: { tenantId } });
-        await prisma.serviceFlow.deleteMany({ where: { tenantId } });
+    await prisma.serviceFlow.deleteMany({ where: { tenantId } });
     await prisma.customer.deleteMany({ where: { tenantId } });
     await prisma.service.deleteMany({ where: { tenantId } });
     await prisma.location.deleteMany({ where: { tenantId } });
@@ -144,7 +144,7 @@ describe('Service Flow Engine (e2e)', () => {
 
     expect(visitSteps.length).toBe(2);
     expect(visitSteps[0].status).toBe('PENDING'); // Step 1 is unlocked
-    expect(visitSteps[1].status).toBe('LOCKED');  // Step 2 is waiting on step 1
+    expect(visitSteps[1].status).toBe('LOCKED'); // Step 2 is waiting on step 1
   });
 
   it('2. Activate and Advance Step 1 unlocks Step 2', async () => {
@@ -155,7 +155,9 @@ describe('Service Flow Engine (e2e)', () => {
       .expect(201);
 
     // Verify status is ACTIVE
-    let step1 = await prisma.visitStep.findUnique({ where: { id: visitSteps[0].id } });
+    let step1 = await prisma.visitStep.findUnique({
+      where: { id: visitSteps[0].id },
+    });
     expect(step1?.status).toBe('ACTIVE');
 
     // Advance Step 1
@@ -166,9 +168,13 @@ describe('Service Flow Engine (e2e)', () => {
       .expect(201);
 
     // Verify Step 1 is DONE and Step 2 is PENDING
-    step1 = await prisma.visitStep.findUnique({ where: { id: visitSteps[0].id } });
-    const step2 = await prisma.visitStep.findUnique({ where: { id: visitSteps[1].id } });
-    
+    step1 = await prisma.visitStep.findUnique({
+      where: { id: visitSteps[0].id },
+    });
+    const step2 = await prisma.visitStep.findUnique({
+      where: { id: visitSteps[1].id },
+    });
+
     expect(step1?.status).toBe('DONE');
     expect(step2?.status).toBe('PENDING');
   });

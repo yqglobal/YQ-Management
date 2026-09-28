@@ -78,10 +78,13 @@ export class WhatsappChatbot {
     // Process Menu Options
     if (session.step === 0) {
       let index = 1;
-      const statusOption = config.quickReplies?.status !== false ? (index++).toString() : null;
-      const humanOption = config.quickReplies?.human !== false ? (index++).toString() : null;
+      const statusOption =
+        config.quickReplies?.status !== false ? (index++).toString() : null;
+      const humanOption =
+        config.quickReplies?.human !== false ? (index++).toString() : null;
       const bookOption = (index++).toString();
-      const cancelOption = config.quickReplies?.cancel !== false ? (index++).toString() : null;
+      const cancelOption =
+        config.quickReplies?.cancel !== false ? (index++).toString() : null;
 
       if (
         statusOption &&
@@ -105,7 +108,9 @@ export class WhatsappChatbot {
           jid,
           'I have paused automated replies. A human agent will respond to you shortly.',
         );
-        await this.updateSession(session.id, undefined, { isHumanPaused: true });
+        await this.updateSession(session.id, undefined, {
+          isHumanPaused: true,
+        });
         return { handled: true, isHumanPaused: true }; // Trigger inbox saving
       }
 
@@ -162,9 +167,16 @@ export class WhatsappChatbot {
 
     // Fallback: If they typed something we didn't understand, reset step and show menu
     await this.updateSession(session.id, 0, {});
-    
-    if (['[IMAGE]', '[AUDIO]', '[VIDEO]', '[DOCUMENT]', '[STICKER]'].includes(upperText)) {
-      await this.sendMsg(jid, "I am an automated assistant and cannot process media files like images or audio right now. Please select an option from the menu below:");
+
+    if (
+      ['[IMAGE]', '[AUDIO]', '[VIDEO]', '[DOCUMENT]', '[STICKER]'].includes(
+        upperText,
+      )
+    ) {
+      await this.sendMsg(
+        jid,
+        'I am an automated assistant and cannot process media files like images or audio right now. Please select an option from the menu below:',
+      );
     }
 
     await this.sendMenu(jid, config);
@@ -173,12 +185,17 @@ export class WhatsappChatbot {
 
   private async sendMenu(jid: string, config: any) {
     const botName = config?.botName || 'Assistant';
-    const welcome = config?.welcomeMessage || 'Hi there! How can I help you today?';
-    
+    const welcome =
+      config?.welcomeMessage || 'Hi there! How can I help you today?';
+
     let msg = `*${botName}*\n\n${welcome}\n\n`;
-    
-    const quickReplies = config?.quickReplies || { status: true, cancel: true, human: true };
-    
+
+    const quickReplies = config?.quickReplies || {
+      status: true,
+      cancel: true,
+      human: true,
+    };
+
     let index = 1;
     if (quickReplies.status !== false) {
       msg += `${index++}. Check Status\n`;
@@ -191,7 +208,7 @@ export class WhatsappChatbot {
       msg += `${index++}. Cancel Ticket\n`;
     }
     msg += `\nReply with a number to proceed.`;
-    
+
     await this.sendMsg(jid, msg);
   }
 
@@ -288,7 +305,7 @@ export class WhatsappChatbot {
       data: {
         currentState: 'CANCELLED',
         completedAt: new Date(),
-        cancelledBy: 'CUSTOMER'
+        cancelledBy: 'CUSTOMER',
       },
     });
 
@@ -343,7 +360,9 @@ export class WhatsappChatbot {
     });
     msg += `\nReply with a number, or '0' to cancel.`;
 
-    await this.updateSession(session.id, 10, { locations: locations.map((l) => l.id) });
+    await this.updateSession(session.id, 10, {
+      locations: locations.map((l) => l.id),
+    });
 
     await this.sendMsg(jid, msg);
   }
@@ -368,7 +387,10 @@ export class WhatsappChatbot {
     }
 
     const locationId = locations[index];
-    await this.updateSession(session.id, 11, { locationId, locations: undefined });
+    await this.updateSession(session.id, 11, {
+      locationId,
+      locations: undefined,
+    });
 
     await this.promptServices(tenantId, locationId, jid, session);
   }
@@ -377,7 +399,7 @@ export class WhatsappChatbot {
     tenantId: string,
     locationId: string,
     jid: string,
-    session: any
+    session: any,
   ) {
     const services = await this.prisma.service.findMany({
       where: { tenantId, locationId: locationId },
@@ -398,7 +420,9 @@ export class WhatsappChatbot {
     });
     msg += `\nReply with a number, or '0' to cancel.`;
 
-    await this.updateSession(session.id, undefined, { services: services.map((s) => s.id) });
+    await this.updateSession(session.id, undefined, {
+      services: services.map((s) => s.id),
+    });
 
     await this.sendMsg(jid, msg);
   }
@@ -437,10 +461,15 @@ export class WhatsappChatbot {
     });
     const timezone = service?.location?.timezone || 'UTC';
 
-    const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
     const now = new Date();
     const todayStr = formatter.format(now);
-    
+
     // Tomorrow
     const tomorrowDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const tomorrowStr = formatter.format(tomorrowDate);
@@ -458,12 +487,17 @@ export class WhatsappChatbot {
 
     while (availableDates.length < 3 && daysChecked < maxDaysToCheck) {
       const dateStr = formatter.format(dateToCheck);
-      const slots = await this.serviceService.getAvailableSlots(serviceId, dateStr);
+      const slots = await this.serviceService.getAvailableSlots(
+        serviceId,
+        dateStr,
+      );
 
       let hasAvailable = false;
       if (slots && slots.length > 0) {
         if (dateStr === todayStr) {
-          hasAvailable = slots.some((s) => new Date(s.time) > now && s.available);
+          hasAvailable = slots.some(
+            (s) => new Date(s.time) > now && s.available,
+          );
         } else {
           hasAvailable = slots.some((s) => s.available);
         }
@@ -492,21 +526,27 @@ export class WhatsappChatbot {
     availableDates.forEach((d, i) => {
       const isToday = d === todayStr;
       const isTomorrow = d === tomorrowStr;
-      
+
       let label = d;
       if (isToday) label = `Today (${d})`;
       else if (isTomorrow) label = `Tomorrow (${d})`;
       else {
         const localDate = new Date(d + 'T00:00:00');
-        const dayOfWeek = localDate.toLocaleDateString('en-US', { weekday: 'long' });
+        const dayOfWeek = localDate.toLocaleDateString('en-US', {
+          weekday: 'long',
+        });
         label = `${dayOfWeek} (${d})`;
       }
-      
+
       msg += `${i + 1}. ${label}\n`;
     });
     msg += `\nReply with a number, or '0' to cancel.`;
 
-    await this.updateSession(session.id, 12, { serviceId, dates: availableDates, services: undefined });
+    await this.updateSession(session.id, 12, {
+      serviceId,
+      dates: availableDates,
+      services: undefined,
+    });
 
     await this.sendMsg(jid, msg);
   }
@@ -569,7 +609,11 @@ export class WhatsappChatbot {
     });
     msg += `\nReply with a number, or '0' to cancel.`;
 
-    await this.updateSession(session.id, 13, { date, slots: futureSlots, dates: undefined });
+    await this.updateSession(session.id, 13, {
+      date,
+      slots: futureSlots,
+      dates: undefined,
+    });
 
     await this.sendMsg(jid, msg);
   }
@@ -595,7 +639,10 @@ export class WhatsappChatbot {
 
     const selectedSlot = slots[index];
 
-    await this.updateSession(session.id, 14, { selectedSlot, slots: undefined });
+    await this.updateSession(session.id, 14, {
+      selectedSlot,
+      slots: undefined,
+    });
 
     await this.sendMsg(
       jid,
@@ -691,41 +738,53 @@ export class WhatsappChatbot {
     text: string,
   ) {
     const rating = parseInt(text.trim());
-    
+
     if (isNaN(rating) || rating < 1 || rating > 5) {
       await this.sendMsg(jid, 'Please reply with a valid number from 1 to 5.');
       return;
     }
 
     if (rating >= 4) {
-      const locationId = (session.context as any)?.locationId;
+      const locationId = session.context?.locationId;
       let reviewLink = null;
-      
+
       if (locationId) {
         const location = await this.prisma.location.findUnique({
           where: { id: locationId },
-          select: { googlePlaceId: true }
+          select: { googlePlaceId: true },
         });
-        
+
         if (location?.googlePlaceId) {
           reviewLink = `https://search.google.com/local/writereview?placeid=${location.googlePlaceId}`;
         }
       }
-      
+
       if (reviewLink) {
-        await this.sendMsg(jid, `We are thrilled you had a great experience! We would really appreciate it if you could share it on Google:\n${reviewLink}`);
+        await this.sendMsg(
+          jid,
+          `We are thrilled you had a great experience! We would really appreciate it if you could share it on Google:\n${reviewLink}`,
+        );
       } else {
         await this.sendMsg(jid, 'Thank you for your fantastic feedback!');
       }
     } else {
-      await this.sendMsg(jid, "Thank you for your feedback. We are sorry your experience wasn't perfect. Our team has been notified and we will strive to do better next time.");
+      await this.sendMsg(
+        jid,
+        "Thank you for your feedback. We are sorry your experience wasn't perfect. Our team has been notified and we will strive to do better next time.",
+      );
     }
 
     await this.updateSession(session.id, 0, {});
   }
 
-  private async updateSession(sessionId: string, step: number | undefined, updates: Record<string, any>) {
-    const session = await this.prisma.chatSession.findUnique({ where: { id: sessionId } });
+  private async updateSession(
+    sessionId: string,
+    step: number | undefined,
+    updates: Record<string, any>,
+  ) {
+    const session = await this.prisma.chatSession.findUnique({
+      where: { id: sessionId },
+    });
     const currentContext = (session?.context as object) || {};
     const newContext = { ...currentContext, ...updates };
 

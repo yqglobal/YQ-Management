@@ -37,10 +37,7 @@ export class StaffController {
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER)
-  create(
-    @Req() req: AuthenticatedRequest,
-    @Body() body: any,
-  ) {
+  create(@Req() req: AuthenticatedRequest, @Body() body: any) {
     return this.staffService.create(req.user.tenantId, body);
   }
 
@@ -96,7 +93,11 @@ export class StaffController {
     @Param('id') id: string,
     @Body() body: { serviceIds: string[] },
   ) {
-    return this.staffService.updateServices(id, req.user.tenantId, body.serviceIds);
+    return this.staffService.updateServices(
+      id,
+      req.user.tenantId,
+      body.serviceIds,
+    );
   }
 
   @Delete(':id')

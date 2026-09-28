@@ -9,6 +9,9 @@ export class AiSetupController {
 
   @Post('generate-flow')
   generateServiceFlow(@Req() req: any, @Body() body: { prompt: string }) {
-    return this.aiSetupService.generateServiceFlow(body.prompt, req.user.tenantId);
+    return this.aiSetupService.generateServiceFlow(
+      body.prompt,
+      req.user.tenantId,
+    );
   }
 }

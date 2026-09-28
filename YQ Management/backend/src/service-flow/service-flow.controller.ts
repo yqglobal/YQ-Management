@@ -1,5 +1,16 @@
 import {
-  Controller, Get, Post, Patch, Delete, Body, Param, Query, Req, UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ServiceFlowService } from './service-flow.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
@@ -21,7 +32,10 @@ export class ServiceFlowController {
 
   @Get('by-service/:serviceId')
   getFlowByService(@Req() req: any, @Param('serviceId') serviceId: string) {
-    return this.serviceFlowService.getFlowByServiceId(req.user.tenantId, serviceId);
+    return this.serviceFlowService.getFlowByServiceId(
+      req.user.tenantId,
+      serviceId,
+    );
   }
 
   @Get('templates/list')
@@ -30,8 +44,16 @@ export class ServiceFlowController {
   }
 
   @Post('templates/:templateKey/apply')
-  applyTemplate(@Req() req: any, @Param('templateKey') templateKey: string, @Query('serviceId') serviceId: string) {
-    return this.serviceFlowService.applyIndustryTemplate(req.user.tenantId, serviceId, templateKey);
+  applyTemplate(
+    @Req() req: any,
+    @Param('templateKey') templateKey: string,
+    @Query('serviceId') serviceId: string,
+  ) {
+    return this.serviceFlowService.applyIndustryTemplate(
+      req.user.tenantId,
+      serviceId,
+      templateKey,
+    );
   }
 
   @Get(':flowId')
@@ -40,7 +62,11 @@ export class ServiceFlowController {
   }
 
   @Patch(':flowId')
-  updateFlow(@Req() req: any, @Param('flowId') flowId: string, @Body() dto: UpdateFlowDto) {
+  updateFlow(
+    @Req() req: any,
+    @Param('flowId') flowId: string,
+    @Body() dto: UpdateFlowDto,
+  ) {
     return this.serviceFlowService.updateFlow(req.user.tenantId, flowId, dto);
   }
 
@@ -56,12 +82,20 @@ export class ServiceFlowController {
   }
 
   @Post(':flowId/steps')
-  createStep(@Req() req: any, @Param('flowId') flowId: string, @Body() dto: CreateStepDto) {
+  createStep(
+    @Req() req: any,
+    @Param('flowId') flowId: string,
+    @Body() dto: CreateStepDto,
+  ) {
     return this.serviceFlowService.createStep(req.user.tenantId, flowId, dto);
   }
 
   @Patch(':flowId/steps/:stepId')
-  updateStep(@Req() req: any, @Param('stepId') stepId: string, @Body() dto: UpdateStepDto) {
+  updateStep(
+    @Req() req: any,
+    @Param('stepId') stepId: string,
+    @Body() dto: UpdateStepDto,
+  ) {
     return this.serviceFlowService.updateStep(req.user.tenantId, stepId, dto);
   }
 
@@ -72,7 +106,15 @@ export class ServiceFlowController {
   }
 
   @Post(':flowId/steps/reorder')
-  reorderSteps(@Req() req: any, @Param('flowId') flowId: string, @Body() dto: ReorderStepsDto) {
-    return this.serviceFlowService.reorderSteps(req.user.tenantId, flowId, dto.orderedStepIds);
+  reorderSteps(
+    @Req() req: any,
+    @Param('flowId') flowId: string,
+    @Body() dto: ReorderStepsDto,
+  ) {
+    return this.serviceFlowService.reorderSteps(
+      req.user.tenantId,
+      flowId,
+      dto.orderedStepIds,
+    );
   }
 }

@@ -30,7 +30,12 @@ export class AppointmentController {
     @Query('date') date: string,
     @Query('locationId') locationId?: string,
   ) {
-    return this.appointmentService.getAvailableSlots(tenantId, serviceId, date, locationId);
+    return this.appointmentService.getAvailableSlots(
+      tenantId,
+      serviceId,
+      date,
+      locationId,
+    );
   }
 
   @Post()

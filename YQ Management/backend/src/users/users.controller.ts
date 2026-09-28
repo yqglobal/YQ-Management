@@ -21,7 +21,13 @@ import { Throttle } from '@nestjs/throttler';
 
 @Controller('users')
 @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard, PermissionsGuard)
-@Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+@Roles(
+  Role.TENANT_ADMIN,
+  Role.SUPER_ADMIN,
+  Role.ADMIN,
+  Role.MANAGER,
+  Role.OPERATOR,
+)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

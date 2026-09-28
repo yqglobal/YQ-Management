@@ -1,4 +1,9 @@
-import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -65,8 +70,10 @@ export class AiSetupService {
       throw new BadRequestException('Prompt is required');
     }
 
-    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
-    const aiConfig = tenant?.aiConfig as any || {};
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
+    const aiConfig = (tenant?.aiConfig as any) || {};
 
     const geminiKey = aiConfig.geminiKey || process.env.GEMINI_API_KEY;
     const groqKey = aiConfig.groqKey || process.env.GROQ_API_KEY;
@@ -76,25 +83,29 @@ export class AiSetupService {
     } else if (groqKey) {
       return this.callGroq(prompt, groqKey);
     } else {
-      throw new InternalServerErrorException('No AI provider configured (Configure Gemini or Groq keys in settings)');
+      throw new InternalServerErrorException(
+        'No AI provider configured (Configure Gemini or Groq keys in settings)',
+      );
     }
   }
 
   private async callGemini(prompt: string, apiKey: string) {
     this.logger.log('Calling Gemini API (gemini-1.5-flash)');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    
+
     const body = {
       system_instruction: {
-        parts: [{ text: SYSTEM_PROMPT }]
+        parts: [{ text: SYSTEM_PROMPT }],
       },
-      contents: [{
-        parts: [{ text: prompt }]
-      }],
+      contents: [
+        {
+          parts: [{ text: prompt }],
+        },
+      ],
       generationConfig: {
-        response_mime_type: "application/json",
-        temperature: 0.2
-      }
+        response_mime_type: 'application/json',
+        temperature: 0.2,
+      },
     };
 
     try {
@@ -122,15 +133,15 @@ export class AiSetupService {
   private async callGroq(prompt: string, apiKey: string) {
     this.logger.log('Calling Groq API (llama3-8b-8192)');
     const url = 'https://api.groq.com/openai/v1/chat/completions';
-    
+
     const body = {
       model: 'llama3-8b-8192',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: prompt }
+        { role: 'user', content: prompt },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.2
+      temperature: 0.2,
     };
 
     try {
@@ -138,7 +149,7 @@ export class AiSetupService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
       });

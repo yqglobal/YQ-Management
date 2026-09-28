@@ -84,7 +84,9 @@ export class OutboxProcessorService implements OnModuleInit {
         data: { status: 'PENDING' },
       });
       if (recovered.count > 0) {
-        this.logger.warn(`Recovered ${recovered.count} stuck outbox events → PENDING`);
+        this.logger.warn(
+          `Recovered ${recovered.count} stuck outbox events → PENDING`,
+        );
       }
     } catch (err) {
       this.logger.error('Failed to recover stuck outbox events', err);
@@ -111,13 +113,19 @@ export class OutboxProcessorService implements OnModuleInit {
         if (claimed.count === 0) continue; // Another instance claimed it first
 
         try {
-          await this.handleEvent(event.type, event.payload as Record<string, unknown>);
+          await this.handleEvent(
+            event.type,
+            event.payload as Record<string, unknown>,
+          );
           await this.prisma.outboxEvent.update({
             where: { id: event.id },
             data: { status: 'COMPLETED', processedAt: new Date() },
           });
         } catch (err: any) {
-          this.logger.error(`Failed to process outbox event ${event.id}`, err.stack);
+          this.logger.error(
+            `Failed to process outbox event ${event.id}`,
+            err.stack,
+          );
           await this.prisma.outboxEvent.update({
             where: { id: event.id },
             data: { status: 'FAILED', error: err.message || 'Unknown error' },
@@ -134,8 +142,13 @@ export class OutboxProcessorService implements OnModuleInit {
 
   private async handleEvent(type: string, payload: Record<string, unknown>) {
     const isVisitEvent = [
-      'VISIT_CREATED', 'VISIT_UPDATED', 'VISIT_CALLED', 'VISIT_COMPLETED',
-      'VISIT_MISSED', 'VISIT_CANCELLED', 'VISIT_CHECKED_IN',
+      'VISIT_CREATED',
+      'VISIT_UPDATED',
+      'VISIT_CALLED',
+      'VISIT_COMPLETED',
+      'VISIT_MISSED',
+      'VISIT_CANCELLED',
+      'VISIT_CHECKED_IN',
     ].includes(type);
 
     if (isVisitEvent) {
@@ -155,7 +168,7 @@ export class OutboxProcessorService implements OnModuleInit {
           payload,
         );
       }
-      
+
       // Also broadcast to the tenant-wide room for global lobby displays
       if (payload.tenantId) {
         this.queueGateway.broadcastTenantUpdate(
@@ -167,40 +180,52 @@ export class OutboxProcessorService implements OnModuleInit {
 
       // 2. Fire tenant webhooks (Enqueue to BullMQ)
       if (payload.tenantId) {
-        await this.webhooksQueue.add('process', {
-          tenantId: payload.tenantId as string,
-          type,
-          payload,
-        }, {
-          attempts: 5,
-          backoff: { type: 'exponential', delay: 2000 }, // 2s, 4s, 8s, 16s...
-          removeOnComplete: true,
-        });
+        await this.webhooksQueue.add(
+          'process',
+          {
+            tenantId: payload.tenantId as string,
+            type,
+            payload,
+          },
+          {
+            attempts: 5,
+            backoff: { type: 'exponential', delay: 2000 }, // 2s, 4s, 8s, 16s...
+            removeOnComplete: true,
+          },
+        );
       }
 
       // 3. Send WhatsApp lifecycle notification (Enqueue to BullMQ)
       if (VISIT_NOTIFICATION_TYPES.includes(type as VisitNotificationType)) {
-        await this.whatsappQueue.add('process', {
-          type,
-          payload,
-        }, {
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 2000 },
-          removeOnComplete: true,
-        });
+        await this.whatsappQueue.add(
+          'process',
+          {
+            type,
+            payload,
+          },
+          {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 2000 },
+            removeOnComplete: true,
+          },
+        );
       }
 
       // 4. Automated CSAT/NPS Surveys exactly 1 hour later
       if (type === 'VISIT_COMPLETED') {
-        await this.whatsappQueue.add('process', {
-          type: 'VISIT_CSAT',
-          payload,
-        }, {
-          delay: 60 * 60 * 1000, // 1 hour delay
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 2000 },
-          removeOnComplete: true,
-        });
+        await this.whatsappQueue.add(
+          'process',
+          {
+            type: 'VISIT_CSAT',
+            payload,
+          },
+          {
+            delay: 60 * 60 * 1000, // 1 hour delay
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 2000 },
+            removeOnComplete: true,
+          },
+        );
       }
       return;
     }

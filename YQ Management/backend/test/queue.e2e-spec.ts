@@ -31,15 +31,28 @@ describe('Queue System Concurrency (e2e)', () => {
 
     // Setup Test Environment
     const tenant = await prisma.tenant.create({
-      data: { name: 'E2E Queue Tenant', subdomain: `queue-tenant-${Date.now()}` },
+      data: {
+        name: 'E2E Queue Tenant',
+        subdomain: `queue-tenant-${Date.now()}`,
+      },
     });
     tenantId = tenant.id;
 
     const user = await prisma.user.create({
-      data: { email: `queue-user-${Date.now()}@test.com`, password: 'pwd', tenantId, role: 'ADMIN' },
+      data: {
+        email: `queue-user-${Date.now()}@test.com`,
+        password: 'pwd',
+        tenantId,
+        role: 'ADMIN',
+      },
     });
 
-    authToken = jwtService.sign({ sub: user.id, email: user.email, role: user.role, tenantId: user.tenantId });
+    authToken = jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId,
+    });
 
     const location = await prisma.location.create({
       data: { name: 'Queue HQ', tenantId },
@@ -61,14 +74,19 @@ describe('Queue System Concurrency (e2e)', () => {
     queueId = queue.id;
 
     // Link service to queue if not linked
-    
 
     // Create a flow for this service so that walk-ins succeed
     const flow = await prisma.serviceFlow.create({
       data: { tenantId, serviceId, name: 'Default', isActive: true },
     });
     await prisma.flowStepTemplate.create({
-      data: { flowId: flow.id, stepOrder: 1, name: 'Service', type: 'SERVICE', trigger: 'MANUAL_STAFF' },
+      data: {
+        flowId: flow.id,
+        stepOrder: 1,
+        name: 'Service',
+        type: 'SERVICE',
+        trigger: 'MANUAL_STAFF',
+      },
     });
 
     for (let i = 0; i < numCustomers; i++) {
@@ -84,8 +102,8 @@ describe('Queue System Concurrency (e2e)', () => {
     await prisma.visitStepEvent.deleteMany({ where: { tenantId } });
     await prisma.visitStep.deleteMany({ where: { tenantId } });
     await prisma.visit.deleteMany({ where: { tenantId } });
-        await prisma.queue.deleteMany({ where: { tenantId } });
-        await prisma.serviceFlow.deleteMany({ where: { tenantId } });
+    await prisma.queue.deleteMany({ where: { tenantId } });
+    await prisma.serviceFlow.deleteMany({ where: { tenantId } });
     await prisma.customer.deleteMany({ where: { tenantId } });
     await prisma.service.deleteMany({ where: { tenantId } });
     await prisma.location.deleteMany({ where: { tenantId } });
@@ -106,12 +124,12 @@ describe('Queue System Concurrency (e2e)', () => {
           serviceId,
           source: 'WALK_IN',
           currentState: 'CHECKED_IN',
-        })
+        }),
     );
 
     const responses = await Promise.all(promises);
-    
-    responses.forEach(res => {
+
+    responses.forEach((res) => {
       expect(res.status).toBe(201);
     });
 
@@ -124,7 +142,7 @@ describe('Queue System Concurrency (e2e)', () => {
     expect(visits.length).toBe(numCustomers);
 
     // Positions should be uniquely sequential
-    const displayIds = visits.map(v => v.displayId);
+    const displayIds = visits.map((v) => v.displayId);
     const uniqueIds = new Set(displayIds);
     expect(uniqueIds.size).toBe(numCustomers);
   });

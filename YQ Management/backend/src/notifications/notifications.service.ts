@@ -21,7 +21,12 @@ export class NotificationsService implements OnModuleInit {
   // tenantId is optional; when provided we'll attempt to send using the
   // tenant's configured WhatsApp instance to avoid using a shared global
   // instance name which can mix messages between tenants.
-  async sendWhatsAppMessage(to: string, body: string, tenantId?: string, messageId?: string) {
+  async sendWhatsAppMessage(
+    to: string,
+    body: string,
+    tenantId?: string,
+    messageId?: string,
+  ) {
     await this.whatsappQueue.add(
       'sendMessage',
       { to, body, tenantId, messageId },
@@ -32,7 +37,12 @@ export class NotificationsService implements OnModuleInit {
     );
   }
 
-  async executeWhatsAppMessage(to: string, body: string, tenantId?: string, messageId?: string) {
+  async executeWhatsAppMessage(
+    to: string,
+    body: string,
+    tenantId?: string,
+    messageId?: string,
+  ) {
     try {
       const cleanNumber = to.replace(/\D/g, '');
       if (!cleanNumber) {
@@ -69,9 +79,14 @@ export class NotificationsService implements OnModuleInit {
         this.logger.log(`Sent WhatsApp message to ${cleanNumber}`);
         if (messageId && result.providerId) {
           try {
-            await this.whatsappService.updateMessageWhatsappId(messageId, result.providerId);
-          } catch(err) {
-            this.logger.warn(`Failed to update whatsappId for message ${messageId}`);
+            await this.whatsappService.updateMessageWhatsappId(
+              messageId,
+              result.providerId,
+            );
+          } catch (err) {
+            this.logger.warn(
+              `Failed to update whatsappId for message ${messageId}`,
+            );
           }
         }
       } else {

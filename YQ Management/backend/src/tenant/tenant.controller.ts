@@ -90,7 +90,7 @@ export class TenantController {
       const { BadRequestException } = require('@nestjs/common');
       throw new BadRequestException('No file provided');
     }
-    
+
     // Get base URL for returning full URL
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     return this.tenantService.uploadLogo(id, file, baseUrl);

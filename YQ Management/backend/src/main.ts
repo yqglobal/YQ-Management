@@ -36,12 +36,14 @@ async function bootstrap() {
   app.useWebSocketAdapter(redisIoAdapter);
 
   app.useLogger(app.get(Logger));
-  app.use(helmet({
-    crossOriginResourcePolicy: false,
-    crossOriginOpenerPolicy: false,
-    // @ts-expect-error permissionsPolicy may not exist in current @types/helmet
-    permissionsPolicy: false,
-  }));
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: false,
+      crossOriginOpenerPolicy: false,
+      // @ts-expect-error permissionsPolicy may not exist in current @types/helmet
+      permissionsPolicy: false,
+    }),
+  );
   app.use(compression());
   app.use(cookieParser());
   app.use(passport.initialize());

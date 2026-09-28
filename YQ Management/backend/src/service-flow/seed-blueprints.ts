@@ -3,7 +3,9 @@ import { INDUSTRY_TEMPLATES } from './industry-templates';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5455/yq_queue?schema=public';
+const connectionString =
+  process.env.DATABASE_URL ||
+  'postgresql://postgres:postgres@localhost:5455/yq_queue?schema=public';
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
@@ -65,10 +67,14 @@ async function main() {
       return f;
     });
 
-    console.log(`✓ Upserted: [${tpl.industry}] ${flow.name} (${tpl.steps.length} steps)`);
+    console.log(
+      `✓ Upserted: [${tpl.industry}] ${flow.name} (${tpl.steps.length} steps)`,
+    );
   }
 
-  console.log(`\n✅ Seeding complete. ${INDUSTRY_TEMPLATES.length} blueprints ready.`);
+  console.log(
+    `\n✅ Seeding complete. ${INDUSTRY_TEMPLATES.length} blueprints ready.`,
+  );
 }
 
 main()
@@ -79,4 +85,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

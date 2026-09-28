@@ -1,4 +1,11 @@
-import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+  Param,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
@@ -6,7 +13,6 @@ import * as path from 'path';
 
 @Controller('upload')
 export class UploadController {
-  
   // A generic endpoint to accept files, typically insurance cards or IDs in healthcare
   @Post()
   @UseInterceptors(FileInterceptor('file'))
@@ -34,7 +40,7 @@ export class UploadController {
       success: true,
       fileId,
       url: `/upload/${fileId}`, // Secure URL to access later
-      message: 'File securely uploaded and stored.'
+      message: 'File securely uploaded and stored.',
     };
   }
 }

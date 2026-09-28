@@ -38,13 +38,23 @@ export class WhatsappAiService {
 
     if (session.context && (session.context as any).isHumanPaused) {
       const upperText = rawText.trim().toUpperCase();
-      const isGreeting = ['HI', 'HELLO', 'HEY', 'START', 'MENU', '0'].includes(upperText);
+      const isGreeting = ['HI', 'HELLO', 'HEY', 'START', 'MENU', '0'].includes(
+        upperText,
+      );
       if (isGreeting) {
         await this.prisma.chatSession.update({
           where: { id: session.id },
-          data: { context: { ...((session.context as object) || {}), isHumanPaused: false } },
+          data: {
+            context: {
+              ...((session.context as object) || {}),
+              isHumanPaused: false,
+            },
+          },
         });
-        await sendMessageFn(jid, "You are back in automated mode. How can I help you?");
+        await sendMessageFn(
+          jid,
+          'You are back in automated mode. How can I help you?',
+        );
         return { handled: true, isHumanPaused: false };
       }
       return { handled: true, isHumanPaused: true };
@@ -55,7 +65,8 @@ export class WhatsappAiService {
       {
         type: 'function',
         name: 'getQueuePosition',
-        description: 'Check the customers current position in the queue. No arguments needed, uses the customers phone number.',
+        description:
+          'Check the customers current position in the queue. No arguments needed, uses the customers phone number.',
         parameters: {
           type: 'OBJECT',
           properties: {},
@@ -64,7 +75,8 @@ export class WhatsappAiService {
       {
         type: 'function',
         name: 'getWaitTime',
-        description: 'Get an estimated wait time for the customer based on their current queue position.',
+        description:
+          'Get an estimated wait time for the customer based on their current queue position.',
         parameters: {
           type: 'OBJECT',
           properties: {},
@@ -82,25 +94,33 @@ export class WhatsappAiService {
       {
         type: 'function',
         name: 'bookAppointment',
-        description: 'Book an appointment for a service. Use this when the user says they want to book.',
+        description:
+          'Book an appointment for a service. Use this when the user says they want to book.',
         parameters: {
           type: 'OBJECT',
           properties: {
             date: { type: 'STRING', description: 'YYYY-MM-DD format date' },
-            time: { type: 'STRING', description: 'HH:MM format time (24 hour)' },
-            serviceName: { type: 'STRING', description: 'Name of the service (optional)' },
+            time: {
+              type: 'STRING',
+              description: 'HH:MM format time (24 hour)',
+            },
+            serviceName: {
+              type: 'STRING',
+              description: 'Name of the service (optional)',
+            },
           },
         },
       },
       {
         type: 'function',
         name: 'transferToHuman',
-        description: 'Transfer the conversation to a human operator. Use this if the user asks for a human, or if you cannot help them.',
+        description:
+          'Transfer the conversation to a human operator. Use this if the user asks for a human, or if you cannot help them.',
         parameters: {
           type: 'OBJECT',
           properties: {},
         },
-      }
+      },
     ];
 
     const systemInstruction = `You are a helpful AI assistant for a business named ${tenant.name}. 
@@ -111,7 +131,7 @@ If they want to book an appointment, ask for the date, time, and service if not 
 If you don't know the answer or the user is frustrated, call transferToHuman.`;
 
     const interactionId = (session.context as any)?.interactionId;
-    
+
     // Call AI
     const aiResponse = await this.aiService.getAiResponse(
       tenantId,
@@ -126,11 +146,14 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
     await this.prisma.chatSession.update({
       where: { id: session.id },
       data: {
-        context: { ...((session.context as object) || {}), interactionId: aiResponse.interactionId }
-      }
+        context: {
+          ...((session.context as object) || {}),
+          interactionId: aiResponse.interactionId,
+        },
+      },
     });
 
-    let currentInteractionId = aiResponse.interactionId;
+    const currentInteractionId = aiResponse.interactionId;
     let finalResponseText = aiResponse.responseText;
     let currentToolCalls = aiResponse.toolCalls;
 
@@ -142,7 +165,7 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
         const id = call.id;
         const name = call.name;
         const args = call.arguments || {};
-        
+
         let result: any = { error: 'Unknown tool' };
         try {
           if (name === 'getQueuePosition') {
@@ -156,14 +179,27 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
           } else if (name === 'transferToHuman') {
             await this.prisma.chatSession.update({
               where: { id: session.id },
-              data: { context: { ...((session.context as object) || {}), isHumanPaused: true } },
+              data: {
+                context: {
+                  ...((session.context as object) || {}),
+                  isHumanPaused: true,
+                },
+              },
             });
-            result = { success: true, message: 'Transferred to human operator' };
-            await sendMessageFn(jid, "I have paused automated replies. A human agent will respond to you shortly.");
+            result = {
+              success: true,
+              message: 'Transferred to human operator',
+            };
+            await sendMessageFn(
+              jid,
+              'I have paused automated replies. A human agent will respond to you shortly.',
+            );
             return { handled: true, isHumanPaused: true };
           }
         } catch (err) {
-          this.logger.error(`Tool execution failed for ${name}: ${err.message}`);
+          this.logger.error(
+            `Tool execution failed for ${name}: ${err.message}`,
+          );
           result = { error: err.message };
         }
 
@@ -171,7 +207,10 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
       }
 
       // Return all tool results to AI in a single turn
-      const followUp = await this.aiService.returnToolResults(currentInteractionId, toolResults);
+      const followUp = await this.aiService.returnToolResults(
+        currentInteractionId,
+        toolResults,
+      );
       finalResponseText = followUp.responseText;
       currentToolCalls = followUp.toolCalls;
     }
@@ -198,7 +237,12 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
     });
 
     if (!visit) return { found: false, message: 'No active tickets found.' };
-    if (visit.currentState === 'IN_SERVICE') return { found: true, status: 'IN_SERVICE', message: 'You are currently being served.' };
+    if (visit.currentState === 'IN_SERVICE')
+      return {
+        found: true,
+        status: 'IN_SERVICE',
+        message: 'You are currently being served.',
+      };
 
     const position = await this.prisma.visit.count({
       where: {
@@ -230,9 +274,9 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
       posResult._rawQueueId,
       posResult._rawServiceId,
       posResult.positionAhead as number,
-      posResult._rawExpectedDuration
+      posResult._rawExpectedDuration,
     );
-    
+
     // Remove internal fields before returning to AI
     delete posResult._rawQueueId;
     delete posResult._rawServiceId;
@@ -254,7 +298,8 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
       },
     });
 
-    if (!visit) return { success: false, message: 'No active tickets to cancel.' };
+    if (!visit)
+      return { success: false, message: 'No active tickets to cancel.' };
 
     await this.prisma.visit.update({
       where: { id: visit.id },
@@ -264,9 +309,14 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
     return { success: true, message: `Ticket ${visit.displayId} cancelled.` };
   }
 
-  private async executeBookAppointment(tenantId: string, phone: string, args: any) {
+  private async executeBookAppointment(
+    tenantId: string,
+    phone: string,
+    args: any,
+  ) {
     const { date, time, serviceName } = args;
-    if (!date || !time) return { success: false, message: 'Missing date or time.' };
+    if (!date || !time)
+      return { success: false, message: 'Missing date or time.' };
 
     const cleanPhone = phone.replace(/\D/g, '').slice(-9);
     let customer = await this.prisma.customer.findFirst({
@@ -280,15 +330,22 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
     }
 
     // Default to first location and service if none specified or found
-    const locations = await this.prisma.location.findMany({ where: { tenantId } });
-    if (locations.length === 0) return { success: false, message: 'No locations configured.' };
+    const locations = await this.prisma.location.findMany({
+      where: { tenantId },
+    });
+    if (locations.length === 0)
+      return { success: false, message: 'No locations configured.' };
     const locationId = locations[0].id;
 
     let serviceId = null;
-    const services = await this.prisma.service.findMany({ where: { tenantId, locationId } });
+    const services = await this.prisma.service.findMany({
+      where: { tenantId, locationId },
+    });
     if (services.length > 0) {
       if (serviceName) {
-        const match = services.find(s => s.name.toLowerCase().includes(serviceName.toLowerCase()));
+        const match = services.find((s) =>
+          s.name.toLowerCase().includes(serviceName.toLowerCase()),
+        );
         serviceId = match ? match.id : services[0].id;
       } else {
         serviceId = services[0].id;
@@ -297,7 +354,8 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
 
     try {
       const scheduledStart = new Date(`${date}T${time}:00Z`);
-      if (isNaN(scheduledStart.getTime())) return { success: false, message: 'Invalid date/time format.' };
+      if (isNaN(scheduledStart.getTime()))
+        return { success: false, message: 'Invalid date/time format.' };
 
       const scheduledEnd = new Date(scheduledStart.getTime() + 30 * 60000); // Default 30 min
 

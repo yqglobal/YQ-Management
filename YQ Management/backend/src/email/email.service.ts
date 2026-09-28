@@ -460,12 +460,12 @@ export class EmailService {
     const frontendUrl = process.env.FRONTEND_URL || 'https://qmova.yqbuddy.com';
     const inviteLink = `${frontendUrl}/onboarding?inviteCode=${inviteCode}`;
     const roleName = role === 'OPERATOR' ? 'Service Provider' : 'Team Member';
-    
+
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Join ${workspaceName}</h2>
     <p style="color: #4b5563; line-height: 1.6;">${inviterName} has invited you to join <strong>${workspaceName}</strong> as a <strong>${roleName}</strong>.</p>
     <p style="color: #4b5563; line-height: 1.6;">Click the button below to accept the invitation and set up your account. If you already have an account, this link will connect you to the new workspace.</p>
     ${generateButtonHtml('Accept Invitation', inviteLink)}`;
-    
+
     await this.sendEmail(
       email,
       subject,
@@ -517,7 +517,11 @@ export class EmailService {
     );
   }
 
-  async sendSubscriptionAssignedEmail(email: string, planName: string, isFree: boolean) {
+  async sendSubscriptionAssignedEmail(
+    email: string,
+    planName: string,
+    isFree: boolean,
+  ) {
     const subject = 'Your Qmova Plan Has Been Assigned';
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Plan Assigned Successfully</h2>
     <p style="color: #4b5563; line-height: 1.6;">An administrator has assigned the <strong>${planName}</strong> plan to your workspace.</p>
@@ -534,7 +538,11 @@ export class EmailService {
     );
   }
 
-  async sendSubscriptionCancelledEmail(email: string, planName: string, cancelledByAdmin: boolean = false) {
+  async sendSubscriptionCancelledEmail(
+    email: string,
+    planName: string,
+    cancelledByAdmin: boolean = false,
+  ) {
     const subject = 'Subscription Cancelled';
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Subscription Cancelled</h2>
     <p style="color: #4b5563; line-height: 1.6;">${cancelledByAdmin ? `An administrator has cancelled your subscription to the <strong>${planName}</strong> plan.` : `Your subscription to the <strong>${planName}</strong> plan has been cancelled.`}</p>

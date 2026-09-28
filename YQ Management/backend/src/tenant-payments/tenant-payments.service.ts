@@ -83,9 +83,12 @@ export class TenantPaymentsService {
     }
 
     // Retrieve live status from Stripe
-    const stripeAccount = await this.stripe.accounts.retrieve(account.connectedAccountId);
-    
-    const isReady = stripeAccount.charges_enabled && stripeAccount.payouts_enabled;
+    const stripeAccount = await this.stripe.accounts.retrieve(
+      account.connectedAccountId,
+    );
+
+    const isReady =
+      stripeAccount.charges_enabled && stripeAccount.payouts_enabled;
     const status = isReady ? 'ENABLED' : 'RESTRICTED';
 
     await this.prisma.tenantPaymentAccount.update({
@@ -97,7 +100,8 @@ export class TenantPaymentsService {
         accountStatus: status,
         currentlyDue: stripeAccount.requirements?.currently_due as any,
         eventuallyDue: stripeAccount.requirements?.eventually_due as any,
-        pendingVerification: stripeAccount.requirements?.pending_verification as any,
+        pendingVerification: stripeAccount.requirements
+          ?.pending_verification as any,
       },
     });
 
@@ -124,22 +128,30 @@ export class TenantPaymentsService {
       visitStepId?: string;
       appointmentId?: string;
       description?: string;
-    }
+    },
   ) {
     const account = await this.prisma.tenantPaymentAccount.findUnique({
       where: { tenantId },
     });
 
-    if (!account || !account.connectedAccountId || account.accountStatus !== 'ENABLED') {
-      throw new BadRequestException('Tenant is not fully onboarded to receive payments.');
+    if (
+      !account ||
+      !account.connectedAccountId ||
+      account.accountStatus !== 'ENABLED'
+    ) {
+      throw new BadRequestException(
+        'Tenant is not fully onboarded to receive payments.',
+      );
     }
 
     // Calculate Platform Fee (e.g. 5%)
     const feePercent = account.platformFeePercent ?? 5.0; // Default 5%
     const feeFixed = account.platformFeeFixed ?? 0;
-    
+
     // Application fee is taken in cents
-    const applicationFeeAmount = Math.round((amount * (feePercent / 100)) + feeFixed);
+    const applicationFeeAmount = Math.round(
+      amount * (feePercent / 100) + feeFixed,
+    );
     const tenantNetAmount = amount - applicationFeeAmount;
 
     // Create Stripe PaymentIntent directly on the connected account
@@ -156,7 +168,7 @@ export class TenantPaymentsService {
       },
       {
         stripeAccount: account.connectedAccountId, // DIRECT CHARGE
-      }
+      },
     );
 
     // Record the payment intent in our DB
@@ -181,5 +193,50 @@ export class TenantPaymentsService {
       clientSecret: paymentIntent.client_secret,
       paymentId: bookingPayment.id,
     };
+  }
+
+  async getPayment(paymentId: string) {
+    const payment = await this.prisma.bookingPayment.findUnique({
+      where: { id: paymentId },
+      include: {
+        tenantPaymentAccount: true,
+      },
+    });
+    if (!payment) throw new BadRequestException('Payment not found');
+    return payment;
+  }
+
+  async completePayment(paymentId: string) {
+    const payment = await this.prisma.bookingPayment.findUnique({
+      where: { id: paymentId },
+    });
+    if (!payment) throw new BadRequestException('Payment not found');
+
+    const updated = await this.prisma.bookingPayment.update({
+      where: { id: paymentId },
+      data: { status: 'COMPLETED' },
+    });
+
+    if (updated.visitStepId) {
+      // If this was an in-service payment, complete the step
+      await this.prisma.visitStep.update({
+        where: { id: updated.visitStepId },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+        },
+      });
+
+      // Also trigger the websocket outbox event to refresh UI
+      await this.prisma.outboxEvent.create({
+        data: {
+          eventType: 'VISIT_UPDATED',
+          payload: { visitId: updated.visitId },
+          status: 'PENDING',
+        }
+      });
+    }
+
+    return updated;
   }
 }

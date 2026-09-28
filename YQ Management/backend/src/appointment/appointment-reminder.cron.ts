@@ -40,24 +40,36 @@ export class AppointmentReminderCron {
         if (!apt.customer?.phone) continue;
 
         // Skip if tenant doesn't have WhatsApp connected
-        if (!apt.tenant.whatsappConnected || !apt.tenant.whatsappInstanceId) continue;
+        if (!apt.tenant.whatsappConnected || !apt.tenant.whatsappInstanceId)
+          continue;
 
-        const timeString = apt.scheduledStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const timeString = apt.scheduledStart.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
         const dateString = apt.scheduledStart.toLocaleDateString();
 
         const message = `Reminder: You have an appointment for ${apt.service.name} at ${timeString} on ${dateString}. Please arrive 5 minutes early. To reschedule, contact us.`;
 
         try {
-          await this.whatsappService.testMessage(apt.tenantId, apt.customer.phone, message);
-          
+          await this.whatsappService.testMessage(
+            apt.tenantId,
+            apt.customer.phone,
+            message,
+          );
+
           await this.prisma.appointment.update({
             where: { id: apt.id },
             data: { reminderStatus: 'SENT_24H' },
           });
 
-          this.logger.log(`Sent reminder for appointment ${apt.id} to ${apt.customer.phone}`);
+          this.logger.log(
+            `Sent reminder for appointment ${apt.id} to ${apt.customer.phone}`,
+          );
         } catch (err) {
-          this.logger.warn(`Failed to send reminder for appointment ${apt.id}: ${err.message}`);
+          this.logger.warn(
+            `Failed to send reminder for appointment ${apt.id}: ${err.message}`,
+          );
         }
       }
     } catch (error) {

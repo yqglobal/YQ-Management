@@ -1,15 +1,26 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface WeeklyScheduleSlot {
-  day: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+  day:
+    | 'MONDAY'
+    | 'TUESDAY'
+    | 'WEDNESDAY'
+    | 'THURSDAY'
+    | 'FRIDAY'
+    | 'SATURDAY'
+    | 'SUNDAY';
   startTime: string; // "09:00"
-  endTime: string;   // "17:00"
+  endTime: string; // "17:00"
   enabled: boolean;
 }
 
 interface ExceptionDate {
-  date: string;    // "2026-12-25"
+  date: string; // "2026-12-25"
   reason?: string; // "Christmas"
   allDay?: boolean;
   startTime?: string;
@@ -97,8 +108,12 @@ export class StaffService {
       where: { id },
       data: {
         ...rest,
-        ...(weeklySchedule !== undefined ? { weeklySchedule: weeklySchedule as any } : {}),
-        ...(exceptionDates !== undefined ? { exceptionDates: exceptionDates as any } : {}),
+        ...(weeklySchedule !== undefined
+          ? { weeklySchedule: weeklySchedule as any }
+          : {}),
+        ...(exceptionDates !== undefined
+          ? { exceptionDates: exceptionDates as any }
+          : {}),
         ...(serviceIds !== undefined
           ? {
               services: {
@@ -122,7 +137,9 @@ export class StaffService {
       where: { id },
       data: {
         weeklySchedule: weeklySchedule as any,
-        ...(exceptionDates !== undefined ? { exceptionDates: exceptionDates as any } : {}),
+        ...(exceptionDates !== undefined
+          ? { exceptionDates: exceptionDates as any }
+          : {}),
       },
     });
   }

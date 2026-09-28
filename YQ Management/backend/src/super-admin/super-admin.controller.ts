@@ -75,7 +75,11 @@ export class SuperAdminController {
   }
 
   @Put('tenants/:id')
-  async updateTenant(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+  async updateTenant(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     this.checkSuperAdmin(req);
     return this.superAdminService.updateTenant(id, body);
   }
@@ -181,7 +185,13 @@ export class SuperAdminController {
   async assignPlan(
     @Req() req: any,
     @Param('id') tenantId: string,
-    @Body() body: { planId: string; billingInterval?: string; customEndDate?: string; isFree?: boolean },
+    @Body()
+    body: {
+      planId: string;
+      billingInterval?: string;
+      customEndDate?: string;
+      isFree?: boolean;
+    },
   ) {
     this.checkSuperAdmin(req);
     return this.superAdminService.assignPlanToTenant(tenantId, body.planId, {
@@ -451,10 +461,7 @@ export class SuperAdminController {
 
   /** List all global blueprints and any tenant-specific ones */
   @Get('blueprints')
-  async listBlueprints(
-    @Req() req: any,
-    @Query('tenantId') tenantId?: string,
-  ) {
+  async listBlueprints(@Req() req: any, @Query('tenantId') tenantId?: string) {
     this.checkSuperAdmin(req);
     return this.superAdminService.listBlueprints(tenantId);
   }
@@ -508,10 +515,7 @@ export class SuperAdminController {
 
   /** Delete a blueprint step */
   @Delete('blueprints/:id/steps/:stepId')
-  async deleteBlueprintStep(
-    @Req() req: any,
-    @Param('stepId') stepId: string,
-  ) {
+  async deleteBlueprintStep(@Req() req: any, @Param('stepId') stepId: string) {
     this.checkSuperAdmin(req);
     return this.superAdminService.deleteBlueprintStep(stepId);
   }
@@ -561,7 +565,8 @@ export class SuperAdminController {
   async setCustomLimits(
     @Req() req: any,
     @Param('tenantId') tenantId: string,
-    @Body() dto: {
+    @Body()
+    dto: {
       maxVisits?: number;
       maxQueues?: number;
       maxLocations?: number;
@@ -584,4 +589,3 @@ export class SuperAdminController {
     return this.superAdminService.getTenantEffectiveLimits(tenantId);
   }
 }
-

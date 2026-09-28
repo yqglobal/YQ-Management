@@ -24,19 +24,19 @@ export class VisitCron {
   @Cron(CronExpression.EVERY_MINUTE)
   async handleSlaMonitor() {
     this.logger.debug('Running SLA Monitor...');
-    
+
     try {
       const waitingVisits = await this.prisma.visit.findMany({
         where: {
           currentState: { in: ['WAITING', 'CHECKED_IN'] },
           slaStatus: { not: 'BREACHED' },
-          service: { slaPolicyId: { not: null } }
+          service: { slaPolicyId: { not: null } },
         },
         include: {
           service: { include: { slaPolicy: true } },
           customer: true,
-          tenant: true
-        }
+          tenant: true,
+        },
       });
 
       for (const visit of waitingVisits) {
@@ -45,7 +45,7 @@ export class VisitCron {
         const waitTimeMs = Date.now() - new Date(visit.waitingStart).getTime();
         const waitTimeMins = Math.floor(waitTimeMs / 60000);
         const policy = visit.service.slaPolicy;
-        
+
         let newStatus = visit.slaStatus;
         if (waitTimeMins >= policy.breachThresholdMins) {
           newStatus = 'BREACHED';
@@ -56,27 +56,42 @@ export class VisitCron {
         if (newStatus !== visit.slaStatus) {
           await this.prisma.visit.update({
             where: { id: visit.id },
-            data: { slaStatus: newStatus }
+            data: { slaStatus: newStatus },
           });
 
-          this.logger.log(`Visit ${visit.id} SLA status changed to ${newStatus}`);
+          this.logger.log(
+            `Visit ${visit.id} SLA status changed to ${newStatus}`,
+          );
 
           await this.prisma.outboxEvent.create({
             data: {
               type: 'queue_status_changed',
-              payload: { tenantId: visit.tenantId, queueId: visit.queueId }
-            }
+              payload: { tenantId: visit.tenantId, queueId: visit.queueId },
+            },
           });
 
           // Notify managers on breach
-          if (newStatus === 'BREACHED' && policy.escalationPhones && policy.escalationPhones.length > 0) {
+          if (
+            newStatus === 'BREACHED' &&
+            policy.escalationPhones &&
+            policy.escalationPhones.length > 0
+          ) {
             const message = `🚨 SLA BREACH: Customer ${visit.customer.name} has been waiting for ${waitTimeMins} mins for ${visit.service.name}.`;
             for (const phone of policy.escalationPhones) {
-              if (visit.tenant?.whatsappConnected && visit.tenant?.whatsappInstanceId) {
+              if (
+                visit.tenant?.whatsappConnected &&
+                visit.tenant?.whatsappInstanceId
+              ) {
                 try {
-                  await this.whatsappService.sendMessage(visit.tenant.whatsappInstanceId, phone, message);
+                  await this.whatsappService.sendMessage(
+                    visit.tenant.whatsappInstanceId,
+                    phone,
+                    message,
+                  );
                 } catch (e) {
-                  this.logger.error(`Failed to send SLA breach alert to ${phone}: ${e}`);
+                  this.logger.error(
+                    `Failed to send SLA breach alert to ${phone}: ${e}`,
+                  );
                 }
               }
             }
@@ -370,6 +385,4 @@ export class VisitCron {
       this.logger.error('Error during Appointment Reminders check:', error);
     }
   }
-
-
 }

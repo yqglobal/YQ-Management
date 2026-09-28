@@ -68,7 +68,11 @@ export class AuthController {
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         path: '/',
-        domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined),
+        domain:
+          process.env.COOKIE_DOMAIN ||
+          (process.env.NODE_ENV === 'production'
+            ? '.qmova.yqbuddy.com'
+            : undefined),
         maxAge: 30 * 24 * 60 * 60 * 1000,
       });
       return { success: true, requiresOtp: false, user, access_token };
@@ -115,7 +119,11 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
-      domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined),
+      domain:
+        process.env.COOKIE_DOMAIN ||
+        (process.env.NODE_ENV === 'production'
+          ? '.qmova.yqbuddy.com'
+          : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     return { success: true, user, access_token };
@@ -132,9 +140,13 @@ export class AuthController {
         7 * 24 * 60 * 60,
       );
     }
-    res.clearCookie('token', { 
+    res.clearCookie('token', {
       path: '/',
-      domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined)
+      domain:
+        process.env.COOKIE_DOMAIN ||
+        (process.env.NODE_ENV === 'production'
+          ? '.qmova.yqbuddy.com'
+          : undefined),
     });
     return { success: true, message: 'Logged out successfully' };
   }
@@ -188,7 +200,11 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
-      domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined),
+      domain:
+        process.env.COOKIE_DOMAIN ||
+        (process.env.NODE_ENV === 'production'
+          ? '.qmova.yqbuddy.com'
+          : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -236,7 +252,11 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
-      domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined),
+      domain:
+        process.env.COOKIE_DOMAIN ||
+        (process.env.NODE_ENV === 'production'
+          ? '.qmova.yqbuddy.com'
+          : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -252,11 +272,15 @@ export class AuthController {
       (!personalSettings.onboardingCompleted && !isSuperAdmin);
 
     if (intent === 'link_tenant') {
-      res.redirect(`${frontendUrl}/dashboard/settings/integrations?googleAuth=success`);
+      res.redirect(
+        `${frontendUrl}/dashboard/settings/integrations?googleAuth=success`,
+      );
     } else if (intent === 'link_tenant_onboarding') {
-      // User connected google from onboarding step 3. 
+      // User connected google from onboarding step 3.
       // Add a parameter so the frontend knows they succeeded.
-      res.redirect(`${frontendUrl}/onboarding?token=${access_token}&googleAuth=success`);
+      res.redirect(
+        `${frontendUrl}/onboarding?token=${access_token}&googleAuth=success`,
+      );
     } else if (isSuperAdmin) {
       res.redirect(`${frontendUrl}/super-admin?token=${access_token}`);
     } else if (isNewUser) {
@@ -349,7 +373,9 @@ export class AuthController {
       onboardingCompleted?: boolean;
     },
   ) {
-    const user = await this.usersService['prisma'].user.findUnique({ where: { id: req.user.sub } });
+    const user = await this.usersService['prisma'].user.findUnique({
+      where: { id: req.user.sub },
+    });
     let currentSettings = (user?.personalSettings as any) || {};
 
     if (body.theme !== undefined)
@@ -402,9 +428,9 @@ export class AuthController {
             if (body.companyName) dataToUpdate.name = body.companyName;
             if (body.subdomain) dataToUpdate.subdomain = body.subdomain;
 
-            let ce: any = tenant.customerExperience || {};
+            const ce: any = tenant.customerExperience || {};
             let ceNeedsUpdate = false;
-            
+
             if (!ce.portal) {
               ce.portal = {};
               ceNeedsUpdate = true;
@@ -414,7 +440,8 @@ export class AuthController {
               ceNeedsUpdate = true;
             }
             if (!ce.portal.welcomeMessage) {
-              ce.portal.welcomeMessage = "Please enter your details to proceed...";
+              ce.portal.welcomeMessage =
+                'Please enter your details to proceed...';
               ceNeedsUpdate = true;
             }
             if (!ce.portal.supportContact) {
@@ -425,15 +452,38 @@ export class AuthController {
               ce.feedback = {
                 enabled: true,
                 questions: [
-                  { id: 'fb_q1_rating', type: 'rating', label: 'How was your experience today?', required: true },
-                  { id: 'fb_q2_comments', type: 'textarea', label: 'Any additional feedback?', required: false }
-                ]
+                  {
+                    id: 'fb_q1_rating',
+                    type: 'rating',
+                    label: 'How was your experience today?',
+                    required: true,
+                  },
+                  {
+                    id: 'fb_q2_comments',
+                    type: 'textarea',
+                    label: 'Any additional feedback?',
+                    required: false,
+                  },
+                ],
               };
               ceNeedsUpdate = true;
-            } else if (!ce.feedback.questions || ce.feedback.questions.length === 0) {
+            } else if (
+              !ce.feedback.questions ||
+              ce.feedback.questions.length === 0
+            ) {
               ce.feedback.questions = [
-                { id: 'fb_q1_rating', type: 'rating', label: 'How was your experience today?', required: true },
-                { id: 'fb_q2_comments', type: 'textarea', label: 'Any additional feedback?', required: false }
+                {
+                  id: 'fb_q1_rating',
+                  type: 'rating',
+                  label: 'How was your experience today?',
+                  required: true,
+                },
+                {
+                  id: 'fb_q2_comments',
+                  type: 'textarea',
+                  label: 'Any additional feedback?',
+                  required: false,
+                },
               ];
               ceNeedsUpdate = true;
             }
@@ -449,7 +499,9 @@ export class AuthController {
           }
         } catch (error: any) {
           if (error.code === 'P2002') {
-            throw new ConflictException('Workspace URL (subdomain) is already taken. Please choose another name.');
+            throw new ConflictException(
+              'Workspace URL (subdomain) is already taken. Please choose another name.',
+            );
           }
           new Logger(AuthController.name).warn(
             `Could not update tenant name: ${error}`,
@@ -535,7 +587,11 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
-      domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined),
+      domain:
+        process.env.COOKIE_DOMAIN ||
+        (process.env.NODE_ENV === 'production'
+          ? '.qmova.yqbuddy.com'
+          : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     return {

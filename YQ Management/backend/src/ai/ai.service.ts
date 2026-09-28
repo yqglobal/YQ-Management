@@ -19,7 +19,11 @@ export class AiService {
     tools: any[] = [],
     systemInstruction: string = '',
     previousInteractionId?: string,
-  ): Promise<{ responseText: string | null; interactionId: string; toolCalls: any[] }> {
+  ): Promise<{
+    responseText: string | null;
+    interactionId: string;
+    toolCalls: any[];
+  }> {
     try {
       const interaction = await this.client.interactions.create({
         model: 'gemini-3.6-flash',
@@ -46,7 +50,12 @@ export class AiService {
       };
     } catch (err) {
       this.logger.error(`AI interaction failed: ${err.message}`, err.stack);
-      return { responseText: "I'm having trouble connecting right now. Let me connect you to a human operator.", interactionId: '', toolCalls: [] };
+      return {
+        responseText:
+          "I'm having trouble connecting right now. Let me connect you to a human operator.",
+        interactionId: '',
+        toolCalls: [],
+      };
     }
   }
 
@@ -84,7 +93,10 @@ export class AiService {
       };
     } catch (err) {
       this.logger.error(`AI tool result failed: ${err.message}`, err.stack);
-      return { responseText: "Sorry, I ran into an error processing that request.", toolCalls: [] };
+      return {
+        responseText: 'Sorry, I ran into an error processing that request.',
+        toolCalls: [],
+      };
     }
   }
 }

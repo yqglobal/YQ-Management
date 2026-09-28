@@ -29,7 +29,7 @@ export class TenantService {
         name: 'My Company',
         createdAt: { lt: twentyFourHoursAgo },
         users: { none: {} },
-        
+
         queues: { none: {} },
       },
     });
@@ -68,8 +68,8 @@ export class TenantService {
           include: { plan: true },
         },
         paymentAccount: {
-          select: { connectedAccountId: true, chargesEnabled: true }
-        }
+          select: { connectedAccountId: true, chargesEnabled: true },
+        },
       },
     });
 
@@ -90,7 +90,8 @@ export class TenantService {
       tenant.branding = null;
     }
 
-    const isSubscriptionActive = sub && (sub.status === 'ACTIVE' || sub.status === 'TRIAL');
+    const isSubscriptionActive =
+      sub && (sub.status === 'ACTIVE' || sub.status === 'TRIAL');
 
     (tenant as any).planFeatures = { customBranding: hasCustomBranding };
     (tenant as any).isPaused = !isSubscriptionActive;
@@ -116,7 +117,12 @@ export class TenantService {
         locations: { select: { id: true, name: true } },
         services: { select: { id: true, name: true } },
         queues: {
-          select: { id: true, name: true, locationId: true, services: { select: { id: true } } },
+          select: {
+            id: true,
+            name: true,
+            locationId: true,
+            services: { select: { id: true } },
+          },
         },
         subscriptions: {
           take: 1,
@@ -145,7 +151,9 @@ export class TenantService {
 
     if (typeof tenant.customerExperience === 'string') {
       try {
-        (tenant as any).customerExperience = JSON.parse(tenant.customerExperience);
+        (tenant as any).customerExperience = JSON.parse(
+          tenant.customerExperience,
+        );
       } catch (e) {}
     }
 
@@ -168,7 +176,9 @@ export class TenantService {
       tenant.branding = null;
     }
 
-    const isSubscriptionActive = subscription && (subscription.status === 'ACTIVE' || subscription.status === 'TRIAL');
+    const isSubscriptionActive =
+      subscription &&
+      (subscription.status === 'ACTIVE' || subscription.status === 'TRIAL');
 
     (tenant as any).planFeatures = { customBranding: hasCustomBranding };
     (tenant as any).isPaused = !isSubscriptionActive;
@@ -247,10 +257,14 @@ export class TenantService {
     if (data.branding !== undefined) updateData.branding = data.branding;
     if (data.customerExperience !== undefined)
       updateData.customerExperience = data.customerExperience;
-    if (data.chatbotEnabled !== undefined) updateData.chatbotEnabled = data.chatbotEnabled;
-    if (data.chatbotConfig !== undefined) updateData.chatbotConfig = data.chatbotConfig;
-    if (data.businessType !== undefined) updateData.businessType = data.businessType;
-    if (data.strictPrivacyMode !== undefined) updateData.strictPrivacyMode = data.strictPrivacyMode;
+    if (data.chatbotEnabled !== undefined)
+      updateData.chatbotEnabled = data.chatbotEnabled;
+    if (data.chatbotConfig !== undefined)
+      updateData.chatbotConfig = data.chatbotConfig;
+    if (data.businessType !== undefined)
+      updateData.businessType = data.businessType;
+    if (data.strictPrivacyMode !== undefined)
+      updateData.strictPrivacyMode = data.strictPrivacyMode;
     if (data.aiConfig !== undefined) updateData.aiConfig = data.aiConfig;
 
     return this.prisma.tenant.update({
@@ -302,8 +316,14 @@ export class TenantService {
     };
   }
 
-  async uploadLogo(tenantId: string, file: Express.Multer.File, baseUrl: string) {
-    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+  async uploadLogo(
+    tenantId: string,
+    file: Express.Multer.File,
+    baseUrl: string,
+  ) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
     if (!tenant) throw new NotFoundException('Tenant not found');
 
     const sharp = require('sharp');
@@ -323,11 +343,15 @@ export class TenantService {
       .toFile(filepath);
 
     const logoUrl = `${baseUrl}/uploads/logos/${filename}`;
-    
+
     // Update tenant branding
-    const branding = tenant.branding ? (typeof tenant.branding === 'string' ? JSON.parse(tenant.branding) : tenant.branding) : {};
+    const branding = tenant.branding
+      ? typeof tenant.branding === 'string'
+        ? JSON.parse(tenant.branding)
+        : tenant.branding
+      : {};
     branding.logoUrl = logoUrl;
-    
+
     await this.prisma.tenant.update({
       where: { id: tenantId },
       data: { branding },

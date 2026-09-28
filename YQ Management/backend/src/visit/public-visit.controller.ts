@@ -76,7 +76,7 @@ export class PublicVisitController {
     // that close idle connections after their default timeout (typically 60s).
     // SSE comment lines (starting with ':') are silently ignored by EventSource.
     const heartbeat$ = interval(15000).pipe(
-      map(() => ({ data: ':heartbeat', type: 'ping' } as MessageEvent)),
+      map(() => ({ data: ':heartbeat', type: 'ping' })),
     );
 
     return merge(dataStream$, heartbeat$);
@@ -214,7 +214,11 @@ export class PublicVisitController {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined),
+        domain:
+          process.env.COOKIE_DOMAIN ||
+          (process.env.NODE_ENV === 'production'
+            ? '.qmova.yqbuddy.com'
+            : undefined),
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       });
     }
@@ -275,7 +279,7 @@ export class PublicVisitController {
       language?: string;
       bookings: {
         serviceId: string;
-        queueId?: string; 
+        queueId?: string;
         providerId?: string;
         scheduledFor?: string;
         formResponses?: any;
@@ -312,7 +316,10 @@ export class PublicVisitController {
           },
         });
       } catch (e) {
-        this.logger.error(`Failed to link payment ${body.paymentId} to visits:`, e);
+        this.logger.error(
+          `Failed to link payment ${body.paymentId} to visits:`,
+          e,
+        );
       }
     }
 
@@ -325,13 +332,22 @@ export class PublicVisitController {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === 'production' ? '.qmova.yqbuddy.com' : undefined),
+        domain:
+          process.env.COOKIE_DOMAIN ||
+          (process.env.NODE_ENV === 'production'
+            ? '.qmova.yqbuddy.com'
+            : undefined),
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       });
     }
 
     if (idempotencyKey) {
-      await this.redisService.client.set(redisKey, JSON.stringify(visits), 'EX', 86400); // 24 hours
+      await this.redisService.client.set(
+        redisKey,
+        JSON.stringify(visits),
+        'EX',
+        86400,
+      ); // 24 hours
     }
 
     return visits;

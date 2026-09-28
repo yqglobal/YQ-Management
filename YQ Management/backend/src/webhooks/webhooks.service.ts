@@ -80,52 +80,66 @@ export class WebhooksService {
         if (endpoint.payloadFormat === 'FHIR_ENCOUNTER') {
           // Translate to a simplified FHIR Encounter
           finalPayload = {
-            resourceType: "Encounter",
-            status: enrichedPayload.currentState === 'WAITING' ? 'planned' :
-                    enrichedPayload.currentState === 'ACTIVE' ? 'in-progress' :
-                    enrichedPayload.currentState === 'COMPLETED' ? 'finished' : 'unknown',
+            resourceType: 'Encounter',
+            status:
+              enrichedPayload.currentState === 'WAITING'
+                ? 'planned'
+                : enrichedPayload.currentState === 'ACTIVE'
+                  ? 'in-progress'
+                  : enrichedPayload.currentState === 'COMPLETED'
+                    ? 'finished'
+                    : 'unknown',
             class: {
-              system: "http://terminology.hl7.org/CodeSystem/v3-ActCode",
-              code: "AMB",
-              display: "ambulatory"
+              system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode',
+              code: 'AMB',
+              display: 'ambulatory',
             },
             subject: {
               reference: `Patient/${enrichedPayload.customerId || 'unknown'}`,
-              display: enrichedPayload.customer?.name || enrichedPayload.customerName || "Walk-in"
+              display:
+                enrichedPayload.customer?.name ||
+                enrichedPayload.customerName ||
+                'Walk-in',
             },
             period: {
               start: enrichedPayload.serviceStart || enrichedPayload.createdAt,
-              end: enrichedPayload.serviceEnd
+              end: enrichedPayload.serviceEnd,
             },
             location: [
               {
                 location: {
                   reference: `Location/${enrichedPayload.locationId || 'unknown'}`,
-                  display: enrichedPayload.location?.name
+                  display: enrichedPayload.location?.name,
                 },
-                status: "active"
-              }
+                status: 'active',
+              },
             ],
             // Include original payload in extension just in case
             extension: [
               {
-                url: "http://yq.management/original-event",
-                valueString: JSON.stringify(enrichedPayload)
-              }
-            ]
+                url: 'http://yq.management/original-event',
+                valueString: JSON.stringify(enrichedPayload),
+              },
+            ],
           };
         } else if (endpoint.payloadFormat === 'SALESFORCE') {
           // Translate to a Salesforce custom object (e.g. Visit__c)
           finalPayload = {
-            attributes: { type: "Visit__c" },
+            attributes: { type: 'Visit__c' },
             External_ID__c: enrichedPayload.id || enrichedPayload.visitId,
             Tenant_ID__c: enrichedPayload.tenantId,
-            Customer_Name__c: enrichedPayload.customer?.name || enrichedPayload.customerName || "Walk-in",
+            Customer_Name__c:
+              enrichedPayload.customer?.name ||
+              enrichedPayload.customerName ||
+              'Walk-in',
             Status__c: enrichedPayload.currentState,
             Service_ID__c: enrichedPayload.serviceId,
-            Wait_Time_Mins__c: enrichedPayload.waitingStart && enrichedPayload.serviceStart 
-              ? (new Date(enrichedPayload.serviceStart).getTime() - new Date(enrichedPayload.waitingStart).getTime()) / 60000 
-              : 0
+            Wait_Time_Mins__c:
+              enrichedPayload.waitingStart && enrichedPayload.serviceStart
+                ? (new Date(enrichedPayload.serviceStart).getTime() -
+                    new Date(enrichedPayload.waitingStart).getTime()) /
+                  60000
+                : 0,
           };
         }
 
@@ -154,7 +168,9 @@ export class WebhooksService {
     }
 
     if (hasErrors) {
-      throw new Error(`One or more webhooks failed to deliver. Triggering BullMQ retry with Exponential Backoff.`);
+      throw new Error(
+        `One or more webhooks failed to deliver. Triggering BullMQ retry with Exponential Backoff.`,
+      );
     }
   }
 }

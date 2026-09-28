@@ -44,11 +44,13 @@ export class MessagesService {
         .map((v) => v.customer.phone)
         .filter((p): p is string => !!p);
 
-      return this.prisma.customerConversation.findMany({
-        where: { tenantId, customerPhone: { in: phones } },
-        orderBy: { lastMessageAt: 'desc' },
-        take: 50,
-      }).then(convos => this.attachCustomerDetails(tenantId, convos));
+      return this.prisma.customerConversation
+        .findMany({
+          where: { tenantId, customerPhone: { in: phones } },
+          orderBy: { lastMessageAt: 'desc' },
+          take: 50,
+        })
+        .then((convos) => this.attachCustomerDetails(tenantId, convos));
     }
 
     const convos = await this.prisma.customerConversation.findMany({
@@ -61,15 +63,15 @@ export class MessagesService {
 
   private async attachCustomerDetails(tenantId: string, convos: any[]) {
     if (convos.length === 0) return convos;
-    const phones = convos.map(c => c.customerPhone);
-    const orConditions = phones.map(p => ({
-      phone: { contains: p.replace(/\D/g, '').slice(-9) }
+    const phones = convos.map((c) => c.customerPhone);
+    const orConditions = phones.map((p) => ({
+      phone: { contains: p.replace(/\D/g, '').slice(-9) },
     }));
-    
+
     const customers = await this.prisma.customer.findMany({
       where: { tenantId, OR: orConditions },
     });
-    
+
     const customerMap = new Map();
     for (const c of customers) {
       if (c.phone) {
@@ -77,14 +79,14 @@ export class MessagesService {
         customerMap.set(cleanPhone, c);
       }
     }
-    
-    return convos.map(c => {
+
+    return convos.map((c) => {
       const cleanPhone = c.customerPhone.replace(/\D/g, '').slice(-9);
       const cust = customerMap.get(cleanPhone);
       return {
         ...c,
         customerName: cust?.name || null,
-        customerAvatar: (cust as any)?.avatarUrl || null,
+        customerAvatar: cust?.avatarUrl || null,
       };
     });
   }
@@ -114,7 +116,12 @@ export class MessagesService {
     if (!token) throw new NotFoundException('Visit not found');
 
     const conversation = await this.prisma.customerConversation.upsert({
-      where: { tenantId_customerPhone: { tenantId, customerPhone: token.customer?.phone || '' } },
+      where: {
+        tenantId_customerPhone: {
+          tenantId,
+          customerPhone: token.customer?.phone || '',
+        },
+      },
       update: { lastMessageAt: new Date(), status: 'OPEN' },
       create: {
         tenantId,
@@ -141,19 +148,27 @@ export class MessagesService {
         token.customer.phone,
         text,
         token.tenantId,
-        message.id
+        message.id,
       );
     }
 
     // Broadcast message to Dashboard & Live Status
     if (token.queueId) {
-      this.queueGateway.broadcastQueueUpdate(token.queueId, 'NEW_MESSAGE', { message });
+      this.queueGateway.broadcastQueueUpdate(token.queueId, 'NEW_MESSAGE', {
+        message,
+      });
     }
 
     return message;
   }
 
-  async sendInboxMessage(tenantId: string, phone: string, text: string, media?: string, mediaType?: string) {
+  async sendInboxMessage(
+    tenantId: string,
+    phone: string,
+    text: string,
+    media?: string,
+    mediaType?: string,
+  ) {
     // Upsert conversation to keep it active
     const conversation = await this.prisma.customerConversation.upsert({
       where: { tenantId_customerPhone: { tenantId, customerPhone: phone } },
@@ -166,7 +181,11 @@ export class MessagesService {
       },
     });
 
-    const bodyText = media ? (text ? `[Media Attachment] ${text}` : '[Media Attachment]') : text;
+    const bodyText = media
+      ? text
+        ? `[Media Attachment] ${text}`
+        : '[Media Attachment]'
+      : text;
 
     const message = await this.prisma.message.create({
       data: {
@@ -179,12 +198,25 @@ export class MessagesService {
     });
 
     if (media && mediaType) {
-      await this.whatsappService.sendMediaToTenant(tenantId, phone, media, mediaType, text);
+      await this.whatsappService.sendMediaToTenant(
+        tenantId,
+        phone,
+        media,
+        mediaType,
+        text,
+      );
     } else {
-      await this.notificationsService.sendWhatsAppMessage(phone, text, tenantId, message.id);
+      await this.notificationsService.sendWhatsAppMessage(
+        phone,
+        text,
+        tenantId,
+        message.id,
+      );
     }
 
-    this.queueGateway.broadcastTenantUpdate(tenantId, 'NEW_INBOX_MESSAGE', { phone });
+    this.queueGateway.broadcastTenantUpdate(tenantId, 'NEW_INBOX_MESSAGE', {
+      phone,
+    });
 
     return message;
   }

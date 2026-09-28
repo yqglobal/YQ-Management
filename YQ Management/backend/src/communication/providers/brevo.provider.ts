@@ -41,7 +41,7 @@ export class BrevoProvider implements EmailProvider {
           textContent: message.textContent,
           replyTo: message.replyTo ? { email: message.replyTo } : undefined,
           tags: message.tags
-            ? message.tags.map(t => `${t.name}:${t.value}`)
+            ? message.tags.map((t) => `${t.name}:${t.value}`)
             : undefined,
         }),
       });

@@ -1,4 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueGateway } from '../queue/queue.gateway';
 
@@ -10,7 +16,16 @@ export class BlockOffService {
     private readonly queueGateway: QueueGateway,
   ) {}
 
-  async createBlockOff(tenantId: string, data: { locationId?: string; queueId?: string; startTime: string; endTime: string; reason?: string }) {
+  async createBlockOff(
+    tenantId: string,
+    data: {
+      locationId?: string;
+      queueId?: string;
+      startTime: string;
+      endTime: string;
+      reason?: string;
+    },
+  ) {
     if (new Date(data.startTime) >= new Date(data.endTime)) {
       throw new BadRequestException('End time must be after start time');
     }
@@ -27,9 +42,13 @@ export class BlockOffService {
     });
 
     if (data.locationId || data.queueId) {
-      this.queueGateway.broadcastTenantUpdate(tenantId, 'blockoff_created', blockOff);
+      this.queueGateway.broadcastTenantUpdate(
+        tenantId,
+        'blockoff_created',
+        blockOff,
+      );
     }
-    
+
     return blockOff;
   }
 
@@ -56,13 +75,20 @@ export class BlockOffService {
     await this.prisma.blockOff.delete({ where: { id } });
 
     if (blockOff.locationId || blockOff.queueId) {
-      this.queueGateway.broadcastTenantUpdate(tenantId, 'blockoff_deleted', { id });
+      this.queueGateway.broadcastTenantUpdate(tenantId, 'blockoff_deleted', {
+        id,
+      });
     }
 
     return { success: true };
   }
 
-  async isTimeBlocked(tenantId: string, locationId: string | null, queueId: string | null, time: Date): Promise<{ blocked: boolean; reason?: string }> {
+  async isTimeBlocked(
+    tenantId: string,
+    locationId: string | null,
+    queueId: string | null,
+    time: Date,
+  ): Promise<{ blocked: boolean; reason?: string }> {
     const blockOffs = await this.prisma.blockOff.findMany({
       where: {
         tenantId,
@@ -71,13 +97,16 @@ export class BlockOffService {
         OR: [
           { queueId: null, locationId: null },
           { locationId, queueId: null },
-          { queueId }
-        ]
+          { queueId },
+        ],
       },
     });
 
     if (blockOffs.length > 0) {
-      return { blocked: true, reason: blockOffs[0].reason || 'Time slot is blocked off' };
+      return {
+        blocked: true,
+        reason: blockOffs[0].reason || 'Time slot is blocked off',
+      };
     }
 
     return { blocked: false };

@@ -1,12 +1,15 @@
 import {
-  Injectable, NotFoundException, ConflictException, BadRequestException, Logger,
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
 import { CreateStepDto } from './dto/create-step.dto';
 import { UpdateStepDto } from './dto/update-step.dto';
-
 
 @Injectable()
 export class ServiceFlowService {
@@ -22,7 +25,9 @@ export class ServiceFlowService {
       where: { serviceId: dto.serviceId },
     });
     if (existing) {
-      throw new ConflictException(`A flow already exists for service ${dto.serviceId}. Use updateFlow or deleteFlow first.`);
+      throw new ConflictException(
+        `A flow already exists for service ${dto.serviceId}. Use updateFlow or deleteFlow first.`,
+      );
     }
     return this.prisma.serviceFlow.create({
       data: {
@@ -62,13 +67,17 @@ export class ServiceFlowService {
         service: { select: { id: true, name: true } },
       },
     });
-    if (!flow || flow.tenantId !== tenantId) throw new NotFoundException('Flow not found');
+    if (!flow || flow.tenantId !== tenantId)
+      throw new NotFoundException('Flow not found');
     return flow;
   }
 
   async updateFlow(tenantId: string, flowId: string, dto: UpdateFlowDto) {
-    const flow = await this.prisma.serviceFlow.findUnique({ where: { id: flowId } });
-    if (!flow || flow.tenantId !== tenantId) throw new NotFoundException('Flow not found');
+    const flow = await this.prisma.serviceFlow.findUnique({
+      where: { id: flowId },
+    });
+    if (!flow || flow.tenantId !== tenantId)
+      throw new NotFoundException('Flow not found');
     const { serviceId, ...rest } = dto; // serviceId is immutable after creation
     return this.prisma.serviceFlow.update({
       where: { id: flowId },
@@ -78,8 +87,11 @@ export class ServiceFlowService {
   }
 
   async deleteFlow(tenantId: string, flowId: string) {
-    const flow = await this.prisma.serviceFlow.findUnique({ where: { id: flowId } });
-    if (!flow || flow.tenantId !== tenantId) throw new NotFoundException('Flow not found');
+    const flow = await this.prisma.serviceFlow.findUnique({
+      where: { id: flowId },
+    });
+    if (!flow || flow.tenantId !== tenantId)
+      throw new NotFoundException('Flow not found');
     await this.prisma.serviceFlow.delete({ where: { id: flowId } });
   }
 
@@ -88,7 +100,8 @@ export class ServiceFlowService {
       where: { id: flowId },
       include: { steps: { include: { transitions: true } } },
     });
-    if (!flow || flow.tenantId !== tenantId) throw new NotFoundException('Flow not found');
+    if (!flow || flow.tenantId !== tenantId)
+      throw new NotFoundException('Flow not found');
     // Create new flow without linking to a service (user picks service after)
     const newFlow = await this.prisma.serviceFlow.create({
       data: {
@@ -150,8 +163,11 @@ export class ServiceFlowService {
   // ── Step CRUD ───────────────────────────────────────────────────────────────
 
   async createStep(tenantId: string, flowId: string, dto: CreateStepDto) {
-    const flow = await this.prisma.serviceFlow.findUnique({ where: { id: flowId } });
-    if (!flow || flow.tenantId !== tenantId) throw new NotFoundException('Flow not found');
+    const flow = await this.prisma.serviceFlow.findUnique({
+      where: { id: flowId },
+    });
+    if (!flow || flow.tenantId !== tenantId)
+      throw new NotFoundException('Flow not found');
 
     const { transitions, ...stepData } = dto;
 
@@ -190,9 +206,16 @@ export class ServiceFlowService {
       where: { id: stepId },
       include: { flow: true },
     });
-    if (!step || step.flow.tenantId !== tenantId) throw new NotFoundException('Step not found');
+    if (!step || step.flow.tenantId !== tenantId)
+      throw new NotFoundException('Step not found');
 
-    const { transitions, stepOrder, flowId: _fid, serviceId: _sid, ...updateData } = dto as any;
+    const {
+      transitions,
+      stepOrder,
+      flowId: _fid,
+      serviceId: _sid,
+      ...updateData
+    } = dto as any;
 
     const updated = await this.prisma.flowStepTemplate.update({
       where: { id: stepId },
@@ -201,7 +224,9 @@ export class ServiceFlowService {
 
     // Replace transitions if provided
     if (transitions !== undefined) {
-      await this.prisma.flowStepTransition.deleteMany({ where: { fromStepId: stepId } });
+      await this.prisma.flowStepTransition.deleteMany({
+        where: { fromStepId: stepId },
+      });
       if (transitions.length) {
         await this.prisma.flowStepTransition.createMany({
           data: transitions.map((t: any, i: number) => ({
@@ -228,13 +253,21 @@ export class ServiceFlowService {
       where: { id: stepId },
       include: { flow: true },
     });
-    if (!step || step.flow.tenantId !== tenantId) throw new NotFoundException('Step not found');
+    if (!step || step.flow.tenantId !== tenantId)
+      throw new NotFoundException('Step not found');
     await this.prisma.flowStepTemplate.delete({ where: { id: stepId } });
   }
 
-  async reorderSteps(tenantId: string, flowId: string, orderedStepIds: string[]) {
-    const flow = await this.prisma.serviceFlow.findUnique({ where: { id: flowId } });
-    if (!flow || flow.tenantId !== tenantId) throw new NotFoundException('Flow not found');
+  async reorderSteps(
+    tenantId: string,
+    flowId: string,
+    orderedStepIds: string[],
+  ) {
+    const flow = await this.prisma.serviceFlow.findUnique({
+      where: { id: flowId },
+    });
+    if (!flow || flow.tenantId !== tenantId)
+      throw new NotFoundException('Flow not found');
 
     await this.prisma.$transaction(
       orderedStepIds.map((stepId, index) =>
@@ -252,19 +285,18 @@ export class ServiceFlowService {
 
   async listIndustryTemplates(tenantId?: string) {
     const templates = await this.prisma.blueprintFlow.findMany({
-      where: tenantId ? {
-        OR: [
-          { tenantId: null },
-          { tenantId: tenantId }
-        ]
-      } : { tenantId: null },
+      where: tenantId
+        ? {
+            OR: [{ tenantId: null }, { tenantId: tenantId }],
+          }
+        : { tenantId: null },
       include: {
         _count: { select: { steps: true } },
-        steps: { orderBy: { stepOrder: 'asc' } }
-      }
+        steps: { orderBy: { stepOrder: 'asc' } },
+      },
     });
 
-    return templates.map(t => ({
+    return templates.map((t) => ({
       key: t.key,
       name: t.name,
       description: t.description,
@@ -274,21 +306,31 @@ export class ServiceFlowService {
     }));
   }
 
-  async applyIndustryTemplate(tenantId: string, serviceId: string, templateKey: string) {
+  async applyIndustryTemplate(
+    tenantId: string,
+    serviceId: string,
+    templateKey: string,
+  ) {
     const template = await this.prisma.blueprintFlow.findUnique({
       where: { key: templateKey },
-      include: { steps: { orderBy: { stepOrder: 'asc' } } }
+      include: { steps: { orderBy: { stepOrder: 'asc' } } },
     });
 
-    if (!template) throw new BadRequestException(`Template "${templateKey}" not found`);
+    if (!template)
+      throw new BadRequestException(`Template "${templateKey}" not found`);
     if (template.tenantId && template.tenantId !== tenantId) {
-      throw new BadRequestException(`Template "${templateKey}" not available for this tenant`);
+      throw new BadRequestException(
+        `Template "${templateKey}" not available for this tenant`,
+      );
     }
 
     // Remove existing flow if any
-    const existing = await this.prisma.serviceFlow.findUnique({ where: { serviceId } });
+    const existing = await this.prisma.serviceFlow.findUnique({
+      where: { serviceId },
+    });
     if (existing) {
-      if (existing.tenantId !== tenantId) throw new NotFoundException('Service not found');
+      if (existing.tenantId !== tenantId)
+        throw new NotFoundException('Service not found');
       await this.prisma.serviceFlow.delete({ where: { id: existing.id } });
     }
 

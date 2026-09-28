@@ -8,7 +8,12 @@ import { GoogleModule } from '../integrations/google/google.module';
 import { QueueModule } from '../queue/queue.module';
 
 @Module({
-  imports: [forwardRef(() => WhatsappModule), RedisModule, GoogleModule, forwardRef(() => QueueModule)],
+  imports: [
+    forwardRef(() => WhatsappModule),
+    RedisModule,
+    GoogleModule,
+    forwardRef(() => QueueModule),
+  ],
   providers: [AppointmentService, AppointmentReminderCron],
   controllers: [AppointmentController],
   exports: [AppointmentService],

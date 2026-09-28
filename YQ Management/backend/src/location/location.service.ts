@@ -11,7 +11,14 @@ export class LocationService {
 
   async create(
     tenantId: string,
-    data: { name: string; address?: string; city?: string; totalFloors?: number; businessHours?: any; exceptionDates?: string[] },
+    data: {
+      name: string;
+      address?: string;
+      city?: string;
+      totalFloors?: number;
+      businessHours?: any;
+      exceptionDates?: string[];
+    },
   ) {
     const currentLocationsCount =
       await this.prisma.extendedClient.location.count({
@@ -40,7 +47,10 @@ export class LocationService {
   async findAll(tenantId: string, reqUser?: any) {
     const where: any = { tenantId };
 
-    if (reqUser && (reqUser.role === 'OPERATOR' || reqUser.role === 'MANAGER')) {
+    if (
+      reqUser &&
+      (reqUser.role === 'OPERATOR' || reqUser.role === 'MANAGER')
+    ) {
       const dbUser = await this.prisma.user.findUnique({
         where: { id: reqUser.userId || reqUser.sub },
       });
@@ -62,7 +72,10 @@ export class LocationService {
   async findOne(id: string, tenantId: string, reqUser?: any) {
     const where: any = { id, tenantId };
 
-    if (reqUser && (reqUser.role === 'OPERATOR' || reqUser.role === 'MANAGER')) {
+    if (
+      reqUser &&
+      (reqUser.role === 'OPERATOR' || reqUser.role === 'MANAGER')
+    ) {
       const dbUser = await this.prisma.user.findUnique({
         where: { id: reqUser.userId || reqUser.sub },
       });
@@ -88,7 +101,14 @@ export class LocationService {
   async update(
     id: string,
     tenantId: string,
-    data: { name?: string; address?: string; city?: string; totalFloors?: number; businessHours?: any; exceptionDates?: string[] },
+    data: {
+      name?: string;
+      address?: string;
+      city?: string;
+      totalFloors?: number;
+      businessHours?: any;
+      exceptionDates?: string[];
+    },
   ) {
     return this.prisma.extendedClient.location
       .update({

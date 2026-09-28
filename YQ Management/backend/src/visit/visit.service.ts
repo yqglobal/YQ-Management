@@ -45,8 +45,11 @@ export class VisitService {
     private readonly visitStepService: VisitStepService,
   ) {}
 
-
-  private async generateNextToken(locationId: string, prefix: string, timezone: string = 'UTC'): Promise<string> {
+  private async generateNextToken(
+    locationId: string,
+    prefix: string,
+    timezone: string = 'UTC',
+  ): Promise<string> {
     const zonedNow = toZonedTime(new Date(), timezone);
     const dateStr = zonedNow.toISOString().split('T')[0]; // YYYY-MM-DD
     const key = `queue:token_seq:${locationId}:${prefix}:${dateStr}`;
@@ -103,7 +106,7 @@ export class VisitService {
       const zonedNow = toZonedTime(new Date(), tz);
       zonedNow.setHours(0, 0, 0, 0);
       const start = fromZonedTime(zonedNow, tz);
-      
+
       const zonedEnd = toZonedTime(new Date(), tz);
       zonedEnd.setHours(23, 59, 59, 999);
       const end = fromZonedTime(zonedEnd, tz);
@@ -150,7 +153,7 @@ export class VisitService {
         service: { select: { name: true } },
         queue: { select: { name: true, location: { select: { name: true } } } },
         tenant: { select: { name: true } },
-      }
+      },
     });
   }
 
@@ -178,12 +181,12 @@ export class VisitService {
         location: { select: { name: true, address: true } },
         scheduledTime: true,
         language: true,
-        tenant: { 
-          select: { 
+        tenant: {
+          select: {
             id: true,
             name: true,
-            paymentAccount: { select: { connectedAccountId: true } } 
-          } 
+            paymentAccount: { select: { connectedAccountId: true } },
+          },
         },
         visitSteps: {
           select: {
@@ -199,12 +202,12 @@ export class VisitService {
                 stepPrice: true,
                 stepPriceCurrency: true,
                 isPriceVariable: true,
-              }
+              },
             },
             amountCharged: true,
             paymentStatus: true,
           },
-          orderBy: { stepOrder: 'asc' }
+          orderBy: { stepOrder: 'asc' },
         },
       },
     });
@@ -228,8 +231,14 @@ export class VisitService {
         },
       });
       position = waitingAhead + 1;
-      
-      ewt = await calculateAdvancedEWT(this.prisma, visit.queueId, visit.serviceId, waitingAhead, visit.service?.expectedDuration);
+
+      ewt = await calculateAdvancedEWT(
+        this.prisma,
+        visit.queueId,
+        visit.serviceId,
+        waitingAhead,
+        visit.service?.expectedDuration,
+      );
     }
 
     return {
@@ -263,7 +272,14 @@ export class VisitService {
         scheduledTime: true,
         appointmentId: true,
         customer: { select: { name: true } },
-        service: { select: { id: true, name: true, expectedDuration: true, emaExpectedDuration: true } },
+        service: {
+          select: {
+            id: true,
+            name: true,
+            expectedDuration: true,
+            emaExpectedDuration: true,
+          },
+        },
         location: { select: { name: true, address: true } },
         tenant: { select: { name: true } },
         queue: { select: { status: true } },
@@ -275,7 +291,10 @@ export class VisitService {
         let position = 0;
         let ewt = 0;
 
-        if (visit.currentState === 'WAITING' || visit.currentState === 'CHECKED_IN') {
+        if (
+          visit.currentState === 'WAITING' ||
+          visit.currentState === 'CHECKED_IN'
+        ) {
           const waitingAhead = await this.prisma.visit.count({
             where: {
               queueId: visit.queueId,
@@ -284,7 +303,13 @@ export class VisitService {
             },
           });
           position = waitingAhead + 1;
-          ewt = await calculateAdvancedEWT(this.prisma, visit.queueId, visit.service?.id || null, waitingAhead, visit.service?.expectedDuration);
+          ewt = await calculateAdvancedEWT(
+            this.prisma,
+            visit.queueId,
+            visit.service?.id || null,
+            waitingAhead,
+            visit.service?.expectedDuration,
+          );
         }
 
         return {
@@ -293,7 +318,7 @@ export class VisitService {
           estimatedWaitTime: ewt,
           isScheduled: !!visit.scheduledTime,
         };
-      })
+      }),
     );
   }
 
@@ -311,7 +336,12 @@ export class VisitService {
 
   async joinQueue(
     queueId: string,
-    customerData: { name: string; phone?: string | null; serviceId?: string; accompanyingGuests?: number },
+    customerData: {
+      name: string;
+      phone?: string | null;
+      serviceId?: string;
+      accompanyingGuests?: number;
+    },
   ) {
     const queue = await this.prisma.queue.findUnique({
       where: { id: queueId },
@@ -323,7 +353,12 @@ export class VisitService {
       throw new BadRequestException('Queue has no linked services');
     }
 
-    const isBlocked = await this.blockOffService.isTimeBlocked(queue.tenantId, queue.locationId, queue.id, new Date());
+    const isBlocked = await this.blockOffService.isTimeBlocked(
+      queue.tenantId,
+      queue.locationId,
+      queue.id,
+      new Date(),
+    );
     if (isBlocked.blocked) {
       throw new BadRequestException(`QUEUE_BLOCKED:${isBlocked.reason}`);
     }
@@ -332,8 +367,8 @@ export class VisitService {
       const activeCount = await this.prisma.visit.count({
         where: {
           queueId,
-          currentState: { in: ['WAITING', 'CHECKED_IN'] }
-        }
+          currentState: { in: ['WAITING', 'CHECKED_IN'] },
+        },
       });
       if (activeCount >= queue.maxCapacity) {
         throw new BadRequestException('QUEUE_FULL');
@@ -361,7 +396,7 @@ export class VisitService {
       const zonedNow = toZonedTime(new Date(), tz);
       zonedNow.setHours(0, 0, 0, 0);
       const todayStart = fromZonedTime(zonedNow, tz);
-      
+
       const todayVisitCount = await tx.visit.count({
         where: { tenantId: queue.tenantId, createdAt: { gte: todayStart } },
       });
@@ -390,7 +425,11 @@ export class VisitService {
 
       const config = (queue.tokenDisplayConfig as any) || {};
       const prefix = config.prefix || 'Q';
-      const displayId = await this.generateNextToken(locationId, prefix, queue.location?.timezone || 'UTC');
+      const displayId = await this.generateNextToken(
+        locationId,
+        prefix,
+        queue.location?.timezone || 'UTC',
+      );
 
       const visit = await tx.visit.create({
         data: {
@@ -428,7 +467,7 @@ export class VisitService {
           visit.id,
           visit.serviceId,
           { accompanyingGuests: visit.accompanyingGuests || 0 },
-          tx
+          tx,
         );
       }
 
@@ -533,10 +572,17 @@ export class VisitService {
           }
         }
 
-        const q = await tx.queue.findUnique({ where: { id: queueId }, include: { location: true } });
+        const q = await tx.queue.findUnique({
+          where: { id: queueId },
+          include: { location: true },
+        });
         const config = (q?.tokenDisplayConfig as any) || {};
         const prefix = config.prefix || 'Q';
-        const displayId = await this.generateNextToken(q?.locationId || 'unknown', prefix, q?.location?.timezone || 'UTC');
+        const displayId = await this.generateNextToken(
+          q?.locationId || 'unknown',
+          prefix,
+          q?.location?.timezone || 'UTC',
+        );
 
         let scheduledTime: Date | undefined;
         let currentState = 'WAITING';
@@ -548,12 +594,21 @@ export class VisitService {
           // Verify that this slot is actually valid within business hours
           // Timezone manipulation makes the simple string split unreliable if UTC date falls on previous day.
           // Let getAvailableSlots handle the raw date lookup using its internal timezone logic.
-          const localDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: service.location?.timezone || 'UTC' }).format(scheduledTime);
-          const availableSlots = await this.serviceService.getAvailableSlots(service.id, localDateStr);
+          const localDateStr = new Intl.DateTimeFormat('en-CA', {
+            timeZone: service.location?.timezone || 'UTC',
+          }).format(scheduledTime);
+          const availableSlots = await this.serviceService.getAvailableSlots(
+            service.id,
+            localDateStr,
+          );
           const requestedSlot = scheduledTime.toISOString();
-          
-          if (!availableSlots.some(s => s.time === requestedSlot && s.available)) {
-            throw new BadRequestException(`The selected time slot is outside of operational hours or invalid for service ${service.name}`);
+
+          if (
+            !availableSlots.some((s) => s.time === requestedSlot && s.available)
+          ) {
+            throw new BadRequestException(
+              `The selected time slot is outside of operational hours or invalid for service ${service.name}`,
+            );
           }
 
           // Lock the service record to serialize concurrent bookings for this service
@@ -592,9 +647,14 @@ export class VisitService {
           }
         } else {
           // Walk-in booking - check if the service is open right now
-          const isOpenNow = await this.serviceService.isServiceOpen(service, new Date());
+          const isOpenNow = await this.serviceService.isServiceOpen(
+            service,
+            new Date(),
+          );
           if (!isOpenNow) {
-            throw new BadRequestException(`Service ${service.name} is currently closed.`);
+            throw new BadRequestException(
+              `Service ${service.name} is currently closed.`,
+            );
           }
         }
 
@@ -634,14 +694,14 @@ export class VisitService {
         // the VISIT_CREATED outbox event above. This ensures atomicity: the visit is committed
         // to the DB first, and then notification fires asynchronously — a WhatsApp failure
         // cannot cause the DB transaction to roll back or retry.
-        
+
         if (visit.serviceId) {
           await this.visitStepService.instantiateStepsForVisit(
             visit.tenantId,
             visit.id,
             visit.serviceId,
             { accompanyingGuests: visit.accompanyingGuests || 0 },
-            tx
+            tx,
           );
         }
 
@@ -652,9 +712,9 @@ export class VisitService {
     });
 
     // Zero-Latency Event Streaming: Wake up the outbox processor immediately
-    this.redisService.client.publish('outbox_events', 'WAKE_UP').catch(e => 
-      console.error('Failed to publish outbox wake-up event', e)
-    );
+    this.redisService.client
+      .publish('outbox_events', 'WAKE_UP')
+      .catch((e) => console.error('Failed to publish outbox wake-up event', e));
 
     return result;
   }
@@ -663,7 +723,10 @@ export class VisitService {
     return this.prisma.$transaction(async (tx) => {
       let operatorSkills: string[] = [];
       if (operatorId) {
-        const user = await tx.user.findUnique({ where: { id: operatorId }, select: { skills: true } });
+        const user = await tx.user.findUnique({
+          where: { id: operatorId },
+          select: { skills: true },
+        });
         if (user && user.skills) {
           operatorSkills = user.skills;
         }
@@ -672,7 +735,7 @@ export class VisitService {
       const waitingVisits = await tx.visit.findMany({
         where: { queueId, currentState: { in: ['WAITING', 'CHECKED_IN'] } },
         orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
-        include: { service: { select: { requiredSkills: true } } }
+        include: { service: { select: { requiredSkills: true } } },
       });
 
       if (waitingVisits.length === 0) return null; // Queue is empty
@@ -681,10 +744,10 @@ export class VisitService {
 
       // Skill-based matchmaking: Try to find the highest-priority visit that the operator is qualified for
       if (operatorSkills.length > 0) {
-        const qualifiedVisit = waitingVisits.find(v => {
+        const qualifiedVisit = waitingVisits.find((v) => {
           const req = v.service?.requiredSkills || [];
           if (req.length === 0) return true; // No skills required
-          return req.every(skill => operatorSkills.includes(skill));
+          return req.every((skill) => operatorSkills.includes(skill));
         });
         if (qualifiedVisit) {
           selectedVisit = qualifiedVisit;
@@ -760,7 +823,13 @@ export class VisitService {
         where: { id },
         include: {
           customer: { select: { name: true, phone: true } },
-          service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true } },
+          service: {
+            select: {
+              name: true,
+              expectedDuration: true,
+              emaExpectedDuration: true,
+            },
+          },
           location: { select: { name: true } },
           tenant: { select: { name: true } },
         },
@@ -775,7 +844,11 @@ export class VisitService {
           },
         });
         const position = waitingAhead + 1;
-        const ewt = waitingAhead * (fullVisit?.service?.emaExpectedDuration || fullVisit?.service?.expectedDuration || 5);
+        const ewt =
+          waitingAhead *
+          (fullVisit?.service?.emaExpectedDuration ||
+            fullVisit?.service?.expectedDuration ||
+            5);
         const statusUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com'}/status/${updated.accessToken}`;
         const msg =
           `✅ Reception confirmed your arrival at *${fullVisit?.location?.name || fullVisit?.tenant?.name}*!\n\n` +
@@ -783,10 +856,14 @@ export class VisitService {
           `🔢 Your position: *#${position}*\n` +
           (ewt > 0 ? `⏱ Estimated wait: *${ewt} mins*\n\n` : '\n') +
           `Track live: ${statusUrl}`;
-        await this.whatsappService.sendToTenant(tenantId, phone, msg).catch(() => {});
+        await this.whatsappService
+          .sendToTenant(tenantId, phone, msg)
+          .catch(() => {});
       }
     } catch (e) {
-      this.logger.warn(`WhatsApp receptionist check-in notification failed: ${e.message}`);
+      this.logger.warn(
+        `WhatsApp receptionist check-in notification failed: ${e.message}`,
+      );
     }
 
     return updated;
@@ -848,10 +925,15 @@ export class VisitService {
       let nextItinerary = visit.itinerary;
 
       if (Array.isArray(visit.itinerary)) {
-        const currentIdx = visit.itinerary.findIndex((i: any) => i.status === 'ACTIVE');
-        if (currentIdx !== -1) (visit.itinerary[currentIdx] as any).status = 'COMPLETED';
-        
-        const nextIdx = visit.itinerary.findIndex((i: any) => i.status === 'PENDING');
+        const currentIdx = visit.itinerary.findIndex(
+          (i: any) => i.status === 'ACTIVE',
+        );
+        if (currentIdx !== -1)
+          (visit.itinerary[currentIdx] as any).status = 'COMPLETED';
+
+        const nextIdx = visit.itinerary.findIndex(
+          (i: any) => i.status === 'PENDING',
+        );
         if (nextIdx !== -1) {
           (visit.itinerary[nextIdx] as any).status = 'ACTIVE';
           nextQueueId = (visit.itinerary[nextIdx] as any).queueId;
@@ -864,7 +946,8 @@ export class VisitService {
         where: { id },
         data: {
           currentState: nextState,
-          completedAt: nextState === 'COMPLETED' ? new Date() : visit.completedAt,
+          completedAt:
+            nextState === 'COMPLETED' ? new Date() : visit.completedAt,
           serviceEnd: new Date(),
           operatorId: operatorId || visit.operatorId,
           serviceStart: visit.serviceStart || new Date(),
@@ -874,18 +957,25 @@ export class VisitService {
       });
 
       if (nextState === 'COMPLETED') {
-        const actualDurationMs = updated.completedAt!.getTime() - updated.serviceStart!.getTime();
-        const actualDurationMins = Math.max(1, Math.round(actualDurationMs / 60000));
-        
-        const service = await tx.service.findUnique({ where: { id: updated.serviceId } });
+        const actualDurationMs =
+          updated.completedAt!.getTime() - updated.serviceStart!.getTime();
+        const actualDurationMins = Math.max(
+          1,
+          Math.round(actualDurationMs / 60000),
+        );
+
+        const service = await tx.service.findUnique({
+          where: { id: updated.serviceId },
+        });
         if (service) {
-          const currentEma = service.emaExpectedDuration || service.expectedDuration || 30;
-          const alpha = 0.2; 
-          const newEma = (actualDurationMins * alpha) + (currentEma * (1 - alpha));
-          
+          const currentEma =
+            service.emaExpectedDuration || service.expectedDuration || 30;
+          const alpha = 0.2;
+          const newEma = actualDurationMins * alpha + currentEma * (1 - alpha);
+
           await tx.service.update({
             where: { id: service.id },
-            data: { emaExpectedDuration: parseFloat(newEma.toFixed(2)) }
+            data: { emaExpectedDuration: parseFloat(newEma.toFixed(2)) },
           });
         }
 
@@ -954,7 +1044,13 @@ export class VisitService {
     });
   }
 
-  async cancelVisit(visitId: string, tenantId?: string, operatorId?: string, cancelledBy?: string, cancelReason?: string) {
+  async cancelVisit(
+    visitId: string,
+    tenantId?: string,
+    operatorId?: string,
+    cancelledBy?: string,
+    cancelReason?: string,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const visit = await tx.visit.findUnique({ where: { id: visitId } });
       if (!visit) throw new NotFoundException('Visit not found');
@@ -1060,9 +1156,13 @@ export class VisitService {
     }
 
     const actionableSteps = visit.visitSteps?.filter(
-      (s) => s.status === 'PENDING' || s.status === 'ACTIVE' || s.status === 'DEFERRED'
+      (s) =>
+        s.status === 'PENDING' ||
+        s.status === 'ACTIVE' ||
+        s.status === 'DEFERRED',
     );
-    const activeStep = actionableSteps && actionableSteps.length > 0 ? actionableSteps[0] : null;
+    const activeStep =
+      actionableSteps && actionableSteps.length > 0 ? actionableSteps[0] : null;
 
     return {
       valid: true,
@@ -1073,7 +1173,8 @@ export class VisitService {
       locationName: visit.queue?.location?.name || 'Unknown Location',
       serviceBooked: visit.service?.name || 'Unknown Service',
       scheduledFor: visit.scheduledTime,
-      checkedIn: visit.currentState !== 'SCHEDULED' && visit.currentState !== 'CREATED',
+      checkedIn:
+        visit.currentState !== 'SCHEDULED' && visit.currentState !== 'CREATED',
       checkInTime: visit.checkInTime,
       activeStep,
     };
@@ -1176,11 +1277,7 @@ export class VisitService {
    * One-time only — silently ignores if already rated.
    * Looks up the visit by its unique accessToken UUID.
    */
-  async rateVisit(
-    accessToken: string,
-    rating: number,
-    feedbackText?: string,
-  ) {
+  async rateVisit(accessToken: string, rating: number, feedbackText?: string) {
     const visit = await this.prisma.visit.findUnique({
       where: { accessToken },
       select: { id: true, rating: true, currentState: true },
@@ -1219,13 +1316,15 @@ export class VisitService {
       data: { notes: notes?.trim() || null },
     });
     // Invalidate queue metrics on update
-    this.redisService.client.del(`queue_metrics:${updated.queueId}`).catch(() => {});
+    this.redisService.client
+      .del(`queue_metrics:${updated.queueId}`)
+      .catch(() => {});
     return updated;
   }
 
   async updateTags(id: string, tenantId: string, tags: string[]) {
     const visit = await this.findOne(id, tenantId);
-    
+
     const updated = await this.prisma.visit.update({
       where: { id },
       data: { tags },
@@ -1244,7 +1343,9 @@ export class VisitService {
       },
     });
 
-    this.redisService.client.publish('outbox_events', 'WAKE_UP').catch(() => {});
+    this.redisService.client
+      .publish('outbox_events', 'WAKE_UP')
+      .catch(() => {});
     return updated;
   }
 }

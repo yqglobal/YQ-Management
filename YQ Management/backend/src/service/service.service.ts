@@ -97,7 +97,10 @@ export class ServiceService {
       where.locationId = locationId;
     }
 
-    if (reqUser && (reqUser.role === 'OPERATOR' || reqUser.role === 'MANAGER')) {
+    if (
+      reqUser &&
+      (reqUser.role === 'OPERATOR' || reqUser.role === 'MANAGER')
+    ) {
       const dbUser = await this.prisma.user.findUnique({
         where: { id: reqUser.userId || reqUser.sub },
       });
@@ -146,7 +149,7 @@ export class ServiceService {
             timezone: true,
             businessHours: true,
             exceptionDates: true,
-          }
+          },
         },
         queues: {
           where: { status: 'ACTIVE' },
@@ -161,17 +164,23 @@ export class ServiceService {
     });
 
     const now = new Date();
-    
+
     return Promise.all(
       services.map(async (s: any) => {
         const isOpenNow = await this.isServiceOpen(s, now);
         // Remove internal scheduling data from public payload
-        const { useLocationHours, businessHoursOverride, exceptionDatesOverride, location, ...publicService } = s;
+        const {
+          useLocationHours,
+          businessHoursOverride,
+          exceptionDatesOverride,
+          location,
+          ...publicService
+        } = s;
         return {
           ...publicService,
           isOpenNow,
         };
-      })
+      }),
     );
   }
 
@@ -184,7 +193,10 @@ export class ServiceService {
     return service;
   }
 
-  async isServiceOpen(service: any, checkDate: Date = new Date()): Promise<boolean> {
+  async isServiceOpen(
+    service: any,
+    checkDate: Date = new Date(),
+  ): Promise<boolean> {
     const timezone = service.location?.timezone || 'UTC';
     const zonedDate = toZonedTime(checkDate, timezone);
     const dateStr = format(zonedDate, 'yyyy-MM-dd');
@@ -206,7 +218,15 @@ export class ServiceService {
     }
 
     const dayOfWeek = zonedDate.getDay();
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const days = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ];
     const dayName = days[dayOfWeek];
 
     if (!businessHours) {
@@ -216,7 +236,7 @@ export class ServiceService {
     } else {
       const val = businessHours[dayName];
       if (val === undefined || val === null) return false;
-      
+
       let blocks: any[] = [];
       if (Array.isArray(val)) {
         if (val.length === 0) return false;
@@ -361,7 +381,15 @@ export class ServiceService {
     const [year, month, day] = date.split('-').map(Number);
     const localDayDate = new Date(year, month - 1, day);
     const dayOfWeek = localDayDate.getDay(); // 0 = Sunday, 6 = Saturday
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const days = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ];
     const dayName = days[dayOfWeek];
 
     let businessHours: any = null;
@@ -552,7 +580,7 @@ export class ServiceService {
     const nowZoned = toZonedTime(new Date(), timezone);
     const todayStr = format(nowZoned, 'yyyy-MM-dd');
     const maxDays = service.maxDaysInAdvance ?? 30;
-    
+
     // Add days properly (using date-fns if available, else plain JS)
     const maxDateZoned = new Date(nowZoned.getTime());
     maxDateZoned.setDate(maxDateZoned.getDate() + maxDays);

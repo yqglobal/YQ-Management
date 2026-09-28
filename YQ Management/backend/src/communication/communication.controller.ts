@@ -247,10 +247,7 @@ export class CommunicationController {
   @RequirePermissions(Permission.SETTINGS_WRITE)
   @Delete('templates/whatsapp/:key')
   async resetWhatsAppTemplate(@Request() req: any, @Param('key') key: string) {
-    await this.whatsappTemplateService.deleteTemplate(
-      req.user.tenantId,
-      key,
-    );
+    await this.whatsappTemplateService.deleteTemplate(req.user.tenantId, key);
     return { success: true };
   }
 
@@ -261,11 +258,7 @@ export class CommunicationController {
   getLogs(@Request() req: any, @Query() params: any) {
     const page = Number(params.page) || 1;
     const limit = Number(params.limit) || 50;
-    return this.communicationLogService.getLogs(
-      req.user.tenantId,
-      page,
-      limit,
-    );
+    return this.communicationLogService.getLogs(req.user.tenantId, page, limit);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard, PermissionsGuard, WorkspaceGuard)

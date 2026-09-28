@@ -1,5 +1,12 @@
 import {
-  IsString, IsOptional, IsBoolean, IsInt, IsNumber, IsEnum, IsArray, IsObject,
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsInt,
+  IsNumber,
+  IsEnum,
+  IsArray,
+  IsObject,
 } from 'class-validator';
 
 export enum StepTypeDto {
@@ -27,97 +34,127 @@ export class CreateStepDto {
   @IsString()
   name: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   description?: string;
 
-  @IsOptional() @IsEnum(StepTypeDto)
+  @IsOptional()
+  @IsEnum(StepTypeDto)
   type?: StepTypeDto;
 
-  @IsOptional() @IsEnum(StepTriggerDto)
+  @IsOptional()
+  @IsEnum(StepTriggerDto)
   trigger?: StepTriggerDto;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   serviceId?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   queueId?: string;
 
-  @IsOptional() @IsBoolean()
+  @IsOptional()
+  @IsBoolean()
   isOptional?: boolean;
 
-  @IsOptional() @IsBoolean()
+  @IsOptional()
+  @IsBoolean()
   isRepeatable?: boolean;
 
-  @IsOptional() @IsBoolean()
+  @IsOptional()
+  @IsBoolean()
   requiresQrScan?: boolean;
 
-  @IsOptional() @IsBoolean()
+  @IsOptional()
+  @IsBoolean()
   requiresStaffAction?: boolean;
 
   @IsOptional()
   prerequisites?: any;
 
-  @IsOptional() @IsInt()
+  @IsOptional()
+  @IsInt()
   deferredByDays?: number;
 
-  @IsOptional() @IsInt()
+  @IsOptional()
+  @IsInt()
   deferredByHours?: number;
 
-  @IsOptional() @IsInt()
+  @IsOptional()
+  @IsInt()
   expiresAfterDays?: number;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   entitlementUnit?: string;
 
-  @IsOptional() @IsInt()
+  @IsOptional()
+  @IsInt()
   entitlementFixed?: number;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   entitlementFormula?: string;
 
-  @IsOptional() @IsBoolean()
+  @IsOptional()
+  @IsBoolean()
   allowPartialRedemption?: boolean;
 
-  @IsOptional() @IsBoolean()
+  @IsOptional()
+  @IsBoolean()
   preventDoubleRedemption?: boolean;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   customerInstruction?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   staffInstruction?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   locationDescription?: string;
 
-  @IsOptional() @IsInt()
+  @IsOptional()
+  @IsInt()
   floorNumber?: number;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   roomNumber?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   buildingWing?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   mapImageUrl?: string;
 
-  @IsOptional() @IsBoolean()
+  @IsOptional()
+  @IsBoolean()
   notifyCustomerOnActivation?: boolean;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   notificationTemplate?: string;
 
-  @IsOptional() @IsBoolean()
+  @IsOptional()
+  @IsBoolean()
   notifyStaffOnActivation?: boolean;
 
-  @IsOptional() @IsNumber()
+  @IsOptional()
+  @IsNumber()
   stepPrice?: number;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   stepPriceCurrency?: string;
 
-  @IsOptional() @IsBoolean()
+  @IsOptional()
+  @IsBoolean()
   isPriceVariable?: boolean;
 
   @IsOptional()

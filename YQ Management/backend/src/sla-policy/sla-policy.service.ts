@@ -11,9 +11,9 @@ export class SlaPolicyService {
       include: {
         services: { select: { id: true, name: true } },
         _count: {
-          select: { services: true }
-        }
-      }
+          select: { services: true },
+        },
+      },
     });
   }
 
@@ -25,16 +25,18 @@ export class SlaPolicyService {
         breachThresholdMins: data.breachThresholdMins,
         escalationPhones: data.escalationPhones || [],
         tenantId,
-        services: data.serviceIds ? {
-          connect: data.serviceIds.map((id: string) => ({ id }))
-        } : undefined
-      }
+        services: data.serviceIds
+          ? {
+              connect: data.serviceIds.map((id: string) => ({ id })),
+            }
+          : undefined,
+      },
     });
   }
 
   async update(id: string, tenantId: string, data: any) {
     const policy = await this.prisma.slaPolicy.findFirst({
-      where: { id, tenantId }
+      where: { id, tenantId },
     });
     if (!policy) throw new NotFoundException('SLA Policy not found');
 
@@ -45,27 +47,29 @@ export class SlaPolicyService {
         warningThresholdMins: data.warningThresholdMins,
         breachThresholdMins: data.breachThresholdMins,
         escalationPhones: data.escalationPhones,
-        services: data.serviceIds ? {
-          set: data.serviceIds.map((id: string) => ({ id }))
-        } : undefined
-      }
+        services: data.serviceIds
+          ? {
+              set: data.serviceIds.map((id: string) => ({ id })),
+            }
+          : undefined,
+      },
     });
   }
 
   async remove(id: string, tenantId: string) {
     const policy = await this.prisma.slaPolicy.findFirst({
-      where: { id, tenantId }
+      where: { id, tenantId },
     });
     if (!policy) throw new NotFoundException('SLA Policy not found');
 
     // Remove relations first
     await this.prisma.service.updateMany({
       where: { slaPolicyId: id },
-      data: { slaPolicyId: null }
+      data: { slaPolicyId: null },
     });
 
     return this.prisma.slaPolicy.delete({
-      where: { id }
+      where: { id },
     });
   }
 }

@@ -67,7 +67,7 @@ export class InvitationController {
       where: { id: req.user.tenantId },
     });
 
-    const userSettings = req.user.personalSettings as any;
+    const userSettings = req.user.personalSettings;
     const inviterName = userSettings?.fullName || 'A team member';
 
     await this.emailService.sendTeamInviteEmail(

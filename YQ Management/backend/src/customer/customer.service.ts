@@ -90,13 +90,13 @@ export class CustomerService {
         visits: {
           orderBy: { createdAt: 'desc' },
           take: 10,
-          include: { 
-            service: true, 
+          include: {
+            service: true,
             queue: { include: { location: true } },
             // include all visit fields that VisitDrawer needs
-          }
-        }
-      }
+          },
+        },
+      },
     });
     if (!customer) throw new NotFoundException('Customer not found');
     return customer;

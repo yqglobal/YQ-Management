@@ -6,12 +6,22 @@ export class PublicCheckinController {
   constructor(private readonly service: PublicCheckinService) {}
 
   @Post('send-otp')
-  sendOtp(@Body() body: { phone: string; tenantId: string; locationId?: string }) {
+  sendOtp(
+    @Body() body: { phone: string; tenantId: string; locationId?: string },
+  ) {
     return this.service.sendOtp(body);
   }
 
   @Post('verify-otp')
-  verifyOtp(@Body() body: { phone: string; tenantId: string; locationId?: string; code: string }) {
+  verifyOtp(
+    @Body()
+    body: {
+      phone: string;
+      tenantId: string;
+      locationId?: string;
+      code: string;
+    },
+  ) {
     return this.service.verifyOtp(body);
   }
 

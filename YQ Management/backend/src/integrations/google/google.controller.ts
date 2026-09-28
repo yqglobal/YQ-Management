@@ -35,11 +35,12 @@ export class GoogleController {
   @Patch('business-profile')
   async updateBusinessProfileSettings(
     @Req() req: any,
-    @Body() data: {
+    @Body()
+    data: {
       enableSmartReviews?: boolean;
       reviewWaitThresholdMins?: number;
       locations?: any[];
-    }
+    },
   ) {
     const tenantId = req.user?.tenantId;
     if (!tenantId) throw new BadRequestException('tenantId is required');
@@ -79,13 +80,17 @@ export class GoogleController {
   ) {
     const tenantId = req.user?.tenantId;
     if (!tenantId) throw new BadRequestException('tenantId is required');
-    return this.googleService.fetchGoogleBusinessAccounts(integrationId, tenantId);
+    return this.googleService.fetchGoogleBusinessAccounts(
+      integrationId,
+      tenantId,
+    );
   }
 
   @Post('booking-button')
   async setBookingButton(
     @Req() req: any,
-    @Body() body: {
+    @Body()
+    body: {
       integrationId: string;
       gbpLocationName: string; // e.g. "accounts/123/locations/456"
       bookingUrl: string;
@@ -94,7 +99,9 @@ export class GoogleController {
     const tenantId = req.user?.tenantId;
     if (!tenantId) throw new BadRequestException('tenantId is required');
     if (!body.integrationId || !body.gbpLocationName || !body.bookingUrl) {
-      throw new BadRequestException('integrationId, gbpLocationName, and bookingUrl are required');
+      throw new BadRequestException(
+        'integrationId, gbpLocationName, and bookingUrl are required',
+      );
     }
     return this.googleService.setBookingUrl(
       body.integrationId,

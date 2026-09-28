@@ -65,13 +65,13 @@ export class AnalyticsDigestCron {
         });
 
         const completedVisits = await this.prisma.visit.findMany({
-          where: { 
-            tenantId: tenant.id, 
+          where: {
+            tenantId: tenant.id,
             createdAt: { gte: lastWeek },
             currentState: 'COMPLETED',
             waitingStart: { not: null },
             serviceStart: { not: null },
-            completedAt: { not: null }
+            completedAt: { not: null },
           },
           select: { waitingStart: true, serviceStart: true, completedAt: true },
         });
@@ -80,15 +80,23 @@ export class AnalyticsDigestCron {
         let totalService = 0;
         for (const v of completedVisits) {
           if (v.waitingStart && v.serviceStart && v.completedAt) {
-            const waitTimeMins = (v.serviceStart.getTime() - v.waitingStart.getTime()) / 60000;
-            const serviceTimeMins = (v.completedAt.getTime() - v.serviceStart.getTime()) / 60000;
+            const waitTimeMins =
+              (v.serviceStart.getTime() - v.waitingStart.getTime()) / 60000;
+            const serviceTimeMins =
+              (v.completedAt.getTime() - v.serviceStart.getTime()) / 60000;
             totalWait += waitTimeMins;
             totalService += serviceTimeMins;
           }
         }
 
-        const avgWaitTime = completedVisits.length > 0 ? Math.round(totalWait / completedVisits.length) : 0;
-        const avgServiceTime = completedVisits.length > 0 ? Math.round(totalService / completedVisits.length) : 0;
+        const avgWaitTime =
+          completedVisits.length > 0
+            ? Math.round(totalWait / completedVisits.length)
+            : 0;
+        const avgServiceTime =
+          completedVisits.length > 0
+            ? Math.round(totalService / completedVisits.length)
+            : 0;
 
         const emailHtml = `
           <h2>Weekly Analytics Digest - ${tenant.name}</h2>
@@ -111,10 +119,14 @@ export class AnalyticsDigestCron {
             });
           }
         }
-        
-        this.logger.debug(`Sent weekly digest to ${users.length} admins for tenant ${tenant.id}`);
+
+        this.logger.debug(
+          `Sent weekly digest to ${users.length} admins for tenant ${tenant.id}`,
+        );
       } catch (err) {
-        this.logger.error(`Failed to generate digest for tenant ${tenant.id}: ${err.message}`);
+        this.logger.error(
+          `Failed to generate digest for tenant ${tenant.id}: ${err.message}`,
+        );
       }
     }
 

@@ -16,7 +16,10 @@ export class PrismaService
   public extendedClient: any;
   private readonly logger = new Logger('PrismaSecurity');
 
-  private tenantPrivacyCache = new Map<string, { strictPrivacyMode: boolean; expiresAt: number }>();
+  private tenantPrivacyCache = new Map<
+    string,
+    { strictPrivacyMode: boolean; expiresAt: number }
+  >();
 
   constructor() {
     const connectionString = process.env.DATABASE_URL;
@@ -29,7 +32,9 @@ export class PrismaService
     super({ adapter });
 
     const tenantPrivacyCache = this.tenantPrivacyCache;
-    const isStrictPrivacyEnabled = async (tenantId: string): Promise<boolean> => {
+    const isStrictPrivacyEnabled = async (
+      tenantId: string,
+    ): Promise<boolean> => {
       if (!tenantId) return false;
       const now = Date.now();
       const cached = tenantPrivacyCache.get(tenantId);
@@ -37,9 +42,13 @@ export class PrismaService
         return cached.strictPrivacyMode;
       }
       // Perform a raw query to avoid interceptor loops
-      const res: any = await this.$queryRaw`SELECT "strictPrivacyMode" FROM "Tenant" WHERE id = ${tenantId} LIMIT 1`;
+      const res: any = await this
+        .$queryRaw`SELECT "strictPrivacyMode" FROM "Tenant" WHERE id = ${tenantId} LIMIT 1`;
       const mode = res && res.length > 0 ? res[0].strictPrivacyMode : false;
-      tenantPrivacyCache.set(tenantId, { strictPrivacyMode: mode, expiresAt: now + 60000 });
+      tenantPrivacyCache.set(tenantId, {
+        strictPrivacyMode: mode,
+        expiresAt: now + 60000,
+      });
       return mode;
     };
 
@@ -80,21 +89,32 @@ export class PrismaService
             const encryptUtil = require('../utils/encryption.util');
 
             // 1. Encryption on Write (create, update, upsert, createMany)
-            if (model === 'Customer' && (operation === 'create' || operation === 'update')) {
+            if (
+              model === 'Customer' &&
+              (operation === 'create' || operation === 'update')
+            ) {
               const data = (args as any).data;
-              const tenantId = (args as any).data?.tenantId || (args as any).where?.tenantId;
-              if (tenantId && await isStrictPrivacyEnabled(tenantId)) {
+              const tenantId =
+                (args as any).data?.tenantId || (args as any).where?.tenantId;
+              if (tenantId && (await isStrictPrivacyEnabled(tenantId))) {
                 if (data.name) data.name = encryptUtil.encrypt(data.name);
                 if (data.email) data.email = encryptUtil.encrypt(data.email);
                 if (data.phone) data.phone = encryptUtil.encrypt(data.phone);
               }
             }
-            if (model === 'Visit' && (operation === 'create' || operation === 'update')) {
+            if (
+              model === 'Visit' &&
+              (operation === 'create' || operation === 'update')
+            ) {
               const data = (args as any).data;
-              const tenantId = (args as any).data?.tenantId || (args as any).where?.tenantId;
-              if (tenantId && await isStrictPrivacyEnabled(tenantId)) {
+              const tenantId =
+                (args as any).data?.tenantId || (args as any).where?.tenantId;
+              if (tenantId && (await isStrictPrivacyEnabled(tenantId))) {
                 if (data.notes) data.notes = encryptUtil.encrypt(data.notes);
-                if (data.formResponses) data.formResponses = encryptUtil.encryptJson(data.formResponses);
+                if (data.formResponses)
+                  data.formResponses = encryptUtil.encryptJson(
+                    data.formResponses,
+                  );
               }
             }
 
@@ -106,22 +126,32 @@ export class PrismaService
               const decryptRecord = (record: any, modelName: string) => {
                 if (!record) return;
                 if (modelName === 'Customer') {
-                  if (record.name) record.name = encryptUtil.decrypt(record.name);
-                  if (record.email) record.email = encryptUtil.decrypt(record.email);
-                  if (record.phone) record.phone = encryptUtil.decrypt(record.phone);
+                  if (record.name)
+                    record.name = encryptUtil.decrypt(record.name);
+                  if (record.email)
+                    record.email = encryptUtil.decrypt(record.email);
+                  if (record.phone)
+                    record.phone = encryptUtil.decrypt(record.phone);
                 } else if (modelName === 'Visit') {
-                  if (record.notes) record.notes = encryptUtil.decrypt(record.notes);
-                  if (record.formResponses && typeof record.formResponses === 'string') {
-                    record.formResponses = encryptUtil.decryptJson(record.formResponses);
+                  if (record.notes)
+                    record.notes = encryptUtil.decrypt(record.notes);
+                  if (
+                    record.formResponses &&
+                    typeof record.formResponses === 'string'
+                  ) {
+                    record.formResponses = encryptUtil.decryptJson(
+                      record.formResponses,
+                    );
                   }
-                  if (record.customer) decryptRecord(record.customer, 'Customer');
+                  if (record.customer)
+                    decryptRecord(record.customer, 'Customer');
                 }
               };
 
               if (Array.isArray(result)) {
-                result.forEach(r => decryptRecord(r, model as string));
+                result.forEach((r) => decryptRecord(r, model));
               } else {
-                decryptRecord(result, model as string);
+                decryptRecord(result, model);
               }
             }
 

@@ -7,6 +7,6 @@ import { SlaPolicyController } from './sla-policy.controller';
   imports: [PrismaModule],
   controllers: [SlaPolicyController],
   providers: [SlaPolicyService],
-  exports: [SlaPolicyService]
+  exports: [SlaPolicyService],
 })
 export class SlaPolicyModule {}

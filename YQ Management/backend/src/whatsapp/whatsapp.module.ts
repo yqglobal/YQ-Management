@@ -32,7 +32,12 @@ import { WhatsappAiService } from './whatsapp-ai.service';
     }),
   ],
   controllers: [WhatsappController],
-  providers: [WhatsappService, WhatsappLogger, WhatsappWebhookProcessor, WhatsappAiService],
+  providers: [
+    WhatsappService,
+    WhatsappLogger,
+    WhatsappWebhookProcessor,
+    WhatsappAiService,
+  ],
   exports: [WhatsappService, WhatsappLogger, WhatsappAiService],
 })
 export class WhatsappModule {}

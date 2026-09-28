@@ -65,9 +65,13 @@ export class AppointmentService {
       },
     });
 
-    this.queueGateway.broadcastTenantUpdate(appointment.tenantId, 'APPOINTMENT_CREATED', {
-      appointment,
-    });
+    this.queueGateway.broadcastTenantUpdate(
+      appointment.tenantId,
+      'APPOINTMENT_CREATED',
+      {
+        appointment,
+      },
+    );
 
     // Sync to Google Calendar
     this.googleService
@@ -245,11 +249,17 @@ export class AppointmentService {
     }
 
     // Sync to Google Calendar
-    if (!['CANCELLED', 'NO_SHOW', 'MISSED', 'REJECTED'].includes(updated.status)) {
-      this.googleService.updateAppointmentInCalendar(updated.tenantId, updated).catch(console.error);
+    if (
+      !['CANCELLED', 'NO_SHOW', 'MISSED', 'REJECTED'].includes(updated.status)
+    ) {
+      this.googleService
+        .updateAppointmentInCalendar(updated.tenantId, updated)
+        .catch(console.error);
     } else {
       // If cancelled/rejected/missed, we should remove from calendar
-      this.googleService.deleteAppointmentFromCalendar(updated.tenantId, updated).catch(console.error);
+      this.googleService
+        .deleteAppointmentFromCalendar(updated.tenantId, updated)
+        .catch(console.error);
     }
 
     return updated;
@@ -262,7 +272,9 @@ export class AppointmentService {
       where: { id },
     });
 
-    this.googleService.deleteAppointmentFromCalendar(tenantId, appointment).catch(console.error);
+    this.googleService
+      .deleteAppointmentFromCalendar(tenantId, appointment)
+      .catch(console.error);
 
     return deleted;
   }
@@ -271,8 +283,16 @@ export class AppointmentService {
    * Unified schedule view for the timeline calendar.
    * Returns appointments, walk-in visits, avg durations, and gap analysis for a given date.
    */
-  async getScheduleView(tenantId: string, date: string, start?: string, end?: string, locationId?: string) {
-    const dayStart = start ? new Date(start) : new Date(`${date}T00:00:00.000Z`);
+  async getScheduleView(
+    tenantId: string,
+    date: string,
+    start?: string,
+    end?: string,
+    locationId?: string,
+  ) {
+    const dayStart = start
+      ? new Date(start)
+      : new Date(`${date}T00:00:00.000Z`);
     const dayEnd = end ? new Date(end) : new Date(`${date}T23:59:59.999Z`);
 
     // Fetch all appointments for the day
@@ -396,26 +416,40 @@ export class AppointmentService {
       const avgMins = Math.round(totalMs / recentCompleted.length / 60000);
       if (avgMins <= 0) return;
 
-      const service = await this.prisma.service.findUnique({ where: { id: serviceId }, select: { emaExpectedDuration: true, expectedDuration: true } });
-      const currentEma = service?.emaExpectedDuration || service?.expectedDuration || avgMins;
-      
+      const service = await this.prisma.service.findUnique({
+        where: { id: serviceId },
+        select: { emaExpectedDuration: true, expectedDuration: true },
+      });
+      const currentEma =
+        service?.emaExpectedDuration || service?.expectedDuration || avgMins;
+
       const latestVisit = recentCompleted[0];
-      const latestDuration = (latestVisit.completedAt!.getTime() - latestVisit.serviceStart!.getTime()) / 60000;
-      
+      const latestDuration =
+        (latestVisit.completedAt!.getTime() -
+          latestVisit.serviceStart!.getTime()) /
+        60000;
+
       // ML Exponential Moving Average (alpha = 0.2 for ~10 periods)
       const alpha = 0.2;
-      const newEma = (latestDuration * alpha) + (currentEma * (1 - alpha));
+      const newEma = latestDuration * alpha + currentEma * (1 - alpha);
 
       await this.prisma.service.update({
         where: { id: serviceId },
         data: { avgActualDurationMins: avgMins, emaExpectedDuration: newEma },
       });
     } catch (e) {
-      console.error(`Failed to update duration stats for service ${serviceId}: ${e.message}`);
+      console.error(
+        `Failed to update duration stats for service ${serviceId}: ${e.message}`,
+      );
     }
   }
 
-  async getAvailableSlots(tenantId: string, serviceId: string, date: string, locationId?: string) {
+  async getAvailableSlots(
+    tenantId: string,
+    serviceId: string,
+    date: string,
+    locationId?: string,
+  ) {
     const service = await this.prisma.service.findUnique({
       where: { id: serviceId, tenantId },
     });
@@ -434,18 +468,20 @@ export class AppointmentService {
         ...(locationId ? { locationId } : {}),
       },
       include: {
-        services: true
-      }
+        services: true,
+      },
     });
 
     const eligibleStaff = staffMembers.filter((staff) => {
-      if (staff.services?.some(s => s.id === serviceId)) {
+      if (staff.services?.some((s) => s.id === serviceId)) {
         return true;
       }
       if (service.requiredSkills && service.requiredSkills.length > 0) {
         // Subset logic: all required skills must be in staff's skills
         const staffSkills = staff.skills || [];
-        return service.requiredSkills.every((skill) => staffSkills.includes(skill));
+        return service.requiredSkills.every((skill) =>
+          staffSkills.includes(skill),
+        );
       }
       return false;
     });
@@ -457,18 +493,23 @@ export class AppointmentService {
     // Now, we would typically generate slots based on business hours, exception dates, and existing appointments.
     // For simplicity, let's generate mock slots for the eligible staff members.
     // Real implementation would calculate true availability per staff member.
-    
+
     const slots = [];
     const baseDate = new Date(date);
     baseDate.setHours(9, 0, 0, 0); // Start at 9 AM
 
     for (let i = 0; i < 6; i++) {
-      const slotStart = new Date(baseDate.getTime() + i * (service.appointmentGranularityMins || 30) * 60000);
-      const slotEnd = new Date(slotStart.getTime() + (service.expectedDuration || 30) * 60000);
-      
+      const slotStart = new Date(
+        baseDate.getTime() +
+          i * (service.appointmentGranularityMins || 30) * 60000,
+      );
+      const slotEnd = new Date(
+        slotStart.getTime() + (service.expectedDuration || 30) * 60000,
+      );
+
       // Assign the first eligible staff for demonstration
       const assignedStaff = eligibleStaff[i % eligibleStaff.length];
-      
+
       slots.push({
         start: slotStart.toISOString(),
         end: slotEnd.toISOString(),

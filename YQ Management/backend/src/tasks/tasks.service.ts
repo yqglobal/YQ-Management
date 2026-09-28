@@ -134,7 +134,8 @@ export class TasksService {
       if (!phone || !visit.scheduledTime) continue;
 
       const diffMins = (visit.scheduledTime.getTime() - now.getTime()) / 60000;
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com';
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com';
       const statusUrl = `${baseUrl}/status/${visit.accessToken}`;
 
       let message: string | null = null;
@@ -165,7 +166,11 @@ export class TasksService {
       if (message) {
         await this.notificationsService
           .sendWhatsAppMessage(phone, message, visit.tenant?.id)
-          .catch((e) => this.logger.warn(`Reminder send failed for visit ${visit.id}: ${e.message}`));
+          .catch((e) =>
+            this.logger.warn(
+              `Reminder send failed for visit ${visit.id}: ${e.message}`,
+            ),
+          );
       }
     }
   }
@@ -192,13 +197,13 @@ export class TasksService {
       where: {
         currentState: 'WAITING',
         slaStatus: { not: 'BREACHED' },
-        service: { slaPolicyId: { not: null } }
+        service: { slaPolicyId: { not: null } },
       },
       include: {
         service: { include: { slaPolicy: true } },
         customer: { select: { name: true } },
-        tenant: { select: { id: true, name: true } }
-      }
+        tenant: { select: { id: true, name: true } },
+      },
     });
 
     const now = new Date();
@@ -208,19 +213,34 @@ export class TasksService {
       const policy = v.service.slaPolicy;
       let newStatus = v.slaStatus;
 
-      if (waitMins >= policy.breachThresholdMins && v.slaStatus !== 'BREACHED') {
+      if (
+        waitMins >= policy.breachThresholdMins &&
+        v.slaStatus !== 'BREACHED'
+      ) {
         newStatus = 'BREACHED';
-      } else if (waitMins >= policy.warningThresholdMins && v.slaStatus === 'OK') {
+      } else if (
+        waitMins >= policy.warningThresholdMins &&
+        v.slaStatus === 'OK'
+      ) {
         newStatus = 'WARNING';
       }
 
       if (newStatus !== v.slaStatus) {
-        await this.prisma.visit.update({ where: { id: v.id }, data: { slaStatus: newStatus } });
-        
-        if (newStatus === 'BREACHED' && policy.escalationPhones && policy.escalationPhones.length > 0) {
+        await this.prisma.visit.update({
+          where: { id: v.id },
+          data: { slaStatus: newStatus },
+        });
+
+        if (
+          newStatus === 'BREACHED' &&
+          policy.escalationPhones &&
+          policy.escalationPhones.length > 0
+        ) {
           const msg = `🚨 *SLA BREACH* 🚨\nCustomer *${v.customer.name}* has been waiting *${Math.floor(waitMins)} mins* for *${v.service.name}* at *${v.tenant.name}*.`;
           for (const phone of policy.escalationPhones) {
-             await this.notificationsService.sendWhatsAppMessage(phone, msg, v.tenant.id).catch(e => this.logger.error(e));
+            await this.notificationsService
+              .sendWhatsAppMessage(phone, msg, v.tenant.id)
+              .catch((e) => this.logger.error(e));
           }
         }
       }
@@ -241,19 +261,27 @@ export class TasksService {
         surveySent: false,
         completedAt: {
           lte: oneHourAgo,
-          gte: oneHourFiveMinsAgo
+          gte: oneHourFiveMinsAgo,
         },
-        customer: { phone: { not: null } }
+        customer: { phone: { not: null } },
       },
-      include: { customer: { select: { name: true, phone: true } }, tenant: { select: { id: true } }, location: { select: { name: true } } }
+      include: {
+        customer: { select: { name: true, phone: true } },
+        tenant: { select: { id: true } },
+        location: { select: { name: true } },
+      },
     });
 
     for (const v of visits) {
       if (!v.customer?.phone) continue;
       const msg = `Hi ${v.customer.name}, thanks for visiting ${v.location.name}! How was your experience? Reply 1 (Terrible) to 5 (Excellent).`;
-      await this.notificationsService.sendWhatsAppMessage(v.customer.phone, msg, v.tenant.id).catch(e => this.logger.error(e));
-      await this.prisma.visit.update({ where: { id: v.id }, data: { surveySent: true } });
+      await this.notificationsService
+        .sendWhatsAppMessage(v.customer.phone, msg, v.tenant.id)
+        .catch((e) => this.logger.error(e));
+      await this.prisma.visit.update({
+        where: { id: v.id },
+        data: { surveySent: true },
+      });
     }
   }
 }
-

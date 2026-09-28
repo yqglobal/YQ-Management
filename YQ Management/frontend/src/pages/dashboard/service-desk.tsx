@@ -107,8 +107,10 @@ export default function ServiceDeskToday() {
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [mobileTab, setMobileTab] = useState<'pool' | 'pipeline'>('pool');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentLink, setPaymentLink] = useState<string | null>(null);
+  const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const { socket } = useSocket();
   
   const plan = usePlan();
@@ -366,9 +368,40 @@ export default function ServiceDeskToday() {
       queryClient.invalidateQueries({ queryKey: ['visits'] });
       queryClient.invalidateQueries({ queryKey: ['queues'] });
       if (selectedVisit?.id === id) setSelectedVisit(null);
+      setPaymentAmount('');
+      setPaymentLink(null);
     } catch (err) {
       console.error('Failed to complete visit/token', err);
       alert('Failed to complete. Please try again.');
+    }
+  };
+
+  const handleGeneratePaymentLink = async (visitId: string, visitStepId: string) => {
+    if (!paymentAmount || isNaN(Number(paymentAmount)) || Number(paymentAmount) <= 0) {
+      alert('Please enter a valid amount.');
+      return;
+    }
+    
+    setIsGeneratingPayment(true);
+    try {
+      // Hit the intent generation API which creates BookingPayment DB record
+      const res = await fetchApi('/tenant-payments/public/intent', {
+        method: 'POST',
+        body: JSON.stringify({
+          tenantId: tenant.id,
+          amount: Number(paymentAmount) * 100, // cents
+          visitId,
+          visitStepId,
+          description: 'In-Person Service Payment'
+        })
+      });
+      
+      const link = `https://${tenant.subdomain}.qmova.yqbuddy.com/pay/${res.paymentId}`;
+      setPaymentLink(link);
+    } catch (e: any) {
+      alert('Failed to generate payment link: ' + e.message);
+    } finally {
+      setIsGeneratingPayment(false);
     }
   };
 
@@ -926,30 +959,71 @@ export default function ServiceDeskToday() {
                   placeholder={industry.terminology.notesPlaceholder}
                 />
                 
-                {selectedVisit?.itinerary?.find((s: any) => (s.status === 'IN_PROGRESS' || s.status === 'QUEUED') && s.type === 'PAYMENT') && (
-                  <div className="mt-4 p-4 border border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-900/20 rounded-xl">
-                    <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
-                      <span className="material-symbols-outlined">payments</span>
-                      Payment Required
-                    </h4>
-                    <p className="text-sm text-blue-700 dark:text-blue-400 mb-3">
-                      This step requires a payment to be collected from the customer before proceeding.
-                    </p>
-                    <div className="flex gap-2">
-                      <input 
-                        type="number" 
-                        placeholder="Amount (e.g. 150)" 
-                        className="flex-1 bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2 text-sm"
-                      />
-                      <button 
-                        onClick={() => alert('Payment Intent Generation coming soon via Stripe Terminal / Webhook')}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm"
-                      >
-                        Generate Link
-                      </button>
+                {(() => {
+                  const activePaymentStep = selectedVisit?.itinerary?.find((s: any) => (s.status === 'IN_PROGRESS' || s.status === 'QUEUED') && s.type === 'PAYMENT');
+                  if (!activePaymentStep) return null;
+                  
+                  return (
+                    <div className="mt-4 p-4 border border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-900/20 rounded-xl">
+                      <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
+                        <span className="material-symbols-outlined">payments</span>
+                        Payment Required
+                      </h4>
+                      
+                      {!paymentLink ? (
+                        <>
+                          <p className="text-sm text-blue-700 dark:text-blue-400 mb-3">
+                            This step requires a payment to be collected from the customer before proceeding.
+                          </p>
+                          <div className="flex gap-2">
+                            <input 
+                              type="number" 
+                              placeholder="Amount (e.g. 150)" 
+                              value={paymentAmount}
+                              onChange={(e) => setPaymentAmount(e.target.value)}
+                              className="flex-1 bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2 text-sm"
+                            />
+                            <button 
+                              disabled={isGeneratingPayment}
+                              onClick={() => handleGeneratePaymentLink(selectedVisit.id, activePaymentStep.id)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                              {isGeneratingPayment ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Generate Link'}
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center space-y-4 py-2">
+                          <div className="bg-white p-3 rounded-xl shadow-sm">
+                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(paymentLink)}`} alt="Payment QR" className="w-32 h-32" />
+                          </div>
+                          <p className="text-sm text-blue-700 dark:text-blue-400 text-center">
+                            Scan this QR code or send the link to the customer to complete payment.
+                          </p>
+                          <div className="flex gap-2 w-full">
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText(paymentLink);
+                                toast.success('Link copied to clipboard!');
+                              }}
+                              className="flex-1 bg-white dark:bg-zinc-800 text-blue-700 dark:text-blue-300 px-3 py-2 border border-blue-200 dark:border-blue-800 rounded-lg text-xs font-bold"
+                            >
+                              Copy Link
+                            </button>
+                            <a 
+                              href={`https://wa.me/${selectedVisit?.customer?.phone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(`Here is your secure payment link for Qmova: ${paymentLink}`)}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">chat</span>
+                              WhatsApp
+                            </a>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 <div className="mt-4 flex gap-2">
                   {['WAITING', 'QUEUED'].includes(selectedVisit.currentState) && (

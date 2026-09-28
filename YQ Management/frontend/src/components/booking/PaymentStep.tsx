@@ -10,13 +10,13 @@ interface PaymentStepProps {
   currency: string;
   stripeAccountId: string;
   onSuccess: (paymentId: string) => void;
-  onBack: () => void;
+  onBack?: () => void;
   primaryColor: string;
   visitId?: string;
   visitStepId?: string;
 }
 
-const CheckoutForm = ({ onSuccess, onBack, primaryColor, paymentId }: { onSuccess: (paymentId: string) => void, onBack: () => void, primaryColor: string, paymentId: string }) => {
+const CheckoutForm = ({ onSuccess, onBack, primaryColor, paymentId }: { onSuccess: (paymentId: string) => void, onBack?: () => void, primaryColor: string, paymentId: string }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -62,9 +62,11 @@ const CheckoutForm = ({ onSuccess, onBack, primaryColor, paymentId }: { onSucces
       {error && <div className="text-red-500 text-sm font-medium p-3 bg-red-50 rounded-lg">{error}</div>}
 
       <div className="flex gap-3 pt-4">
-        <button type="button" onClick={onBack} disabled={processing} className="px-6 py-4 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
-          Back
-        </button>
+        {onBack && (
+          <button type="button" onClick={onBack} disabled={processing} className="px-6 py-4 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
+            Back
+          </button>
+        )}
         <button type="submit" disabled={!stripe || processing} className="flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 flex justify-center items-center gap-2" style={{ backgroundColor: primaryColor }}>
           {processing && <Loader2 className="w-5 h-5 animate-spin" />}
           Pay Now

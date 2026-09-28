@@ -47,7 +47,6 @@ export interface FlowTemplate {
 }
 
 export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
-
   // ═══════════════════════════════════════════════════════════════════════════
   // 1. HEALTHCARE
   //    Covers: General Practice, Hospital Outpatient, Specialist Clinic,
@@ -57,9 +56,21 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     key: 'healthcare',
     name: 'Healthcare & Medical Services',
     description:
-      'Complete patient journey from arrival to discharge. Covers GP, hospitals, specialists, dentists, optometrists, and allied health. Includes triage, consultation, diagnostics, procedures, billing, and pharmacy. Remove steps that don\'t apply to your practice.',
+      "Complete patient journey from arrival to discharge. Covers GP, hospitals, specialists, dentists, optometrists, and allied health. Includes triage, consultation, diagnostics, procedures, billing, and pharmacy. Remove steps that don't apply to your practice.",
     industry: 'Healthcare',
-    businessTypes: ['hospital', 'clinic', 'gp', 'doctor', 'dentist', 'optometrist', 'specialist', 'physio', 'pharmacy', 'medical', 'health'],
+    businessTypes: [
+      'hospital',
+      'clinic',
+      'gp',
+      'doctor',
+      'dentist',
+      'optometrist',
+      'specialist',
+      'physio',
+      'pharmacy',
+      'medical',
+      'health',
+    ],
     steps: [
       {
         stepOrder: 1,
@@ -69,50 +80,69 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Welcome! Please present your QR code or ID at the reception desk.',
-        staffInstruction: 'Verify patient identity, confirm appointment or walk-in, and capture basic details.',
+        customerInstruction:
+          'Welcome! Please present your QR code or ID at the reception desk.',
+        staffInstruction:
+          'Verify patient identity, confirm appointment or walk-in, and capture basic details.',
         locationDescription: 'Reception / Front Desk',
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 2,
         name: 'Medical Aid / Insurance Verification',
-        description: 'Verify patient\'s medical aid or insurance cover before consultation.',
+        description:
+          "Verify patient's medical aid or insurance cover before consultation.",
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Please provide your medical aid card or insurance details.',
-        staffInstruction: 'Run online eligibility check or call fund to confirm authorization.',
-        outcomeOptions: ['Verified – Covered', 'Partial Cover – Collect Co-payment', 'Not Covered – Self-Pay', 'Claim Pending'],
+        customerInstruction:
+          'Please provide your medical aid card or insurance details.',
+        staffInstruction:
+          'Run online eligibility check or call fund to confirm authorization.',
+        outcomeOptions: [
+          'Verified – Covered',
+          'Partial Cover – Collect Co-payment',
+          'Not Covered – Self-Pay',
+          'Claim Pending',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 3,
         name: 'Triage & Vitals',
-        description: 'Nurse or clinical assistant records vitals and assesses urgency.',
+        description:
+          'Nurse or clinical assistant records vitals and assesses urgency.',
         type: 'SERVICE',
         trigger: 'AUTOMATIC',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'A nurse will call you shortly to take your vitals.',
-        staffInstruction: 'Record temperature, BP, pulse, weight, O2 saturation. Assign triage priority.',
+        customerInstruction:
+          'A nurse will call you shortly to take your vitals.',
+        staffInstruction:
+          'Record temperature, BP, pulse, weight, O2 saturation. Assign triage priority.',
         locationDescription: 'Triage / Nursing Station',
-        outcomeOptions: ['Priority 1 – Emergency', 'Priority 2 – Urgent', 'Priority 3 – Routine'],
+        outcomeOptions: [
+          'Priority 1 – Emergency',
+          'Priority 2 – Urgent',
+          'Priority 3 – Routine',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 4,
         name: 'Doctor / Specialist Consultation',
-        description: 'Primary clinical consultation with the assigned practitioner.',
+        description:
+          'Primary clinical consultation with the assigned practitioner.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         requiresStaffAction: true,
         customerInstruction: 'Please wait to be called by your doctor.',
-        staffInstruction: 'Conduct consultation. Select the outcome below to route the patient correctly.',
+        staffInstruction:
+          'Conduct consultation. Select the outcome below to route the patient correctly.',
         outcomeOptions: [
           'Prescription Only – Proceed to Pharmacy',
           'Requires Diagnostics – Refer to Lab/Imaging',
@@ -126,78 +156,109 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
       {
         stepOrder: 5,
         name: 'Diagnostic Tests (Pathology / Imaging)',
-        description: 'Blood, urine, X-ray, sonar, or other diagnostic tests as ordered.',
+        description:
+          'Blood, urine, X-ray, sonar, or other diagnostic tests as ordered.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Your doctor has requested tests. Please proceed to the laboratory / imaging room.',
-        staffInstruction: 'Collect appropriate samples or run imaging. Capture results.',
+        customerInstruction:
+          'Your doctor has requested tests. Please proceed to the laboratory / imaging room.',
+        staffInstruction:
+          'Collect appropriate samples or run imaging. Capture results.',
         locationDescription: 'Laboratory / Radiology / Imaging',
-        outcomeOptions: ['Results Available – Proceed', 'Results Sent to Doctor', 'Send Out for External Lab'],
+        outcomeOptions: [
+          'Results Available – Proceed',
+          'Results Sent to Doctor',
+          'Send Out for External Lab',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 6,
         name: 'Await Results',
-        description: 'Patient waits (may leave and return) for diagnostic results.',
+        description:
+          'Patient waits (may leave and return) for diagnostic results.',
         type: 'SERVICE',
         trigger: 'SCHEDULED',
         isOptional: true,
         deferredByHours: 24,
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'Your results will be ready within 24 hours. You will be notified via WhatsApp. You may leave and come back.',
+        customerInstruction:
+          'Your results will be ready within 24 hours. You will be notified via WhatsApp. You may leave and come back.',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 7,
         name: 'Results Review & Follow-up Consultation',
-        description: 'Doctor reviews results and provides further treatment plan.',
+        description:
+          'Doctor reviews results and provides further treatment plan.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Please wait to be called back to see your doctor.',
-        staffInstruction: 'Discuss results with patient. Update treatment plan accordingly.',
-        outcomeOptions: ['Normal – Prescribe & Discharge', 'Abnormal – Escalate Treatment', 'Refer to Specialist', 'Admit Patient'],
+        customerInstruction:
+          'Please wait to be called back to see your doctor.',
+        staffInstruction:
+          'Discuss results with patient. Update treatment plan accordingly.',
+        outcomeOptions: [
+          'Normal – Prescribe & Discharge',
+          'Abnormal – Escalate Treatment',
+          'Refer to Specialist',
+          'Admit Patient',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 8,
         name: 'Treatment / Procedure Room',
-        description: 'Minor procedure, dressing, injection, dental work, or other in-house treatment.',
+        description:
+          'Minor procedure, dressing, injection, dental work, or other in-house treatment.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
         customerInstruction: 'Please proceed to the treatment room.',
-        staffInstruction: 'Perform procedure. Record outcome and any consumables used.',
+        staffInstruction:
+          'Perform procedure. Record outcome and any consumables used.',
         locationDescription: 'Treatment Room / Procedure Room',
-        outcomeOptions: ['Completed Successfully', 'Complications – Escalate', 'Requires Follow-up Appointment'],
+        outcomeOptions: [
+          'Completed Successfully',
+          'Complications – Escalate',
+          'Requires Follow-up Appointment',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 9,
         name: 'Billing & Invoice',
-        description: 'Patient is billed for all services rendered during the visit.',
+        description:
+          'Patient is billed for all services rendered during the visit.',
         type: 'PAYMENT',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         isPriceVariable: true,
-        customerInstruction: 'Please proceed to the cashier to settle your account.',
-        staffInstruction: 'Generate itemized invoice. Process payment by cash, card, or medical aid.',
+        customerInstruction:
+          'Please proceed to the cashier to settle your account.',
+        staffInstruction:
+          'Generate itemized invoice. Process payment by cash, card, or medical aid.',
         locationDescription: 'Cashier / Billing Desk',
-        outcomeOptions: ['Paid in Full', 'Medical Aid Direct', 'Payment Arrangement Made'],
+        outcomeOptions: [
+          'Paid in Full',
+          'Medical Aid Direct',
+          'Payment Arrangement Made',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 10,
         name: 'Pharmacy & Prescription Collection',
-        description: 'Patient collects prescribed medication from the pharmacy.',
+        description:
+          'Patient collects prescribed medication from the pharmacy.',
         type: 'COLLECTION',
         trigger: 'AUTOMATIC',
         isOptional: true,
@@ -207,23 +268,31 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementFixed: 1,
         allowPartialRedemption: false,
         preventDoubleRedemption: true,
-        customerInstruction: 'Please present your QR code at the pharmacy counter to collect your prescription.',
-        staffInstruction: 'Scan QR code, verify prescription against dispense list, and hand over medication.',
+        customerInstruction:
+          'Please present your QR code at the pharmacy counter to collect your prescription.',
+        staffInstruction:
+          'Scan QR code, verify prescription against dispense list, and hand over medication.',
         locationDescription: 'Pharmacy Counter',
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 11,
         name: 'Discharge & Aftercare Instructions',
-        description: 'Final step – patient receives aftercare instructions and sick note if applicable.',
+        description:
+          'Final step – patient receives aftercare instructions and sick note if applicable.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'You are being discharged. Please collect any documents before leaving.',
-        staffInstruction: 'Hand over sick certificate, referral letters, and post-care instruction sheet.',
-        outcomeOptions: ['Discharged – Follow-up Booked', 'Discharged – No Follow-up Required'],
+        customerInstruction:
+          'You are being discharged. Please collect any documents before leaving.',
+        staffInstruction:
+          'Hand over sick certificate, referral letters, and post-care instruction sheet.',
+        outcomeOptions: [
+          'Discharged – Follow-up Booked',
+          'Discharged – No Follow-up Required',
+        ],
         notifyCustomerOnActivation: false,
       },
     ],
@@ -240,32 +309,53 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Full service journey for any food business — walk-in dining, fast food, reservations, catering, and event meal service. Covers pre-order, table management, payment, and collection. Trim to your model.',
     industry: 'Food & Beverage',
-    businessTypes: ['restaurant', 'fastfood', 'fast food', 'cafe', 'cafeteria', 'catering', 'food truck', 'diner', 'bistro', 'bakery', 'canteen'],
+    businessTypes: [
+      'restaurant',
+      'fastfood',
+      'fast food',
+      'cafe',
+      'cafeteria',
+      'catering',
+      'food truck',
+      'diner',
+      'bistro',
+      'bakery',
+      'canteen',
+    ],
     steps: [
       {
         stepOrder: 1,
         name: 'Arrival & Reservation Check-in',
-        description: 'Guest arrives and is checked in against reservation or as a walk-in.',
+        description:
+          'Guest arrives and is checked in against reservation or as a walk-in.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Welcome! Please present your booking QR code or your name at the host stand.',
-        staffInstruction: 'Verify reservation or add to walk-in queue. Note party size.',
+        customerInstruction:
+          'Welcome! Please present your booking QR code or your name at the host stand.',
+        staffInstruction:
+          'Verify reservation or add to walk-in queue. Note party size.',
         locationDescription: 'Entrance / Host Stand',
-        outcomeOptions: ['Reservation Confirmed', 'Walk-in – Added to Queue', 'No Availability – Waitlist'],
+        outcomeOptions: [
+          'Reservation Confirmed',
+          'Walk-in – Added to Queue',
+          'No Availability – Waitlist',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 2,
         name: 'Waitlist / Queue',
-        description: 'Guest waits for a table or their order slot to become available.',
+        description:
+          'Guest waits for a table or their order slot to become available.',
         type: 'SERVICE',
         trigger: 'AUTOMATIC',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'We are preparing your table. You will receive a WhatsApp notification when ready.',
+        customerInstruction:
+          'We are preparing your table. You will receive a WhatsApp notification when ready.',
         notifyCustomerOnActivation: false,
       },
       {
@@ -278,52 +368,70 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         requiresQrScan: false,
         requiresStaffAction: true,
         customerInstruction: 'Your table is ready! Please follow the host.',
-        staffInstruction: 'Escort guests to their assigned table. Update table management system.',
-        outcomeOptions: ['Seated', 'Upgraded – VIP Section', 'Outdoor Requested'],
+        staffInstruction:
+          'Escort guests to their assigned table. Update table management system.',
+        outcomeOptions: [
+          'Seated',
+          'Upgraded – VIP Section',
+          'Outdoor Requested',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 4,
         name: 'Order Taking',
-        description: 'Order is placed at the counter, table, or via QR code menu.',
+        description:
+          'Order is placed at the counter, table, or via QR code menu.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Please use the QR menu to place your order, or a waiter will assist you.',
-        staffInstruction: 'Capture full order. Mark any dietary restrictions or special requests.',
+        customerInstruction:
+          'Please use the QR menu to place your order, or a waiter will assist you.',
+        staffInstruction:
+          'Capture full order. Mark any dietary restrictions or special requests.',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 5,
         name: 'Payment / Pre-payment',
-        description: 'Payment is collected at order, at the table, or on exit depending on business model.',
+        description:
+          'Payment is collected at order, at the table, or on exit depending on business model.',
         type: 'PAYMENT',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: true,
         isPriceVariable: true,
-        customerInstruction: 'Please scan your QR to pay, or hand your card to the waiter.',
+        customerInstruction:
+          'Please scan your QR to pay, or hand your card to the waiter.',
         staffInstruction: 'Process payment. Issue receipt.',
-        outcomeOptions: ['Paid in Full', 'Split Bill', 'Corporate Account – Invoice Later', 'Voucher Applied'],
+        outcomeOptions: [
+          'Paid in Full',
+          'Split Bill',
+          'Corporate Account – Invoice Later',
+          'Voucher Applied',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 6,
         name: 'Food Preparation',
-        description: 'Order is being prepared in the kitchen. Guest is notified when ready.',
+        description:
+          'Order is being prepared in the kitchen. Guest is notified when ready.',
         type: 'SERVICE',
         trigger: 'AUTOMATIC',
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'Your order is being prepared. We will notify you when it is ready.',
+        customerInstruction:
+          'Your order is being prepared. We will notify you when it is ready.',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 7,
         name: 'Food & Beverage Collection / Service',
-        description: 'Order is served at the table or collected at the counter.',
+        description:
+          'Order is served at the table or collected at the counter.',
         type: 'COLLECTION',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
@@ -332,14 +440,17 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementFixed: 1,
         allowPartialRedemption: true,
         preventDoubleRedemption: true,
-        customerInstruction: 'Please present your QR code to collect your order.',
-        staffInstruction: 'Scan QR code to confirm collection. Ensure all items are correct before handing over.',
+        customerInstruction:
+          'Please present your QR code to collect your order.',
+        staffInstruction:
+          'Scan QR code to confirm collection. Ensure all items are correct before handing over.',
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 8,
         name: 'Catering Meal Entitlement Redemption',
-        description: 'For catering events: each guest redeems their pre-allocated meal quantity.',
+        description:
+          'For catering events: each guest redeems their pre-allocated meal quantity.',
         type: 'COLLECTION',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
@@ -349,8 +460,10 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementFormula: 'accompanyingGuests + 1',
         allowPartialRedemption: true,
         preventDoubleRedemption: false,
-        customerInstruction: 'Please present your QR at the catering station. The system will show your allocated meals.',
-        staffInstruction: 'Scan QR code. System will display exact number of plates allocated for this party. Dispense accordingly.',
+        customerInstruction:
+          'Please present your QR at the catering station. The system will show your allocated meals.',
+        staffInstruction:
+          'Scan QR code. System will display exact number of plates allocated for this party. Dispense accordingly.',
         locationDescription: 'Catering Station',
         notifyCustomerOnActivation: true,
       },
@@ -363,20 +476,23 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Please indicate to your waiter when you are ready for the next course.',
+        customerInstruction:
+          'Please indicate to your waiter when you are ready for the next course.',
         outcomeOptions: ['Dessert Requested', 'Beverages Only', 'Declined'],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 10,
         name: 'Feedback / Exit',
-        description: 'Guest completes experience and is invited to provide feedback.',
+        description:
+          'Guest completes experience and is invited to provide feedback.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_CUSTOMER',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'Thank you for dining with us! Please rate your experience.',
+        customerInstruction:
+          'Thank you for dining with us! Please rate your experience.',
         notifyCustomerOnActivation: false,
       },
     ],
@@ -393,18 +509,35 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Universal citizen service journey. Covers any public sector office — visa applications, licensing, post office services, home affairs, municipal, and social services. Handles long processing periods and multi-stage document flows.',
     industry: 'Government & Civic',
-    businessTypes: ['government', 'gov', 'visa', 'embassy', 'post office', 'licensing', 'dmv', 'municipal', 'civic', 'home affairs', 'social services', 'public sector', 'tax office'],
+    businessTypes: [
+      'government',
+      'gov',
+      'visa',
+      'embassy',
+      'post office',
+      'licensing',
+      'dmv',
+      'municipal',
+      'civic',
+      'home affairs',
+      'social services',
+      'public sector',
+      'tax office',
+    ],
     steps: [
       {
         stepOrder: 1,
         name: 'Appointment Verification & Queue Assignment',
-        description: 'Citizen arrives and is routed to the correct service queue.',
+        description:
+          'Citizen arrives and is routed to the correct service queue.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Welcome. Please present your appointment QR or ID at the welcome desk.',
-        staffInstruction: 'Verify appointment or walk-in. Check service type and route to correct queue. Issue ticket number.',
+        customerInstruction:
+          'Welcome. Please present your appointment QR or ID at the welcome desk.',
+        staffInstruction:
+          'Verify appointment or walk-in. Check service type and route to correct queue. Issue ticket number.',
         locationDescription: 'Welcome Desk / Information Counter',
         outcomeOptions: [
           'Appointment Confirmed – Queue Assigned',
@@ -417,15 +550,22 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
       {
         stepOrder: 2,
         name: 'Document Pre-screening',
-        description: 'Pre-check that all required documents are present before reaching the counter.',
+        description:
+          'Pre-check that all required documents are present before reaching the counter.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'An officer will verify your documents before you proceed to the main counter.',
-        staffInstruction: 'Check against document checklist. Stamp with pre-screening approval or send back.',
-        outcomeOptions: ['Documents Complete', 'Documents Incomplete – Turn Away', 'Documents Need Certification'],
+        customerInstruction:
+          'An officer will verify your documents before you proceed to the main counter.',
+        staffInstruction:
+          'Check against document checklist. Stamp with pre-screening approval or send back.',
+        outcomeOptions: [
+          'Documents Complete',
+          'Documents Incomplete – Turn Away',
+          'Documents Need Certification',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -436,8 +576,10 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Please proceed to the counter window indicated on the display board.',
-        staffInstruction: 'Process application or service request. Capture all details.',
+        customerInstruction:
+          'Please proceed to the counter window indicated on the display board.',
+        staffInstruction:
+          'Process application or service request. Capture all details.',
         locationDescription: 'Service Windows',
         outcomeOptions: [
           'Processed – Awaiting Approval',
@@ -459,14 +601,16 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         requiresQrScan: true,
         requiresStaffAction: true,
         customerInstruction: 'Please proceed to the biometrics room.',
-        staffInstruction: 'Capture photo, fingerprints, and digital signature. Confirm quality.',
+        staffInstruction:
+          'Capture photo, fingerprints, and digital signature. Confirm quality.',
         locationDescription: 'Biometrics Room',
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 5,
         name: 'Knowledge / Competency Test',
-        description: 'Written test or online assessment (e.g., driving knowledge test, safety test).',
+        description:
+          'Written test or online assessment (e.g., driving knowledge test, safety test).',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
@@ -487,7 +631,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isOptional: true,
         requiresQrScan: true,
         isPriceVariable: true,
-        customerInstruction: 'Please proceed to the cashier to pay the applicable fee.',
+        customerInstruction:
+          'Please proceed to the cashier to pay the applicable fee.',
         staffInstruction: 'Issue receipt. Record payment reference number.',
         locationDescription: 'Cashier Counter',
         outcomeOptions: ['Paid – Cash', 'Paid – Card/EFT', 'Exempt from Fee'],
@@ -496,34 +641,44 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
       {
         stepOrder: 7,
         name: 'Processing Period',
-        description: 'Application or request is being processed internally. Citizen may leave.',
+        description:
+          'Application or request is being processed internally. Citizen may leave.',
         type: 'SERVICE',
         trigger: 'SCHEDULED',
         isOptional: true,
         deferredByDays: 5,
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'Your application is being processed. You will receive a WhatsApp notification when your documents are ready for collection. Estimated time: 5 working days.',
+        customerInstruction:
+          'Your application is being processed. You will receive a WhatsApp notification when your documents are ready for collection. Estimated time: 5 working days.',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 8,
         name: 'Supervisor / Manager Approval',
-        description: 'Application requires supervisor sign-off before completion.',
+        description:
+          'Application requires supervisor sign-off before completion.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Your application is under review. You will be notified of the decision.',
-        staffInstruction: 'Review application in full. Approve or reject with reason.',
-        outcomeOptions: ['Approved', 'Declined – Reasons Communicated', 'Deferred – More Info Needed'],
+        customerInstruction:
+          'Your application is under review. You will be notified of the decision.',
+        staffInstruction:
+          'Review application in full. Approve or reject with reason.',
+        outcomeOptions: [
+          'Approved',
+          'Declined – Reasons Communicated',
+          'Deferred – More Info Needed',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 9,
         name: 'Document / Permit Collection',
-        description: 'Citizen collects approved documents, ID, permit, or license.',
+        description:
+          'Citizen collects approved documents, ID, permit, or license.',
         type: 'COLLECTION',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
@@ -531,10 +686,16 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementUnit: 'document',
         entitlementFixed: 1,
         preventDoubleRedemption: true,
-        customerInstruction: 'Present your QR code to collect your document. Please bring your ID.',
-        staffInstruction: 'Scan QR code, verify ID, and hand over document. Log collection.',
+        customerInstruction:
+          'Present your QR code to collect your document. Please bring your ID.',
+        staffInstruction:
+          'Scan QR code, verify ID, and hand over document. Log collection.',
         locationDescription: 'Collection Counter',
-        outcomeOptions: ['Collected – Approved', 'Collected – Rejected (Notified)', 'Collected – Temporary Permit Issued'],
+        outcomeOptions: [
+          'Collected – Approved',
+          'Collected – Rejected (Notified)',
+          'Collected – Temporary Permit Issued',
+        ],
         notifyCustomerOnActivation: true,
       },
     ],
@@ -551,7 +712,20 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Complete event guest management journey — from RSVP and invite verification through entry, seating, meal redemption, activity check-ins, and gift collection. Works for weddings, corporate events, graduations, galas, concerts, and parties.',
     industry: 'Events & Invitations',
-    businessTypes: ['event', 'wedding', 'party', 'graduation', 'conference', 'gala', 'concert', 'exhibition', 'birthday', 'corporate event', 'sports event', 'festival'],
+    businessTypes: [
+      'event',
+      'wedding',
+      'party',
+      'graduation',
+      'conference',
+      'gala',
+      'concert',
+      'exhibition',
+      'birthday',
+      'corporate event',
+      'sports event',
+      'festival',
+    ],
     steps: [
       {
         stepOrder: 1,
@@ -562,24 +736,36 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isOptional: true,
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Please present your invitation QR code or confirmation message to the verification desk.',
-        staffInstruction: 'Scan QR code. System will confirm invite status, party size, and any pre-paid inclusions.',
+        customerInstruction:
+          'Please present your invitation QR code or confirmation message to the verification desk.',
+        staffInstruction:
+          'Scan QR code. System will confirm invite status, party size, and any pre-paid inclusions.',
         locationDescription: 'Pre-Registration Desk',
-        outcomeOptions: ['Confirmed – On Guest List', 'Not on List – Escalate to Organizer', 'Waitlisted – Hold'],
+        outcomeOptions: [
+          'Confirmed – On Guest List',
+          'Not on List – Escalate to Organizer',
+          'Waitlisted – Hold',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 2,
         name: 'Arrival Payment / Balance Collection',
-        description: 'Collect outstanding payment from guests who haven\'t paid in full.',
+        description:
+          "Collect outstanding payment from guests who haven't paid in full.",
         type: 'PAYMENT',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: true,
         isPriceVariable: true,
-        customerInstruction: 'Please settle any outstanding balance before entering.',
+        customerInstruction:
+          'Please settle any outstanding balance before entering.',
         staffInstruction: 'Check payment status. Collect outstanding balance.',
-        outcomeOptions: ['Paid in Full', 'Complementary / Sponsored', 'Declined Entry – No Payment'],
+        outcomeOptions: [
+          'Paid in Full',
+          'Complementary / Sponsored',
+          'Declined Entry – No Payment',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -590,7 +776,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: false,
-        customerInstruction: 'Please scan your QR code at the entrance gate. Welcome!',
+        customerInstruction:
+          'Please scan your QR code at the entrance gate. Welcome!',
         staffInstruction: 'Scan QR code to record guest arrival.',
         locationDescription: 'Main Entrance Gate',
         notifyCustomerOnActivation: false,
@@ -598,7 +785,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
       {
         stepOrder: 4,
         name: 'Wristband / Access Badge Issuance',
-        description: 'Guests receive a wristband or badge indicating their access tier.',
+        description:
+          'Guests receive a wristband or badge indicating their access tier.',
         type: 'COLLECTION',
         trigger: 'AUTOMATIC',
         isOptional: true,
@@ -607,8 +795,10 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementUnit: 'wristband',
         entitlementFixed: 1,
         preventDoubleRedemption: true,
-        customerInstruction: 'Please collect your wristband at the registration desk.',
-        staffInstruction: 'Issue appropriate wristband colour based on guest tier (General / VIP / Staff).',
+        customerInstruction:
+          'Please collect your wristband at the registration desk.',
+        staffInstruction:
+          'Issue appropriate wristband colour based on guest tier (General / VIP / Staff).',
         locationDescription: 'Registration Desk',
         notifyCustomerOnActivation: false,
       },
@@ -622,15 +812,21 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         requiresQrScan: false,
         requiresStaffAction: true,
         customerInstruction: 'A host will direct you to your table.',
-        staffInstruction: 'Check seating plan and escort guests. Mark table as occupied.',
+        staffInstruction:
+          'Check seating plan and escort guests. Mark table as occupied.',
         locationDescription: 'Venue Floor',
-        outcomeOptions: ['Pre-assigned Table – Seated', 'Open Seating – Self Select', 'VIP Upgrade'],
+        outcomeOptions: [
+          'Pre-assigned Table – Seated',
+          'Open Seating – Self Select',
+          'VIP Upgrade',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 6,
         name: 'Meal / Catering Redemption',
-        description: 'Guest redeems their meal entitlement at the catering station.',
+        description:
+          'Guest redeems their meal entitlement at the catering station.',
         type: 'COLLECTION',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
@@ -640,8 +836,10 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementFormula: 'accompanyingGuests + 1',
         allowPartialRedemption: true,
         preventDoubleRedemption: false,
-        customerInstruction: 'Present your QR code at the catering station. The system will show how many meals you are entitled to.',
-        staffInstruction: 'Scan QR. System shows total entitled meals for the party. Dispense accordingly. Partial collection allowed.',
+        customerInstruction:
+          'Present your QR code at the catering station. The system will show how many meals you are entitled to.',
+        staffInstruction:
+          'Scan QR. System shows total entitled meals for the party. Dispense accordingly. Partial collection allowed.',
         locationDescription: 'Catering Station / Buffet',
         notifyCustomerOnActivation: false,
       },
@@ -658,7 +856,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementFixed: 2,
         allowPartialRedemption: true,
         preventDoubleRedemption: false,
-        customerInstruction: 'Scan your QR at the bar to redeem your drink tokens.',
+        customerInstruction:
+          'Scan your QR at the bar to redeem your drink tokens.',
         staffInstruction: 'Scan and deduct tokens per drink ordered.',
         locationDescription: 'Bar / Beverage Station',
         notifyCustomerOnActivation: false,
@@ -666,13 +865,15 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
       {
         stepOrder: 8,
         name: 'Activity / Programme Participation',
-        description: 'Guest participates in a planned activity, show, or ceremony.',
+        description:
+          'Guest participates in a planned activity, show, or ceremony.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: true,
         requiresStaffAction: false,
-        customerInstruction: 'Scan your QR to confirm your participation in this activity.',
+        customerInstruction:
+          'Scan your QR to confirm your participation in this activity.',
         staffInstruction: 'Scan to record attendance at this session.',
         notifyCustomerOnActivation: true,
       },
@@ -688,7 +889,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementUnit: 'gift bag',
         entitlementFixed: 1,
         preventDoubleRedemption: true,
-        customerInstruction: 'Please present your QR code to collect your gift.',
+        customerInstruction:
+          'Please present your QR code to collect your gift.',
         staffInstruction: 'Scan and hand over one gift bag per unique QR scan.',
         locationDescription: 'Gift Collection Point / Exit Table',
         notifyCustomerOnActivation: false,
@@ -702,7 +904,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isOptional: true,
         requiresQrScan: true,
         requiresStaffAction: false,
-        customerInstruction: 'Thank you for attending! Please scan your QR as you exit.',
+        customerInstruction:
+          'Thank you for attending! Please scan your QR as you exit.',
         locationDescription: 'Exit Gate',
         notifyCustomerOnActivation: false,
       },
@@ -720,33 +923,57 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Complete service journey for any beauty, grooming, or wellness business. From arrival and consultation through service delivery, payment, and optional retail. Covers salons, spas, barbershops, nail bars, massage, and more.',
     industry: 'Beauty & Wellness',
-    businessTypes: ['salon', 'barbershop', 'barber', 'spa', 'nail', 'nails', 'massage', 'beauty', 'lash', 'brow', 'tattoo', 'tanning', 'grooming', 'wellness'],
+    businessTypes: [
+      'salon',
+      'barbershop',
+      'barber',
+      'spa',
+      'nail',
+      'nails',
+      'massage',
+      'beauty',
+      'lash',
+      'brow',
+      'tattoo',
+      'tanning',
+      'grooming',
+      'wellness',
+    ],
     steps: [
       {
         stepOrder: 1,
         name: 'Arrival & Appointment Check-in',
-        description: 'Client arrives and is confirmed against booking or joins walk-in queue.',
+        description:
+          'Client arrives and is confirmed against booking or joins walk-in queue.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: true,
         customerInstruction: 'Welcome! Please check in at the reception desk.',
-        staffInstruction: 'Verify booking or create walk-in entry. Assign to next available stylist/therapist.',
+        staffInstruction:
+          'Verify booking or create walk-in entry. Assign to next available stylist/therapist.',
         locationDescription: 'Reception',
-        outcomeOptions: ['Appointment Confirmed', 'Walk-in – Added to Queue', 'Early/Late – Note for Stylist'],
+        outcomeOptions: [
+          'Appointment Confirmed',
+          'Walk-in – Added to Queue',
+          'Early/Late – Note for Stylist',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 2,
         name: 'Pre-service Consultation',
-        description: 'Stylist or therapist discusses requirements with the client.',
+        description:
+          'Stylist or therapist discusses requirements with the client.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Your stylist will discuss your requirements before we begin.',
-        staffInstruction: 'Discuss desired outcomes. Check for contraindications or allergies. Suggest treatment plan.',
+        customerInstruction:
+          'Your stylist will discuss your requirements before we begin.',
+        staffInstruction:
+          'Discuss desired outcomes. Check for contraindications or allergies. Suggest treatment plan.',
         outcomeOptions: [
           'Proceed as Discussed',
           'Colour Mix Required – Patch Test First',
@@ -758,42 +985,57 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
       {
         stepOrder: 3,
         name: 'Allergy / Patch Test',
-        description: 'Patch test prior to chemical treatments (colour, tint, keratin, lash glue).',
+        description:
+          'Patch test prior to chemical treatments (colour, tint, keratin, lash glue).',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
         deferredByHours: 24,
-        customerInstruction: 'A patch test is required. You will need to wait 24 hours before your treatment.',
-        staffInstruction: 'Apply patch test. Schedule client to return in 24 hours.',
-        outcomeOptions: ['No Reaction – Clear to Proceed', 'Reaction Observed – Cannot Proceed'],
+        customerInstruction:
+          'A patch test is required. You will need to wait 24 hours before your treatment.',
+        staffInstruction:
+          'Apply patch test. Schedule client to return in 24 hours.',
+        outcomeOptions: [
+          'No Reaction – Clear to Proceed',
+          'Reaction Observed – Cannot Proceed',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 4,
         name: 'Main Service Delivery',
-        description: 'Primary treatment being delivered (haircut, colour, massage, facial, etc.).',
+        description:
+          'Primary treatment being delivered (haircut, colour, massage, facial, etc.).',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Please relax while your service is being performed.',
-        staffInstruction: 'Deliver the agreed service. Note any deviations or client preferences for future visits.',
-        outcomeOptions: ['Completed as Requested', 'Partial – Additional Session Required', 'Client Requested Change'],
+        customerInstruction:
+          'Please relax while your service is being performed.',
+        staffInstruction:
+          'Deliver the agreed service. Note any deviations or client preferences for future visits.',
+        outcomeOptions: [
+          'Completed as Requested',
+          'Partial – Additional Session Required',
+          'Client Requested Change',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 5,
         name: 'Additional / Add-on Service',
-        description: 'Optional add-on such as blow-dry, mask, paraffin, eyebrow tidy, etc.',
+        description:
+          'Optional add-on such as blow-dry, mask, paraffin, eyebrow tidy, etc.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'We\'re adding your additional service now.',
-        staffInstruction: 'Perform add-on service. Ensure it is captured for billing.',
+        customerInstruction: "We're adding your additional service now.",
+        staffInstruction:
+          'Perform add-on service. Ensure it is captured for billing.',
         notifyCustomerOnActivation: false,
       },
       {
@@ -805,9 +1047,15 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Please let us know if you\'re happy with the result!',
-        staffInstruction: 'Show client the final result. Address any concerns before proceeding to payment.',
-        outcomeOptions: ['Approved – Happy Client', 'Minor Adjustment Requested', 'Redo Required'],
+        customerInstruction:
+          "Please let us know if you're happy with the result!",
+        staffInstruction:
+          'Show client the final result. Address any concerns before proceeding to payment.',
+        outcomeOptions: [
+          'Approved – Happy Client',
+          'Minor Adjustment Requested',
+          'Redo Required',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -821,20 +1069,28 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         customerInstruction: 'Please proceed to the front desk for payment.',
         staffInstruction: 'Generate itemised invoice. Process payment.',
         locationDescription: 'Reception / Checkout Counter',
-        outcomeOptions: ['Paid in Full', 'Loyalty Points Applied', 'Gift Voucher Redeemed', 'Package Booked'],
+        outcomeOptions: [
+          'Paid in Full',
+          'Loyalty Points Applied',
+          'Gift Voucher Redeemed',
+          'Package Booked',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 8,
         name: 'Retail Product Purchase',
-        description: 'Client selects take-home products recommended by their stylist.',
+        description:
+          'Client selects take-home products recommended by their stylist.',
         type: 'COLLECTION',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Ask your stylist about the products they used today.',
-        staffInstruction: 'Pick and bag retail products. Ensure added to invoice.',
+        customerInstruction:
+          'Ask your stylist about the products they used today.',
+        staffInstruction:
+          'Pick and bag retail products. Ensure added to invoice.',
         notifyCustomerOnActivation: false,
       },
     ],
@@ -851,7 +1107,19 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Full guest stay journey from arrival to checkout. Covers hotels, guesthouses, lodges, B&Bs, and conference facilities. Includes ID verification, room assignment, amenity access, and final billing.',
     industry: 'Hospitality & Accommodation',
-    businessTypes: ['hotel', 'guesthouse', 'lodge', 'bnb', 'b&b', 'resort', 'motel', 'accommodation', 'hostel', 'conference hotel', 'boutique hotel'],
+    businessTypes: [
+      'hotel',
+      'guesthouse',
+      'lodge',
+      'bnb',
+      'b&b',
+      'resort',
+      'motel',
+      'accommodation',
+      'hostel',
+      'conference hotel',
+      'boutique hotel',
+    ],
     steps: [
       {
         stepOrder: 1,
@@ -861,30 +1129,44 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Welcome! Please present your booking confirmation QR and ID at the front desk.',
-        staffInstruction: 'Verify booking reference, ID, and arrival date. Take imprint of payment card.',
+        customerInstruction:
+          'Welcome! Please present your booking confirmation QR and ID at the front desk.',
+        staffInstruction:
+          'Verify booking reference, ID, and arrival date. Take imprint of payment card.',
         locationDescription: 'Lobby – Front Desk',
-        outcomeOptions: ['Verified – Check In', 'ID Mismatch – Escalate', 'No Booking Found – Walk-in'],
+        outcomeOptions: [
+          'Verified – Check In',
+          'ID Mismatch – Escalate',
+          'No Booking Found – Walk-in',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 2,
         name: 'Pre-authorisation Payment / Deposit',
-        description: 'Credit card pre-auth or cash deposit for room and incidentals.',
+        description:
+          'Credit card pre-auth or cash deposit for room and incidentals.',
         type: 'PAYMENT',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         isPriceVariable: true,
-        customerInstruction: 'We will need to take a deposit to cover incidentals. This will be refunded on check-out.',
-        staffInstruction: 'Run pre-authorisation or collect cash deposit. Record reference.',
-        outcomeOptions: ['Pre-auth Successful', 'Cash Deposit Collected', 'Corporate – Invoice on Account'],
+        customerInstruction:
+          'We will need to take a deposit to cover incidentals. This will be refunded on check-out.',
+        staffInstruction:
+          'Run pre-authorisation or collect cash deposit. Record reference.',
+        outcomeOptions: [
+          'Pre-auth Successful',
+          'Cash Deposit Collected',
+          'Corporate – Invoice on Account',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 3,
         name: 'Room Assignment & Key Issuance',
-        description: 'Guest is assigned their room and receives access card/key.',
+        description:
+          'Guest is assigned their room and receives access card/key.',
         type: 'COLLECTION',
         trigger: 'AUTOMATIC',
         requiresQrScan: false,
@@ -893,15 +1175,18 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementFixed: 2,
         allowPartialRedemption: true,
         preventDoubleRedemption: false,
-        customerInstruction: 'Your room is ready. Here is your key card. Your room is on floor [X].',
-        staffInstruction: 'Program key cards and hand to guest. Explain breakfast times, pool hours, and WiFi password.',
+        customerInstruction:
+          'Your room is ready. Here is your key card. Your room is on floor [X].',
+        staffInstruction:
+          'Program key cards and hand to guest. Explain breakfast times, pool hours, and WiFi password.',
         locationDescription: 'Front Desk',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 4,
         name: 'Welcome Amenity / VIP Treatment',
-        description: 'VIP guests receive a welcome amenity (champagne, fruit basket, etc.).',
+        description:
+          'VIP guests receive a welcome amenity (champagne, fruit basket, etc.).',
         type: 'COLLECTION',
         trigger: 'AUTOMATIC',
         isOptional: true,
@@ -910,20 +1195,24 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementUnit: 'welcome amenity',
         entitlementFixed: 1,
         preventDoubleRedemption: true,
-        customerInstruction: 'A welcome amenity has been prepared in your room.',
-        staffInstruction: 'Confirm amenity is delivered to room before guest arrival.',
+        customerInstruction:
+          'A welcome amenity has been prepared in your room.',
+        staffInstruction:
+          'Confirm amenity is delivered to room before guest arrival.',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 5,
         name: 'Stay Period',
-        description: 'Guest is staying. System is in waiting period until check-out date.',
+        description:
+          'Guest is staying. System is in waiting period until check-out date.',
         type: 'SERVICE',
         trigger: 'SCHEDULED',
         deferredByDays: 1,
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'Enjoy your stay! Check-out is at 10:00 AM. Late check-out may be available on request.',
+        customerInstruction:
+          'Enjoy your stay! Check-out is at 10:00 AM. Late check-out may be available on request.',
         notifyCustomerOnActivation: false,
       },
       {
@@ -939,23 +1228,32 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementFixed: 1,
         allowPartialRedemption: false,
         preventDoubleRedemption: false,
-        customerInstruction: 'Please scan your QR code at the restaurant entrance to redeem your breakfast.',
-        staffInstruction: 'Scan to verify guest and confirm breakfast inclusion.',
+        customerInstruction:
+          'Please scan your QR code at the restaurant entrance to redeem your breakfast.',
+        staffInstruction:
+          'Scan to verify guest and confirm breakfast inclusion.',
         locationDescription: 'Restaurant Entrance',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 7,
         name: 'Late Check-out Extension',
-        description: 'Guest requests a late check-out (subject to availability and extra charge).',
+        description:
+          'Guest requests a late check-out (subject to availability and extra charge).',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Complimentary late check-out until 12:00. After that, charges may apply.',
-        staffInstruction: 'Check room availability. Approve or decline. Capture any additional charge.',
-        outcomeOptions: ['Complimentary Late Check-out Approved', 'Late Check-out – Charged', 'Declined – No Availability'],
+        customerInstruction:
+          'Complimentary late check-out until 12:00. After that, charges may apply.',
+        staffInstruction:
+          'Check room availability. Approve or decline. Capture any additional charge.',
+        outcomeOptions: [
+          'Complimentary Late Check-out Approved',
+          'Late Check-out – Charged',
+          'Declined – No Availability',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -966,10 +1264,16 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         isPriceVariable: true,
-        customerInstruction: 'Please present your QR code at the front desk for final check-out and billing.',
-        staffInstruction: 'Generate folio with all charges. Return deposit or release pre-auth. Collect room keys.',
+        customerInstruction:
+          'Please present your QR code at the front desk for final check-out and billing.',
+        staffInstruction:
+          'Generate folio with all charges. Return deposit or release pre-auth. Collect room keys.',
         locationDescription: 'Front Desk',
-        outcomeOptions: ['Checked Out – Paid in Full', 'Corporate – Invoice Sent', 'Dispute – Escalate'],
+        outcomeOptions: [
+          'Checked Out – Paid in Full',
+          'Corporate – Invoice Sent',
+          'Dispute – Escalate',
+        ],
         notifyCustomerOnActivation: false,
       },
     ],
@@ -986,31 +1290,54 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Complete client service journey for any financial institution. From queue ticket issuance through identity verification, multi-tier advisory service, manager approval, and documentation. Covers banks, insurance, forex, and investment.',
     industry: 'Finance & Insurance',
-    businessTypes: ['bank', 'banking', 'insurance', 'forex', 'financial', 'broker', 'investment', 'microfinance', 'credit union', 'building society'],
+    businessTypes: [
+      'bank',
+      'banking',
+      'insurance',
+      'forex',
+      'financial',
+      'broker',
+      'investment',
+      'microfinance',
+      'credit union',
+      'building society',
+    ],
     steps: [
       {
         stepOrder: 1,
         name: 'Queue Ticket & Service Selection',
-        description: 'Client selects service type and joins the appropriate queue.',
+        description:
+          'Client selects service type and joins the appropriate queue.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_CUSTOMER',
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'Welcome. Your queue ticket has been issued. Please take a seat and wait to be called.',
-        staffInstruction: 'Kiosk or reception assigns client to correct service queue.',
-        outcomeOptions: ['Teller Services', 'Account Enquiry', 'Loan / Finance Application', 'Investment / Advisory', 'Complaint'],
+        customerInstruction:
+          'Welcome. Your queue ticket has been issued. Please take a seat and wait to be called.',
+        staffInstruction:
+          'Kiosk or reception assigns client to correct service queue.',
+        outcomeOptions: [
+          'Teller Services',
+          'Account Enquiry',
+          'Loan / Finance Application',
+          'Investment / Advisory',
+          'Complaint',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 2,
         name: 'Identity & FICA Verification',
-        description: 'Client identity is verified against FICA / KYC requirements.',
+        description:
+          'Client identity is verified against FICA / KYC requirements.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Please proceed to the counter when your number is called.',
-        staffInstruction: 'Verify ID document, proof of address, and any other FICA documents required.',
+        customerInstruction:
+          'Please proceed to the counter when your number is called.',
+        staffInstruction:
+          'Verify ID document, proof of address, and any other FICA documents required.',
         outcomeOptions: [
           'Verified – Proceed',
           'Additional Docs Required – Return Later',
@@ -1022,7 +1349,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
       {
         stepOrder: 3,
         name: 'Teller / Transaction Service',
-        description: 'Standard banking transaction — deposit, withdrawal, transfer, card issue.',
+        description:
+          'Standard banking transaction — deposit, withdrawal, transfer, card issue.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
@@ -1030,20 +1358,27 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         requiresStaffAction: true,
         customerInstruction: 'Your teller will assist you now.',
         staffInstruction: 'Process transaction. Record all details.',
-        outcomeOptions: ['Completed', 'System Down – Deferred', 'Refer to Manager'],
+        outcomeOptions: [
+          'Completed',
+          'System Down – Deferred',
+          'Refer to Manager',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 4,
         name: 'Advisory / Consultation',
-        description: 'Financial advisor or insurance consultant consults with the client.',
+        description:
+          'Financial advisor or insurance consultant consults with the client.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Your advisor will be with you shortly in the consultation room.',
-        staffInstruction: 'Conduct needs analysis. Present suitable products or services.',
+        customerInstruction:
+          'Your advisor will be with you shortly in the consultation room.',
+        staffInstruction:
+          'Conduct needs analysis. Present suitable products or services.',
         locationDescription: 'Consultation Room',
         outcomeOptions: [
           'Product Sold / Signed',
@@ -1062,29 +1397,42 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'We are conducting a credit assessment. This typically takes a few minutes.',
-        staffInstruction: 'Run credit bureau check. Assess against risk criteria.',
-        outcomeOptions: ['Approved – Proceed', 'Conditional – More Info Required', 'Declined'],
+        customerInstruction:
+          'We are conducting a credit assessment. This typically takes a few minutes.',
+        staffInstruction:
+          'Run credit bureau check. Assess against risk criteria.',
+        outcomeOptions: [
+          'Approved – Proceed',
+          'Conditional – More Info Required',
+          'Declined',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 6,
         name: 'Manager / Senior Approval',
-        description: 'Transaction or application requires senior or branch manager sign-off.',
+        description:
+          'Transaction or application requires senior or branch manager sign-off.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Your application requires manager approval. This may take a few minutes.',
+        customerInstruction:
+          'Your application requires manager approval. This may take a few minutes.',
         staffInstruction: 'Present file to manager. Capture decision.',
-        outcomeOptions: ['Approved', 'Declined – Communicate Reasons', 'Deferred – Return with Documents'],
+        outcomeOptions: [
+          'Approved',
+          'Declined – Communicate Reasons',
+          'Deferred – Return with Documents',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 7,
         name: 'Documentation & Signing',
-        description: 'Client signs contracts, declarations, or application forms.',
+        description:
+          'Client signs contracts, declarations, or application forms.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
@@ -1097,14 +1445,16 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
       {
         stepOrder: 8,
         name: 'Processing Period',
-        description: 'Application or claim is being processed. Client may leave.',
+        description:
+          'Application or claim is being processed. Client may leave.',
         type: 'SERVICE',
         trigger: 'SCHEDULED',
         isOptional: true,
         deferredByDays: 3,
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'Your application is being processed. You will receive a WhatsApp update within 3 business days.',
+        customerInstruction:
+          'Your application is being processed. You will receive a WhatsApp update within 3 business days.',
         notifyCustomerOnActivation: false,
       },
     ],
@@ -1121,20 +1471,40 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Complete member or drop-in journey for fitness and recreation facilities. Covers gym access, class booking, equipment/court booking, trainer sessions, and post-workout collections. Works for gyms, pools, yoga studios, and sports clubs.',
     industry: 'Fitness & Recreation',
-    businessTypes: ['gym', 'fitness', 'swimming pool', 'tennis', 'squash', 'yoga', 'crossfit', 'sports center', 'recreation', 'personal training', 'pilates'],
+    businessTypes: [
+      'gym',
+      'fitness',
+      'swimming pool',
+      'tennis',
+      'squash',
+      'yoga',
+      'crossfit',
+      'sports center',
+      'recreation',
+      'personal training',
+      'pilates',
+    ],
     steps: [
       {
         stepOrder: 1,
         name: 'Membership / Booking Verification',
-        description: 'Member or drop-in is checked in at the facility entrance.',
+        description:
+          'Member or drop-in is checked in at the facility entrance.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_CUSTOMER',
         requiresQrScan: true,
         requiresStaffAction: false,
-        customerInstruction: 'Please scan your membership QR or booking confirmation at the entrance.',
-        staffInstruction: 'System auto-verifies membership. Staff to assist if issues arise.',
+        customerInstruction:
+          'Please scan your membership QR or booking confirmation at the entrance.',
+        staffInstruction:
+          'System auto-verifies membership. Staff to assist if issues arise.',
         locationDescription: 'Facility Entrance / Turnstile',
-        outcomeOptions: ['Active Member – Entry Granted', 'Expired Membership – Renewal Required', 'Day Pass – Entry Granted', 'Booking Verified – Proceed'],
+        outcomeOptions: [
+          'Active Member – Entry Granted',
+          'Expired Membership – Renewal Required',
+          'Day Pass – Entry Granted',
+          'Booking Verified – Proceed',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -1147,7 +1517,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         requiresQrScan: true,
         requiresStaffAction: false,
         customerInstruction: 'Scan your QR at the class studio entrance.',
-        staffInstruction: 'Confirm class attendance. Note no-shows for capacity management.',
+        staffInstruction:
+          'Confirm class attendance. Note no-shows for capacity management.',
         locationDescription: 'Class Studio / Court',
         notifyCustomerOnActivation: false,
       },
@@ -1178,14 +1549,20 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         requiresQrScan: false,
         requiresStaffAction: true,
         customerInstruction: 'Your trainer will begin the session shortly.',
-        staffInstruction: 'Log session start and end times. Record exercises or programme delivered.',
-        outcomeOptions: ['Session Completed', 'Partial – Injury/Rest Required', 'No Show'],
+        staffInstruction:
+          'Log session start and end times. Record exercises or programme delivered.',
+        outcomeOptions: [
+          'Session Completed',
+          'Partial – Injury/Rest Required',
+          'No Show',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 5,
         name: 'Post-workout Supplement / Product Collection',
-        description: 'Member collects their included post-workout supplement or product.',
+        description:
+          'Member collects their included post-workout supplement or product.',
         type: 'COLLECTION',
         trigger: 'AUTOMATIC',
         isOptional: true,
@@ -1194,7 +1571,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementUnit: 'supplement',
         entitlementFixed: 1,
         preventDoubleRedemption: true,
-        customerInstruction: 'Present your QR code at the supplement counter to collect your post-workout.',
+        customerInstruction:
+          'Present your QR code at the supplement counter to collect your post-workout.',
         staffInstruction: 'Scan and hand over one supplement per visit.',
         locationDescription: 'Supplement Counter / Reception',
         notifyCustomerOnActivation: false,
@@ -1208,7 +1586,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isOptional: true,
         requiresQrScan: true,
         requiresStaffAction: false,
-        customerInstruction: 'Please scan your QR on the way out. See you next time!',
+        customerInstruction:
+          'Please scan your QR on the way out. See you next time!',
         locationDescription: 'Exit Turnstile',
         notifyCustomerOnActivation: false,
       },
@@ -1226,18 +1605,32 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Full vehicle service journey from drop-off through diagnosis, repair, quality check, and collection. Covers service centers, panel beating, tyre fitment, auto electrics, and dealership service departments.',
     industry: 'Automotive & Mechanical',
-    businessTypes: ['automotive', 'mechanic', 'car service', 'panel beating', 'tyre', 'fitment', 'auto electric', 'dealership', 'car wash', 'motor'],
+    businessTypes: [
+      'automotive',
+      'mechanic',
+      'car service',
+      'panel beating',
+      'tyre',
+      'fitment',
+      'auto electric',
+      'dealership',
+      'car wash',
+      'motor',
+    ],
     steps: [
       {
         stepOrder: 1,
         name: 'Arrival & Vehicle Drop-off',
-        description: 'Customer arrives and vehicle is received at the service lane.',
+        description:
+          'Customer arrives and vehicle is received at the service lane.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Please park in the marked drop-off zone. A service advisor will assist you.',
-        staffInstruction: 'Greet customer. Confirm appointment or capture walk-in details. Record vehicle registration.',
+        customerInstruction:
+          'Please park in the marked drop-off zone. A service advisor will assist you.',
+        staffInstruction:
+          'Greet customer. Confirm appointment or capture walk-in details. Record vehicle registration.',
         locationDescription: 'Service Lane / Reception',
         notifyCustomerOnActivation: true,
       },
@@ -1249,23 +1642,35 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Our advisor will do a quick vehicle walkaround. Please remain present.',
-        staffInstruction: 'Document all pre-existing damage on the vehicle condition form. Customer must sign.',
-        outcomeOptions: ['Report Signed – No Issues', 'Pre-existing Damage Noted – Customer Acknowledged'],
+        customerInstruction:
+          'Our advisor will do a quick vehicle walkaround. Please remain present.',
+        staffInstruction:
+          'Document all pre-existing damage on the vehicle condition form. Customer must sign.',
+        outcomeOptions: [
+          'Report Signed – No Issues',
+          'Pre-existing Damage Noted – Customer Acknowledged',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 3,
         name: 'Diagnostic Assessment & Quote',
-        description: 'Technician diagnoses the vehicle and prepares a repair quote.',
+        description:
+          'Technician diagnoses the vehicle and prepares a repair quote.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'We are diagnosing your vehicle. We will contact you with a quote before starting any work.',
-        staffInstruction: 'Run diagnostic scan. Prepare itemized quote. Send to customer for approval.',
-        outcomeOptions: ['Quote Approved – Proceed', 'Quote Declined – Return Vehicle', 'Partial Approval – Proceed on Approved Items'],
+        customerInstruction:
+          'We are diagnosing your vehicle. We will contact you with a quote before starting any work.',
+        staffInstruction:
+          'Run diagnostic scan. Prepare itemized quote. Send to customer for approval.',
+        outcomeOptions: [
+          'Quote Approved – Proceed',
+          'Quote Declined – Return Vehicle',
+          'Partial Approval – Proceed on Approved Items',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -1278,7 +1683,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         deferredByHours: 4,
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'Parts are being sourced. We will notify you when your vehicle is ready.',
+        customerInstruction:
+          'Parts are being sourced. We will notify you when your vehicle is ready.',
         notifyCustomerOnActivation: false,
       },
       {
@@ -1289,23 +1695,35 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Your vehicle is currently being serviced by our technicians.',
-        staffInstruction: 'Record all work performed, parts used, and labour time. Update status when completed.',
-        outcomeOptions: ['Completed as Quoted', 'Additional Work Required – Contact Customer', 'Completed with Variations'],
+        customerInstruction:
+          'Your vehicle is currently being serviced by our technicians.',
+        staffInstruction:
+          'Record all work performed, parts used, and labour time. Update status when completed.',
+        outcomeOptions: [
+          'Completed as Quoted',
+          'Additional Work Required – Contact Customer',
+          'Completed with Variations',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 6,
         name: 'Quality Assurance Check',
-        description: 'Workshop supervisor inspects vehicle before returning to customer.',
+        description:
+          'Workshop supervisor inspects vehicle before returning to customer.',
         type: 'SERVICE',
         trigger: 'AUTOMATIC',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Your vehicle is undergoing a final quality check.',
-        staffInstruction: 'Inspect all completed work. Road test if applicable. Sign off QA form.',
-        outcomeOptions: ['Passed – Ready for Collection', 'Failed – Return for Rework'],
+        customerInstruction:
+          'Your vehicle is undergoing a final quality check.',
+        staffInstruction:
+          'Inspect all completed work. Road test if applicable. Sign off QA form.',
+        outcomeOptions: [
+          'Passed – Ready for Collection',
+          'Failed – Return for Rework',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -1317,8 +1735,10 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Your vehicle is being washed as a complimentary service.',
-        staffInstruction: 'Arrange quick exterior wash. Mark as completed when done.',
+        customerInstruction:
+          'Your vehicle is being washed as a complimentary service.',
+        staffInstruction:
+          'Arrange quick exterior wash. Mark as completed when done.',
         notifyCustomerOnActivation: false,
       },
       {
@@ -1329,10 +1749,16 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         isPriceVariable: true,
-        customerInstruction: 'Your vehicle is ready. Please proceed to the cashier to pay and collect your keys.',
+        customerInstruction:
+          'Your vehicle is ready. Please proceed to the cashier to pay and collect your keys.',
         staffInstruction: 'Generate final invoice. Process payment.',
         locationDescription: 'Cashier Desk',
-        outcomeOptions: ['Paid – Cash', 'Paid – Card', 'Insurance Claim – Authorize', 'Payment Plan Arranged'],
+        outcomeOptions: [
+          'Paid – Cash',
+          'Paid – Card',
+          'Insurance Claim – Authorize',
+          'Payment Plan Arranged',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
@@ -1347,7 +1773,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementFixed: 1,
         preventDoubleRedemption: true,
         customerInstruction: 'Present your QR code to collect your keys.',
-        staffInstruction: 'Hand over keys after confirming payment. Brief customer on work performed.',
+        staffInstruction:
+          'Hand over keys after confirming payment. Brief customer on work performed.',
         locationDescription: 'Key Collection / Service Lane',
         notifyCustomerOnActivation: false,
       },
@@ -1365,7 +1792,17 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Complete logistics management flow from gate check-in through dock operations, freight handling, and exit clearance. Also covers consumer parcel collection points. Works for warehouses, docks, couriers, and distribution centers.',
     industry: 'Logistics & Supply Chain',
-    businessTypes: ['logistics', 'warehouse', 'freight', 'courier', 'parcel', 'distribution', 'supply chain', 'postal', 'shipping'],
+    businessTypes: [
+      'logistics',
+      'warehouse',
+      'freight',
+      'courier',
+      'parcel',
+      'distribution',
+      'supply chain',
+      'postal',
+      'shipping',
+    ],
     steps: [
       {
         stepOrder: 1,
@@ -1375,69 +1812,89 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Please present your booking reference or QR code at the security gate.',
-        staffInstruction: 'Verify identity, vehicle plate, and delivery/collection manifest. Log entry time.',
+        customerInstruction:
+          'Please present your booking reference or QR code at the security gate.',
+        staffInstruction:
+          'Verify identity, vehicle plate, and delivery/collection manifest. Log entry time.',
         locationDescription: 'Main Security Gate',
-        outcomeOptions: ['Authorized – Entry Granted', 'Unauthorized – Hold for Verification', 'Denied – Turn Away'],
+        outcomeOptions: [
+          'Authorized – Entry Granted',
+          'Unauthorized – Hold for Verification',
+          'Denied – Turn Away',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 2,
         name: 'Staging Area Queue',
-        description: 'Vehicle or person waits in staging area until a dock or counter is available.',
+        description:
+          'Vehicle or person waits in staging area until a dock or counter is available.',
         type: 'SERVICE',
         trigger: 'AUTOMATIC',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'Please proceed to the staging area and wait for your dock/counter assignment.',
+        customerInstruction:
+          'Please proceed to the staging area and wait for your dock/counter assignment.',
         locationDescription: 'Staging Area',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 3,
         name: 'Dock / Counter Assignment',
-        description: 'Driver is assigned to a specific loading dock or collection counter.',
+        description:
+          'Driver is assigned to a specific loading dock or collection counter.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         requiresStaffAction: true,
         customerInstruction: 'Please proceed to your assigned dock or counter.',
-        staffInstruction: 'Assign dock based on vehicle size and delivery type. Notify driver.',
+        staffInstruction:
+          'Assign dock based on vehicle size and delivery type. Notify driver.',
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 4,
         name: 'Loading / Unloading',
-        description: 'Freight is loaded or unloaded. All items are counted and verified.',
+        description:
+          'Freight is loaded or unloaded. All items are counted and verified.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
         customerInstruction: 'Please supervise the loading/unloading process.',
-        staffInstruction: 'Count all items against manifest. Record any variances or damage.',
+        staffInstruction:
+          'Count all items against manifest. Record any variances or damage.',
         locationDescription: 'Loading Dock',
-        outcomeOptions: ['Completed – No Variances', 'Completed – Variances Noted', 'Rejected – Damaged / Incorrect Goods'],
+        outcomeOptions: [
+          'Completed – No Variances',
+          'Completed – Variances Noted',
+          'Rejected – Damaged / Incorrect Goods',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 5,
         name: 'Parcel Notification (Consumer)',
-        description: 'Customer is notified that their parcel has arrived and is ready for collection.',
+        description:
+          'Customer is notified that their parcel has arrived and is ready for collection.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Your parcel has arrived! You can collect it during business hours.',
-        staffInstruction: 'Scan parcel barcode and link to customer record. System will notify customer automatically.',
+        customerInstruction:
+          'Your parcel has arrived! You can collect it during business hours.',
+        staffInstruction:
+          'Scan parcel barcode and link to customer record. System will notify customer automatically.',
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 6,
         name: 'Parcel / Goods Collection',
-        description: 'Customer or authorized party collects their parcel or goods.',
+        description:
+          'Customer or authorized party collects their parcel or goods.',
         type: 'COLLECTION',
         trigger: 'MANUAL_CUSTOMER',
         requiresQrScan: true,
@@ -1445,15 +1902,18 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementUnit: 'parcel',
         entitlementFixed: 1,
         preventDoubleRedemption: true,
-        customerInstruction: 'Scan your QR code at the collection point. Please bring your ID.',
-        staffInstruction: 'Verify ID. Scan QR. Hand over parcel. Record collection signature.',
+        customerInstruction:
+          'Scan your QR code at the collection point. Please bring your ID.',
+        staffInstruction:
+          'Verify ID. Scan QR. Hand over parcel. Record collection signature.',
         locationDescription: 'Collection Counter',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 7,
         name: 'Waybill Signing & Exit Clearance',
-        description: 'Driver signs waybill and receives exit clearance from dock office.',
+        description:
+          'Driver signs waybill and receives exit clearance from dock office.',
         type: 'COLLECTION',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
@@ -1462,8 +1922,10 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementUnit: 'signed waybill',
         entitlementFixed: 1,
         preventDoubleRedemption: true,
-        customerInstruction: 'Present your QR at the dock office to sign documents and receive exit clearance.',
-        staffInstruction: 'Have driver sign digitally. Hand over physical waybill. Issue exit pass.',
+        customerInstruction:
+          'Present your QR at the dock office to sign documents and receive exit clearance.',
+        staffInstruction:
+          'Have driver sign digitally. Hand over physical waybill. Issue exit pass.',
         locationDescription: 'Dock Office',
         notifyCustomerOnActivation: false,
       },
@@ -1481,7 +1943,18 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Complete learner journey for educational institutions and training centers. Covers enrollment, academic registration, course/exam attendance, assessment, results processing, and certification collection. Works for universities, schools, exam centers, and training providers.',
     industry: 'Education & Training',
-    businessTypes: ['school', 'university', 'college', 'training', 'exam center', 'library', 'tutoring', 'education', 'academic', 'tvet'],
+    businessTypes: [
+      'school',
+      'university',
+      'college',
+      'training',
+      'exam center',
+      'library',
+      'tutoring',
+      'education',
+      'academic',
+      'tvet',
+    ],
     steps: [
       {
         stepOrder: 1,
@@ -1491,8 +1964,10 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Welcome! Please present your enrollment QR or student number at the registration desk.',
-        staffInstruction: 'Verify identity and enrollment/application status. Assign to correct queue.',
+        customerInstruction:
+          'Welcome! Please present your enrollment QR or student number at the registration desk.',
+        staffInstruction:
+          'Verify identity and enrollment/application status. Assign to correct queue.',
         locationDescription: 'Registration Desk',
         outcomeOptions: [
           'Confirmed Enrollment – Proceed',
@@ -1505,16 +1980,24 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
       {
         stepOrder: 2,
         name: 'Finance / Fee Payment Clearance',
-        description: 'Student clears outstanding fees before receiving academic services.',
+        description:
+          'Student clears outstanding fees before receiving academic services.',
         type: 'PAYMENT',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         isPriceVariable: true,
-        customerInstruction: 'Please proceed to the finance office to settle outstanding fees.',
-        staffInstruction: 'Confirm payment status. Process payment or provide payment arrangement.',
+        customerInstruction:
+          'Please proceed to the finance office to settle outstanding fees.',
+        staffInstruction:
+          'Confirm payment status. Process payment or provide payment arrangement.',
         locationDescription: 'Finance Office',
-        outcomeOptions: ['Paid in Full', 'Bursary / Scholarship Confirmed', 'Instalment Plan Approved', 'Deferred – Refer to Student Affairs'],
+        outcomeOptions: [
+          'Paid in Full',
+          'Bursary / Scholarship Confirmed',
+          'Instalment Plan Approved',
+          'Deferred – Refer to Student Affairs',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -1526,8 +2009,13 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         requiresQrScan: false,
         requiresStaffAction: true,
         customerInstruction: 'Please submit your documents at the counter.',
-        staffInstruction: 'Verify certified copies of ID, prior qualifications, and any institution-specific documents.',
-        outcomeOptions: ['All Documents Accepted', 'Outstanding Documents – Follow-up Date Set', 'Documents Rejected – Reasons Communicated'],
+        staffInstruction:
+          'Verify certified copies of ID, prior qualifications, and any institution-specific documents.',
+        outcomeOptions: [
+          'All Documents Accepted',
+          'Outstanding Documents – Follow-up Date Set',
+          'Documents Rejected – Reasons Communicated',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -1542,7 +2030,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementUnit: 'student ID card',
         entitlementFixed: 1,
         preventDoubleRedemption: true,
-        customerInstruction: 'Collect your student ID card at the indicated counter.',
+        customerInstruction:
+          'Collect your student ID card at the indicated counter.',
         staffInstruction: 'Print and hand over ID card. Record issuance.',
         locationDescription: 'Student Services / ID Card Desk',
         notifyCustomerOnActivation: true,
@@ -1550,15 +2039,21 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
       {
         stepOrder: 5,
         name: 'Course / Timetable Registration',
-        description: 'Student registers for specific modules, courses, or exam sessions.',
+        description:
+          'Student registers for specific modules, courses, or exam sessions.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'An advisor will help you select and register your modules.',
+        customerInstruction:
+          'An advisor will help you select and register your modules.',
         staffInstruction: 'Register selected modules on the academic system.',
-        outcomeOptions: ['All Courses Registered', 'Conflict Resolved', 'Awaiting Approval – Elective'],
+        outcomeOptions: [
+          'All Courses Registered',
+          'Conflict Resolved',
+          'Awaiting Approval – Elective',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -1570,8 +2065,10 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isOptional: true,
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Please present your student QR and ID to the invigilator.',
-        staffInstruction: 'Scan QR, verify ID, confirm exam registration. Record seat number.',
+        customerInstruction:
+          'Please present your student QR and ID to the invigilator.',
+        staffInstruction:
+          'Scan QR, verify ID, confirm exam registration. Record seat number.',
         locationDescription: 'Exam Hall',
         outcomeOptions: ['Admitted', 'Barred – Outstanding Fees', 'Absent'],
         notifyCustomerOnActivation: false,
@@ -1586,13 +2083,15 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         deferredByDays: 14,
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'Results will be published within 14 days. You will receive a WhatsApp notification.',
+        customerInstruction:
+          'Results will be published within 14 days. You will receive a WhatsApp notification.',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 8,
         name: 'Certificate / Document Collection',
-        description: 'Student collects their certificate, transcript, or qualification document.',
+        description:
+          'Student collects their certificate, transcript, or qualification document.',
         type: 'COLLECTION',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
@@ -1601,8 +2100,10 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementUnit: 'certificate',
         entitlementFixed: 1,
         preventDoubleRedemption: true,
-        customerInstruction: 'Present your QR code and student ID to collect your certificate.',
-        staffInstruction: 'Scan QR, verify ID, hand over certificate. Record collection with signature.',
+        customerInstruction:
+          'Present your QR code and student ID to collect your certificate.',
+        staffInstruction:
+          'Scan QR, verify ID, hand over certificate. Record collection with signature.',
         locationDescription: 'Student Records Office / Graduation Office',
         notifyCustomerOnActivation: true,
       },
@@ -1620,7 +2121,20 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Complete client service journey for professional services firms. Covers intake, consultation, document review, engagement sign-off, service delivery period, and final review. Works for law firms, accounting practices, consultants, notaries, and advisors.',
     industry: 'Legal & Professional Services',
-    businessTypes: ['law', 'legal', 'accounting', 'auditing', 'tax', 'consulting', 'architect', 'engineer', 'notary', 'attorney', 'financial advisor', 'professional services'],
+    businessTypes: [
+      'law',
+      'legal',
+      'accounting',
+      'auditing',
+      'tax',
+      'consulting',
+      'architect',
+      'engineer',
+      'notary',
+      'attorney',
+      'financial advisor',
+      'professional services',
+    ],
     steps: [
       {
         stepOrder: 1,
@@ -1630,10 +2144,15 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Welcome. Please check in at reception. Your advisor will be with you shortly.',
-        staffInstruction: 'Verify appointment. Ensure NDA or client intake form has been completed.',
+        customerInstruction:
+          'Welcome. Please check in at reception. Your advisor will be with you shortly.',
+        staffInstruction:
+          'Verify appointment. Ensure NDA or client intake form has been completed.',
         locationDescription: 'Reception',
-        outcomeOptions: ['Appointment Confirmed – Checked In', 'Walk-in – Assess Availability'],
+        outcomeOptions: [
+          'Appointment Confirmed – Checked In',
+          'Walk-in – Assess Availability',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
@@ -1645,21 +2164,28 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Please submit your documents to the reception desk.',
+        customerInstruction:
+          'Please submit your documents to the reception desk.',
         staffInstruction: 'Receive and log all documents. Issue a receipt.',
-        outcomeOptions: ['All Documents Received', 'Incomplete – Follow-up Required'],
+        outcomeOptions: [
+          'All Documents Received',
+          'Incomplete – Follow-up Required',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 3,
         name: 'Initial Consultation',
-        description: 'Practitioner meets with client to understand the case or requirement.',
+        description:
+          'Practitioner meets with client to understand the case or requirement.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Your advisor/attorney will see you in the consultation room now.',
-        staffInstruction: 'Conduct needs analysis. Provide preliminary advice. Assess conflict of interest.',
+        customerInstruction:
+          'Your advisor/attorney will see you in the consultation room now.',
+        staffInstruction:
+          'Conduct needs analysis. Provide preliminary advice. Assess conflict of interest.',
         locationDescription: 'Consultation Room',
         outcomeOptions: [
           'Proceed – Clear to Engage',
@@ -1672,14 +2198,21 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
       {
         stepOrder: 4,
         name: 'Fee Estimate & Engagement Sign-off',
-        description: 'Client reviews and signs the letter of engagement / mandate / fee estimate.',
+        description:
+          'Client reviews and signs the letter of engagement / mandate / fee estimate.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Please review and sign the engagement letter before we proceed.',
-        staffInstruction: 'Present fee estimate. Collect signed mandate. Take retainer payment if applicable.',
-        outcomeOptions: ['Engagement Signed – Proceed', 'Negotiating – Hold', 'Declined – Close File'],
+        customerInstruction:
+          'Please review and sign the engagement letter before we proceed.',
+        staffInstruction:
+          'Present fee estimate. Collect signed mandate. Take retainer payment if applicable.',
+        outcomeOptions: [
+          'Engagement Signed – Proceed',
+          'Negotiating – Hold',
+          'Declined – Close File',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -1691,32 +2224,38 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isOptional: true,
         requiresQrScan: false,
         isPriceVariable: true,
-        customerInstruction: 'Please pay the agreed retainer amount to commence work.',
-        staffInstruction: 'Issue receipt. Allocate retainer to trust account if applicable.',
+        customerInstruction:
+          'Please pay the agreed retainer amount to commence work.',
+        staffInstruction:
+          'Issue receipt. Allocate retainer to trust account if applicable.',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 6,
         name: 'Service Delivery Period',
-        description: 'Professional work is being carried out (drafting, analysis, fieldwork).',
+        description:
+          'Professional work is being carried out (drafting, analysis, fieldwork).',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         deferredByDays: 7,
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'Work is in progress. You will be notified when your matter is ready for review.',
+        customerInstruction:
+          'Work is in progress. You will be notified when your matter is ready for review.',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 7,
         name: 'Additional Information Request',
-        description: 'Practitioner requires additional documents or information from client.',
+        description:
+          'Practitioner requires additional documents or information from client.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'We need some additional information from you to complete your matter.',
+        customerInstruction:
+          'We need some additional information from you to complete your matter.',
         staffInstruction: 'Document what is needed. Contact client.',
         outcomeOptions: ['Received – Proceed', 'Not Provided – Matter on Hold'],
         notifyCustomerOnActivation: true,
@@ -1724,14 +2263,20 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
       {
         stepOrder: 8,
         name: 'Final Review & Client Sign-off',
-        description: 'Client reviews the completed work and provides final approval.',
+        description:
+          'Client reviews the completed work and provides final approval.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Your matter is ready for your review. Please meet with your advisor.',
-        staffInstruction: 'Walk client through final deliverable. Obtain sign-off.',
-        outcomeOptions: ['Approved – Proceed to Closure', 'Revisions Required – Back to Delivery'],
+        customerInstruction:
+          'Your matter is ready for your review. Please meet with your advisor.',
+        staffInstruction:
+          'Walk client through final deliverable. Obtain sign-off.',
+        outcomeOptions: [
+          'Approved – Proceed to Closure',
+          'Revisions Required – Back to Delivery',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
@@ -1742,9 +2287,15 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         isPriceVariable: true,
-        customerInstruction: 'Please settle the final invoice to receive your documents.',
-        staffInstruction: 'Issue final invoice. Reconcile against retainer. Collect balance.',
-        outcomeOptions: ['Paid in Full', 'Instalment Plan Agreed', 'Corporate – 30-day Invoice'],
+        customerInstruction:
+          'Please settle the final invoice to receive your documents.',
+        staffInstruction:
+          'Issue final invoice. Reconcile against retainer. Collect balance.',
+        outcomeOptions: [
+          'Paid in Full',
+          'Instalment Plan Agreed',
+          'Corporate – 30-day Invoice',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -1759,8 +2310,10 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementUnit: 'document package',
         entitlementFixed: 1,
         preventDoubleRedemption: true,
-        customerInstruction: 'Present your QR code to collect your final documents.',
-        staffInstruction: 'Confirm payment cleared. Hand over document package. Log handover.',
+        customerInstruction:
+          'Present your QR code to collect your final documents.',
+        staffInstruction:
+          'Confirm payment cleared. Hand over document package. Log handover.',
         locationDescription: 'Reception',
         notifyCustomerOnActivation: true,
       },
@@ -1778,46 +2331,73 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Complete retail service journey covering in-store service queuing, click-and-collect (BOPIS), personal shopping, returns processing, and loyalty redemption. Works for department stores, specialty retailers, and click-and-collect programs.',
     industry: 'Retail & Commerce',
-    businessTypes: ['retail', 'ecommerce', 'click and collect', 'department store', 'fashion', 'electronics', 'supermarket', 'pharmacy retail', 'hardware', 'home'],
+    businessTypes: [
+      'retail',
+      'ecommerce',
+      'click and collect',
+      'department store',
+      'fashion',
+      'electronics',
+      'supermarket',
+      'pharmacy retail',
+      'hardware',
+      'home',
+    ],
     steps: [
       {
         stepOrder: 1,
         name: 'Arrival Notification / Queue Join',
-        description: 'Customer arrives at store or notifies of arrival for click-and-collect.',
+        description:
+          'Customer arrives at store or notifies of arrival for click-and-collect.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_CUSTOMER',
         requiresQrScan: false,
         requiresStaffAction: false,
-        customerInstruction: 'Welcome! Please tap to notify us you have arrived, or scan your order QR.',
-        staffInstruction: 'Customer arrival logged. Assign to service queue or collection preparation.',
+        customerInstruction:
+          'Welcome! Please tap to notify us you have arrived, or scan your order QR.',
+        staffInstruction:
+          'Customer arrival logged. Assign to service queue or collection preparation.',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 2,
         name: 'Personal Shopping / In-store Assistance',
-        description: 'A personal shopper or sales associate assists the customer.',
+        description:
+          'A personal shopper or sales associate assists the customer.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
         customerInstruction: 'A sales associate will assist you.',
-        staffInstruction: 'Assist customer with product selection. Note preferences for future visits.',
-        outcomeOptions: ['Purchase Made', 'Browse Only', 'Escalate to Specialist'],
+        staffInstruction:
+          'Assist customer with product selection. Note preferences for future visits.',
+        outcomeOptions: [
+          'Purchase Made',
+          'Browse Only',
+          'Escalate to Specialist',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 3,
         name: 'Order Picking & Preparation',
-        description: 'For click-and-collect: order is retrieved from stock room and prepared.',
+        description:
+          'For click-and-collect: order is retrieved from stock room and prepared.',
         type: 'SERVICE',
         trigger: 'AUTOMATIC',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Your order is being prepared. This will take a few minutes.',
-        staffInstruction: 'Locate order in staging area. Verify all items against order list.',
-        outcomeOptions: ['All Items Ready', 'Partially Available – Advise Customer', 'Out of Stock – Cancel'],
+        customerInstruction:
+          'Your order is being prepared. This will take a few minutes.',
+        staffInstruction:
+          'Locate order in staging area. Verify all items against order list.',
+        outcomeOptions: [
+          'All Items Ready',
+          'Partially Available – Advise Customer',
+          'Out of Stock – Cancel',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -1831,7 +2411,13 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isPriceVariable: true,
         customerInstruction: 'Please proceed to the till to complete payment.',
         staffInstruction: 'Scan items or retrieve order. Process payment.',
-        outcomeOptions: ['Card Payment', 'Cash', 'Lay-bye', 'Gift Card / Voucher', 'Online Pre-paid'],
+        outcomeOptions: [
+          'Card Payment',
+          'Cash',
+          'Lay-bye',
+          'Gift Card / Voucher',
+          'Online Pre-paid',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -1846,7 +2432,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementFixed: 1,
         preventDoubleRedemption: true,
         customerInstruction: 'Present your QR code to collect your order.',
-        staffInstruction: 'Scan customer QR to verify identity. Hand over items. Confirm completeness.',
+        staffInstruction:
+          'Scan customer QR to verify identity. Hand over items. Confirm completeness.',
         locationDescription: 'Click & Collect Desk / Customer Service Counter',
         notifyCustomerOnActivation: true,
       },
@@ -1859,9 +2446,16 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Please proceed to the customer service desk with the item and your receipt.',
-        staffInstruction: 'Verify purchase. Inspect item condition. Process return or exchange.',
-        outcomeOptions: ['Full Refund Issued', 'Exchange Processed', 'Store Credit Issued', 'Return Declined – Policy Reasons'],
+        customerInstruction:
+          'Please proceed to the customer service desk with the item and your receipt.',
+        staffInstruction:
+          'Verify purchase. Inspect item condition. Process return or exchange.',
+        outcomeOptions: [
+          'Full Refund Issued',
+          'Exchange Processed',
+          'Store Credit Issued',
+          'Return Declined – Policy Reasons',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -1877,7 +2471,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementFixed: 1,
         preventDoubleRedemption: true,
         customerInstruction: 'Scan your loyalty QR to redeem your reward.',
-        staffInstruction: 'Scan loyalty QR. System will display available rewards.',
+        staffInstruction:
+          'Scan loyalty QR. System will display available rewards.',
         notifyCustomerOnActivation: false,
       },
     ],
@@ -1894,7 +2489,16 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
     description:
       'Complete people journey for corporate environments. Covers new employee onboarding, contractor inductions, HR service queuing, visitor management, and facility access. Works for any corporate office, head office, or multi-site enterprise.',
     industry: 'Corporate & HR',
-    businessTypes: ['corporate', 'hr', 'office', 'enterprise', 'induction', 'onboarding', 'visitor management', 'facilities'],
+    businessTypes: [
+      'corporate',
+      'hr',
+      'office',
+      'enterprise',
+      'induction',
+      'onboarding',
+      'visitor management',
+      'facilities',
+    ],
     steps: [
       {
         stepOrder: 1,
@@ -1904,42 +2508,59 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Welcome! Please present your offer letter or QR confirmation at the HR desk.',
-        staffInstruction: 'Verify identity and employment/contractor confirmation. Log Day 1 arrival.',
+        customerInstruction:
+          'Welcome! Please present your offer letter or QR confirmation at the HR desk.',
+        staffInstruction:
+          'Verify identity and employment/contractor confirmation. Log Day 1 arrival.',
         locationDescription: 'HR Reception / Lobby',
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 2,
         name: 'Contract & Policy Sign-off',
-        description: 'Employee signs employment contract and key policy acknowledgements.',
+        description:
+          'Employee signs employment contract and key policy acknowledgements.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Please review and sign all documents presented by HR.',
-        staffInstruction: 'Present contract, code of conduct, IT policy, and POPIA declaration. Capture signatures.',
-        outcomeOptions: ['All Signed', 'Queries – Review with Manager', 'Incomplete – Follow Up'],
+        customerInstruction:
+          'Please review and sign all documents presented by HR.',
+        staffInstruction:
+          'Present contract, code of conduct, IT policy, and POPIA declaration. Capture signatures.',
+        outcomeOptions: [
+          'All Signed',
+          'Queries – Review with Manager',
+          'Incomplete – Follow Up',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 3,
         name: 'IT Setup & System Access',
-        description: 'IT department sets up equipment, accounts, and system access.',
+        description:
+          'IT department sets up equipment, accounts, and system access.',
         type: 'SERVICE',
         trigger: 'AUTOMATIC',
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Please proceed to the IT department to collect and set up your equipment.',
-        staffInstruction: 'Provision laptop, email, VPN, and relevant software access. Complete IT onboarding form.',
+        customerInstruction:
+          'Please proceed to the IT department to collect and set up your equipment.',
+        staffInstruction:
+          'Provision laptop, email, VPN, and relevant software access. Complete IT onboarding form.',
         locationDescription: 'IT Department',
-        outcomeOptions: ['Completed – All Access Granted', 'Partial – Pending Approvals', 'Equipment Not Ready'],
+        outcomeOptions: [
+          'Completed – All Access Granted',
+          'Partial – Pending Approvals',
+          'Equipment Not Ready',
+        ],
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 4,
         name: 'Equipment & Asset Collection',
-        description: 'Employee collects assigned equipment (laptop, phone, uniform, tools).',
+        description:
+          'Employee collects assigned equipment (laptop, phone, uniform, tools).',
         type: 'COLLECTION',
         trigger: 'AUTOMATIC',
         requiresQrScan: true,
@@ -1947,15 +2568,18 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementUnit: 'equipment package',
         entitlementFixed: 1,
         preventDoubleRedemption: true,
-        customerInstruction: 'Please present your QR to collect your assigned equipment.',
-        staffInstruction: 'Scan QR and hand over assets. Record serial numbers on asset register.',
+        customerInstruction:
+          'Please present your QR to collect your assigned equipment.',
+        staffInstruction:
+          'Scan QR and hand over assets. Record serial numbers on asset register.',
         locationDescription: 'Asset / IT Store',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 5,
         name: 'Security Badge & Access Card Issuance',
-        description: 'Employee receives their access card for the building and relevant areas.',
+        description:
+          'Employee receives their access card for the building and relevant areas.',
         type: 'COLLECTION',
         trigger: 'AUTOMATIC',
         requiresQrScan: true,
@@ -1963,22 +2587,29 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         entitlementUnit: 'access card',
         entitlementFixed: 1,
         preventDoubleRedemption: true,
-        customerInstruction: 'Please collect your access card from the security office.',
-        staffInstruction: 'Take photo. Program card for correct access zones. Hand over.',
+        customerInstruction:
+          'Please collect your access card from the security office.',
+        staffInstruction:
+          'Take photo. Program card for correct access zones. Hand over.',
         locationDescription: 'Security Office / Ground Floor',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 6,
         name: 'Health & Safety Induction',
-        description: 'Mandatory health and safety briefing before starting work.',
+        description:
+          'Mandatory health and safety briefing before starting work.',
         type: 'SERVICE',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         requiresStaffAction: true,
         customerInstruction: 'Please attend the health and safety briefing.',
-        staffInstruction: 'Conduct induction. Employee must pass the H&S quiz before proceeding.',
-        outcomeOptions: ['Passed – Induction Complete', 'Failed – Re-induction Scheduled'],
+        staffInstruction:
+          'Conduct induction. Employee must pass the H&S quiz before proceeding.',
+        outcomeOptions: [
+          'Passed – Induction Complete',
+          'Failed – Re-induction Scheduled',
+        ],
         notifyCustomerOnActivation: false,
       },
       {
@@ -1989,34 +2620,41 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         trigger: 'MANUAL_STAFF',
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Your line manager will now introduce you to your department.',
+        customerInstruction:
+          'Your line manager will now introduce you to your department.',
         staffInstruction: 'Introduce to team. Show workstation. Assign buddy.',
         notifyCustomerOnActivation: false,
       },
       {
         stepOrder: 8,
         name: 'Visitor Registration & Badge',
-        description: 'External visitor is registered and issued a temporary access badge.',
+        description:
+          'External visitor is registered and issued a temporary access badge.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_STAFF',
         isOptional: true,
         requiresQrScan: false,
         requiresStaffAction: true,
-        customerInstruction: 'Please sign the visitor register and collect your visitor badge.',
-        staffInstruction: 'Capture visitor ID, host name, and purpose. Issue time-limited visitor badge. Notify host.',
+        customerInstruction:
+          'Please sign the visitor register and collect your visitor badge.',
+        staffInstruction:
+          'Capture visitor ID, host name, and purpose. Issue time-limited visitor badge. Notify host.',
         locationDescription: 'Reception',
         notifyCustomerOnActivation: true,
       },
       {
         stepOrder: 9,
         name: 'Onboarding Completion Sign-off',
-        description: 'HR formally closes the onboarding workflow once all steps are done.',
+        description:
+          'HR formally closes the onboarding workflow once all steps are done.',
         type: 'CHECKPOINT',
         trigger: 'MANUAL_STAFF',
         requiresQrScan: true,
         requiresStaffAction: true,
-        customerInstruction: 'Congratulations! Your onboarding is now complete.',
-        staffInstruction: 'Confirm all steps completed. Update HRIS. Scan QR to officially close onboarding.',
+        customerInstruction:
+          'Congratulations! Your onboarding is now complete.',
+        staffInstruction:
+          'Confirm all steps completed. Update HRIS. Scan QR to officially close onboarding.',
         locationDescription: 'HR Office',
         notifyCustomerOnActivation: false,
       },

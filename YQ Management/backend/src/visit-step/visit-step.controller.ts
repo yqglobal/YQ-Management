@@ -1,5 +1,11 @@
 import {
-  Controller, Get, Post, Body, Param, Req, UseGuards,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { VisitStepService } from './visit-step.service';
 import { AdvanceStepDto } from './dto/advance-step.dto';
@@ -19,21 +25,48 @@ export class VisitStepController {
 
   @Post('scan')
   handleScan(@Req() req: any, @Body() dto: ScanStepDto) {
-    return this.visitStepService.handleScan(req.user.tenantId, dto.accessToken, req.user.id, dto.targetStepId);
+    return this.visitStepService.handleScan(
+      req.user.tenantId,
+      dto.accessToken,
+      req.user.id,
+      dto.targetStepId,
+    );
   }
 
   @Post(':stepId/activate')
   activateStep(@Req() req: any, @Param('stepId') stepId: string) {
-    return this.visitStepService.activateStep(req.user.tenantId, stepId, req.user.id);
+    return this.visitStepService.activateStep(
+      req.user.tenantId,
+      stepId,
+      req.user.id,
+    );
   }
 
   @Post(':stepId/advance')
-  advanceStep(@Req() req: any, @Param('stepId') stepId: string, @Body() dto: AdvanceStepDto) {
-    return this.visitStepService.advanceStep(req.user.tenantId, stepId, req.user.id, dto);
+  advanceStep(
+    @Req() req: any,
+    @Param('stepId') stepId: string,
+    @Body() dto: AdvanceStepDto,
+  ) {
+    return this.visitStepService.advanceStep(
+      req.user.tenantId,
+      stepId,
+      req.user.id,
+      dto,
+    );
   }
 
   @Post(':stepId/redeem')
-  redeemCollection(@Req() req: any, @Param('stepId') stepId: string, @Body() dto: RedeemEntitlementDto) {
-    return this.visitStepService.redeemCollection(req.user.tenantId, stepId, req.user.id, dto);
+  redeemCollection(
+    @Req() req: any,
+    @Param('stepId') stepId: string,
+    @Body() dto: RedeemEntitlementDto,
+  ) {
+    return this.visitStepService.redeemCollection(
+      req.user.tenantId,
+      stepId,
+      req.user.id,
+      dto,
+    );
   }
 }

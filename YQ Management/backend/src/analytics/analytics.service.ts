@@ -7,8 +7,8 @@ export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getDashboardAnalytics(
-    tenantId: string, 
-    timeframe: string = 'today', 
+    tenantId: string,
+    timeframe: string = 'today',
     tz: string = 'UTC',
     startDateInput?: string,
     endDateInput?: string,
@@ -38,7 +38,9 @@ export class AnalyticsService {
     const tokens = await this.prisma.visit.findMany({
       where: {
         tenantId,
-        createdAt: endDate ? { gte: startDate, lte: endDate } : { gte: startDate },
+        createdAt: endDate
+          ? { gte: startDate, lte: endDate }
+          : { gte: startDate },
       },
       select: {
         currentState: true,
@@ -95,7 +97,15 @@ export class AnalyticsService {
 
     const operatorStats = new Map<
       string,
-      { email: string; name: string; served: number; serviceTimeMs: number; ratingSum: number; ratingCount: number; noShows: number }
+      {
+        email: string;
+        name: string;
+        served: number;
+        serviceTimeMs: number;
+        ratingSum: number;
+        ratingCount: number;
+        noShows: number;
+      }
     >();
 
     // Pre-populate all services and their linked queues so they show up even with 0 visits
@@ -146,7 +156,9 @@ export class AnalyticsService {
       let waitMs = 0;
       let hasWait = false;
       if (t.serviceStart && (t.waitingStart || t.createdAt)) {
-        waitMs = t.serviceStart.getTime() - (t.waitingStart?.getTime() || t.createdAt.getTime());
+        waitMs =
+          t.serviceStart.getTime() -
+          (t.waitingStart?.getTime() || t.createdAt.getTime());
         hasWait = true;
       }
 
@@ -234,18 +246,19 @@ export class AnalyticsService {
             noShows: 0,
           });
         }
-        
+
         const stats = operatorStats.get(opId)!;
-        
+
         if (t.currentState === 'COMPLETED' && t.completedAt) {
           stats.served++;
-          stats.serviceTimeMs += t.completedAt.getTime() - t.serviceStart.getTime();
+          stats.serviceTimeMs +=
+            t.completedAt.getTime() - t.serviceStart.getTime();
           if (t.rating) {
             stats.ratingSum += t.rating;
             stats.ratingCount++;
           }
         }
-        
+
         if (isWalkaway) {
           stats.noShows++;
         }
@@ -254,17 +267,19 @@ export class AnalyticsService {
 
     // Compute Heatmap (Day of Week vs Hour)
     // 0 = Sunday, 1 = Monday, ... 6 = Saturday
-    const heatmapMatrix = Array(7).fill(0).map(() => Array(24).fill(0));
+    const heatmapMatrix = Array(7)
+      .fill(0)
+      .map(() => Array(24).fill(0));
     tokens.forEach((t: any) => {
       const d = toZonedTime(t.createdAt, tz);
       const day = d.getDay();
       const hour = d.getHours();
       heatmapMatrix[day][hour]++;
     });
-    
+
     const heatmapData = {
       matrix: heatmapMatrix,
-      maxValue: Math.max(1, ...heatmapMatrix.flat())
+      maxValue: Math.max(1, ...heatmapMatrix.flat()),
     };
 
     const averageWaitTimeMins =
@@ -312,7 +327,9 @@ export class AnalyticsService {
           entry.volume++;
           if (t.serviceStart) {
             entry.waitTimeSum +=
-              (t.serviceStart.getTime() - (t.waitingStart?.getTime() || t.createdAt.getTime())) / 60000;
+              (t.serviceStart.getTime() -
+                (t.waitingStart?.getTime() || t.createdAt.getTime())) /
+              60000;
             entry.waitCount++;
           }
         }
@@ -361,7 +378,9 @@ export class AnalyticsService {
           entry.volume++;
           if (t.serviceStart) {
             entry.waitTimeSum +=
-              (t.serviceStart.getTime() - (t.waitingStart?.getTime() || t.createdAt.getTime())) / 60000;
+              (t.serviceStart.getTime() -
+                (t.waitingStart?.getTime() || t.createdAt.getTime())) /
+              60000;
             entry.waitCount++;
           }
         }
@@ -380,7 +399,10 @@ export class AnalyticsService {
       email: op.email,
       served: op.served,
       noShows: op.noShows,
-      csat: op.ratingCount > 0 ? Number((op.ratingSum / op.ratingCount).toFixed(1)) : 0,
+      csat:
+        op.ratingCount > 0
+          ? Number((op.ratingSum / op.ratingCount).toFixed(1))
+          : 0,
       avgServiceTimeMins:
         op.served > 0 ? Math.floor(op.serviceTimeMs / op.served / 60000) : 0,
     }));
@@ -419,30 +441,46 @@ export class AnalyticsService {
     };
   }
 
-  async exportAnalyticsCSV(tenantId: string, timeframe: string, tz: string, startDate?: string, endDate?: string) {
-    const data = await this.getDashboardAnalytics(tenantId, timeframe, tz, startDate, endDate);
-    
+  async exportAnalyticsCSV(
+    tenantId: string,
+    timeframe: string,
+    tz: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const data = await this.getDashboardAnalytics(
+      tenantId,
+      timeframe,
+      tz,
+      startDate,
+      endDate,
+    );
+
     // Simple CSV generator
     const lines = [];
     lines.push('Qmova Analytics Export');
     lines.push(`Timeframe: ${timeframe}`);
     lines.push('');
-    
+
     lines.push('--- Key Performance Indicators ---');
     lines.push(`Total Visits,${data.kpis.totalVisits}`);
     lines.push(`Total Served,${data.kpis.totalServed}`);
     lines.push(`Average Wait Time (mins),${data.kpis.averageWaitTimeMins}`);
-    lines.push(`Average Service Time (mins),${data.kpis.averageServiceTimeMins}`);
+    lines.push(
+      `Average Service Time (mins),${data.kpis.averageServiceTimeMins}`,
+    );
     lines.push(`Drop-off Rate (%),${data.kpis.dropOffRate}`);
     lines.push(`CSAT Score,${data.kpis.csatScore}`);
     lines.push('');
 
     lines.push('--- Operator Performance ---');
     lines.push('Name,Served,No-Shows,CSAT,Avg Service Time (mins)');
-    data.staffPerformance.forEach(op => {
-      lines.push(`${op.name},${op.served},${op.noShows},${op.csat},${op.avgServiceTimeMins}`);
+    data.staffPerformance.forEach((op) => {
+      lines.push(
+        `${op.name},${op.served},${op.noShows},${op.csat},${op.avgServiceTimeMins}`,
+      );
     });
-    
+
     return lines.join('\\n');
   }
 }

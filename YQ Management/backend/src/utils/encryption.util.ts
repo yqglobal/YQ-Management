@@ -4,23 +4,26 @@ const ALGORITHM = 'aes-256-gcm';
 // In a real production system, this should be a KMS-backed master key or derived securely.
 // We fall back to a hash of JWT_SECRET for demonstration if ENCRYPTION_KEY is not provided.
 const getEncryptionKey = (): Buffer => {
-  const secret = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'default-secret-key-must-be-32-chars!';
+  const secret =
+    process.env.ENCRYPTION_KEY ||
+    process.env.JWT_SECRET ||
+    'default-secret-key-must-be-32-chars!';
   return crypto.createHash('sha256').update(String(secret)).digest();
 };
 
 export const encrypt = (text: string): string => {
   if (!text) return text;
-  
+
   // Return early if already encrypted (prevent double encryption)
   if (text.startsWith('ENC:')) return text;
 
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(ALGORITHM, getEncryptionKey(), iv);
-  
+
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   const authTag = cipher.getAuthTag().toString('hex');
-  
+
   // Format: ENC:iv:authTag:encryptedData
   return `ENC:${iv.toString('hex')}:${authTag}:${encrypted}`;
 };
@@ -55,7 +58,8 @@ export const encryptJson = (obj: any): any => {
 };
 
 export const decryptJson = (text: string): any => {
-  if (!text || typeof text !== 'string' || !text.startsWith('ENC:')) return text;
+  if (!text || typeof text !== 'string' || !text.startsWith('ENC:'))
+    return text;
   const decrypted = decrypt(text);
   try {
     return JSON.parse(decrypted);

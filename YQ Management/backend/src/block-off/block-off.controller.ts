@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { BlockOffService } from './block-off.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
@@ -25,12 +35,19 @@ export class BlockOffController {
     @Query('locationId') locationId?: string,
     @Query('queueId') queueId?: string,
   ) {
-    return this.blockOffService.getBlockOffs(req.user.tenantId, locationId, queueId);
+    return this.blockOffService.getBlockOffs(
+      req.user.tenantId,
+      locationId,
+      queueId,
+    );
   }
 
   @Delete(':id')
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN)
-  async deleteBlockOff(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+  async deleteBlockOff(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
     return this.blockOffService.deleteBlockOff(req.user.tenantId, id);
   }
 }

@@ -239,10 +239,11 @@ export class QueueService {
       if (!hasCustomBranding) {
         tenant.branding = null;
       }
-      
+
       const sub = tenant.subscriptions?.[0];
-      const isSubscriptionActive = sub && (sub.status === 'ACTIVE' || sub.status === 'TRIAL');
-      
+      const isSubscriptionActive =
+        sub && (sub.status === 'ACTIVE' || sub.status === 'TRIAL');
+
       tenant.planFeatures = { customBranding: hasCustomBranding };
       tenant.isPaused = !isSubscriptionActive;
       delete tenant.subscriptions; // Don't expose billing details publicly
@@ -321,9 +322,9 @@ export class QueueService {
       if (status === 'PAUSED_FOR_EMERGENCY') {
         const waitingVisits = await tx.visit.findMany({
           where: { queueId, currentState: 'WAITING' },
-          select: { id: true, tenantId: true }
+          select: { id: true, tenantId: true },
         });
-        
+
         for (const visit of waitingVisits) {
           await tx.outboxEvent.create({
             data: {
@@ -332,8 +333,8 @@ export class QueueService {
                 visitId: visit.id,
                 queueId,
                 tenantId: visit.tenantId,
-              }
-            }
+              },
+            },
           });
         }
       }
@@ -355,10 +356,14 @@ export class QueueService {
       queueId,
       status,
     });
-    this.queueGateway.broadcastTenantUpdate(queue.tenantId, 'queue_status_changed', {
-      queueId,
-      status,
-    });
+    this.queueGateway.broadcastTenantUpdate(
+      queue.tenantId,
+      'queue_status_changed',
+      {
+        queueId,
+        status,
+      },
+    );
     return queue;
   }
 

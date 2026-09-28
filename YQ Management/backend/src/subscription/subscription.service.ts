@@ -59,7 +59,8 @@ export class SubscriptionService {
     const customLimits = subMeta.customLimits || {};
 
     if (resource === 'queues') {
-      const maxQueues = customLimits.maxQueues ?? parsedLimits?.maxQueues ?? sub.plan.maxQueues;
+      const maxQueues =
+        customLimits.maxQueues ?? parsedLimits?.maxQueues ?? sub.plan.maxQueues;
       if (maxQueues !== undefined && maxQueues !== null) {
         if (currentCount >= maxQueues) {
           throw new BillingException(
@@ -70,7 +71,8 @@ export class SubscriptionService {
     }
 
     if (resource === 'locations') {
-      const maxLocations = customLimits.maxLocations ?? parsedLimits?.maxLocations;
+      const maxLocations =
+        customLimits.maxLocations ?? parsedLimits?.maxLocations;
       if (maxLocations !== undefined && maxLocations !== null) {
         if (currentCount >= maxLocations) {
           throw new BillingException(
@@ -81,7 +83,8 @@ export class SubscriptionService {
     }
 
     if (resource === 'visits') {
-      const maxVisits = customLimits.maxVisits ?? sub.plan.maxVisits ?? parsedLimits?.maxTokens;
+      const maxVisits =
+        customLimits.maxVisits ?? sub.plan.maxVisits ?? parsedLimits?.maxTokens;
       if (maxVisits !== undefined && maxVisits !== null) {
         if (currentCount >= maxVisits) {
           throw new BillingException(
@@ -91,7 +94,6 @@ export class SubscriptionService {
       }
     }
   }
-
 
   async createSubscription(
     tenantId: string,

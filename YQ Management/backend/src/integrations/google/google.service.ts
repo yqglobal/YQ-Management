@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { google } from 'googleapis';
@@ -12,15 +17,19 @@ export class GoogleService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {
-    const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID') || 'mock-client-id';
-    const clientSecret = this.configService.get<string>('GOOGLE_CLIENT_SECRET') || 'mock-client-secret';
-    const backendUrl = this.configService.get<string>('BACKEND_URL') || 'http://localhost:3000';
+    const clientId =
+      this.configService.get<string>('GOOGLE_CLIENT_ID') || 'mock-client-id';
+    const clientSecret =
+      this.configService.get<string>('GOOGLE_CLIENT_SECRET') ||
+      'mock-client-secret';
+    const backendUrl =
+      this.configService.get<string>('BACKEND_URL') || 'http://localhost:3000';
     const redirectUri = `${backendUrl}/auth/google/callback`;
 
     this.oauth2Client = new google.auth.OAuth2(
       clientId,
       clientSecret,
-      redirectUri
+      redirectUri,
     );
   }
 
@@ -41,7 +50,9 @@ export class GoogleService {
   }) {
     // If no refresh token, can't refresh — return existing credentials
     if (!integration.refreshToken) {
-      this.oauth2Client.setCredentials({ access_token: integration.accessToken });
+      this.oauth2Client.setCredentials({
+        access_token: integration.accessToken,
+      });
       return;
     }
 
@@ -56,7 +67,9 @@ export class GoogleService {
 
     if (isExpired) {
       try {
-        this.logger.log(`Refreshing Google OAuth token for integration ${integration.id}`);
+        this.logger.log(
+          `Refreshing Google OAuth token for integration ${integration.id}`,
+        );
         const { credentials } = await this.oauth2Client.refreshAccessToken();
 
         // Persist refreshed token
@@ -64,21 +77,35 @@ export class GoogleService {
           where: { id: integration.id },
           data: {
             accessToken: credentials.access_token || integration.accessToken,
-            ...(credentials.refresh_token ? { refreshToken: credentials.refresh_token } : {}),
-            tokenExpiry: credentials.expiry_date ? new Date(credentials.expiry_date) : null,
+            ...(credentials.refresh_token
+              ? { refreshToken: credentials.refresh_token }
+              : {}),
+            tokenExpiry: credentials.expiry_date
+              ? new Date(credentials.expiry_date)
+              : null,
           },
         });
 
         this.oauth2Client.setCredentials(credentials);
-        this.logger.log(`Token refreshed successfully for integration ${integration.id}`);
+        this.logger.log(
+          `Token refreshed successfully for integration ${integration.id}`,
+        );
       } catch (err: any) {
-        this.logger.error(`Failed to refresh token for integration ${integration.id}: ${err.message}`);
+        this.logger.error(
+          `Failed to refresh token for integration ${integration.id}: ${err.message}`,
+        );
         // Mark integration as needing re-auth
-        await this.prisma.googleIntegration.update({
-          where: { id: integration.id },
-          data: { tokenExpiry: new Date(0) }, // epoch = expired
-        }).catch(() => {/* ignore */});
-        throw new Error(`Google token expired and could not be refreshed. Please re-connect the account.`);
+        await this.prisma.googleIntegration
+          .update({
+            where: { id: integration.id },
+            data: { tokenExpiry: new Date(0) }, // epoch = expired
+          })
+          .catch(() => {
+            /* ignore */
+          });
+        throw new Error(
+          `Google token expired and could not be refreshed. Please re-connect the account.`,
+        );
       }
     }
   }
@@ -86,7 +113,9 @@ export class GoogleService {
   // ─── Calendar Sync ─────────────────────────────────────────────────────────────
 
   async syncAppointmentToCalendar(tenantId: string, appointmentDetails: any) {
-    this.logger.log(`Syncing appointment to Google Calendar for location ${appointmentDetails.locationId}`);
+    this.logger.log(
+      `Syncing appointment to Google Calendar for location ${appointmentDetails.locationId}`,
+    );
 
     const location = await this.prisma.location.findUnique({
       where: { id: appointmentDetails.locationId },
@@ -95,15 +124,23 @@ export class GoogleService {
 
     const integration = location?.googleIntegration;
 
-    if (!integration || (!integration.accessToken && !integration.refreshToken)) {
-      this.logger.warn(`Location ${appointmentDetails.locationId} does not have Google Calendar connected. Skipping sync.`);
+    if (
+      !integration ||
+      (!integration.accessToken && !integration.refreshToken)
+    ) {
+      this.logger.warn(
+        `Location ${appointmentDetails.locationId} does not have Google Calendar connected. Skipping sync.`,
+      );
       return;
     }
 
     try {
       await this.refreshTokenIfNeeded(integration);
 
-      const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+      const calendar = google.calendar({
+        version: 'v3',
+        auth: this.oauth2Client,
+      });
 
       // Use the specific calendarId if configured, otherwise fall back to 'primary'
       const calendarId = location?.googleCalendarId || 'primary';
@@ -125,7 +162,7 @@ export class GoogleService {
       });
 
       if (response.data.id) {
-        const formData = (appointmentDetails.formData as any) || {};
+        const formData = appointmentDetails.formData || {};
         formData.googleEventId = response.data.id;
 
         await this.prisma.appointment.update({
@@ -134,14 +171,20 @@ export class GoogleService {
         });
       }
 
-      this.logger.log(`Google Calendar event created in calendar "${calendarId}" successfully!`);
+      this.logger.log(
+        `Google Calendar event created in calendar "${calendarId}" successfully!`,
+      );
     } catch (error: any) {
       this.logger.error('Failed to sync to Google Calendar', error?.message);
     }
   }
 
   async updateAppointmentInCalendar(tenantId: string, appointmentDetails: any) {
-    if (!appointmentDetails.formData?.googleEventId || !appointmentDetails.locationId) return;
+    if (
+      !appointmentDetails.formData?.googleEventId ||
+      !appointmentDetails.locationId
+    )
+      return;
 
     const location = await this.prisma.location.findUnique({
       where: { id: appointmentDetails.locationId },
@@ -149,19 +192,27 @@ export class GoogleService {
     });
 
     const integration = location?.googleIntegration;
-    if (!integration || (!integration.accessToken && !integration.refreshToken)) return;
+    if (!integration || (!integration.accessToken && !integration.refreshToken))
+      return;
 
     try {
       await this.refreshTokenIfNeeded(integration);
 
-      const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+      const calendar = google.calendar({
+        version: 'v3',
+        auth: this.oauth2Client,
+      });
       const calendarId = location?.googleCalendarId || 'primary';
 
       const event = {
         summary: `Appointment for ${appointmentDetails.customer?.name || 'Customer'}`,
         description: `Service: ${appointmentDetails.service?.name || 'Service'}\nNotes: ${appointmentDetails.customerNotes || ''}`,
-        start: { dateTime: new Date(appointmentDetails.scheduledStart).toISOString() },
-        end: { dateTime: new Date(appointmentDetails.scheduledEnd).toISOString() },
+        start: {
+          dateTime: new Date(appointmentDetails.scheduledStart).toISOString(),
+        },
+        end: {
+          dateTime: new Date(appointmentDetails.scheduledEnd).toISOString(),
+        },
       };
 
       await calendar.events.update({
@@ -171,12 +222,22 @@ export class GoogleService {
       });
       this.logger.log('Google Calendar event updated successfully!');
     } catch (error: any) {
-      this.logger.error('Failed to update Google Calendar event', error?.message);
+      this.logger.error(
+        'Failed to update Google Calendar event',
+        error?.message,
+      );
     }
   }
 
-  async deleteAppointmentFromCalendar(tenantId: string, appointmentDetails: any) {
-    if (!appointmentDetails.formData?.googleEventId || !appointmentDetails.locationId) return;
+  async deleteAppointmentFromCalendar(
+    tenantId: string,
+    appointmentDetails: any,
+  ) {
+    if (
+      !appointmentDetails.formData?.googleEventId ||
+      !appointmentDetails.locationId
+    )
+      return;
 
     const location = await this.prisma.location.findUnique({
       where: { id: appointmentDetails.locationId },
@@ -184,12 +245,16 @@ export class GoogleService {
     });
 
     const integration = location?.googleIntegration;
-    if (!integration || (!integration.accessToken && !integration.refreshToken)) return;
+    if (!integration || (!integration.accessToken && !integration.refreshToken))
+      return;
 
     try {
       await this.refreshTokenIfNeeded(integration);
 
-      const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+      const calendar = google.calendar({
+        version: 'v3',
+        auth: this.oauth2Client,
+      });
       const calendarId = location?.googleCalendarId || 'primary';
 
       await calendar.events.delete({
@@ -198,7 +263,10 @@ export class GoogleService {
       });
       this.logger.log('Google Calendar event deleted successfully!');
     } catch (error: any) {
-      this.logger.error('Failed to delete Google Calendar event', error?.message);
+      this.logger.error(
+        'Failed to delete Google Calendar event',
+        error?.message,
+      );
     }
   }
 
@@ -219,10 +287,13 @@ export class GoogleService {
 
     await this.refreshTokenIfNeeded(integration);
 
-    const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+    const calendar = google.calendar({
+      version: 'v3',
+      auth: this.oauth2Client,
+    });
     const response = await calendar.calendarList.list({ maxResults: 50 });
 
-    return (response.data.items || []).map(cal => ({
+    return (response.data.items || []).map((cal) => ({
       id: cal.id,
       summary: cal.summary,
       primary: cal.primary || false,
@@ -253,7 +324,9 @@ export class GoogleService {
       });
       await this.oauth2Client.revokeCredentials();
     } catch (err: any) {
-      this.logger.warn(`Could not revoke Google token for ${integrationId}: ${err.message}`);
+      this.logger.warn(
+        `Could not revoke Google token for ${integrationId}: ${err.message}`,
+      );
     }
 
     // Unlink all locations using this integration
@@ -267,7 +340,10 @@ export class GoogleService {
       where: { id: integrationId },
     });
 
-    return { success: true, message: 'Google account disconnected successfully' };
+    return {
+      success: true,
+      message: 'Google account disconnected successfully',
+    };
   }
 
   // ─── Google Business Profile ───────────────────────────────────────────────────
@@ -312,37 +388,44 @@ export class GoogleService {
             const locationsRes = await mybusinessInfo.accounts.locations.list({
               parent: account.name,
               readMask: 'name,title,storefrontAddress,websiteUri,phoneNumbers',
-            } as any);
+            });
 
             return {
               accountName: account.name,
               accountType: account.type,
               accountDisplayName: account.accountName,
-              locations: (locationsRes.data.locations || []).map((loc: any) => ({
-                name: loc.name, // e.g. "accounts/123/locations/456"
-                title: loc.title,
-                address: loc.storefrontAddress?.addressLines?.join(', '),
-              })),
+              locations: (locationsRes.data.locations || []).map(
+                (loc: any) => ({
+                  name: loc.name, // e.g. "accounts/123/locations/456"
+                  title: loc.title,
+                  address: loc.storefrontAddress?.addressLines?.join(', '),
+                }),
+              ),
             };
           } catch (locErr: any) {
-            this.logger.warn(`Could not fetch locations for account ${account.name}: ${locErr.message}`);
+            this.logger.warn(
+              `Could not fetch locations for account ${account.name}: ${locErr.message}`,
+            );
             return {
               accountName: account.name,
               accountDisplayName: account.accountName,
               locations: [],
             };
           }
-        })
+        }),
       );
 
       return accountsWithLocations;
     } catch (err: any) {
-      this.logger.error('Failed to fetch Google Business Profile accounts', err?.message);
+      this.logger.error(
+        'Failed to fetch Google Business Profile accounts',
+        err?.message,
+      );
       // Return a friendly error the UI can handle
       if (err?.code === 403 || err?.status === 403) {
         throw new ForbiddenException(
           'Google Business Profile API access is not enabled for this account. ' +
-          'This feature requires API approval from Google for production use.'
+            'This feature requires API approval from Google for production use.',
         );
       }
       throw err;
@@ -411,7 +494,7 @@ export class GoogleService {
         googleIntegrationId: true,
         googlePlaceId: true,
         googleCalendarId: true,
-      }
+      },
     });
 
     const googleIntegrations = await this.prisma.googleIntegration.findMany({
@@ -421,7 +504,7 @@ export class GoogleService {
         email: true,
         tokenExpiry: true,
         createdAt: true,
-      }
+      },
     });
 
     return { tenant, locations, googleIntegrations };
@@ -440,12 +523,19 @@ export class GoogleService {
       }[];
     },
   ) {
-    if (data.enableSmartReviews !== undefined || data.reviewWaitThresholdMins !== undefined) {
+    if (
+      data.enableSmartReviews !== undefined ||
+      data.reviewWaitThresholdMins !== undefined
+    ) {
       await this.prisma.tenant.update({
         where: { id: tenantId },
         data: {
-          ...(data.enableSmartReviews !== undefined ? { enableSmartReviews: data.enableSmartReviews } : {}),
-          ...(data.reviewWaitThresholdMins !== undefined ? { reviewWaitThresholdMins: data.reviewWaitThresholdMins } : {}),
+          ...(data.enableSmartReviews !== undefined
+            ? { enableSmartReviews: data.enableSmartReviews }
+            : {}),
+          ...(data.reviewWaitThresholdMins !== undefined
+            ? { reviewWaitThresholdMins: data.reviewWaitThresholdMins }
+            : {}),
         },
       });
     }
@@ -455,9 +545,15 @@ export class GoogleService {
         await this.prisma.location.update({
           where: { id: loc.id, tenantId },
           data: {
-            ...(loc.googleIntegrationId !== undefined ? { googleIntegrationId: loc.googleIntegrationId } : {}),
-            ...(loc.googlePlaceId !== undefined ? { googlePlaceId: loc.googlePlaceId } : {}),
-            ...(loc.googleCalendarId !== undefined ? { googleCalendarId: loc.googleCalendarId } : {}),
+            ...(loc.googleIntegrationId !== undefined
+              ? { googleIntegrationId: loc.googleIntegrationId }
+              : {}),
+            ...(loc.googlePlaceId !== undefined
+              ? { googlePlaceId: loc.googlePlaceId }
+              : {}),
+            ...(loc.googleCalendarId !== undefined
+              ? { googleCalendarId: loc.googleCalendarId }
+              : {}),
           },
         });
       }

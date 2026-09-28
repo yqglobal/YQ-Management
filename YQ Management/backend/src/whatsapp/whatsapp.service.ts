@@ -14,7 +14,10 @@ import { WhatsappLogger } from './whatsapp.logger';
 import { QueueGateway } from '../queue/queue.gateway';
 import { WhatsappAiService } from './whatsapp-ai.service';
 import { WhatsappChatbot } from './whatsapp.chatbot';
-import { CommunicationLogService, CommunicationStatus } from '../communication/logging/communication-log.service';
+import {
+  CommunicationLogService,
+  CommunicationStatus,
+} from '../communication/logging/communication-log.service';
 
 import { ServiceService } from '../service/service.service';
 import { AppointmentService } from '../appointment/appointment.service';
@@ -90,7 +93,13 @@ export class WhatsappService implements OnModuleInit {
   async syncAllInstances() {
     try {
       // Use silent=true to prevent log flooding on background syncs when API is completely down
-      const evoRes = await this.fetchEvo('/instance/fetchInstances', 'GET', undefined, 15000, true);
+      const evoRes = await this.fetchEvo(
+        '/instance/fetchInstances',
+        'GET',
+        undefined,
+        15000,
+        true,
+      );
       // If Evolution API is unreachable (cold start, restart), skip sync entirely
       if (evoRes.error) {
         this.logger.debug(
@@ -1415,7 +1424,9 @@ export class WhatsappService implements OnModuleInit {
       // (moved to class method to avoid nesting function declarations)
 
       if (payload?.event === 'messages.update' && payload?.data) {
-        const updates = Array.isArray(payload.data) ? payload.data : [payload.data];
+        const updates = Array.isArray(payload.data)
+          ? payload.data
+          : [payload.data];
         for (const update of updates) {
           const messageId = update?.key?.id || update?.keyId;
           const status = update?.update?.status || update?.status; // 2=SERVER_ACK, 3=DELIVERY_ACK, 4=READ, or strings
@@ -1447,7 +1458,7 @@ export class WhatsappService implements OnModuleInit {
                     messageId,
                     commStatus,
                   );
-                  
+
                   // Broadcast to frontend
                   this.queueGateway.broadcastTenantUpdate(
                     tenant.id,
@@ -1466,18 +1477,23 @@ export class WhatsappService implements OnModuleInit {
       }
 
       if (payload?.event === 'messages.delete' && payload?.data) {
-        const messageId = payload.data.keys?.[0]?.id || payload.data?.message?.key?.id;
+        const messageId =
+          payload.data.keys?.[0]?.id || payload.data?.message?.key?.id;
         if (messageId) {
           const message = await this.prisma.message.findUnique({
             where: { whatsappId: messageId },
           });
           if (message) {
             await this.prisma.message.delete({ where: { id: message.id } });
-            
-            this.queueGateway.broadcastTenantUpdate(message.tenantId, 'MESSAGE_DELETED', {
-              messageId: message.id,
-              phone: message.customerPhone,
-            });
+
+            this.queueGateway.broadcastTenantUpdate(
+              message.tenantId,
+              'MESSAGE_DELETED',
+              {
+                messageId: message.id,
+                phone: message.customerPhone,
+              },
+            );
           }
         }
         return { success: true };
@@ -1527,17 +1543,25 @@ export class WhatsappService implements OnModuleInit {
 
       let text = '';
       if (message?.conversation) text = message.conversation;
-      else if (message?.extendedTextMessage?.text) text = message.extendedTextMessage.text;
-      else if (message?.buttonsResponseMessage?.selectedButtonId) text = message.buttonsResponseMessage.selectedButtonId;
-      else if (message?.listResponseMessage?.title) text = message.listResponseMessage.title;
-      else if (message?.imageMessage) text = message.imageMessage.caption || '[Image]';
+      else if (message?.extendedTextMessage?.text)
+        text = message.extendedTextMessage.text;
+      else if (message?.buttonsResponseMessage?.selectedButtonId)
+        text = message.buttonsResponseMessage.selectedButtonId;
+      else if (message?.listResponseMessage?.title)
+        text = message.listResponseMessage.title;
+      else if (message?.imageMessage)
+        text = message.imageMessage.caption || '[Image]';
       else if (message?.audioMessage) text = '[Audio]';
-      else if (message?.videoMessage) text = message.videoMessage.caption || '[Video]';
-      else if (message?.documentMessage) text = message.documentMessage.fileName || '[Document]';
+      else if (message?.videoMessage)
+        text = message.videoMessage.caption || '[Video]';
+      else if (message?.documentMessage)
+        text = message.documentMessage.fileName || '[Document]';
       else if (message?.stickerMessage) text = '[Sticker]';
 
       if (!text || !text.trim()) {
-        this.logger.debug(`Empty message or unsupported media type from ${phone}`);
+        this.logger.debug(
+          `Empty message or unsupported media type from ${phone}`,
+        );
         return { ignored: true };
       }
 
@@ -1574,14 +1598,16 @@ export class WhatsappService implements OnModuleInit {
           graceEnd.setDate(graceEnd.getDate() + 3);
           isActive = graceEnd > now;
         } else if (sub.status === 'TRIAL') {
-          const endDate = sub.trialEndDate ? new Date(sub.trialEndDate) : new Date(sub.currentPeriodEnd);
+          const endDate = sub.trialEndDate
+            ? new Date(sub.trialEndDate)
+            : new Date(sub.currentPeriodEnd);
           isActive = endDate > now;
         }
       }
 
       if (!isActive) {
         this.logger.warn(
-          `Tenant ${tenant.id} subscription is ${sub?.status || 'missing'} or expired. Ignoring incoming WhatsApp message from ${phone}.`
+          `Tenant ${tenant.id} subscription is ${sub?.status || 'missing'} or expired. Ignoring incoming WhatsApp message from ${phone}.`,
         );
         return { ignored: true, reason: 'subscription_inactive' };
       }
@@ -1594,20 +1620,24 @@ export class WhatsappService implements OnModuleInit {
             customer: { phone },
             surveySent: true,
             rating: null,
-            currentState: 'COMPLETED'
+            currentState: 'COMPLETED',
           },
-          orderBy: { completedAt: 'desc' }
+          orderBy: { completedAt: 'desc' },
         });
 
         if (pendingSurveyVisit) {
           const rating = parseInt(rawText.trim(), 10);
           if (!isNaN(rating) && rating >= 1 && rating <= 5) {
-             await this.prisma.visit.update({
-               where: { id: pendingSurveyVisit.id },
-               data: { rating }
-             });
-             await this.sendMessage(instanceName, jid, "Thank you for your feedback! We appreciate it.");
-             return { handled: true, action: 'survey_collected' };
+            await this.prisma.visit.update({
+              where: { id: pendingSurveyVisit.id },
+              data: { rating },
+            });
+            await this.sendMessage(
+              instanceName,
+              jid,
+              'Thank you for your feedback! We appreciate it.',
+            );
+            return { handled: true, action: 'survey_collected' };
           }
         }
       } catch (e) {
@@ -1646,7 +1676,9 @@ export class WhatsappService implements OnModuleInit {
         },
       });
 
-      this.queueGateway.broadcastTenantUpdate(tenant.id, 'NEW_INBOX_MESSAGE', { phone });
+      this.queueGateway.broadcastTenantUpdate(tenant.id, 'NEW_INBOX_MESSAGE', {
+        phone,
+      });
 
       // 2) GATING FOR CHATBOT
       if (!tenant.chatbotEnabled) {
@@ -1702,10 +1734,14 @@ export class WhatsappService implements OnModuleInit {
               },
             });
 
-            this.queueGateway.broadcastTenantUpdate(tenant.id, 'NEW_INBOX_MESSAGE', {
-              phone,
-              conversationId: conversation.id,
-            });
+            this.queueGateway.broadcastTenantUpdate(
+              tenant.id,
+              'NEW_INBOX_MESSAGE',
+              {
+                phone,
+                conversationId: conversation.id,
+              },
+            );
           },
         );
       } else {
@@ -1726,14 +1762,23 @@ export class WhatsappService implements OnModuleInit {
               },
             });
 
-            this.queueGateway.broadcastTenantUpdate(tenant.id, 'NEW_INBOX_MESSAGE', {
-              phone,
-              conversationId: conversation.id,
-            });
+            this.queueGateway.broadcastTenantUpdate(
+              tenant.id,
+              'NEW_INBOX_MESSAGE',
+              {
+                phone,
+                conversationId: conversation.id,
+              },
+            );
           },
           async (jidToSend, listPayload) => {
-            const res = await this.sendListMessage(instanceName, jidToSend, listPayload);
-            if (!res.success) throw new Error(res.error || 'Failed to send list message');
+            const res = await this.sendListMessage(
+              instanceName,
+              jidToSend,
+              listPayload,
+            );
+            if (!res.success)
+              throw new Error(res.error || 'Failed to send list message');
             // Log outgoing bot list message to Inbox as text summary
             await this.prisma.message.create({
               data: {
@@ -1746,10 +1791,14 @@ export class WhatsappService implements OnModuleInit {
               },
             });
 
-            this.queueGateway.broadcastTenantUpdate(tenant.id, 'NEW_INBOX_MESSAGE', {
-              phone,
-              conversationId: conversation.id,
-            });
+            this.queueGateway.broadcastTenantUpdate(
+              tenant.id,
+              'NEW_INBOX_MESSAGE',
+              {
+                phone,
+                conversationId: conversation.id,
+              },
+            );
           },
           this.serviceService,
           this.appointmentService,
@@ -1769,7 +1818,9 @@ export class WhatsappService implements OnModuleInit {
     }
   }
 
-  async checkCanSendWhatsApp(instanceName: string): Promise<{ active: boolean, tenant: any }> {
+  async checkCanSendWhatsApp(
+    instanceName: string,
+  ): Promise<{ active: boolean; tenant: any }> {
     const tenant = await this.prisma.tenant.findFirst({
       where: { whatsappInstanceId: instanceName },
       include: {
@@ -1792,13 +1843,17 @@ export class WhatsappService implements OnModuleInit {
         graceEnd.setDate(graceEnd.getDate() + 3);
         isActive = graceEnd > now;
       } else if (sub.status === 'TRIAL') {
-        const endDate = sub.trialEndDate ? new Date(sub.trialEndDate) : new Date(sub.currentPeriodEnd);
+        const endDate = sub.trialEndDate
+          ? new Date(sub.trialEndDate)
+          : new Date(sub.currentPeriodEnd);
         isActive = endDate > now;
       }
     }
 
     if (!isActive) {
-      this.logger.warn(`Tenant ${tenant.id} subscription is inactive/expired. Blocking outbound WhatsApp message.`);
+      this.logger.warn(
+        `Tenant ${tenant.id} subscription is inactive/expired. Blocking outbound WhatsApp message.`,
+      );
     }
 
     return { active: isActive, tenant };
@@ -1812,11 +1867,16 @@ export class WhatsappService implements OnModuleInit {
       description: string;
       buttonText: string;
       footerText?: string;
-      sections: { title: string; rows: { title: string; description?: string; rowId: string }[] }[];
-    }
+      sections: {
+        title: string;
+        rows: { title: string; description?: string; rowId: string }[];
+      }[];
+    },
   ) {
     const normalizedNumber = number.replace(/\D/g, '');
-    this.logger.debug(`Sending list message on ${instanceName} to: ${normalizedNumber}`);
+    this.logger.debug(
+      `Sending list message on ${instanceName} to: ${normalizedNumber}`,
+    );
 
     const check = await this.checkCanSendWhatsApp(instanceName);
     if (!check.active) {
@@ -1834,10 +1894,12 @@ export class WhatsappService implements OnModuleInit {
     );
 
     if (result.error) {
-      this.logger.error(`Failed to send List Message to ${normalizedNumber} on ${instanceName}: ${result.error.message}`);
+      this.logger.error(
+        `Failed to send List Message to ${normalizedNumber} on ${instanceName}: ${result.error.message}`,
+      );
       return { success: false, error: result.error.message };
     }
-    
+
     return { success: true, providerId: result.data?.key?.id };
   }
 
@@ -1935,7 +1997,10 @@ export class WhatsappService implements OnModuleInit {
         data: { whatsappId },
       });
     } catch (e) {
-      this.logger.warn(`Could not update whatsappId for message ${messageId}`, e);
+      this.logger.warn(
+        `Could not update whatsappId for message ${messageId}`,
+        e,
+      );
     }
   }
 
@@ -1950,11 +2015,11 @@ export class WhatsappService implements OnModuleInit {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
     });
-    
+
     if (!message || message.tenantId !== tenantId) {
       throw new Error('Message not found');
     }
-    
+
     if (!message.whatsappId) {
       // If it doesn't have a whatsappId yet, just delete from DB.
       await this.prisma.message.delete({ where: { id: messageId } });
@@ -1973,12 +2038,14 @@ export class WhatsappService implements OnModuleInit {
 
     try {
       const evoRes = await this.fetchEvo(url, 'POST', payload);
-      
+
       if (evoRes.error) {
         throw new Error(evoRes.error.message);
       }
     } catch (e) {
-      this.logger.warn(`Evolution API delete message failed: ${e instanceof Error ? e.message : String(e)}`);
+      this.logger.warn(
+        `Evolution API delete message failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
       // We will still delete from DB
     }
 
@@ -2037,7 +2104,8 @@ export class WhatsappService implements OnModuleInit {
         mediatype: mediaType,
         media: base64,
         caption: caption,
-        mimetype: mediaType === 'image' ? 'image/png' : 'application/octet-stream',
+        mimetype:
+          mediaType === 'image' ? 'image/png' : 'application/octet-stream',
         fileName: mediaType === 'image' ? 'image.png' : 'file.bin',
       },
     );

@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 
@@ -18,7 +23,7 @@ export class SuperAdminService {
 
   constructor(
     private prisma: PrismaService,
-    private readonly emailService: EmailService
+    private readonly emailService: EmailService,
   ) {}
 
   getSystemToggles() {
@@ -116,7 +121,13 @@ export class SuperAdminService {
     if (params?.search) {
       where.OR = [
         { name: { contains: params.search, mode: 'insensitive' as const } },
-        { users: { some: { email: { contains: params.search, mode: 'insensitive' as const } } } }
+        {
+          users: {
+            some: {
+              email: { contains: params.search, mode: 'insensitive' as const },
+            },
+          },
+        },
       ];
     }
 
@@ -155,11 +166,19 @@ export class SuperAdminService {
       include: {
         users: { select: { id: true, email: true, role: true } },
         transactions: {
-          select: { id: true, amount: true, currency: true, status: true, createdAt: true },
+          select: {
+            id: true,
+            amount: true,
+            currency: true,
+            status: true,
+            createdAt: true,
+          },
           orderBy: { createdAt: 'desc' },
           take: 10,
         },
-        locations: { select: { id: true, name: true, address: true, timezone: true } },
+        locations: {
+          select: { id: true, name: true, address: true, timezone: true },
+        },
         services: { select: { id: true, name: true } },
         _count: {
           select: {
@@ -169,18 +188,18 @@ export class SuperAdminService {
             visits: true,
             appointments: true,
             services: true,
-          }
-        }
+          },
+        },
       },
     });
-    
+
     if (!tenant) return null;
-    
+
     // Determine active subscription status
     const activeSub = await this.prisma.subscription.findFirst({
       where: { tenantId: id, status: { in: ['ACTIVE', 'TRIAL'] } },
     });
-    
+
     return {
       ...tenant,
       subscriptionStatus: activeSub ? activeSub.status : 'INACTIVE',
@@ -656,7 +675,11 @@ export class SuperAdminService {
   async assignPlanToTenant(
     tenantId: string,
     planId: string,
-    options?: { billingInterval?: string; customEndDate?: string; isFree?: boolean }
+    options?: {
+      billingInterval?: string;
+      customEndDate?: string;
+      isFree?: boolean;
+    },
   ) {
     const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
     if (!plan) throw new Error('Plan not found');
@@ -668,13 +691,17 @@ export class SuperAdminService {
     });
 
     const isFree = options?.isFree ?? false;
-    const interval = options?.billingInterval || plan.billingInterval || 'MONTHLY';
-    
+    const interval =
+      options?.billingInterval || plan.billingInterval || 'MONTHLY';
+
     let currentPeriodEnd = new Date();
     if (options?.customEndDate) {
       currentPeriodEnd = new Date(options.customEndDate);
     } else {
-      const periodMs = interval === 'YEARLY' ? 365 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+      const periodMs =
+        interval === 'YEARLY'
+          ? 365 * 24 * 60 * 60 * 1000
+          : 30 * 24 * 60 * 60 * 1000;
       currentPeriodEnd = new Date(Date.now() + periodMs);
     }
 
@@ -698,7 +725,11 @@ export class SuperAdminService {
         select: { email: true },
       });
       if (owner?.email) {
-        await this.emailService.sendSubscriptionAssignedEmail(owner.email, plan.name, isFree);
+        await this.emailService.sendSubscriptionAssignedEmail(
+          owner.email,
+          plan.name,
+          isFree,
+        );
       }
     } catch (e) {
       this.logger.error(`Failed to send assigned email`, e);
@@ -728,7 +759,11 @@ export class SuperAdminService {
         select: { email: true },
       });
       if (owner?.email) {
-        await this.emailService.sendSubscriptionCancelledEmail(owner.email, activeSub.plan?.name || 'Your Plan', true);
+        await this.emailService.sendSubscriptionCancelledEmail(
+          owner.email,
+          activeSub.plan?.name || 'Your Plan',
+          true,
+        );
       }
     } catch (e) {
       this.logger.error(`Failed to send cancellation email`, e);
@@ -741,9 +776,7 @@ export class SuperAdminService {
 
   async listBlueprints(tenantId?: string) {
     return this.prisma.blueprintFlow.findMany({
-      where: tenantId
-        ? { OR: [{ tenantId: null }, { tenantId }] }
-        : {},
+      where: tenantId ? { OR: [{ tenantId: null }, { tenantId }] } : {},
       include: {
         steps: { orderBy: { stepOrder: 'asc' } },
         tenant: { select: { name: true, subdomain: true } },
@@ -775,7 +808,7 @@ export class SuperAdminService {
       });
       if (dto.steps && dto.steps.length > 0) {
         await tx.blueprintStep.createMany({
-          data: dto.steps.map(s => ({ ...s, blueprintId: flow.id })),
+          data: dto.steps.map((s) => ({ ...s, blueprintId: flow.id })),
         });
       }
       return flow;
@@ -787,26 +820,35 @@ export class SuperAdminService {
     });
   }
 
-  async updateBlueprint(id: string, dto: {
-    name?: string;
-    description?: string;
-    businessTypes?: string[];
-  }) {
-    const existing = await this.prisma.blueprintFlow.findUnique({ where: { id } });
+  async updateBlueprint(
+    id: string,
+    dto: {
+      name?: string;
+      description?: string;
+      businessTypes?: string[];
+    },
+  ) {
+    const existing = await this.prisma.blueprintFlow.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException(`Blueprint ${id} not found`);
     return this.prisma.blueprintFlow.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.businessTypes !== undefined && { businessTypes: dto.businessTypes }),
+        ...(dto.businessTypes !== undefined && {
+          businessTypes: dto.businessTypes,
+        }),
       },
       include: { steps: { orderBy: { stepOrder: 'asc' } } },
     });
   }
 
   async deleteBlueprint(id: string) {
-    const blueprint = await this.prisma.blueprintFlow.findUnique({ where: { id } });
+    const blueprint = await this.prisma.blueprintFlow.findUnique({
+      where: { id },
+    });
     if (!blueprint) throw new NotFoundException(`Blueprint ${id} not found`);
     if (blueprint.tenantId === null) {
       throw new BadRequestException(
@@ -818,16 +860,22 @@ export class SuperAdminService {
   }
 
   async addBlueprintStep(blueprintId: string, dto: any) {
-    const blueprint = await this.prisma.blueprintFlow.findUnique({ where: { id: blueprintId } });
-    if (!blueprint) throw new NotFoundException(`Blueprint ${blueprintId} not found`);
+    const blueprint = await this.prisma.blueprintFlow.findUnique({
+      where: { id: blueprintId },
+    });
+    if (!blueprint)
+      throw new NotFoundException(`Blueprint ${blueprintId} not found`);
     return this.prisma.blueprintStep.create({
       data: { ...dto, blueprintId },
     });
   }
 
   async updateBlueprintStep(stepId: string, dto: any) {
-    const step = await this.prisma.blueprintStep.findUnique({ where: { id: stepId } });
-    if (!step) throw new NotFoundException(`Blueprint step ${stepId} not found`);
+    const step = await this.prisma.blueprintStep.findUnique({
+      where: { id: stepId },
+    });
+    if (!step)
+      throw new NotFoundException(`Blueprint step ${stepId} not found`);
     return this.prisma.blueprintStep.update({
       where: { id: stepId },
       data: dto,
@@ -835,8 +883,11 @@ export class SuperAdminService {
   }
 
   async deleteBlueprintStep(stepId: string) {
-    const step = await this.prisma.blueprintStep.findUnique({ where: { id: stepId } });
-    if (!step) throw new NotFoundException(`Blueprint step ${stepId} not found`);
+    const step = await this.prisma.blueprintStep.findUnique({
+      where: { id: stepId },
+    });
+    if (!step)
+      throw new NotFoundException(`Blueprint step ${stepId} not found`);
     await this.prisma.blueprintStep.delete({ where: { id: stepId } });
     return { success: true, deletedId: stepId };
   }
@@ -858,7 +909,8 @@ export class SuperAdminService {
       }),
       this.prisma.tenant.findUnique({ where: { id: tenantId } }),
     ]);
-    if (!source) throw new NotFoundException(`Blueprint ${sourceBlueprintId} not found`);
+    if (!source)
+      throw new NotFoundException(`Blueprint ${sourceBlueprintId} not found`);
     if (!tenant) throw new NotFoundException(`Tenant ${tenantId} not found`);
 
     const uniqueKey = `custom_${tenantId.slice(0, 8)}_${source.key}_${Date.now()}`;
@@ -875,10 +927,12 @@ export class SuperAdminService {
         },
       });
       await tx.blueprintStep.createMany({
-        data: source.steps.map(({ id: _id, blueprintId: _bid, ...stepData }) => ({
-          ...stepData,
-          blueprintId: newFlow.id,
-        })),
+        data: source.steps.map(
+          ({ id: _id, blueprintId: _bid, ...stepData }) => ({
+            ...stepData,
+            blueprintId: newFlow.id,
+          }),
+        ),
       });
       return newFlow;
     });
@@ -910,13 +964,19 @@ export class SuperAdminService {
       }),
       this.prisma.service.findFirst({ where: { id: serviceId, tenantId } }),
     ]);
-    if (!blueprint) throw new NotFoundException(`Blueprint ${blueprintId} not found`);
-    if (!service) throw new NotFoundException(`Service ${serviceId} not found for tenant ${tenantId}`);
+    if (!blueprint)
+      throw new NotFoundException(`Blueprint ${blueprintId} not found`);
+    if (!service)
+      throw new NotFoundException(
+        `Service ${serviceId} not found for tenant ${tenantId}`,
+      );
 
     // Atomic replace: delete old flow + create new one in a single transaction
     const flow = await this.prisma.$transaction(async (tx) => {
       // Remove existing flow (cascade deletes its steps via FK)
-      const existing = await tx.serviceFlow.findUnique({ where: { serviceId } });
+      const existing = await tx.serviceFlow.findUnique({
+        where: { serviceId },
+      });
       if (existing) {
         await tx.serviceFlow.delete({ where: { id: existing.id } });
       }
@@ -932,10 +992,12 @@ export class SuperAdminService {
       });
 
       await tx.flowStepTemplate.createMany({
-        data: blueprint.steps.map(({ id: _id, blueprintId: _bid, ...stepData }: any) => ({
-          ...stepData,
-          flowId: newFlow.id,
-        })),
+        data: blueprint.steps.map(
+          ({ id: _id, blueprintId: _bid, ...stepData }: any) => ({
+            ...stepData,
+            flowId: newFlow.id,
+          }),
+        ),
       });
 
       return newFlow;
@@ -973,7 +1035,10 @@ export class SuperAdminService {
       where: { tenantId, status: { in: ['ACTIVE', 'TRIAL'] } },
       orderBy: { createdAt: 'desc' },
     });
-    if (!sub) throw new NotFoundException(`No active subscription found for tenant ${tenantId}`);
+    if (!sub)
+      throw new NotFoundException(
+        `No active subscription found for tenant ${tenantId}`,
+      );
 
     const existingMeta = (sub.metadata as any) || {};
     const prevLimits = { ...(existingMeta.customLimits || {}) };
@@ -981,12 +1046,17 @@ export class SuperAdminService {
     // null means "remove this override" — delete the key entirely
     // undefined means "leave unchanged"
     // a number means "set to this value"
-    const limitKeys = ['maxVisits', 'maxQueues', 'maxLocations', 'maxStaff'] as const;
+    const limitKeys = [
+      'maxVisits',
+      'maxQueues',
+      'maxLocations',
+      'maxStaff',
+    ] as const;
     for (const key of limitKeys) {
       if (dto[key] === null) {
-        delete prevLimits[key];               // Remove override → revert to plan default
+        delete prevLimits[key]; // Remove override → revert to plan default
       } else if (dto[key] !== undefined) {
-        prevLimits[key] = dto[key] as number; // Set override
+        prevLimits[key] = dto[key]; // Set override
       }
     }
 
@@ -997,7 +1067,8 @@ export class SuperAdminService {
         ...(existingMeta.customFeatures || {}),
         ...(dto.customFeatures || {}),
       },
-      customLimitsNote: dto.note !== undefined ? dto.note : existingMeta.customLimitsNote,
+      customLimitsNote:
+        dto.note !== undefined ? dto.note : existingMeta.customLimitsNote,
       customLimitsSetAt: new Date().toISOString(),
       customLimitsSetBy: 'super_admin',
     };
@@ -1049,12 +1120,22 @@ export class SuperAdminService {
     const planFeatures = (sub.plan?.features as any) || {};
     const subMeta = (sub.metadata as any) || {};
     const customLimits: Record<string, number> = subMeta.customLimits || {};
-    const customFeatures: Record<string, boolean | string | number> = subMeta.customFeatures || {};
+    const customFeatures: Record<string, boolean | string | number> =
+      subMeta.customFeatures || {};
 
     const effectiveLimits = {
-      maxVisits: customLimits.maxVisits ?? sub.plan?.maxVisits ?? planLimits.maxTokens ?? null,
-      maxQueues: customLimits.maxQueues ?? sub.plan?.maxQueues ?? planLimits.maxQueues ?? null,
-      maxLocations: customLimits.maxLocations ?? planLimits.maxLocations ?? null,
+      maxVisits:
+        customLimits.maxVisits ??
+        sub.plan?.maxVisits ??
+        planLimits.maxTokens ??
+        null,
+      maxQueues:
+        customLimits.maxQueues ??
+        sub.plan?.maxQueues ??
+        planLimits.maxQueues ??
+        null,
+      maxLocations:
+        customLimits.maxLocations ?? planLimits.maxLocations ?? null,
       maxStaff: customLimits.maxStaff ?? planLimits.maxStaff ?? null,
     };
 
@@ -1075,8 +1156,10 @@ export class SuperAdminService {
       note: subMeta.customLimitsNote,
       customLimitsSetAt: subMeta.customLimitsSetAt ?? null,
       // enterprise_override if ANY override exists (limits OR features)
-      source: hasLimitOverrides || hasFeatureOverrides ? 'enterprise_override' : 'plan_defaults',
+      source:
+        hasLimitOverrides || hasFeatureOverrides
+          ? 'enterprise_override'
+          : 'plan_defaults',
     };
   }
 }
-

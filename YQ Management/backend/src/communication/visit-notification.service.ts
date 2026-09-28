@@ -56,9 +56,14 @@ export class VisitNotificationService {
    * Swallows errors at this level — each handler does its own error handling,
    * but if an unknown type is passed we simply log and return.
    */
-  async notify(type: VisitNotificationType, payload: VisitEventPayload): Promise<void> {
+  async notify(
+    type: VisitNotificationType,
+    payload: VisitEventPayload,
+  ): Promise<void> {
     if (!payload.visitId || !payload.tenantId) {
-      this.logger.debug(`notify(${type}): skipped — missing visitId or tenantId`);
+      this.logger.debug(
+        `notify(${type}): skipped — missing visitId or tenantId`,
+      );
       return;
     }
 
@@ -69,7 +74,7 @@ export class VisitNotificationService {
     }
 
     try {
-      await handler(payload as Required<Pick<VisitEventPayload, 'visitId' | 'tenantId'>> & VisitEventPayload);
+      await handler(payload);
     } catch (err: any) {
       this.logger.warn(
         `notify(${type}) failed for visitId=${payload.visitId}: ${err?.message}`,
@@ -78,13 +83,16 @@ export class VisitNotificationService {
   }
 
   private getHandler(type: VisitNotificationType) {
-    const handlers: Record<VisitNotificationType, (p: VisitEventPayload) => Promise<void>> = {
-      VISIT_CREATED:   (p) => this.handleVisitCreated(p),
-      VISIT_CALLED:    (p) => this.handleVisitCalled(p),
+    const handlers: Record<
+      VisitNotificationType,
+      (p: VisitEventPayload) => Promise<void>
+    > = {
+      VISIT_CREATED: (p) => this.handleVisitCreated(p),
+      VISIT_CALLED: (p) => this.handleVisitCalled(p),
       VISIT_CANCELLED: (p) => this.handleVisitCancelled(p),
-      VISIT_MISSED:    (p) => this.handleVisitMissed(p),
+      VISIT_MISSED: (p) => this.handleVisitMissed(p),
       VISIT_COMPLETED: (p) => this.handleVisitCompleted(p),
-      VISIT_CSAT:      (p) => this.handleVisitCsat(p),
+      VISIT_CSAT: (p) => this.handleVisitCsat(p),
     };
     return handlers[type] ?? null;
   }
@@ -120,7 +128,13 @@ export class VisitNotificationService {
         surveySent: true,
         rating: true,
         customer: { select: { name: true, phone: true } },
-        service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true } },
+        service: {
+          select: {
+            name: true,
+            expectedDuration: true,
+            emaExpectedDuration: true,
+          },
+        },
         location: { select: { name: true, googlePlaceId: true } },
         tenant: {
           select: {
@@ -148,7 +162,9 @@ export class VisitNotificationService {
       return false;
     }
     if (!visit.tenant?.whatsappConnected || !visit.tenant?.whatsappInstanceId) {
-      this.logger.debug(`${type}: WhatsApp not connected for tenant ${visit.tenantId}`);
+      this.logger.debug(
+        `${type}: WhatsApp not connected for tenant ${visit.tenantId}`,
+      );
       return false;
     }
     if (!visit.customer?.phone) {
@@ -159,15 +175,19 @@ export class VisitNotificationService {
   }
 
   /** Builds the Qmova watermark based on the tenant's subscription plan. */
-  private buildWatermark(visit: NonNullable<Awaited<ReturnType<typeof this.fetchVisitBase>>>): string {
+  private buildWatermark(
+    visit: NonNullable<Awaited<ReturnType<typeof this.fetchVisitBase>>>,
+  ): string {
     const sub = visit.tenant.subscriptions?.[0];
     let planFeatures: Record<string, unknown> = {};
     try {
       planFeatures =
         typeof sub?.plan?.features === 'string'
           ? (JSON.parse(sub.plan.features) as Record<string, unknown>)
-          : (sub?.plan?.features as Record<string, unknown> ?? {});
-    } catch { /* ignore */ }
+          : ((sub?.plan?.features as Record<string, unknown>) ?? {});
+    } catch {
+      /* ignore */
+    }
 
     const hasCustomBranding =
       sub?.status === 'TRIAL' || planFeatures.customBranding === true;
@@ -187,11 +207,16 @@ export class VisitNotificationService {
     const visit = await this.fetchVisitBase(payload.visitId!);
     if (!this.canSendWhatsApp(visit, 'VISIT_CREATED')) return;
 
-    const locationText = visit.location?.name ? ` at ${visit.location.name}` : '';
+    const locationText = visit.location?.name
+      ? ` at ${visit.location.name}`
+      : '';
     const serviceName = visit.service?.name || 'the service';
     const displayId = visit.displayId || payload.displayId || 'Unknown';
     // Use actual service duration for ETA, default to 10 only if unset
-    const perPersonMins = visit.service?.emaExpectedDuration ?? visit.service?.expectedDuration ?? 10;
+    const perPersonMins =
+      visit.service?.emaExpectedDuration ??
+      visit.service?.expectedDuration ??
+      10;
 
     const watermark = this.buildWatermark(visit);
 
@@ -258,14 +283,18 @@ export class VisitNotificationService {
           type: 'queue_joined',
           recipient: visit.customer.phone!,
           body: message,
-          status: result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
+          status: result.success
+            ? CommunicationStatus.SENT
+            : CommunicationStatus.FAILED,
           provider: 'evolution',
           providerId: (result as any).providerId,
           errorMessage: result.error,
         });
         return;
       } catch (err: any) {
-        this.logger.warn(`VISIT_CREATED QR send failed (${err.message}), falling back to text`);
+        this.logger.warn(
+          `VISIT_CREATED QR send failed (${err.message}), falling back to text`,
+        );
       }
     }
 
@@ -280,7 +309,9 @@ export class VisitNotificationService {
       type: 'queue_joined',
       recipient: visit.customer.phone!,
       body: message,
-      status: result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
@@ -293,8 +324,7 @@ export class VisitNotificationService {
     if (!this.canSendWhatsApp(visit, 'VISIT_CALLED')) return;
 
     const displayId = visit.displayId || payload.displayId || 'Unknown';
-    const message =
-      `🔔 *It's Your Turn!*\n\nHello ${visit.customer.name}, ticket *${displayId}* for *${visit.service?.name || 'your service'}* is now being called.\n\nPlease proceed to the counter immediately.`;
+    const message = `🔔 *It's Your Turn!*\n\nHello ${visit.customer.name}, ticket *${displayId}* for *${visit.service?.name || 'your service'}* is now being called.\n\nPlease proceed to the counter immediately.`;
 
     const result = await this.whatsappService.sendMessage(
       visit.tenant.whatsappInstanceId!,
@@ -307,7 +337,9 @@ export class VisitNotificationService {
       type: 'visit_called',
       recipient: visit.customer.phone!,
       body: message,
-      status: result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
@@ -315,13 +347,14 @@ export class VisitNotificationService {
   }
 
   /** VISIT_CANCELLED: Cancellation notification. */
-  private async handleVisitCancelled(payload: VisitEventPayload): Promise<void> {
+  private async handleVisitCancelled(
+    payload: VisitEventPayload,
+  ): Promise<void> {
     const visit = await this.fetchVisitBase(payload.visitId!);
     if (!this.canSendWhatsApp(visit, 'VISIT_CANCELLED')) return;
 
     const displayId = visit.displayId || payload.displayId || 'Unknown';
-    const message =
-      `❌ *Booking Cancelled*\n\nHello ${visit.customer.name}, your booking for *${visit.service?.name || 'the service'}* (Ticket: ${displayId}) has been cancelled.`;
+    const message = `❌ *Booking Cancelled*\n\nHello ${visit.customer.name}, your booking for *${visit.service?.name || 'the service'}* (Ticket: ${displayId}) has been cancelled.`;
 
     const result = await this.whatsappService.sendMessage(
       visit.tenant.whatsappInstanceId!,
@@ -334,7 +367,9 @@ export class VisitNotificationService {
       type: 'visit_cancelled',
       recipient: visit.customer.phone!,
       body: message,
-      status: result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
@@ -347,8 +382,7 @@ export class VisitNotificationService {
     if (!this.canSendWhatsApp(visit, 'VISIT_MISSED')) return;
 
     const displayId = visit.displayId || payload.displayId || 'Unknown';
-    const message =
-      `⚠️ *Missed Turn*\n\nHello ${visit.customer.name}, we called your ticket *${displayId}* for *${visit.service?.name || 'the service'}* but you were not present. Please speak to the receptionist.`;
+    const message = `⚠️ *Missed Turn*\n\nHello ${visit.customer.name}, we called your ticket *${displayId}* for *${visit.service?.name || 'the service'}* but you were not present. Please speak to the receptionist.`;
 
     const result = await this.whatsappService.sendMessage(
       visit.tenant.whatsappInstanceId!,
@@ -361,7 +395,9 @@ export class VisitNotificationService {
       type: 'visit_missed',
       recipient: visit.customer.phone!,
       body: message,
-      status: result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
@@ -379,7 +415,9 @@ export class VisitNotificationService {
    * rating response. Phone normalization is consistent with the chatbot's
    * own session lookup.
    */
-  private async handleVisitCompleted(payload: VisitEventPayload): Promise<void> {
+  private async handleVisitCompleted(
+    payload: VisitEventPayload,
+  ): Promise<void> {
     const visit = await this.fetchVisitBase(payload.visitId!);
     if (!this.canSendWhatsApp(visit, 'VISIT_COMPLETED')) return;
 
@@ -390,7 +428,9 @@ export class VisitNotificationService {
     // Evaluate Smart Reviews conditions
     if (visit.tenant.enableSmartReviews && visit.location?.googlePlaceId) {
       if (visit.waitingStart && visit.serviceStart) {
-        const waitTimeMs = new Date(visit.serviceStart).getTime() - new Date(visit.waitingStart).getTime();
+        const waitTimeMs =
+          new Date(visit.serviceStart).getTime() -
+          new Date(visit.waitingStart).getTime();
         const waitTimeMins = Math.floor(waitTimeMs / 60000);
         const threshold = visit.tenant.reviewWaitThresholdMins ?? 15;
 
@@ -398,10 +438,14 @@ export class VisitNotificationService {
           shouldRequestRating = true;
           message += `\n\n🌟 *How did we do?*\nPlease reply with a number from *1 to 5* to rate your experience (5 being excellent).`;
         } else {
-          this.logger.log(`VISIT_COMPLETED: skipping review for ${visit.customer.phone} — wait ${waitTimeMins}m > threshold ${threshold}m`);
+          this.logger.log(
+            `VISIT_COMPLETED: skipping review for ${visit.customer.phone} — wait ${waitTimeMins}m > threshold ${threshold}m`,
+          );
         }
       } else {
-        this.logger.debug(`VISIT_COMPLETED: missing wait timestamps for visit ${visit.id}, skipping review.`);
+        this.logger.debug(
+          `VISIT_COMPLETED: missing wait timestamps for visit ${visit.id}, skipping review.`,
+        );
       }
     }
 
@@ -410,7 +454,9 @@ export class VisitNotificationService {
       visit.customer.phone!,
       message,
     );
-    this.logger.log(`Completion message sent to ${visit.customer.phone} (Rating requested: ${shouldRequestRating})`);
+    this.logger.log(
+      `Completion message sent to ${visit.customer.phone} (Rating requested: ${shouldRequestRating})`,
+    );
 
     await this.communicationLogService.log({
       tenantId: visit.tenantId,
@@ -418,7 +464,9 @@ export class VisitNotificationService {
       type: 'visit_completed',
       recipient: visit.customer.phone!,
       body: message,
-      status: result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
@@ -429,12 +477,24 @@ export class VisitNotificationService {
       try {
         const normalizedPhone = this.normalizePhone(visit.customer.phone!);
         await this.prisma.chatSession.upsert({
-          where: { tenantId_phone: { tenantId: visit.tenantId, phone: normalizedPhone } },
+          where: {
+            tenantId_phone: {
+              tenantId: visit.tenantId,
+              phone: normalizedPhone,
+            },
+          },
           update: { step: 20, context: { locationId: visit.locationId } },
-          create: { tenantId: visit.tenantId, phone: normalizedPhone, step: 20, context: { locationId: visit.locationId } },
+          create: {
+            tenantId: visit.tenantId,
+            phone: normalizedPhone,
+            step: 20,
+            context: { locationId: visit.locationId },
+          },
         });
       } catch (err: any) {
-        this.logger.error(`VISIT_COMPLETED: failed to set chat session step 20 — ${err.message}`);
+        this.logger.error(
+          `VISIT_COMPLETED: failed to set chat session step 20 — ${err.message}`,
+        );
       }
     }
   }
@@ -444,7 +504,9 @@ export class VisitNotificationService {
     if (!this.canSendWhatsApp(visit, 'VISIT_CSAT')) return;
 
     if (visit.surveySent || visit.rating) {
-      this.logger.log(`VISIT_CSAT: skipping for ${visit.id} — survey already sent or rating already exists`);
+      this.logger.log(
+        `VISIT_CSAT: skipping for ${visit.id} — survey already sent or rating already exists`,
+      );
       return;
     }
 
@@ -464,7 +526,9 @@ export class VisitNotificationService {
       type: 'visit_csat',
       recipient: visit.customer.phone!,
       body: message,
-      status: result.success ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
       provider: 'evolution',
       providerId: (result as any).providerId,
       errorMessage: result.error,
@@ -479,12 +543,24 @@ export class VisitNotificationService {
       try {
         const normalizedPhone = this.normalizePhone(visit.customer.phone!);
         await this.prisma.chatSession.upsert({
-          where: { tenantId_phone: { tenantId: visit.tenantId, phone: normalizedPhone } },
+          where: {
+            tenantId_phone: {
+              tenantId: visit.tenantId,
+              phone: normalizedPhone,
+            },
+          },
           update: { step: 20, context: { locationId: visit.locationId } },
-          create: { tenantId: visit.tenantId, phone: normalizedPhone, step: 20, context: { locationId: visit.locationId } },
+          create: {
+            tenantId: visit.tenantId,
+            phone: normalizedPhone,
+            step: 20,
+            context: { locationId: visit.locationId },
+          },
         });
       } catch (err: any) {
-        this.logger.error(`VISIT_CSAT: failed to set chat session step 20 — ${err.message}`);
+        this.logger.error(
+          `VISIT_CSAT: failed to set chat session step 20 — ${err.message}`,
+        );
       }
     }
   }

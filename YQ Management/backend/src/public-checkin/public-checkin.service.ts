@@ -21,10 +21,14 @@ export class PublicCheckinService {
   async sendOtp(dto: { phone: string; tenantId: string; locationId?: string }) {
     const { phone, tenantId, locationId } = dto;
 
-    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
     if (!tenant) throw new NotFoundException('Business not found');
     if (!tenant.selfServeModeEnabled) {
-      throw new BadRequestException('Self-serve check-in is not enabled for this location');
+      throw new BadRequestException(
+        'Self-serve check-in is not enabled for this location',
+      );
     }
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -32,7 +36,9 @@ export class PublicCheckinService {
       where: { phone, tenantId, createdAt: { gte: oneHourAgo } },
     });
     if (recentOtps >= 3) {
-      throw new BadRequestException('Too many OTP requests. Please wait before trying again.');
+      throw new BadRequestException(
+        'Too many OTP requests. Please wait before trying again.',
+      );
     }
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -44,42 +50,77 @@ export class PublicCheckinService {
 
     const message = `🔐 Your check-in code for *${tenant.name}* is: *${code}*\n\nThis code expires in 6 minutes.`;
     try {
-      await this.notificationsService.sendWhatsAppMessage(phone, message, tenantId);
+      await this.notificationsService.sendWhatsAppMessage(
+        phone,
+        message,
+        tenantId,
+      );
     } catch (err) {
-      this.logger.warn(`WhatsApp OTP delivery failed for ${phone}. [DEV OTP] Code: ${code}`);
+      this.logger.warn(
+        `WhatsApp OTP delivery failed for ${phone}. [DEV OTP] Code: ${code}`,
+      );
     }
 
     return { success: true, message: 'OTP sent to your WhatsApp number.' };
   }
 
-  async verifyOtp(dto: { phone: string; tenantId: string; locationId?: string; code: string }) {
+  async verifyOtp(dto: {
+    phone: string;
+    tenantId: string;
+    locationId?: string;
+    code: string;
+  }) {
     const { phone, tenantId, locationId, code } = dto;
 
     const otp = await this.prisma.checkInOtp.findFirst({
-      where: { phone, tenantId, code, verified: false, expiresAt: { gte: new Date() } },
+      where: {
+        phone,
+        tenantId,
+        code,
+        verified: false,
+        expiresAt: { gte: new Date() },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
-    if (!otp) throw new UnauthorizedException('Invalid or expired OTP. Please request a new one.');
+    if (!otp)
+      throw new UnauthorizedException(
+        'Invalid or expired OTP. Please request a new one.',
+      );
 
-    await this.prisma.checkInOtp.update({ where: { id: otp.id }, data: { verified: true } });
+    await this.prisma.checkInOtp.update({
+      where: { id: otp.id },
+      data: { verified: true },
+    });
 
     const sessionToken = otp.id;
 
-    const customer = await this.prisma.customer.findFirst({ where: { phone, tenantId } });
+    const customer = await this.prisma.customer.findFirst({
+      where: { phone, tenantId },
+    });
     if (!customer) return { sessionToken, visits: [] };
 
     const whereClause: any = {
       customerId: customer.id,
       tenantId,
-      currentState: { notIn: ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'MISSED', 'ABANDONED'] },
+      currentState: {
+        notIn: ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'MISSED', 'ABANDONED'],
+      },
     };
     if (locationId) whereClause.locationId = locationId;
 
     const visits = await this.prisma.visit.findMany({
       where: whereClause,
       include: {
-        service: { select: { id: true, name: true, expectedDuration: true, emaExpectedDuration: true, requireManualCheckIn: true } },
+        service: {
+          select: {
+            id: true,
+            name: true,
+            expectedDuration: true,
+            emaExpectedDuration: true,
+            requireManualCheckIn: true,
+          },
+        },
         location: { select: { name: true, address: true } },
         queue: { select: { name: true, status: true } },
       },
@@ -90,7 +131,10 @@ export class PublicCheckinService {
       visits.map(async (visit) => {
         let position = 0;
         let estimatedWaitTime = 0;
-        if (visit.currentState === 'WAITING' || visit.currentState === 'CHECKED_IN') {
+        if (
+          visit.currentState === 'WAITING' ||
+          visit.currentState === 'CHECKED_IN'
+        ) {
           const waitingAhead = await this.prisma.visit.count({
             where: {
               queueId: visit.queueId,
@@ -99,7 +143,13 @@ export class PublicCheckinService {
             },
           });
           position = waitingAhead + 1;
-          estimatedWaitTime = await calculateAdvancedEWT(this.prisma, visit.queueId, visit.service?.id || null, waitingAhead, visit.service?.expectedDuration);
+          estimatedWaitTime = await calculateAdvancedEWT(
+            this.prisma,
+            visit.queueId,
+            visit.service?.id || null,
+            waitingAhead,
+            visit.service?.expectedDuration,
+          );
         }
         return {
           id: visit.id,
@@ -121,39 +171,72 @@ export class PublicCheckinService {
 
   async confirmCheckIn(visitId: string, sessionToken: string) {
     const otp = await this.prisma.checkInOtp.findFirst({
-      where: { id: sessionToken, verified: true, createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) } },
+      where: {
+        id: sessionToken,
+        verified: true,
+        createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) },
+      },
     });
-    if (!otp) throw new UnauthorizedException('Session expired. Please re-enter your OTP.');
+    if (!otp)
+      throw new UnauthorizedException(
+        'Session expired. Please re-enter your OTP.',
+      );
 
     const visit = await this.prisma.visit.findFirst({
       where: { id: visitId, tenantId: otp.tenantId },
       include: {
         customer: { select: { name: true, phone: true } },
-        service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true } },
+        service: {
+          select: {
+            name: true,
+            expectedDuration: true,
+            emaExpectedDuration: true,
+          },
+        },
         location: { select: { name: true } },
         tenant: { select: { name: true } },
       },
     });
     if (!visit) throw new NotFoundException('Booking not found');
 
-    const customer = await this.prisma.customer.findFirst({ where: { phone: otp.phone, tenantId: otp.tenantId } });
+    const customer = await this.prisma.customer.findFirst({
+      where: { phone: otp.phone, tenantId: otp.tenantId },
+    });
     if (!customer || visit.customerId !== customer.id) {
-      throw new UnauthorizedException('This booking does not belong to your phone number');
+      throw new UnauthorizedException(
+        'This booking does not belong to your phone number',
+      );
     }
 
-    if (['CHECKED_IN', 'IN_SERVICE', 'COMPLETED'].includes(visit.currentState)) {
-      return { success: true, alreadyCheckedIn: true, currentState: visit.currentState };
+    if (
+      ['CHECKED_IN', 'IN_SERVICE', 'COMPLETED'].includes(visit.currentState)
+    ) {
+      return {
+        success: true,
+        alreadyCheckedIn: true,
+        currentState: visit.currentState,
+      };
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const u = await tx.visit.update({
         where: { id: visitId },
-        data: { currentState: 'CHECKED_IN', waitingStart: new Date(), checkInTime: new Date(), priority: 10 },
+        data: {
+          currentState: 'CHECKED_IN',
+          waitingStart: new Date(),
+          checkInTime: new Date(),
+          priority: 10,
+        },
       });
       await tx.outboxEvent.create({
         data: {
           type: 'VISIT_CHECKED_IN',
-          payload: { visitId: u.id, queueId: u.queueId, tenantId: u.tenantId, source: 'SELF_SERVE' },
+          payload: {
+            visitId: u.id,
+            queueId: u.queueId,
+            tenantId: u.tenantId,
+            source: 'SELF_SERVE',
+          },
         },
       });
       return u;
@@ -169,8 +252,13 @@ export class PublicCheckinService {
         },
       });
       const position = waitingAhead + 1;
-      const ewt = waitingAhead * (visit.service?.emaExpectedDuration || visit.service?.expectedDuration || 5);
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com';
+      const ewt =
+        waitingAhead *
+        (visit.service?.emaExpectedDuration ||
+          visit.service?.expectedDuration ||
+          5);
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com';
       const statusUrl = `${baseUrl}/status/${visit.accessToken}`;
       const msg =
         `✅ You've checked in at *${visit.location?.name || visit.tenant?.name}*!\n\n` +
@@ -178,11 +266,19 @@ export class PublicCheckinService {
         `🔢 Your position: *#${position}*\n` +
         (ewt > 0 ? `⏱ Estimated wait: *${ewt} mins*\n\n` : '\n') +
         `Track your status: ${statusUrl}`;
-      await this.notificationsService.sendWhatsAppMessage(phone, msg, visit.tenantId).catch((e) =>
-        this.logger.warn(`WhatsApp check-in confirmation failed: ${e.message}`),
-      );
+      await this.notificationsService
+        .sendWhatsAppMessage(phone, msg, visit.tenantId)
+        .catch((e) =>
+          this.logger.warn(
+            `WhatsApp check-in confirmation failed: ${e.message}`,
+          ),
+        );
     }
 
-    return { success: true, alreadyCheckedIn: false, currentState: updated.currentState };
+    return {
+      success: true,
+      alreadyCheckedIn: false,
+      currentState: updated.currentState,
+    };
   }
 }
