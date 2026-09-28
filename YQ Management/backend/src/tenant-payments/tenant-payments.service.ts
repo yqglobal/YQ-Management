@@ -238,8 +238,73 @@ export class TenantPaymentsService {
           status: 'PENDING',
         }
       });
+    } else if (updated.visitId) {
+      // It's an upfront booking payment
+      const visit = await this.prisma.visit.findUnique({
+        where: { id: updated.visitId },
+        include: { service: true }
+      });
+      if (visit && visit.currentState === 'PENDING_PAYMENT') {
+        let newState = 'WAITING';
+        if (visit.scheduledTime) {
+          newState = visit.service.requireManualCheckIn ? 'CREATED' : 'SCHEDULED';
+        }
+        await this.prisma.visit.update({
+          where: { id: updated.visitId },
+          data: { currentState: newState as any }
+        });
+        await this.prisma.outboxEvent.create({
+          data: {
+            eventType: 'VISIT_UPDATED',
+            payload: { visitId: updated.visitId },
+            status: 'PENDING',
+          }
+        });
+      }
     }
 
     return updated;
+  }
+
+  async recordManualPayment(tenantId: string, visitId: string, amount: number, method: string, description?: string) {
+    const visit = await this.prisma.visit.findUnique({
+      where: { id: visitId },
+      include: { service: true }
+    });
+    if (!visit || visit.tenantId !== tenantId) {
+      throw new BadRequestException('Visit not found');
+    }
+
+    const payment = await this.prisma.bookingPayment.create({
+      data: {
+        tenantId,
+        visitId,
+        amount,
+        currency: 'USD',
+        status: 'COMPLETED',
+        stripePaymentMethodType: method,
+        description: description || 'Manual Payment at Counter',
+      }
+    });
+
+    if (visit.currentState === 'PENDING_PAYMENT') {
+      let newState = 'WAITING';
+      if (visit.scheduledTime) {
+        newState = visit.service.requireManualCheckIn ? 'CREATED' : 'SCHEDULED';
+      }
+      await this.prisma.visit.update({
+        where: { id: visit.id },
+        data: { currentState: newState as any }
+      });
+      await this.prisma.outboxEvent.create({
+        data: {
+          eventType: 'VISIT_UPDATED',
+          payload: { visitId: visit.id },
+          status: 'PENDING',
+        }
+      });
+    }
+
+    return payment;
   }
 }

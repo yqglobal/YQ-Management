@@ -76,6 +76,7 @@ enum VisitSource {
 }
 
 enum VisitState {
+  PENDING_PAYMENT
   CREATED
   SCHEDULED
   CHECKED_IN
@@ -725,6 +726,7 @@ model Service {
   basePrice       Float? // Base price in minor units' currency
   priceCurrency   String  @default("ZAR")
   paymentMode     String  @default("NONE") // NONE | PREPAY | PAY_AT_SERVICE | OPTIONAL_PREPAY
+  allowOfflinePayment Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

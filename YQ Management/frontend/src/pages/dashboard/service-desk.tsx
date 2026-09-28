@@ -307,7 +307,7 @@ export default function ServiceDeskToday() {
 
   // Active pool: people who have actually arrived (WAITING or CHECKED_IN)
   const arrivedVisits = filteredVisits.filter((v: AnyFixMe) =>
-    v.currentState === 'WAITING' || v.currentState === 'CHECKED_IN'
+    v.currentState === 'WAITING' || v.currentState === 'CHECKED_IN' || v.currentState === 'PENDING_PAYMENT'
   );
 
   // Upcoming pool: SCHEDULED appointments for today that haven't arrived yet
@@ -874,6 +874,7 @@ export default function ServiceDeskToday() {
                               {industry.uiFlags.showPrivacyBadge && <span className="font-label-caps text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider flex items-center gap-0.5"><span className="material-symbols-outlined text-[9px]">lock</span>PHI</span>}
                               {v.slaStatus === 'WARNING' && <span className="font-label-caps text-[10px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">SLA Warning</span>}
                               {v.slaStatus === 'BREACHED' && <span className="font-label-caps text-[10px] bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">SLA Breach</span>}
+                              {v.currentState === 'PENDING_PAYMENT' && <span className="font-label-caps text-[10px] bg-orange-500/10 text-orange-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Unpaid</span>}
                             </div>
                             <h3 className="font-semibold text-body-lg text-on-surface dark:text-white">{v.customer?.name || industry.terminology.walkIn}</h3>
                             <div className="flex items-center gap-2 text-outline text-body-sm mt-0.5">
@@ -901,15 +902,29 @@ export default function ServiceDeskToday() {
                               <span className="material-symbols-outlined text-[16px]">schedule</span>
                               {waitTimeMins}m
                             </div>
-                            <button
-                              onClick={(e) => handleStart(v.id, e, v.isToken)}
-                              className={`${
-                                v.isToken ? 'bg-zinc-600 hover:bg-zinc-700' : isAppt ? 'bg-sky-600 hover:bg-sky-700' : 'bg-emerald-600 hover:bg-emerald-700'
-                              } text-white px-4 py-2 rounded-lg font-medium text-body-sm h-[36px] flex items-center gap-2 transition-colors shadow-sm`}
-                            >
-                              <span className="material-symbols-outlined text-[18px]">campaign</span>
-                              {v.isToken ? 'Queued' : industry.terminology.actionVerb}
-                            </button>
+                            
+                            {v.currentState === 'PENDING_PAYMENT' ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedVisit(v);
+                                }}
+                                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium text-body-sm h-[36px] flex items-center gap-2 transition-colors shadow-sm"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">payments</span>
+                                Pay
+                              </button>
+                            ) : (
+                              <button
+                                onClick={(e) => handleStart(v.id, e, v.isToken)}
+                                className={`${
+                                  v.isToken ? 'bg-zinc-600 hover:bg-zinc-700' : isAppt ? 'bg-sky-600 hover:bg-sky-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                                } text-white px-4 py-2 rounded-lg font-medium text-body-sm h-[36px] flex items-center gap-2 transition-colors shadow-sm`}
+                              >
+                                <span className="material-symbols-outlined text-[18px]">campaign</span>
+                                {v.isToken ? 'Queued' : industry.terminology.actionVerb}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </motion.div>
@@ -1170,7 +1185,12 @@ export default function ServiceDeskToday() {
                 {/* Offline Payment UI (Booking Payments) */}
                 {(() => {
                   const pendingPayment = selectedVisit?.bookingPayments?.find((p: any) => p.status === 'PENDING');
-                  if (!pendingPayment) return null;
+                  const needsManualPayment = selectedVisit?.currentState === 'PENDING_PAYMENT';
+                  
+                  if (!pendingPayment && !needsManualPayment) return null;
+                  
+                  const amount = pendingPayment ? pendingPayment.amount : selectedVisit?.service?.basePrice || 0;
+                  const currency = pendingPayment ? pendingPayment.currency : (selectedVisit?.service?.priceCurrency || 'USD');
                   
                   return (
                     <div className="mt-4 p-4 border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/20 rounded-xl relative overflow-hidden">
@@ -1184,15 +1204,27 @@ export default function ServiceDeskToday() {
                       
                       <div className="relative z-10">
                         <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
-                          This service requires an offline payment of <strong className="font-data-mono">{pendingPayment.currency} {pendingPayment.amount.toFixed(2)}</strong>.
+                          This service requires an offline payment of <strong className="font-data-mono">{currency} {amount.toFixed(2)}</strong>.
                         </p>
                         <div className="flex gap-2">
                           <button 
                             onClick={async () => {
                               try {
-                                await fetchApi(`/public/payment/${pendingPayment.id}/complete`, { method: 'POST', body: JSON.stringify({ method: 'OFFLINE_CASH' }) });
+                                if (pendingPayment) {
+                                  await fetchApi(`/tenant-payments/public/payment/${pendingPayment.id}/complete`, { method: 'POST', body: JSON.stringify({ method: 'OFFLINE_CASH' }) });
+                                } else {
+                                  await fetchApi(`/tenant-payments/manual`, { 
+                                    method: 'POST', 
+                                    body: JSON.stringify({ 
+                                      visitId: selectedVisit.id, 
+                                      amount: amount, 
+                                      method: 'OFFLINE_CASH' 
+                                    }) 
+                                  });
+                                }
                                 queryClient.invalidateQueries({ queryKey: ['activeVisits'] });
                                 toast.success('Payment marked as paid!');
+                                setSelectedVisit(null);
                               } catch(e) {
                                 toast.error('Failed to update payment');
                               }

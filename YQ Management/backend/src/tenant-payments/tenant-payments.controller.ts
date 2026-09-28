@@ -80,4 +80,19 @@ export class TenantPaymentsController {
   ) {
     return this.tenantPaymentsService.completePayment(id, body?.method);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('manual')
+  recordManualPayment(
+    @Req() req: any,
+    @Body() body: { visitId: string, amount: number, method: string, description?: string }
+  ) {
+    return this.tenantPaymentsService.recordManualPayment(
+      req.user.tenantId,
+      body.visitId,
+      body.amount,
+      body.method,
+      body.description
+    );
+  }
 }

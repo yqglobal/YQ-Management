@@ -89,6 +89,41 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const [regionBlocked, setRegionBlocked] = useState(false);
   const idempotencyKey = React.useMemo(() => crypto.randomUUID(), []);
 
+  const [createdVisits, setCreatedVisits] = useState<any[]>([]);
+  
+  const redirectToStatus = (visitsData: any[]) => {
+    const accessTokens = Array.isArray(visitsData) ? visitsData.map((d: AnyFixMe) => d.accessToken).filter(Boolean) : [];
+    
+    let tokenStr = accessTokens.join(',');
+    if (accessTokens.length > 0) {
+      try {
+        const stored = JSON.parse(localStorage.getItem('qmova_active_tokens') || '[]');
+        const updatedTokens = Array.from(new Set([...stored, ...accessTokens]));
+        localStorage.setItem('qmova_active_tokens', JSON.stringify(updatedTokens));
+        tokenStr = updatedTokens.join(',');
+      } catch (e) {
+        console.error('Failed to save tokens to local storage', e);
+      }
+    }
+
+    const queryStr = `?tokens=${tokenStr}`;
+
+    let targetUrl = `/booking/status${queryStr}`;
+    if (window.location.pathname.startsWith('/t/')) {
+      const parts = window.location.pathname.split('/');
+      if (parts.length >= 3) {
+        targetUrl = `/t/${parts[2]}/booking/status${queryStr}`;
+      }
+    }
+    router.push(
+      {
+        pathname: '/_tenant/[subdomain]/booking/status',
+        query: { subdomain: router.query.subdomain as string, tokens: tokenStr },
+      },
+      targetUrl
+    );
+  };
+
   // Load persisted state
   useEffect(() => {
     try {
@@ -461,28 +496,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   };
 
   const handleConfirm = () => {
-    // Check if any selected service requires or allows prepay
-    let prepayTotal = 0;
-    let hasOptionalPrepay = false;
-
-    selectedServiceIds.forEach(sid => {
-      const s = services.find(x => x.id === sid);
-      if (s) {
-        const mode = (s as any).paymentMode;
-        if ((mode === 'PREPAY' || mode === 'OPTIONAL_PREPAY') && (s as any).basePrice) {
-          prepayTotal += parseFloat((s as any).basePrice);
-        }
-        if (mode === 'OPTIONAL_PREPAY') {
-          hasOptionalPrepay = true;
-        }
-      }
-    });
-
-    if (prepayTotal > 0 && tenant?.paymentAccount?.chargesEnabled) {
-      setStep(4.5); // Go to Payment Step
-    } else {
-      setStep(5);
-    }
+    setStep(5);
   };
 
   const triggerJoinSequence = async () => {
@@ -558,41 +572,20 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
           otp: otpCode || undefined,
           language: 'en',
           bookings,
-          paymentId: completedPaymentId || undefined,
         }),
       });
       if (!data) throw new Error('Failed to complete booking.');
       
-      const accessTokens = Array.isArray(data) ? data.map((d: AnyFixMe) => d.accessToken).filter(Boolean) : [];
+      const requiresPayment = Array.isArray(data) && data.some((v: any) => v.currentState === 'PENDING_PAYMENT');
       
-      let tokenStr = accessTokens.join(',');
-      if (accessTokens.length > 0) {
-        try {
-          const stored = JSON.parse(localStorage.getItem('qmova_active_tokens') || '[]');
-          const updatedTokens = Array.from(new Set([...stored, ...accessTokens]));
-          localStorage.setItem('qmova_active_tokens', JSON.stringify(updatedTokens));
-          tokenStr = updatedTokens.join(',');
-        } catch (e) {
-          console.error('Failed to save tokens to local storage', e);
-        }
+      if (requiresPayment) {
+        setCreatedVisits(data);
+        setStep(4.5);
+        setLoading(false);
+        return;
       }
-
-      const queryStr = `?tokens=${tokenStr}`;
-
-      let targetUrl = `/booking/status${queryStr}`;
-      if (window.location.pathname.startsWith('/t/')) {
-        const parts = window.location.pathname.split('/');
-        if (parts.length >= 3) {
-          targetUrl = `/t/${parts[2]}/booking/status${queryStr}`;
-        }
-      }
-      router.push(
-        {
-          pathname: '/_tenant/[subdomain]/booking/status',
-          query: { subdomain: router.query.subdomain as string, tokens: tokenStr },
-        },
-        targetUrl
-      );
+      
+      redirectToStatus(data);
     } catch (err: AnyFixMe) {
       if (err.message === 'QUEUE_FULL') {
         setErrorMsg('This queue is currently full and at maximum capacity. Please try again later or book an appointment.');
@@ -1129,19 +1122,20 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                 }, 0) * 100} // Stripe amount is in cents
                 currency={services.find(x => x.id === selectedServiceIds[0]) ? (services.find(x => x.id === selectedServiceIds[0]) as any).currency || 'usd' : 'usd'}
                 stripeAccountId={tenant?.paymentAccount?.connectedAccountId}
+                visitId={createdVisits.find(v => v.currentState === 'PENDING_PAYMENT')?.id}
                 onSuccess={(paymentId) => {
                   setCompletedPaymentId(paymentId);
-                  setStep(5);
-                }} // Move to processing
+                  redirectToStatus(createdVisits);
+                }}
                 onBack={() => setStep(4)}
                 onSkip={
                   selectedServiceIds.some(sid => {
                     const s = services.find(x => x.id === sid);
-                    return s && (s as any).paymentMode === 'OPTIONAL_PREPAY';
+                    return s && ((s as any).paymentMode === 'OPTIONAL_PREPAY' || (s as any).allowOfflinePayment);
                   }) && !selectedServiceIds.some(sid => {
                     const s = services.find(x => x.id === sid);
-                    return s && (s as any).paymentMode === 'PREPAY';
-                  }) ? () => setStep(5) : undefined
+                    return s && (s as any).paymentMode === 'PREPAY' && !(s as any).allowOfflinePayment;
+                  }) ? () => redirectToStatus(createdVisits) : undefined
                 }
                 primaryColor={primaryColor}
               />

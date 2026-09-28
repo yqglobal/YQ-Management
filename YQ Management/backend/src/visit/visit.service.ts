@@ -612,8 +612,18 @@ export class VisitService {
         if (booking.scheduledFor && service.allowAppointments) {
           scheduledTime = new Date(booking.scheduledFor);
           currentState = service.requireManualCheckIn ? 'CREATED' : 'SCHEDULED';
+        }
+        
+        if (
+          (service.paymentMode === 'PREPAY' || 
+           service.paymentMode === 'OPTIONAL_PREPAY' || 
+           service.paymentMode === 'PAY_AT_SERVICE') && 
+          !data.paymentId
+        ) {
+          currentState = 'PENDING_PAYMENT';
+        }
 
-          // Verify that this slot is actually valid within business hours
+        // Verify that this slot is actually valid within business hours
           // Timezone manipulation makes the simple string split unreliable if UTC date falls on previous day.
           // Let getAvailableSlots handle the raw date lookup using its internal timezone logic.
           const localDateStr = new Intl.DateTimeFormat('en-CA', {
