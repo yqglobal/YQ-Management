@@ -28,6 +28,7 @@ const BUSINESS_TEMPLATES = [
     id: 'general',
     title: 'General',
     description: 'Standard setup for everyday use.',
+    blueprintKey: null,
     icon: Store,
     services: [
       {
@@ -42,6 +43,7 @@ const BUSINESS_TEMPLATES = [
     id: 'hospital',
     title: 'Hospital & Clinic',
     description: 'Manage patient flow across departments.',
+    blueprintKey: 'healthcare',
     icon: Activity,
     services: [
       {
@@ -74,6 +76,7 @@ const BUSINESS_TEMPLATES = [
     id: 'fastfood',
     title: 'Restaurant & Fast Food',
     description: 'Order pickups and dine-in waitlists.',
+    blueprintKey: 'food_and_beverage',
     icon: Pizza,
     services: [
       {
@@ -95,6 +98,7 @@ const BUSINESS_TEMPLATES = [
     id: 'visa',
     title: 'Visa & Government',
     description: 'High-security document processing.',
+    blueprintKey: 'government_and_civic',
     icon: Briefcase,
     services: [
       {
@@ -116,6 +120,7 @@ const BUSINESS_TEMPLATES = [
     id: 'salon',
     title: 'Salon & Beauty',
     description: 'Manage stylists and beauty appointments.',
+    blueprintKey: 'beauty_and_wellness',
     icon: Scissors,
     services: [
       {
@@ -134,6 +139,7 @@ const BUSINESS_TEMPLATES = [
     id: 'bank',
     title: 'Bank & Finance',
     description: 'Teller queues and loan consultations.',
+    blueprintKey: 'finance_and_insurance',
     icon: Landmark,
     services: [
       {
@@ -154,6 +160,7 @@ const BUSINESS_TEMPLATES = [
     id: 'logistics',
     title: 'Logistics & Courier',
     description: 'Parcel pickup and dispatch queues.',
+    blueprintKey: 'logistics_and_supply_chain',
     icon: Truck,
     services: [
       {
@@ -174,6 +181,7 @@ const BUSINESS_TEMPLATES = [
     id: 'catering',
     title: 'Catering & Events',
     description: 'Manage kitchen orders and event prep.',
+    blueprintKey: 'events_and_invitations',
     icon: Utensils,
     services: [
       {
@@ -523,6 +531,14 @@ export default function Onboarding() {
             allowAppointments: true
           }),
         });
+
+        if (template.blueprintKey) {
+          await fetchApi(`/service-flows/templates/${template.blueprintKey}/apply?serviceId=${service.id}`, {
+            method: 'POST'
+          }).catch(err => {
+            console.error('Failed to apply blueprint flow to service:', err);
+          });
+        }
       }));
       
       // 3. Save Waitlist preference AND businessType to Tenant
