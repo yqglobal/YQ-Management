@@ -44,6 +44,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
   if (!isOpen) return null;
 
   const { activeLocationId } = useLocation();
+  const [continuousMode, setContinuousMode] = useState(true); // Default ON
   const [scannerStatus, setScannerStatus] = useState<ScannerStatus>('idle');
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -408,11 +409,21 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
     try {
       await fetchApi(`/visits/${validationResult.tokenId}/checkin`, { method: 'POST' });
       setValidationResult((prev) => prev ? { ...prev, checkedIn: true, status: 'WAITING' } : prev);
-      onScanSuccess({ ...validationResult, checkedIn: true, status: 'WAITING' });
+      
+      if (continuousMode) {
+        toast.success(`Checked in ${validationResult.customerName || 'customer'} successfully!`);
+        // Reset scanner after 1.5s
+        setTimeout(() => {
+          setValidationResult(null);
+          setScannerStatus('scanning');
+        }, 1500);
+      } else {
+        onScanSuccess({ ...validationResult, checkedIn: true, status: 'WAITING' });
+      }
     } catch (e: AnyFixMe) {
       alert(e.message || 'Failed to check in');
     }
-  }, [validationResult?.tokenId, onScanSuccess]);
+  }, [validationResult, onScanSuccess, continuousMode]);
 
   const handleAdvanceStep = useCallback(async () => {
     if (!validationResult?.activeStep?.id) return;
@@ -522,9 +533,18 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
             <ScanLine className="w-5 h-5 text-primary" />
             Scanner & Check-in
           </h2>
-          <button onClick={() => { stopScanning(); onClose(); }} className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer bg-surface dark:bg-dark-surface px-3 py-1.5 rounded-full border border-border dark:border-dark-border shadow-sm">
+              <span className="text-xs font-bold text-gray-700 dark:text-zinc-300">Continuous Mode</span>
+              <div className="relative inline-block w-8 mr-2 align-middle select-none transition duration-200 ease-in">
+                <input type="checkbox" checked={continuousMode} onChange={(e) => setContinuousMode(e.target.checked)} className="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300 checked:border-primary checked:right-0 checked:bg-primary transition-all" />
+                <label className="toggle-label block overflow-hidden h-4 rounded-full bg-gray-300 cursor-pointer"></label>
+              </div>
+            </label>
+            <button onClick={() => { stopScanning(); onClose(); }} className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="p-4 sm:p-6 overflow-y-auto flex-1">

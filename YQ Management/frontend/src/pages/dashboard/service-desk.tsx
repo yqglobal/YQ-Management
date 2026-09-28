@@ -108,6 +108,7 @@ export default function ServiceDeskToday() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<'pool' | 'pipeline'>('pool');
+  const [poolViewTab, setPoolViewTab] = useState<'walkins' | 'appointments'>('walkins');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentLink, setPaymentLink] = useState<string | null>(null);
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
@@ -405,10 +406,19 @@ export default function ServiceDeskToday() {
     }
   };
 
-  const displayPool = waitingVisits.filter((v: AnyFixMe) => 
-    v.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    v.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const displayPool = waitingVisits.filter((v: AnyFixMe) => {
+    const matchesSearch = v.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          v.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Split View logic
+    const isAppointment = !!v.isAppointment; // Boolean
+    const matchesTab = poolViewTab === 'appointments' ? isAppointment : !isAppointment;
+
+    return matchesSearch && matchesTab;
+  });
+
+  const allWalkinsCount = waitingVisits.filter((v: AnyFixMe) => !v.isAppointment).length;
+  const allAppointmentsCount = waitingVisits.filter((v: AnyFixMe) => !!v.isAppointment).length;
 
   return (
     <AdminLayout pageTitle={industry.serviceDesk.pageTitle} noPadding={true}>
@@ -643,8 +653,24 @@ export default function ServiceDeskToday() {
                 <span className="bg-primary/10 text-primary dark:bg-primary-fixed-dim/20 dark:text-primary-fixed-dim px-2.5 py-0.5 rounded-full font-data-mono text-body-sm font-semibold">{waitingVisits.length}</span>
               </div>
               <p className="text-xs text-outline mt-1">The queue of incoming clients waiting to be served.</p>
+              
+              {/* Split View Tabs */}
+              <div className="flex bg-surface-container dark:bg-zinc-800/50 p-1 rounded-lg mt-4 w-fit">
+                <button 
+                  onClick={() => setPoolViewTab('walkins')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${poolViewTab === 'walkins' ? 'bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-300'}`}
+                >
+                  Walk-ins ({allWalkinsCount})
+                </button>
+                <button 
+                  onClick={() => setPoolViewTab('appointments')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${poolViewTab === 'appointments' ? 'bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-300'}`}
+                >
+                  Appointments ({allAppointmentsCount})
+                </button>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto mt-4 xl:mt-0">
               <div className="relative flex-1 min-w-[150px]">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
                 <input 
