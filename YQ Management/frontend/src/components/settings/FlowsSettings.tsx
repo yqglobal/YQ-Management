@@ -1,20 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
-import { Workflow, Settings, Trash2, Plus, Loader2 } from 'lucide-react';
+import { Workflow, Trash2, Plus, Loader2, ArrowRight, Settings2, GripVertical, CheckCircle2, ChevronRight, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 
 export function FlowsSettings() {
   const queryClient = useQueryClient();
   const [selectedServiceId, setSelectedServiceId] = useState<string>('all');
+  const [editingStep, setEditingStep] = useState<any>(null);
+  const [isAddingStep, setIsAddingStep] = useState(false);
+  const [localSteps, setLocalSteps] = useState<any[]>([]);
 
-  // Fetch all services
-  const { data: services = [], isLoading: servicesLoading } = useQuery({
+  // Form State
+  const [stepForm, setStepForm] = useState({
+    name: '',
+    description: '',
+    type: 'SERVICE',
+    isOptional: false,
+    triggerRule: 'MANUAL',
+    outcomeOptions: [] as string[]
+  });
+
+  const { data: services = [] } = useQuery({
     queryKey: ['services'],
     queryFn: () => fetchApi('/service'),
   });
 
-  // Fetch the flow for the selected service (if not 'all')
   const { data: flow, isLoading: flowLoading } = useQuery({
     queryKey: ['service-flow', selectedServiceId],
     queryFn: () => fetchApi(`/service-flows/by-service/${selectedServiceId}`),
@@ -22,54 +34,133 @@ export function FlowsSettings() {
     retry: false
   });
 
-  // Fetch available templates
   const { data: templates = [] } = useQuery({
     queryKey: ['service-flow-templates'],
     queryFn: () => fetchApi('/service-flows/templates/list'),
   });
 
+  useEffect(() => {
+    if (flow?.steps) {
+      setLocalSteps([...flow.steps].sort((a: any, b: any) => a.stepOrder - b.stepOrder));
+    } else {
+      setLocalSteps([]);
+    }
+  }, [flow?.steps]);
+
+  // Mutations
   const applyTemplateMutation = useMutation({
     mutationFn: (templateKey: string) => fetchApi(`/service-flows/templates/${templateKey}/apply?serviceId=${selectedServiceId}`, { method: 'POST' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-flow', selectedServiceId] });
-      toast.success('Blueprint flow applied successfully!');
-    },
-    onError: (err: any) => toast.error(err.message || 'Failed to apply blueprint flow')
+      toast.success('Blueprint applied!');
+    }
   });
 
   const deleteFlowMutation = useMutation({
     mutationFn: (flowId: string) => fetchApi(`/service-flows/${flowId}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-flow', selectedServiceId] });
-      toast.success('Service flow deleted');
-    },
-    onError: (err: any) => toast.error(err.message || 'Failed to delete flow')
+      toast.success('Flow reset to standard queue');
+    }
   });
 
+  const createStepMutation = useMutation({
+    mutationFn: (dto: any) => fetchApi(`/service-flows/${flow.id}/steps`, { method: 'POST', body: JSON.stringify(dto) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-flow', selectedServiceId] });
+      toast.success('Stage added');
+      setIsAddingStep(false);
+    }
+  });
+
+  const updateStepMutation = useMutation({
+    mutationFn: (dto: any) => fetchApi(`/service-flows/${flow.id}/steps/${editingStep.id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-flow', selectedServiceId] });
+      toast.success('Stage updated');
+      setEditingStep(null);
+    }
+  });
+
+  const deleteStepMutation = useMutation({
+    mutationFn: (stepId: string) => fetchApi(`/service-flows/${flow.id}/steps/${stepId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-flow', selectedServiceId] });
+      toast.success('Stage removed');
+      setEditingStep(null);
+    }
+  });
+
+  const reorderMutation = useMutation({
+    mutationFn: (orderedIds: string[]) => fetchApi(`/service-flows/${flow.id}/steps/reorder`, { 
+      method: 'POST', 
+      body: JSON.stringify({ orderedStepIds: orderedIds }) 
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-flow', selectedServiceId] });
+      toast.success('Flow order saved');
+    }
+  });
+
+  const handleReorder = (newOrder: any[]) => {
+    setLocalSteps(newOrder);
+    reorderMutation.mutate(newOrder.map(s => s.id));
+  };
+
+  const handleSaveStep = () => {
+    if (!stepForm.name) return toast.error('Name is required');
+    if (isAddingStep) {
+      createStepMutation.mutate({ ...stepForm, stepOrder: localSteps.length + 1 });
+    } else if (editingStep) {
+      updateStepMutation.mutate(stepForm);
+    }
+  };
+
+  const openEdit = (step: any) => {
+    setEditingStep(step);
+    setIsAddingStep(false);
+    setStepForm({
+      name: step.name,
+      description: step.description || '',
+      type: step.type,
+      isOptional: step.isOptional,
+      triggerRule: step.triggerRule || 'MANUAL',
+      outcomeOptions: step.outcomeOptions || []
+    });
+  };
+
+  const openAdd = () => {
+    setIsAddingStep(true);
+    setEditingStep(null);
+    setStepForm({ name: '', description: '', type: 'SERVICE', isOptional: false, triggerRule: 'MANUAL', outcomeOptions: [] });
+  };
+
   return (
-    <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-indigo-500" />
+    <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-6 sm:p-8 relative overflow-hidden mb-8 min-h-[600px]">
+      <div className="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-b from-indigo-500 to-purple-500" />
       
-      <div className="flex flex-col md:flex-row md:items-start justify-between mb-6 gap-4">
+      <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <Workflow className="w-5 h-5 text-indigo-500" />
-            <h2 className="font-headline-sm text-headline-sm font-semibold text-on-surface dark:text-white">Service Flows</h2>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
+              <Workflow className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <h2 className="font-headline-sm text-headline-sm font-semibold text-on-surface dark:text-white tracking-tight">Workflow Engine</h2>
           </div>
-          <p className="text-on-surface-variant dark:text-zinc-400 font-body-sm text-body-sm">
-            Manage multi-stage workflows and operations routing for your services.
+          <p className="text-on-surface-variant dark:text-zinc-400 font-body-sm text-body-sm max-w-xl leading-relaxed">
+            Design dynamic, multi-stage routing for your business operations. Build custom funnels, add conditional checkpoints, and orchestrate complex patient or customer journeys.
           </p>
         </div>
       </div>
 
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-on-surface dark:text-white mb-2">Select a Service to Manage its Flow</label>
+      <div className="mb-8">
+        <label className="block text-sm font-semibold text-on-surface dark:text-white mb-2 uppercase tracking-wide">Target Service</label>
         <select 
           value={selectedServiceId} 
           onChange={e => setSelectedServiceId(e.target.value)}
-          className="w-full sm:max-w-md px-4 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-xl focus:ring-2 focus:ring-primary outline-none"
+          className="w-full sm:max-w-md px-4 py-3 bg-surface-container-lowest dark:bg-[#0a0a0a] border border-border dark:border-dark-border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
         >
-          <option value="all">-- Select a Service --</option>
+          <option value="all">-- Select a Service to Configure --</option>
           {services.map((s: any) => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
@@ -77,69 +168,227 @@ export function FlowsSettings() {
       </div>
 
       {selectedServiceId !== 'all' && (
-        <div className="mt-8 border-t border-border dark:border-dark-border pt-6">
+        <div className="mt-8 border-t border-border dark:border-dark-border pt-8 relative">
           {flowLoading ? (
-            <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+            <div className="flex justify-center p-12"><Loader2 className="w-10 h-10 animate-spin text-indigo-500" /></div>
           ) : flow && flow.id ? (
-            <div>
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="text-lg font-bold text-on-surface dark:text-white">{flow.name}</h3>
-                  <p className="text-sm text-on-surface-variant dark:text-zinc-400">{flow.description}</p>
+            <div className="flex flex-col lg:flex-row gap-8">
+              
+              {/* Visual Flow Canvas */}
+              <div className="flex-1 max-w-2xl">
+                <div className="flex justify-between items-center mb-6 bg-surface-container-low dark:bg-zinc-800/30 p-4 rounded-2xl border border-border dark:border-dark-border">
+                  <div>
+                    <h3 className="text-xl font-bold text-on-surface dark:text-white flex items-center gap-2">
+                      {flow.name}
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider">Active</span>
+                    </h3>
+                    <p className="text-sm text-on-surface-variant dark:text-zinc-400 mt-1">{flow.description}</p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      if (confirm('Delete this flow and revert to basic?')) deleteFlowMutation.mutate(flow.id);
+                    }}
+                    className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                    title="Reset Flow"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </div>
-                <button 
-                  onClick={() => {
-                    if (confirm('Are you sure you want to delete this flow and revert to a basic queue?')) {
-                      deleteFlowMutation.mutate(flow.id);
-                    }
-                  }}
-                  className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" /> Reset Flow
-                </button>
+
+                <div className="relative py-4 pl-4">
+                  {/* Timeline Line */}
+                  <div className="absolute left-[31px] top-6 bottom-6 w-0.5 bg-gradient-to-b from-indigo-200 via-indigo-500 to-purple-200 dark:from-indigo-900 dark:via-indigo-500 dark:to-purple-900 rounded-full" />
+                  
+                  <Reorder.Group axis="y" values={localSteps} onReorder={handleReorder} className="space-y-4 relative z-10">
+                    {localSteps.map((step: any, idx: number) => (
+                      <Reorder.Item key={step.id} value={step} className="relative cursor-grab active:cursor-grabbing group">
+                        <div className="flex items-center gap-6">
+                          {/* Node Connector */}
+                          <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-bold text-sm shadow-sm transition-transform ${
+                            editingStep?.id === step.id 
+                            ? 'bg-indigo-600 text-white scale-110 ring-4 ring-indigo-100 dark:ring-indigo-900/50' 
+                            : 'bg-white dark:bg-zinc-800 border-2 border-indigo-500 text-indigo-700 dark:text-indigo-300'
+                          }`}>
+                            {idx + 1}
+                          </div>
+                          
+                          {/* Node Card */}
+                          <div 
+                            onClick={() => openEdit(step)}
+                            className={`flex-1 flex items-center gap-4 p-4 border rounded-2xl transition-all ${
+                              editingStep?.id === step.id 
+                              ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10 shadow-md' 
+                              : 'border-border dark:border-dark-border bg-surface dark:bg-black hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm'
+                            }`}
+                          >
+                            <GripVertical className="w-5 h-5 text-zinc-300 dark:text-zinc-600 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="flex-1">
+                              <h4 className="font-bold text-on-surface dark:text-white text-base">{step.name}</h4>
+                              {step.description && <p className="text-xs text-on-surface-variant dark:text-zinc-400 mt-0.5 line-clamp-1">{step.description}</p>}
+                            </div>
+                            <div className="flex flex-col gap-1.5 items-end shrink-0">
+                              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                                {step.type}
+                              </span>
+                              {step.isOptional && <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">Optional Route</span>}
+                            </div>
+                            <ChevronRight className={`w-5 h-5 transition-colors ${editingStep?.id === step.id ? 'text-indigo-500' : 'text-zinc-300 dark:text-zinc-600'}`} />
+                          </div>
+                        </div>
+                      </Reorder.Item>
+                    ))}
+                  </Reorder.Group>
+
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={openAdd}
+                    className="mt-6 ml-[72px] flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-semibold text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" /> Add New Stage
+                  </motion.button>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                {flow.steps?.sort((a: any, b: any) => a.stepOrder - b.stepOrder).map((step: any, idx: number) => (
-                  <div key={step.id} className="flex items-center gap-4 p-4 border border-border dark:border-dark-border rounded-xl bg-surface-container-low dark:bg-zinc-800/30">
-                    <div className="w-8 h-8 shrink-0 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-sm">
-                      {idx + 1}
+              {/* Property Editor Panel */}
+              <AnimatePresence mode="wait">
+                {(editingStep || isAddingStep) && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20, transition: { duration: 0.15 } }}
+                    className="w-full lg:w-96 shrink-0 bg-surface-container-lowest dark:bg-[#0a0a0a] border border-border dark:border-dark-border rounded-2xl shadow-xl overflow-hidden flex flex-col h-fit"
+                  >
+                    <div className="p-5 border-b border-border dark:border-dark-border bg-surface-container-low dark:bg-zinc-800/50 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Settings2 className="w-5 h-5 text-indigo-500" />
+                        <h3 className="font-bold text-on-surface dark:text-white">{isAddingStep ? 'New Stage' : 'Configure Stage'}</h3>
+                      </div>
+                      <button onClick={() => { setEditingStep(null); setIsAddingStep(false); }} className="text-zinc-400 hover:text-on-surface">
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-on-surface dark:text-white">{step.name}</h4>
-                      {step.description && <p className="text-xs text-on-surface-variant dark:text-zinc-400 mt-0.5">{step.description}</p>}
+
+                    <div className="p-5 space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Stage Name</label>
+                        <input 
+                          type="text" 
+                          value={stepForm.name} 
+                          onChange={e => setStepForm({...stepForm, name: e.target.value})}
+                          className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                          placeholder="e.g. Triage, Payment, Checkout"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Description</label>
+                        <textarea 
+                          value={stepForm.description} 
+                          onChange={e => setStepForm({...stepForm, description: e.target.value})}
+                          className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm min-h-[80px] focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                          placeholder="Internal notes for this stage..."
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Node Type</label>
+                          <select 
+                            value={stepForm.type} 
+                            onChange={e => setStepForm({...stepForm, type: e.target.value})}
+                            className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                          >
+                            <option value="CHECKPOINT">Checkpoint</option>
+                            <option value="SERVICE">Service Area</option>
+                            <option value="PAYMENT">Payment</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Trigger</label>
+                          <select 
+                            value={stepForm.triggerRule} 
+                            onChange={e => setStepForm({...stepForm, triggerRule: e.target.value})}
+                            className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                          >
+                            <option value="MANUAL">Manual Routing</option>
+                            <option value="AUTO">Auto-Advance</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-border dark:border-dark-border">
+                        <label className="flex items-center gap-3 cursor-pointer p-3 border border-border dark:border-dark-border rounded-xl hover:bg-surface-container-low dark:hover:bg-zinc-800/30 transition-colors">
+                          <input 
+                            type="checkbox" 
+                            checked={stepForm.isOptional} 
+                            onChange={e => setStepForm({...stepForm, isOptional: e.target.checked})}
+                            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 dark:bg-black dark:border-zinc-700"
+                          />
+                          <div>
+                            <div className="font-semibold text-sm text-on-surface dark:text-white">Optional Stage</div>
+                            <div className="text-xs text-on-surface-variant dark:text-zinc-400">Can be skipped by customers</div>
+                          </div>
+                        </label>
+                      </div>
+
+                      <div className="pt-4 flex gap-3">
+                        <button 
+                          onClick={handleSaveStep}
+                          disabled={createStepMutation.isPending || updateStepMutation.isPending}
+                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-bold text-sm shadow-sm transition-colors flex justify-center items-center gap-2"
+                        >
+                          {(createStepMutation.isPending || updateStepMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
+                          Save Configuration
+                        </button>
+                        {editingStep && (
+                          <button 
+                            onClick={() => {
+                              if (confirm('Delete this stage?')) deleteStepMutation.mutate(editingStep.id);
+                            }}
+                            className="p-2.5 text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-1 items-end">
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
-                        {step.type}
-                      </span>
-                      {step.isOptional && <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">Optional</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ) : (
-            <div className="text-center py-12">
-              <Workflow className="w-12 h-12 text-zinc-300 dark:text-zinc-700 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-on-surface dark:text-white mb-1">No Flow Configured</h3>
-              <p className="text-sm text-on-surface-variant dark:text-zinc-400 max-w-md mx-auto mb-6">
-                This service currently operates as a standard single-stage queue. Apply a multi-stage blueprint to enable advanced routing.
+            <div className="text-center py-16 px-4 bg-surface-container-lowest dark:bg-[#0a0a0a] rounded-3xl border border-dashed border-border dark:border-dark-border">
+              <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Workflow className="w-8 h-8 text-indigo-500" />
+              </div>
+              <h3 className="text-xl font-bold text-on-surface dark:text-white mb-2 tracking-tight">No Dynamic Flow Configured</h3>
+              <p className="text-base text-on-surface-variant dark:text-zinc-400 max-w-lg mx-auto mb-8 leading-relaxed">
+                Unlock advanced capabilities. Apply a multi-stage blueprint below to instantly generate a specialized routing architecture for your industry.
               </p>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left max-w-2xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-left max-w-5xl mx-auto">
                 {templates.map((tpl: any) => (
                   <button 
                     key={tpl.key}
                     onClick={() => applyTemplateMutation.mutate(tpl.key)}
                     disabled={applyTemplateMutation.isPending}
-                    className="p-4 rounded-xl border border-border dark:border-dark-border hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-colors group flex flex-col h-full"
+                    className="p-5 rounded-2xl border border-border dark:border-dark-border hover:border-indigo-500 hover:shadow-md dark:hover:shadow-indigo-500/10 hover:-translate-y-1 bg-surface dark:bg-zinc-900 transition-all group flex flex-col h-full"
                   >
-                    <div className="font-semibold text-on-surface dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors mb-1">
-                      {tpl.name}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-bold text-on-surface dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        {tpl.name}
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-zinc-300 dark:text-zinc-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
                     </div>
-                    <div className="text-xs text-on-surface-variant dark:text-zinc-400 line-clamp-2">
+                    <div className="text-xs text-on-surface-variant dark:text-zinc-400 leading-relaxed mb-3 flex-1">
                       {tpl.description}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {tpl.steps.slice(0, 3).map((s: any, i: number) => (
+                        <span key={i} className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">{s.name}</span>
+                      ))}
+                      {tpl.steps.length > 3 && <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">+{tpl.steps.length - 3}</span>}
                     </div>
                   </button>
                 ))}
