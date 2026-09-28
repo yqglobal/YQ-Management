@@ -926,6 +926,31 @@ export default function ServiceDeskToday() {
                   placeholder={industry.terminology.notesPlaceholder}
                 />
                 
+                {selectedVisit?.itinerary?.find((s: any) => (s.status === 'IN_PROGRESS' || s.status === 'QUEUED') && s.type === 'PAYMENT') && (
+                  <div className="mt-4 p-4 border border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-900/20 rounded-xl">
+                    <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
+                      <span className="material-symbols-outlined">payments</span>
+                      Payment Required
+                    </h4>
+                    <p className="text-sm text-blue-700 dark:text-blue-400 mb-3">
+                      This step requires a payment to be collected from the customer before proceeding.
+                    </p>
+                    <div className="flex gap-2">
+                      <input 
+                        type="number" 
+                        placeholder="Amount (e.g. 150)" 
+                        className="flex-1 bg-white dark:bg-zinc-800 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2 text-sm"
+                      />
+                      <button 
+                        onClick={() => alert('Payment Intent Generation coming soon via Stripe Terminal / Webhook')}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm"
+                      >
+                        Generate Link
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-4 flex gap-2">
                   {['WAITING', 'QUEUED'].includes(selectedVisit.currentState) && (
                     <button 

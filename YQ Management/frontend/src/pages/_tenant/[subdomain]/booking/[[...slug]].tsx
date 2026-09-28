@@ -83,6 +83,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [accompanyingGuests, setAccompanyingGuests] = useState(0);
+  const [completedPaymentId, setCompletedPaymentId] = useState<string | null>(null);
   const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>('US');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [regionBlocked, setRegionBlocked] = useState(false);
@@ -548,7 +549,8 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
           phone: phone || undefined,
           otp: otpCode || undefined,
           language: 'en',
-          bookings
+          bookings,
+          paymentId: completedPaymentId || undefined,
         }),
       });
       if (!data) throw new Error('Failed to complete booking.');
@@ -1119,7 +1121,10 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                 }, 0) * 100} // Stripe amount is in cents
                 currency={services.find(x => x.id === selectedServiceIds[0]) ? (services.find(x => x.id === selectedServiceIds[0]) as any).currency || 'usd' : 'usd'}
                 stripeAccountId={tenant?.paymentAccount?.connectedAccountId}
-                onSuccess={() => setStep(5)} // Move to processing
+                onSuccess={(paymentId) => {
+                  setCompletedPaymentId(paymentId);
+                  setStep(5);
+                }} // Move to processing
                 onBack={() => setStep(4)}
                 primaryColor={primaryColor}
               />

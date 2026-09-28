@@ -281,6 +281,7 @@ export class PublicVisitController {
         formResponses?: any;
         accompanyingGuests?: number;
       }[];
+      paymentId?: string;
     },
     @Res({ passthrough: true }) res: Response,
     @Req() req: Request,
@@ -298,6 +299,22 @@ export class PublicVisitController {
 
     const visits = await this.visitService.joinMultiple(body);
     const tokens = visits.map((v: any) => v.accessToken).filter(Boolean);
+    const visitIds = visits.map((v: any) => v.id);
+
+    // If a payment was made immediately prior to this, link it now
+    if (body.paymentId && visitIds.length > 0) {
+      try {
+        await this.prisma.bookingPayment.update({
+          where: { id: body.paymentId },
+          data: {
+            visitId: visitIds[0], // primary visit
+            status: 'COMPLETED', // mark successful since intent succeeded on frontend
+          },
+        });
+      } catch (e) {
+        this.logger.error(`Failed to link payment ${body.paymentId} to visits:`, e);
+      }
+    }
 
     if (tokens.length > 0) {
       const existingTokensStr = req.cookies['qmova_session'] || '';

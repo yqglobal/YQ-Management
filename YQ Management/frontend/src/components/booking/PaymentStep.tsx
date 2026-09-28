@@ -9,14 +9,14 @@ interface PaymentStepProps {
   amount: number;
   currency: string;
   stripeAccountId: string;
-  onSuccess: () => void;
+  onSuccess: (paymentId: string) => void;
   onBack: () => void;
   primaryColor: string;
   visitId?: string;
   visitStepId?: string;
 }
 
-const CheckoutForm = ({ onSuccess, onBack, primaryColor }: { onSuccess: () => void, onBack: () => void, primaryColor: string }) => {
+const CheckoutForm = ({ onSuccess, onBack, primaryColor, paymentId }: { onSuccess: (paymentId: string) => void, onBack: () => void, primaryColor: string, paymentId: string }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +46,7 @@ const CheckoutForm = ({ onSuccess, onBack, primaryColor }: { onSuccess: () => vo
       setError(confirmError.message || 'Payment failed.');
       setProcessing(false);
     } else {
-      onSuccess();
+      onSuccess(paymentId);
     }
   };
 
@@ -76,6 +76,7 @@ const CheckoutForm = ({ onSuccess, onBack, primaryColor }: { onSuccess: () => vo
 
 export function PaymentStep({ tenantId, amount, currency, stripeAccountId, onSuccess, onBack, primaryColor, visitId, visitStepId }: PaymentStepProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
   const [stripePromise, setStripePromise] = useState<any>(null);
 
   useEffect(() => {
@@ -96,6 +97,7 @@ export function PaymentStep({ tenantId, amount, currency, stripeAccountId, onSuc
           body: JSON.stringify({ tenantId, amount, description: 'Booking Prepayment', visitId, visitStepId })
         });
         setClientSecret(res.clientSecret);
+        setPaymentId(res.paymentId);
       } catch (err) {
         console.error("Failed to create payment intent", err);
       }
@@ -114,7 +116,7 @@ export function PaymentStep({ tenantId, amount, currency, stripeAccountId, onSuc
 
   return (
     <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
-      <CheckoutForm onSuccess={onSuccess} onBack={onBack} primaryColor={primaryColor} />
+      <CheckoutForm onSuccess={onSuccess} onBack={onBack} primaryColor={primaryColor} paymentId={paymentId || ''} />
     </Elements>
   );
 }
