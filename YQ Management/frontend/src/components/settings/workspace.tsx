@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SelectServiceModal } from '../modals/SelectServiceModal';
 import { ALL_INDUSTRY_CONFIGS } from '../../lib/industryConfig';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
+import { Button } from '../ui/button';
 
 export default function WorkspaceSettingsPage() {
   const { user, refetch } = useAuth();
@@ -310,19 +312,66 @@ function IndustryTemplateCard({ businessType, setBusinessType, tenantId, queryCl
   queryClient: any;
 }) {
   const [saving, setSaving] = useState(false);
+  const [selectedNewIndustry, setSelectedNewIndustry] = useState<string | null>(null);
   const industryList = Object.values(ALL_INDUSTRY_CONFIGS);
 
-  const handleSave = async (newType: string) => {
+  const handleCardClick = (newType: string) => {
     if (!tenantId || newType === businessType) return;
+    setSelectedNewIndustry(newType);
+  };
+
+  const handleConfirmSave = async (provisionServices: boolean) => {
+    if (!selectedNewIndustry) return;
     setSaving(true);
     try {
+      // 1. Update the tenant businessType
       await fetchApi(`/tenant/${tenantId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ businessType: newType }),
+        body: JSON.stringify({ businessType: selectedNewIndustry }),
       });
-      setBusinessType(newType);
+      
+      // 2. Provision services if requested
+      if (provisionServices) {
+        const template = ALL_INDUSTRY_CONFIGS[selectedNewIndustry as keyof typeof ALL_INDUSTRY_CONFIGS];
+        if (template && template.services) {
+          // Find first location to attach services to
+          const locations = await fetchApi('/location');
+          const locationId = locations.length > 0 ? locations[0].id : null;
+          
+          if (locationId) {
+            await Promise.all(template.services.map(async (s: any) => {
+              const service = await fetchApi('/service', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                  name: `${s.name} Service`, 
+                  locationId,
+                  description: 'Auto-provisioned service',
+                  formConfig: s.formConfig,
+                  allowAppointments: true
+                }),
+              });
+
+              if (template.blueprintKey) {
+                await fetchApi(`/service-flows/templates/${template.blueprintKey}/apply?serviceId=${service.id}`, {
+                  method: 'POST'
+                }).catch((err: any) => {
+                  console.error('Failed to apply blueprint flow to service:', err);
+                });
+              }
+            }));
+            toast.success(`Industry updated and ${template.services.length} services provisioned!`);
+            queryClient.invalidateQueries({ queryKey: ['locations', 'services'] });
+          } else {
+            toast.success('Industry updated! (No locations found to provision services)');
+          }
+        }
+      } else {
+        toast.success('Industry template updated! Your dashboard will adapt immediately.');
+      }
+
+      setBusinessType(selectedNewIndustry);
       queryClient.invalidateQueries({ queryKey: ['tenant', 'me'] });
-      toast.success('Industry template updated! Your dashboard will adapt immediately.');
+      setSelectedNewIndustry(null);
     } catch (err: any) {
       toast.error(err.message || 'Failed to update industry template');
     } finally {
@@ -349,7 +398,7 @@ function IndustryTemplateCard({ businessType, setBusinessType, tenantId, queryCl
           return (
             <button
               key={cfg.id}
-              onClick={() => handleSave(cfg.id)}
+              onClick={() => handleCardClick(cfg.id)}
               disabled={saving}
               className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center
                 ${isSelected
@@ -374,7 +423,74 @@ function IndustryTemplateCard({ businessType, setBusinessType, tenantId, queryCl
           );
         })}
       </div>
+      <ChangeIndustryModal 
+        isOpen={!!selectedNewIndustry}
+        onClose={() => setSelectedNewIndustry(null)}
+        newIndustryId={selectedNewIndustry}
+        onConfirm={handleConfirmSave}
+        isApplying={saving}
+      />
     </div>
+  );
+}
+
+function ChangeIndustryModal({ isOpen, onClose, onConfirm, newIndustryId, isApplying }: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (provisionServices: boolean) => void;
+  newIndustryId: string | null;
+  isApplying: boolean;
+}) {
+  const [provisionServices, setProvisionServices] = useState(false);
+  const newIndustry = newIndustryId ? ALL_INDUSTRY_CONFIGS[newIndustryId as keyof typeof ALL_INDUSTRY_CONFIGS] : null;
+
+  if (!isOpen || !newIndustry) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[550px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl">Change Business Category</DialogTitle>
+          <DialogDescription>
+            You are about to switch your workspace category to <b>{newIndustry.industryLabel}</b>.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="py-4">
+          <p className="text-sm text-on-surface-variant dark:text-zinc-400 mb-6">
+            This will immediately adapt your dashboard terminology, icons, and menus to better fit the {newIndustry.industryLabel} workflow.
+          </p>
+
+          <div className="bg-surface-container-low dark:bg-white/[0.02] border border-border dark:border-dark-border rounded-xl p-5 flex gap-4 items-start">
+            <input 
+              type="checkbox" 
+              id="provisionCheck"
+              className="mt-1 w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+              checked={provisionServices}
+              onChange={(e) => setProvisionServices(e.target.checked)}
+            />
+            <div>
+              <label htmlFor="provisionCheck" className="text-sm font-bold text-on-surface dark:text-white block cursor-pointer">
+                Also provision default {newIndustry.industryLabel} services & flows
+              </label>
+              <p className="text-[13px] leading-relaxed text-on-surface-variant dark:text-zinc-400 mt-2">
+                If checked, we will automatically create standard {newIndustry.industryLabel} services (e.g. {newIndustry.services?.slice(0,2).map((s:any) => s.name).join(', ')}) with their corresponding queue flows and blueprints. 
+                <br/><br/>
+                <span className="text-amber-600 dark:text-amber-500 font-semibold">Note:</span> Your existing services will remain completely untouched. You can manually delete old services if you no longer need them.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isApplying}>Cancel</Button>
+          <Button onClick={() => onConfirm(provisionServices)} disabled={isApplying}>
+            {isApplying && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Confirm Change
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
