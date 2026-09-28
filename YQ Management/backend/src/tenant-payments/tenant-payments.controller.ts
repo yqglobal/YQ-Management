@@ -74,7 +74,10 @@ export class TenantPaymentsController {
   }
 
   @Post('public/payment/:id/complete')
-  completePayment(@Param('id') id: string) {
-    return this.tenantPaymentsService.completePayment(id);
+  completePayment(
+    @Param('id') id: string,
+    @Body() body: { method?: string },
+  ) {
+    return this.tenantPaymentsService.completePayment(id, body?.method);
   }
 }

@@ -14,9 +14,10 @@ interface PaymentStepProps {
   primaryColor: string;
   visitId?: string;
   visitStepId?: string;
+  onSkip?: () => void;
 }
 
-const CheckoutForm = ({ onSuccess, onBack, primaryColor, paymentId }: { onSuccess: (paymentId: string) => void, onBack?: () => void, primaryColor: string, paymentId: string }) => {
+const CheckoutForm = ({ onSuccess, onBack, onSkip, primaryColor, paymentId }: { onSuccess: (paymentId: string) => void, onBack?: () => void, onSkip?: () => void, primaryColor: string, paymentId: string }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -61,22 +62,29 @@ const CheckoutForm = ({ onSuccess, onBack, primaryColor, paymentId }: { onSucces
 
       {error && <div className="text-red-500 text-sm font-medium p-3 bg-red-50 rounded-lg">{error}</div>}
 
-      <div className="flex gap-3 pt-4">
-        {onBack && (
-          <button type="button" onClick={onBack} disabled={processing} className="px-6 py-4 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
-            Back
+      <div className="flex flex-col gap-3 pt-4">
+        <div className="flex gap-3">
+          {onBack && (
+            <button type="button" onClick={onBack} disabled={processing} className="px-6 py-4 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
+              Back
+            </button>
+          )}
+          <button type="submit" disabled={!stripe || processing} className="flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 flex justify-center items-center gap-2" style={{ backgroundColor: primaryColor }}>
+            {processing && <Loader2 className="w-5 h-5 animate-spin" />}
+            Pay Now
+          </button>
+        </div>
+        {onSkip && (
+          <button type="button" onClick={onSkip} disabled={processing} className="w-full py-3 rounded-xl font-bold text-gray-600 dark:text-zinc-400 bg-transparent hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
+            Skip and Pay Later at Counter
           </button>
         )}
-        <button type="submit" disabled={!stripe || processing} className="flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 flex justify-center items-center gap-2" style={{ backgroundColor: primaryColor }}>
-          {processing && <Loader2 className="w-5 h-5 animate-spin" />}
-          Pay Now
-        </button>
       </div>
     </form>
   );
 };
 
-export function PaymentStep({ tenantId, amount, currency, stripeAccountId, onSuccess, onBack, primaryColor, visitId, visitStepId }: PaymentStepProps) {
+export function PaymentStep({ tenantId, amount, currency, stripeAccountId, onSuccess, onBack, onSkip, primaryColor, visitId, visitStepId }: PaymentStepProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [stripePromise, setStripePromise] = useState<any>(null);
@@ -118,7 +126,7 @@ export function PaymentStep({ tenantId, amount, currency, stripeAccountId, onSuc
 
   return (
     <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
-      <CheckoutForm onSuccess={onSuccess} onBack={onBack} primaryColor={primaryColor} paymentId={paymentId || ''} />
+      <CheckoutForm onSuccess={onSuccess} onBack={onBack} onSkip={onSkip} primaryColor={primaryColor} paymentId={paymentId || ''} />
     </Elements>
   );
 }

@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AdvanceStepDto } from './dto/advance-step.dto';
 import { RedeemEntitlementDto } from './dto/redeem-entitlement.dto';
 import { Prisma } from '@prisma/client';
@@ -13,7 +14,10 @@ import { Prisma } from '@prisma/client';
 export class VisitStepService {
   private readonly logger = new Logger(VisitStepService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async instantiateStepsForVisit(
     tenantId: string,
@@ -200,7 +204,15 @@ export class VisitStepService {
   ) {
     const step = await this.prisma.visitStep.findUnique({
       where: { id: visitStepId },
-      include: { templateStep: true },
+      include: {
+        templateStep: true,
+        visit: {
+          include: {
+            customer: { select: { phone: true, name: true } },
+            location: { select: { name: true } },
+          },
+        },
+      },
     });
     if (!step || step.tenantId !== tenantId)
       throw new NotFoundException('Step not found');
@@ -228,6 +240,30 @@ export class VisitStepService {
       staffId,
       { outcome: dto.outcome },
     );
+
+    // Notify customer about next step if enabled and customer has a phone
+    const nextInstruction = step.templateStep?.customerInstruction;
+    const customerPhone = (step.visit as any)?.customer?.phone;
+    if (
+      step.templateStep?.notifyCustomerOnActivation &&
+      nextInstruction &&
+      customerPhone
+    ) {
+      const locationName =
+        (step.visit as any)?.location?.name || 'the service area';
+      const msg =
+        `📋 *Next Step: ${step.name}*\n\n` +
+        `${nextInstruction}\n\n` +
+        `📍 Location: *${locationName}*`;
+      this.notificationsService
+        .sendWhatsAppMessage(customerPhone, msg, tenantId)
+        .catch((e) =>
+          this.logger.warn(
+            `Step notification failed for step ${step.id}: ${e.message}`,
+          ),
+        );
+    }
+
     await this.evaluateNextSteps(step.visitId, step.id, dto.outcome);
 
     return updated;
@@ -306,8 +342,14 @@ export class VisitStepService {
 
     if (!completedStep || !completedStep.templateStep) return;
 
+    // Exclude the just-completed step — the DB update may not have committed yet
+    // when this runs in the same event loop tick, so we filter it out explicitly.
     const activeSteps = await this.prisma.visitStep.findMany({
-      where: { visitId, status: { in: ['PENDING', 'ACTIVE', 'DEFERRED'] } },
+      where: {
+        visitId,
+        id: { not: completedVisitStepId }, // exclude the step we just completed
+        status: { in: ['PENDING', 'ACTIVE', 'DEFERRED'] },
+      },
     });
     if (activeSteps.length > 0) return; // Wait until all parallel branches resolve
 

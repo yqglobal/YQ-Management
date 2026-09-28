@@ -321,6 +321,30 @@ export class PublicVisitController {
           e,
         );
       }
+    } else if (visitIds.length > 0) {
+      // Offline / Skipped Payment Logic
+      try {
+        const primaryVisit = visits[0];
+        const service = await this.prisma.service.findUnique({ where: { id: primaryVisit.serviceId } });
+        
+        if (service && service.basePrice && service.basePrice > 0 && (service.paymentMode === 'PAY_AT_SERVICE' || service.paymentMode === 'OPTIONAL_PREPAY')) {
+          await this.prisma.bookingPayment.create({
+            data: {
+              tenantId: primaryVisit.tenantId,
+              visitId: primaryVisit.id,
+              customerId: primaryVisit.customerId,
+              amount: service.basePrice,
+              platformFeeAmount: 0, // No platform fee for offline payments
+              tenantNetAmount: service.basePrice,
+              currency: service.currency || 'ZAR',
+              status: 'PENDING',
+              stripePaymentMethodType: 'OFFLINE',
+            },
+          });
+        }
+      } catch (e) {
+        this.logger.error(`Failed to create offline payment for visit ${visitIds[0]}:`, e);
+      }
     }
 
     if (tokens.length > 0) {

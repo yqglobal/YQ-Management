@@ -122,6 +122,7 @@ export class VisitService {
         customer: true,
         service: true,
         location: true,
+        bookingPayments: true,
         visitSteps: {
           include: { templateStep: true },
           orderBy: { stepOrder: 'asc' },
@@ -283,6 +284,27 @@ export class VisitService {
         location: { select: { name: true, address: true } },
         tenant: { select: { name: true } },
         queue: { select: { status: true } },
+        visitSteps: {
+          select: {
+            id: true,
+            stepOrder: true,
+            name: true,
+            status: true,
+            templateStep: {
+              select: {
+                type: true,
+                customerInstruction: true,
+                locationDescription: true,
+                stepPrice: true,
+                stepPriceCurrency: true,
+                isPriceVariable: true,
+              },
+            },
+            amountCharged: true,
+            paymentStatus: true,
+          },
+          orderBy: { stepOrder: 'asc' },
+        },
       },
     });
 
@@ -1174,7 +1196,10 @@ export class VisitService {
       serviceBooked: visit.service?.name || 'Unknown Service',
       scheduledFor: visit.scheduledTime,
       checkedIn:
-        visit.currentState !== 'SCHEDULED' && visit.currentState !== 'CREATED',
+        visit.currentState === 'CHECKED_IN' ||
+        visit.currentState === 'IN_SERVICE' ||
+        visit.currentState === 'COMPLETED' ||
+        visit.checkInTime !== null,
       checkInTime: visit.checkInTime,
       activeStep,
     };

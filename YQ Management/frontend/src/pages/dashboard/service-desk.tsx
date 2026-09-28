@@ -108,10 +108,11 @@ export default function ServiceDeskToday() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<'pool' | 'pipeline'>('pool');
-  const [poolViewTab, setPoolViewTab] = useState<'walkins' | 'appointments'>('walkins');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentLink, setPaymentLink] = useState<string | null>(null);
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [queueFilter, setQueueFilter] = useState<'all' | 'walkin' | 'appointment'>('all');
   const { socket } = useSocket();
   
   const plan = usePlan();
@@ -286,13 +287,42 @@ export default function ServiceDeskToday() {
     }))
   );
 
-  const waitingVisitsUnsorted = [
-    ...filteredVisits.filter((v: AnyFixMe) => v.currentState === 'WAITING' || v.currentState === 'CHECKED_IN'),
-    ...queueTokens
-  ];
-  
-  const waitingVisits = waitingVisitsUnsorted.sort((a, b) => 
-    new Date(a.waitingStart || a.joinedAt).getTime() - new Date(b.waitingStart || b.joinedAt).getTime()
+  // ── UNIFIED DYNAMIC QUEUE POOL ─────────────────────────────────────────────
+  // All waiting / checked-in / upcoming-scheduled visits in one list.
+  // Sort key: appointments anchor to scheduledTime, walk-ins anchor to arrivalTime.
+  // This naturally interleaves them: walk-ins fill the gaps between appointment slots.
+  //
+  // Visual sections:
+  //  [ACTIVE NOW]  - WAITING / CHECKED_IN (have arrived)
+  //  [UPCOMING]    - SCHEDULED (appointment confirmed but not yet arrived / checked in)
+
+  const getEffectiveTime = (v: AnyFixMe): number => {
+    const isAppt = v.source === 'APPOINTMENT' || (v.scheduledTime && !v.waitingStart);
+    if (isAppt && v.scheduledTime) {
+      return new Date(v.scheduledTime).getTime();
+    }
+    // Walk-in: use waitingStart (when they joined the active queue)
+    return new Date(v.waitingStart || v.createdAt).getTime();
+  };
+
+  // Active pool: people who have actually arrived (WAITING or CHECKED_IN)
+  const arrivedVisits = filteredVisits.filter((v: AnyFixMe) =>
+    v.currentState === 'WAITING' || v.currentState === 'CHECKED_IN'
+  );
+
+  // Upcoming pool: SCHEDULED appointments for today that haven't arrived yet
+  const upcomingVisits = filteredVisits.filter((v: AnyFixMe) =>
+    v.currentState === 'SCHEDULED'
+  );
+
+  // Merge queue tokens into arrived pool
+  const arrivedPool = [
+    ...arrivedVisits,
+    ...queueTokens,
+  ].sort((a, b) => getEffectiveTime(a) - getEffectiveTime(b));
+
+  const upcomingPool = upcomingVisits.sort(
+    (a: AnyFixMe, b: AnyFixMe) => getEffectiveTime(a) - getEffectiveTime(b)
   );
 
   const inServiceVisitsUnsorted = [
@@ -406,19 +436,23 @@ export default function ServiceDeskToday() {
     }
   };
 
-  const displayPool = waitingVisits.filter((v: AnyFixMe) => {
-    const matchesSearch = v.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          v.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Split View logic
-    const isAppointment = !!v.isAppointment; // Boolean
-    const matchesTab = poolViewTab === 'appointments' ? isAppointment : !isAppointment;
-
-    return matchesSearch && matchesTab;
+  // Apply search + type filter
+  const applyFilters = (pool: AnyFixMe[]) => pool.filter((v: AnyFixMe) => {
+    const matchesSearch =
+      !searchQuery ||
+      v.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.displayId?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType =
+      queueFilter === 'all' ||
+      (queueFilter === 'appointment' && (v.source === 'APPOINTMENT' || v.scheduledTime)) ||
+      (queueFilter === 'walkin' && v.source !== 'APPOINTMENT' && !v.scheduledTime);
+    return matchesSearch && matchesType;
   });
 
-  const allWalkinsCount = waitingVisits.filter((v: AnyFixMe) => !v.isAppointment).length;
-  const allAppointmentsCount = waitingVisits.filter((v: AnyFixMe) => !!v.isAppointment).length;
+  const displayArrived = applyFilters(arrivedPool);
+  const displayUpcoming = applyFilters(upcomingPool);
+  const totalPoolCount = arrivedPool.length + upcomingPool.length;
 
   return (
     <AdminLayout pageTitle={industry.serviceDesk.pageTitle} noPadding={true}>
@@ -434,7 +468,7 @@ export default function ServiceDeskToday() {
             onClick={() => setMobileTab('pool')}
             className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-colors ${mobileTab === 'pool' ? 'bg-primary text-white shadow-md' : 'text-on-surface-variant bg-surface-container hover:bg-surface-container-high dark:bg-dark-canvas dark:hover:bg-inverse-surface'}`}
           >
-            {industry.serviceDesk.poolTitle} ({waitingVisits.length})
+            {industry.serviceDesk.poolTitle} ({totalPoolCount})
           </button>
           <button 
             onClick={() => setMobileTab('pipeline')}
@@ -646,29 +680,13 @@ export default function ServiceDeskToday() {
 
         {/* Column 2: Pool */}
         <section className={`${mobileTab === 'pool' ? 'flex' : 'hidden'} md:flex md:col-span-1 ${selectedVisit ? 'md:col-span-6' : 'md:col-span-9'} bg-canvas dark:bg-dark-canvas p-4 md:p-6 flex-col min-h-0 overflow-hidden transition-all duration-300`}>
-          <div className="flex flex-wrap xl:flex-nowrap items-start xl:items-center justify-between gap-4 mb-6 shrink-0">
+          <div className="flex flex-wrap xl:flex-nowrap items-start xl:items-center justify-between gap-4 mb-4 shrink-0">
             <div className="flex flex-col w-full xl:w-auto">
               <div className="flex items-center gap-3">
                 <h2 className="font-headline-sm text-headline-sm text-on-surface dark:text-white">{industry.serviceDesk.poolTitle}</h2>
-                <span className="bg-primary/10 text-primary dark:bg-primary-fixed-dim/20 dark:text-primary-fixed-dim px-2.5 py-0.5 rounded-full font-data-mono text-body-sm font-semibold">{waitingVisits.length}</span>
+                <span className="bg-primary/10 text-primary dark:bg-primary-fixed-dim/20 dark:text-primary-fixed-dim px-2.5 py-0.5 rounded-full font-data-mono text-body-sm font-semibold">{totalPoolCount}</span>
               </div>
-              <p className="text-xs text-outline mt-1">The queue of incoming clients waiting to be served.</p>
-              
-              {/* Split View Tabs */}
-              <div className="flex bg-surface-container dark:bg-zinc-800/50 p-1 rounded-lg mt-4 w-fit">
-                <button 
-                  onClick={() => setPoolViewTab('walkins')}
-                  className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${poolViewTab === 'walkins' ? 'bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-300'}`}
-                >
-                  Walk-ins ({allWalkinsCount})
-                </button>
-                <button 
-                  onClick={() => setPoolViewTab('appointments')}
-                  className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${poolViewTab === 'appointments' ? 'bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-300'}`}
-                >
-                  Appointments ({allAppointmentsCount})
-                </button>
-              </div>
+              <p className="text-xs text-outline mt-1">Appointments are pinned to their time slot. Walk-ins fill gaps between them — one unified queue.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto mt-4 xl:mt-0">
               <div className="relative flex-1 min-w-[150px]">
@@ -690,7 +708,24 @@ export default function ServiceDeskToday() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-3 pb-8">
+          {/* Filter Chips */}
+          <div className="flex items-center gap-2 mb-4 shrink-0">
+            {(['all', 'walkin', 'appointment'] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => setQueueFilter(f)}
+                className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
+                  queueFilter === f
+                    ? 'bg-primary text-white border-primary'
+                    : 'bg-card dark:bg-dark-card text-outline border-border dark:border-dark-border hover:border-primary/50'
+                }`}
+              >
+                {f === 'all' ? `All (${totalPoolCount})` : f === 'walkin' ? `Walk-ins (${arrivedPool.filter((v: AnyFixMe) => v.source !== 'APPOINTMENT' && !v.scheduledTime).length})` : `Appointments (${arrivedPool.filter((v: AnyFixMe) => v.source === 'APPOINTMENT' || v.scheduledTime).length + upcomingPool.length})`}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 overflow-y-auto pb-8 space-y-3">
             {isLoading && (
               <div className="space-y-3">
                 {[1,2,3].map(i => (
@@ -699,7 +734,7 @@ export default function ServiceDeskToday() {
               </div>
             )}
             
-            {displayPool.length === 0 && !isLoading && (
+            {totalPoolCount === 0 && !isLoading && (
               <div className="flex flex-col items-center justify-center h-full text-outline animate-in fade-in duration-500 py-16">
                 <div className="relative mb-6">
                   <div className="absolute inset-0 bg-primary/20 blur-[30px] rounded-full"></div>
@@ -711,7 +746,7 @@ export default function ServiceDeskToday() {
                 {queues.length === 0 ? (
                   <>
                     <p className="text-body-md text-outline text-center max-w-sm mb-8 leading-relaxed">
-                      You haven't configured any queues yet. Set up a queue to start receiving {industry.terminology.customers.toLowerCase()}.
+                      You haven&apos;t configured any queues yet. Set up a queue to start receiving {industry.terminology.customers.toLowerCase()}.
                     </p>
                     <Link
                       href="/dashboard/queues"
@@ -751,114 +786,195 @@ export default function ServiceDeskToday() {
                 )}
               </div>
             )}
-            
-            <AnimatePresence mode="popLayout">
-              {displayPool.map((v: AnyFixMe) => {
-                const waitTimeMs = v.waitingStart ? Date.now() - new Date(v.waitingStart).getTime() : 0;
-                const waitTimeMins = Math.floor(waitTimeMs / 60000);
-                const threshold = tenant?.reviewWaitThresholdMins || 15;
-                const isUrgent = waitTimeMins > threshold;
-                
-                // Industry-specific chip from formResponses
-                // For the 'general' (universal) mode, use the __dynamic__ sentinel
-                // to pick the first non-empty formResponse field.
-                const chipField = industry.visitCard.primaryChipField;
-                let chipValue: string | null = null;
-                let chipLabel: string | null = industry.visitCard.primaryChipLabel;
-                if (chipField === DYNAMIC_CHIP_SENTINEL) {
-                  // Universal mode: find the first populated formResponse entry
-                  const entries = Object.entries(v.formResponses || {}).filter(([, val]) => val && String(val).trim() !== '');
-                  if (entries.length > 0) {
-                    const [firstKey, firstVal] = entries[0];
-                    chipValue = String(firstVal);
-                    // Humanise the key: camelCase → Title Case
-                    chipLabel = firstKey.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
-                  }
-                } else if (chipField) {
-                  chipValue = v.formResponses?.[chipField] ?? null;
-                }
 
-                // Itinerary (healthcare)
-                const hasItinerary = industry.uiFlags.showItinerary && Array.isArray(v.itinerary) && v.itinerary.length > 0;
+            {/* ── SECTION: ARRIVED / ACTIVE NOW ──────────────────────────── */}
+            {displayArrived.length > 0 && (
+              <>
+                {displayUpcoming.length > 0 && (
+                  <div className="flex items-center gap-2 py-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Waiting Now</span>
+                    <div className="flex-1 h-px bg-emerald-500/20"></div>
+                    <span className="text-[10px] font-data-mono text-outline">{displayArrived.length}</span>
+                  </div>
+                )}
+                <AnimatePresence mode="popLayout">
+                  {displayArrived.map((v: AnyFixMe) => {
+                    const isAppt = v.source === 'APPOINTMENT' || (v.scheduledTime && !v.isToken);
+                    const waitTimeMs = v.waitingStart ? Date.now() - new Date(v.waitingStart).getTime() : 0;
+                    const waitTimeMins = Math.floor(waitTimeMs / 60000);
+                    const threshold = tenant?.reviewWaitThresholdMins || 15;
+                    const isUrgent = waitTimeMins > threshold;
 
-                return (
-                  <motion.div 
-                    layout
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    key={v.id} 
-                    onClick={() => setSelectedVisit(v)}
-                    className={`bg-card dark:bg-dark-card border ${selectedVisit?.id === v.id ? 'border-primary' : 'border-border dark:border-dark-border'} rounded-xl p-4 flex flex-col gap-2 relative overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer ${v.source === 'APPOINTMENT' ? 'shadow-[0_0_15px_rgba(14,165,233,0.1)] border-sky-500/20' : 'shadow-[0_0_15px_rgba(16,185,129,0.1)] border-emerald-500/20'}`}
-                  >
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${isUrgent ? 'bg-alert shadow-[0_0_10px_rgba(239,68,68,0.8)]' : 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'}`}></div>
-                    
-                    <div className="flex items-center justify-between pl-2">
-                      <div className="flex flex-col gap-1 flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                          <span className={`font-data-mono text-data-mono ${isUrgent ? 'text-alert' : 'text-on-surface dark:text-white'}`}>{v.ticketNumber || `#TKT-${v.id.substring(0,4)}`}</span>
-                          {isUrgent && <span className="font-label-caps text-[10px] bg-alert/10 text-alert px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">{industry.visitCard.urgencyLabel || 'Urgent'}</span>}
-                          {v.priority > 0 && <span className="font-label-caps text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">VIP</span>}
-                          {(() => {
-                           if (v.source !== 'APPOINTMENT' || !industry.uiFlags.highlightArrivalStatus) return null;
-                           const sched = v.scheduledFor || v.scheduledTime;
-                           if (!sched || !v.waitingStart) return null;
-                           const diffMins = (new Date(v.waitingStart).getTime() - new Date(sched).getTime()) / 60000;
-                           if (diffMins < -15) return <span className="font-label-caps text-[10px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Early</span>;
-                           if (diffMins > 15) return <span className="font-label-caps text-[10px] bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Late</span>;
-                           return null;
-                        })()}
-                        {/* Healthcare privacy badge */}
-                        {industry.uiFlags.showPrivacyBadge && <span className="font-label-caps text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider flex items-center gap-0.5"><span className="material-symbols-outlined text-[9px]">lock</span>PHI</span>}
-                        {/* SLA Badges */}
-                        {v.slaStatus === 'WARNING' && <span className="font-label-caps text-[10px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">SLA Warning</span>}
-                        {v.slaStatus === 'BREACHED' && <span className="font-label-caps text-[10px] bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">SLA Breach</span>}
-                        </div>
-                        <h3 className="font-semibold text-body-lg text-on-surface dark:text-white">{v.customer?.name || industry.terminology.walkIn}</h3>
-                        <div className="flex items-center gap-2 text-outline text-body-sm mt-0.5">
-                          <span className="material-symbols-outlined text-[14px]">{v.source === 'APPOINTMENT' ? 'calendar_today' : 'directions_walk'}</span>
-                          <span>{v.service?.name || industry.terminology.service}</span>
-                        </div>
+                    const chipField = industry.visitCard.primaryChipField;
+                    let chipValue: string | null = null;
+                    let chipLabel: string | null = industry.visitCard.primaryChipLabel;
+                    if (chipField === DYNAMIC_CHIP_SENTINEL) {
+                      const entries = Object.entries(v.formResponses || {}).filter(([, val]) => val && String(val).trim() !== '');
+                      if (entries.length > 0) {
+                        const [firstKey, firstVal] = entries[0];
+                        chipValue = String(firstVal);
+                        chipLabel = firstKey.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
+                      }
+                    } else if (chipField) {
+                      chipValue = v.formResponses?.[chipField] ?? null;
+                    }
+                    const hasItinerary = industry.uiFlags.showItinerary && Array.isArray(v.itinerary) && v.itinerary.length > 0;
 
-                        {/* Industry-specific chip from form responses */}
-                        {chipValue && (
-                          <div className={`flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-semibold w-fit ${industry.accentBg} ${industry.accentText} border border-current/20`}>
-                            <span className="material-symbols-outlined text-[12px]">{industry.visitCard.primaryChipIcon}</span>
-                            <span className="truncate max-w-[150px]">{chipLabel ? `${chipLabel}: ` : ''}{chipValue}</span>
+                    return (
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        key={v.id}
+                        onClick={() => setSelectedVisit(v)}
+                        className={`bg-card dark:bg-dark-card border ${
+                          selectedVisit?.id === v.id ? 'border-primary' : isAppt ? 'border-sky-200 dark:border-sky-900/50' : 'border-border dark:border-dark-border'
+                        } rounded-xl p-4 flex flex-col gap-2 relative overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer`}
+                      >
+                        {/* Left accent bar: blue for appointment, amber/red for walk-in */}
+                        <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${
+                          isAppt ? 'bg-sky-500' : isUrgent ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]' : 'bg-amber-500'
+                        }`}></div>
+
+                        <div className="flex items-center justify-between pl-2">
+                          <div className="flex flex-col gap-1 flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                              <span className={`font-data-mono text-data-mono ${isUrgent && !isAppt ? 'text-alert' : 'text-on-surface dark:text-white'}`}>
+                                {v.ticketNumber || v.displayId || `#${v.id.substring(0,6)}`}
+                              </span>
+
+                              {/* Type Badge — fixed to use correct fields */}
+                              {isAppt ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-bold border border-blue-200 dark:border-blue-800 flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[10px]">calendar_month</span>
+                                  APT {v.scheduledTime ? `• ${new Date(v.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 font-bold border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[10px]">directions_walk</span>
+                                  WALK-IN
+                                </span>
+                              )}
+
+                              {!isAppt && isUrgent && <span className="font-label-caps text-[10px] bg-alert/10 text-alert px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">{industry.visitCard.urgencyLabel || 'Urgent'}</span>}
+                              {v.priority > 0 && <span className="font-label-caps text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">VIP</span>}
+                              {/* Late/Early badge for appointments */}
+                              {(() => {
+                                if (!isAppt || !industry.uiFlags.highlightArrivalStatus) return null;
+                                const sched = v.scheduledTime;
+                                if (!sched || !v.waitingStart) return null;
+                                const diffMins = (new Date(v.waitingStart).getTime() - new Date(sched).getTime()) / 60000;
+                                if (diffMins < -15) return <span className="font-label-caps text-[10px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Early</span>;
+                                if (diffMins > 15) return <span className="font-label-caps text-[10px] bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Late</span>;
+                                return null;
+                              })()}
+                              {industry.uiFlags.showPrivacyBadge && <span className="font-label-caps text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider flex items-center gap-0.5"><span className="material-symbols-outlined text-[9px]">lock</span>PHI</span>}
+                              {v.slaStatus === 'WARNING' && <span className="font-label-caps text-[10px] bg-amber-500/10 text-amber-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">SLA Warning</span>}
+                              {v.slaStatus === 'BREACHED' && <span className="font-label-caps text-[10px] bg-red-500/10 text-red-600 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">SLA Breach</span>}
+                            </div>
+                            <h3 className="font-semibold text-body-lg text-on-surface dark:text-white">{v.customer?.name || industry.terminology.walkIn}</h3>
+                            <div className="flex items-center gap-2 text-outline text-body-sm mt-0.5">
+                              <span className="material-symbols-outlined text-[14px]">{isAppt ? 'calendar_today' : 'directions_walk'}</span>
+                              <span>{v.service?.name || industry.terminology.service}</span>
+                            </div>
+
+                            {chipValue && (
+                              <div className={`flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-semibold w-fit ${industry.accentBg} ${industry.accentText} border border-current/20`}>
+                                <span className="material-symbols-outlined text-[12px]">{industry.visitCard.primaryChipIcon}</span>
+                                <span className="truncate max-w-[150px]">{chipLabel ? `${chipLabel}: ` : ''}{chipValue}</span>
+                              </div>
+                            )}
+                            {industry.uiFlags.showGuestCount && v.accompanyingGuests > 0 && (
+                              <div className="flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium w-fit bg-surface-container text-outline border border-border">
+                                <span className="material-symbols-outlined text-[12px]">group</span>
+                                <span>+{v.accompanyingGuests} accompanying</span>
+                              </div>
+                            )}
+                            {hasItinerary && <ItineraryProgress itinerary={v.itinerary} />}
                           </div>
-                        )}
 
-                        {/* Healthcare: Accompanying guests chip */}
-                        {industry.uiFlags.showGuestCount && v.accompanyingGuests > 0 && (
-                          <div className="flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium w-fit bg-surface-container text-outline border border-border">
-                            <span className="material-symbols-outlined text-[12px]">group</span>
-                            <span>+{v.accompanyingGuests} accompanying</span>
+                          <div className="flex flex-col items-end gap-3 ml-3 shrink-0">
+                            <div className={`flex items-center gap-1.5 font-data-mono text-body-md font-semibold ${!isAppt && isUrgent ? 'text-alert' : 'text-outline'}`}>
+                              <span className="material-symbols-outlined text-[16px]">schedule</span>
+                              {waitTimeMins}m
+                            </div>
+                            <button
+                              onClick={(e) => handleStart(v.id, e, v.isToken)}
+                              className={`${
+                                v.isToken ? 'bg-zinc-600 hover:bg-zinc-700' : isAppt ? 'bg-sky-600 hover:bg-sky-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                              } text-white px-4 py-2 rounded-lg font-medium text-body-sm h-[36px] flex items-center gap-2 transition-colors shadow-sm`}
+                            >
+                              <span className="material-symbols-outlined text-[18px]">campaign</span>
+                              {v.isToken ? 'Queued' : industry.terminology.actionVerb}
+                            </button>
                           </div>
-                        )}
-
-                        {/* Multi-step Itinerary Progress (Healthcare) */}
-                        {hasItinerary && <ItineraryProgress itinerary={v.itinerary} />}
-                      </div>
-                      
-                      <div className="flex flex-col items-end gap-3 ml-3 shrink-0">
-                        <div className={`flex items-center gap-1.5 font-data-mono text-body-md font-semibold ${isUrgent ? 'text-alert' : 'text-amber-600 dark:text-amber-400'}`}>
-                          <span className="material-symbols-outlined text-[16px]">schedule</span>
-                          {waitTimeMins}m
                         </div>
-                        <button 
-                          onClick={(e) => handleStart(v.id, e, v.isToken)}
-                          className={`${v.isToken ? 'bg-zinc-600 hover:bg-zinc-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white px-4 py-2 rounded-lg font-medium text-body-sm h-[36px] flex items-center gap-2 transition-colors shadow-sm`}
-                        >
-                          <span className="material-symbols-outlined text-[18px]">campaign</span>
-                          {v.isToken ? 'Queued' : industry.terminology.actionVerb}
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </>
+            )}
+
+            {/* ── SECTION: UPCOMING APPOINTMENTS ─────────────────────────── */}
+            {displayUpcoming.length > 0 && (
+              <>
+                <div className="flex items-center gap-2 pt-2 pb-1">
+                  <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0"></span>
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-sky-600 dark:text-sky-400">Upcoming Appointments</span>
+                  <div className="flex-1 h-px bg-sky-500/20"></div>
+                  <span className="text-[10px] font-data-mono text-outline">{displayUpcoming.length}</span>
+                </div>
+                <AnimatePresence mode="popLayout">
+                  {displayUpcoming.map((v: AnyFixMe) => {
+                    const slotTime = v.scheduledTime ? new Date(v.scheduledTime) : null;
+                    const minsUntil = slotTime ? Math.round((slotTime.getTime() - Date.now()) / 60000) : null;
+                    return (
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.2 }}
+                        key={v.id}
+                        onClick={() => setSelectedVisit(v)}
+                        className={`bg-card dark:bg-dark-card border ${
+                          selectedVisit?.id === v.id ? 'border-primary' : 'border-sky-200/60 dark:border-sky-900/40'
+                        } rounded-xl p-4 flex items-center gap-3 relative overflow-hidden cursor-pointer hover:border-sky-400/60 transition-colors opacity-80 hover:opacity-100`}
+                      >
+                        <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-sky-400/50"></div>
+                        <div className="pl-2 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                            <span className="font-data-mono text-data-mono text-on-surface dark:text-white text-sm">{v.ticketNumber || v.displayId || `#${v.id.substring(0,6)}`}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 font-bold border border-sky-200 dark:border-sky-800">
+                              {slotTime ? slotTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Scheduled'}
+                            </span>
+                            {minsUntil !== null && minsUntil <= 15 && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-bold border border-amber-200 dark:border-amber-800 animate-pulse">
+                                In {minsUntil}m
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-semibold text-on-surface dark:text-white text-sm">{v.customer?.name}</p>
+                          <p className="text-xs text-outline">{v.service?.name}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          {minsUntil !== null && (
+                            <div className="text-xs font-data-mono text-sky-600 dark:text-sky-400 font-semibold">
+                              {minsUntil > 0 ? `in ${minsUntil}m` : `${Math.abs(minsUntil)}m ago`}
+                            </div>
+                          )}
+                          <div className="text-[10px] text-outline mt-1">Not yet arrived</div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </>
+            )}
           </div>
         </section>
 
@@ -993,7 +1109,7 @@ export default function ServiceDeskToday() {
                     <div className="mt-4 p-4 border border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-900/20 rounded-xl">
                       <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
                         <span className="material-symbols-outlined">payments</span>
-                        Payment Required
+                        Payment Required (Workflow Step)
                       </h4>
                       
                       {!paymentLink ? (
@@ -1050,6 +1166,48 @@ export default function ServiceDeskToday() {
                     </div>
                   );
                 })()}
+
+                {/* Offline Payment UI (Booking Payments) */}
+                {(() => {
+                  const pendingPayment = selectedVisit?.bookingPayments?.find((p: any) => p.status === 'PENDING');
+                  if (!pendingPayment) return null;
+                  
+                  return (
+                    <div className="mt-4 p-4 border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/20 rounded-xl relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-2 opacity-10">
+                        <span className="material-symbols-outlined text-[64px]">point_of_sale</span>
+                      </div>
+                      <h4 className="font-bold text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-2 relative z-10">
+                        <span className="material-symbols-outlined">point_of_sale</span>
+                        Counter Payment Due
+                      </h4>
+                      
+                      <div className="relative z-10">
+                        <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
+                          This service requires an offline payment of <strong className="font-data-mono">{pendingPayment.currency} {pendingPayment.amount.toFixed(2)}</strong>.
+                        </p>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={async () => {
+                              try {
+                                await fetchApi(`/public/payment/${pendingPayment.id}/complete`, { method: 'POST', body: JSON.stringify({ method: 'OFFLINE_CASH' }) });
+                                queryClient.invalidateQueries({ queryKey: ['activeVisits'] });
+                                toast.success('Payment marked as paid!');
+                              } catch(e) {
+                                toast.error('Failed to update payment');
+                              }
+                            }}
+                            className="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-lg font-bold text-sm shadow-sm transition-colors flex items-center justify-center gap-2"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                            Mark as Paid (Cash/Card)
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
 
                 <div className="mt-4 flex gap-2">
                   {['WAITING', 'QUEUED'].includes(selectedVisit.currentState) && (

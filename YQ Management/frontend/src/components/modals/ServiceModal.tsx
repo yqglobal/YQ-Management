@@ -280,10 +280,10 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
                 onChange={(e) => setPaymentMode(e.target.value)}
                 className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
               >
-                <option value="NONE">None (Free or Offline)</option>
-                <option value="PREPAY">Prepay Required (During Booking)</option>
-                <option value="OPTIONAL_PREPAY">Optional Prepay (During Booking)</option>
-                <option value="PAY_AT_SERVICE">Pay at Service (Via DAG Ticket checkout)</option>
+                <option value="NONE">None (Free Service)</option>
+                <option value="PREPAY">Online Only (Prepay via Stripe during Booking)</option>
+                <option value="PAY_AT_SERVICE">Offline Only (Pay at Counter / Reception)</option>
+                <option value="OPTIONAL_PREPAY">Both (Customer chooses Online or Offline)</option>
               </select>
             </div>
           </div>

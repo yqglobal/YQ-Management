@@ -206,7 +206,7 @@ export class TenantPaymentsService {
     return payment;
   }
 
-  async completePayment(paymentId: string) {
+  async completePayment(paymentId: string, method?: string) {
     const payment = await this.prisma.bookingPayment.findUnique({
       where: { id: paymentId },
     });
@@ -214,7 +214,10 @@ export class TenantPaymentsService {
 
     const updated = await this.prisma.bookingPayment.update({
       where: { id: paymentId },
-      data: { status: 'COMPLETED' },
+      data: { 
+        status: 'COMPLETED',
+        ...(method ? { stripePaymentMethodType: method } : {})
+      },
     });
 
     if (updated.visitStepId) {

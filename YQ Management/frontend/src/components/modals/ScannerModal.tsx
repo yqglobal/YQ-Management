@@ -7,6 +7,7 @@ import { fetchApi } from '../../lib/api';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { useLocation } from '../LocationContext';
+import { toast } from 'sonner';
 
 type ScannerStatus = 'idle' | 'scanning' | 'processing' | 'approved' | 'rejected' | 'error';
 

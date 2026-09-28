@@ -463,10 +463,18 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const handleConfirm = () => {
     // Check if any selected service requires or allows prepay
     let prepayTotal = 0;
+    let hasOptionalPrepay = false;
+
     selectedServiceIds.forEach(sid => {
       const s = services.find(x => x.id === sid);
-      if (s && (s as any).paymentMode === 'PREPAY' && (s as any).basePrice) {
-        prepayTotal += parseFloat((s as any).basePrice);
+      if (s) {
+        const mode = (s as any).paymentMode;
+        if ((mode === 'PREPAY' || mode === 'OPTIONAL_PREPAY') && (s as any).basePrice) {
+          prepayTotal += parseFloat((s as any).basePrice);
+        }
+        if (mode === 'OPTIONAL_PREPAY') {
+          hasOptionalPrepay = true;
+        }
       }
     });
 
@@ -1117,7 +1125,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                 tenantId={tenant?.id}
                 amount={selectedServiceIds.reduce((total, sid) => {
                   const s = services.find(x => x.id === sid);
-                  return total + (s && (s as any).paymentMode === 'PREPAY' && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0);
+                  return total + (s && ((s as any).paymentMode === 'PREPAY' || (s as any).paymentMode === 'OPTIONAL_PREPAY') && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0);
                 }, 0) * 100} // Stripe amount is in cents
                 currency={services.find(x => x.id === selectedServiceIds[0]) ? (services.find(x => x.id === selectedServiceIds[0]) as any).currency || 'usd' : 'usd'}
                 stripeAccountId={tenant?.paymentAccount?.connectedAccountId}
@@ -1126,6 +1134,15 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                   setStep(5);
                 }} // Move to processing
                 onBack={() => setStep(4)}
+                onSkip={
+                  selectedServiceIds.some(sid => {
+                    const s = services.find(x => x.id === sid);
+                    return s && (s as any).paymentMode === 'OPTIONAL_PREPAY';
+                  }) && !selectedServiceIds.some(sid => {
+                    const s = services.find(x => x.id === sid);
+                    return s && (s as any).paymentMode === 'PREPAY';
+                  }) ? () => setStep(5) : undefined
+                }
                 primaryColor={primaryColor}
               />
             </motion.div>
