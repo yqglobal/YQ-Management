@@ -139,7 +139,7 @@ export class ServiceService {
         businessHoursOverride: true,
         exceptionDatesOverride: true,
         basePrice: true,
-        currency: true,
+        priceCurrency: true,
         paymentMode: true,
         location: {
           select: {

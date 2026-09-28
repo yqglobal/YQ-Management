@@ -346,7 +346,7 @@ export default function ServiceDeskToday() {
 
   const handleCallNextQueue = async (queueId: string) => {
     try {
-      await fetchApi(`/token/advance/${queueId}`, { method: 'POST' });
+      await fetchApi(`/queue/${queueId}/advance`, { method: 'POST' });
       queryClient.invalidateQueries({ queryKey: ['visits'] });
     } catch (err) {
       console.error('Failed to advance queue', err);

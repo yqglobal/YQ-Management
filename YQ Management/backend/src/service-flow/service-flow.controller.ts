@@ -24,6 +24,16 @@ export class ServiceFlowController {
     return this.serviceFlowService.getFlowByServiceId(req.user.tenantId, serviceId);
   }
 
+  @Get('templates/list')
+  async listTemplates(@Req() req: any) {
+    return this.serviceFlowService.listIndustryTemplates(req.user.tenantId);
+  }
+
+  @Post('templates/:templateKey/apply')
+  applyTemplate(@Req() req: any, @Param('templateKey') templateKey: string, @Query('serviceId') serviceId: string) {
+    return this.serviceFlowService.applyIndustryTemplate(req.user.tenantId, serviceId, templateKey);
+  }
+
   @Get(':flowId')
   getFlow(@Req() req: any, @Param('flowId') flowId: string) {
     return this.serviceFlowService.getFlowWithSteps(req.user.tenantId, flowId);
@@ -64,15 +74,5 @@ export class ServiceFlowController {
   @Post(':flowId/steps/reorder')
   reorderSteps(@Req() req: any, @Param('flowId') flowId: string, @Body() dto: ReorderStepsDto) {
     return this.serviceFlowService.reorderSteps(req.user.tenantId, flowId, dto.orderedStepIds);
-  }
-
-  @Get('templates/list')
-  async listTemplates(@Req() req: any) {
-    return this.serviceFlowService.listIndustryTemplates(req.user.tenantId);
-  }
-
-  @Post('templates/:templateKey/apply')
-  applyTemplate(@Req() req: any, @Param('templateKey') templateKey: string, @Query('serviceId') serviceId: string) {
-    return this.serviceFlowService.applyIndustryTemplate(req.user.tenantId, serviceId, templateKey);
   }
 }
