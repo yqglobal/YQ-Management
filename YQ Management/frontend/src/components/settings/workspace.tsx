@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SelectServiceModal } from '../modals/SelectServiceModal';
 import { ALL_INDUSTRY_CONFIGS } from '../../lib/industryConfig';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
+import { Dialog, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 
 export default function WorkspaceSettingsPage() {
@@ -447,16 +447,16 @@ function ChangeIndustryModal({ isOpen, onClose, onConfirm, newIndustryId, isAppl
   if (!isOpen || !newIndustry) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[550px]">
-        <DialogHeader>
+    <Dialog open={isOpen} onOpenChange={onClose} className="sm:max-w-[550px]">
+      <div className="flex flex-col gap-4">
+        <div>
           <DialogTitle className="text-xl">Change Business Category</DialogTitle>
           <DialogDescription>
             You are about to switch your workspace category to <b>{newIndustry.industryLabel}</b>.
           </DialogDescription>
-        </DialogHeader>
+        </div>
         
-        <div className="py-4">
+        <div className="py-2">
           <p className="text-sm text-on-surface-variant dark:text-zinc-400 mb-6">
             This will immediately adapt your dashboard terminology, icons, and menus to better fit the {newIndustry.industryLabel} workflow.
           </p>
@@ -482,14 +482,14 @@ function ChangeIndustryModal({ isOpen, onClose, onConfirm, newIndustryId, isAppl
           </div>
         </div>
 
-        <DialogFooter>
+        <div className="flex justify-end gap-2 mt-2">
           <Button variant="outline" onClick={onClose} disabled={isApplying}>Cancel</Button>
           <Button onClick={() => onConfirm(provisionServices)} disabled={isApplying}>
             {isApplying && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Confirm Change
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </div>
+      </div>
     </Dialog>
   );
 }
