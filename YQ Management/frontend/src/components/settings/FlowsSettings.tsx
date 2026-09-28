@@ -75,7 +75,7 @@ export function FlowsSettings() {
   });
 
   const updateStepMutation = useMutation({
-    mutationFn: (dto: any) => fetchApi(`/service-flows/${flow.id}/steps/${editingStep.id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
+    mutationFn: (dto: any) => fetchApi(`/service-flows/${flow.id}/steps/${dto.id || editingStep?.id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-flow', selectedServiceId] });
       toast.success('Stage updated');
@@ -113,7 +113,7 @@ export function FlowsSettings() {
     if (isAddingStep) {
       createStepMutation.mutate({ ...stepForm, stepOrder: localSteps.length + 1 });
     } else if (editingStep) {
-      updateStepMutation.mutate(stepForm);
+      updateStepMutation.mutate({ ...stepForm, id: editingStep.id });
     }
   };
 
