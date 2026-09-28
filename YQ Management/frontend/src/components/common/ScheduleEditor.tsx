@@ -78,8 +78,14 @@ export function ScheduleEditor({ schedule, onChange, exceptionDates, onChangeExc
   const copyToAll = (sourceDay: string) => {
     const sourceSlots = schedule[sourceDay] || [];
     const newSchedule = { ...schedule };
+    
+    // By default, 'Copy to All' should only overwrite days that are currently open.
+    // It is a very common bug/complaint that copying weekday hours accidentally opens weekends.
     DAYS.forEach(day => {
-      newSchedule[day] = sourceSlots.map(s => ({ ...s }));
+      const isCurrentlyClosed = !schedule[day] || schedule[day].length === 0;
+      if (day === sourceDay || !isCurrentlyClosed) {
+        newSchedule[day] = sourceSlots.map(s => ({ ...s }));
+      }
     });
     onChange(newSchedule);
   };

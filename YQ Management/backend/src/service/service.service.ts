@@ -138,6 +138,9 @@ export class ServiceService {
         useLocationHours: true,
         businessHoursOverride: true,
         exceptionDatesOverride: true,
+        basePrice: true,
+        currency: true,
+        paymentMode: true,
         location: {
           select: {
             timezone: true,

@@ -4,7 +4,8 @@ import { useRouter } from 'next/router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getBackendUrl } from '../../../lib/api';
 import { io, Socket } from 'socket.io-client';
-import { Clock, Users, XCircle, CheckCircle2, Loader2, RefreshCw, MapPin, Stethoscope } from 'lucide-react';
+import { Clock, Users, XCircle, CheckCircle2, Loader2, RefreshCw, MapPin, Stethoscope, CreditCard } from 'lucide-react';
+import { PaymentStep } from '../../../components/booking/PaymentStep';
 
 // The [id] in the URL is the Visit.accessToken (opaque UUID from QR code / WhatsApp link)
 // This is NOT the Visit.id - it's the public-facing capability token
@@ -152,6 +153,10 @@ export default function CustomerLiveStatus() {
   const isServing = currentState === 'IN_SERVICE';
   const isDone = ['COMPLETED', 'MISSED', 'NO_SHOW', 'CANCELLED'].includes(currentState);
   const isScheduled = currentState === 'SCHEDULED' || currentState === 'CREATED';
+
+  const activeStep = data.token?.visitSteps?.find((s: any) => s.status === 'ACTIVE' || s.status === 'UNLOCKED');
+  const isPaymentRequired = activeStep?.templateStep?.type === 'PAYMENT' && (!activeStep.paymentStatus || activeStep.paymentStatus === 'PENDING');
+  const stripeAccountId = tenant?.paymentAccount?.connectedAccountId;
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -319,6 +324,36 @@ export default function CustomerLiveStatus() {
                     based on current speed
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* ── Payment State ── */}
+            {isPaymentRequired && (
+              <div className="mt-6 border-t border-gray-100 dark:border-zinc-800 pt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <CreditCard className="w-5 h-5 text-indigo-500" />
+                  <h3 className="font-bold text-gray-900 dark:text-white">Payment Required</h3>
+                </div>
+                {stripeAccountId ? (
+                  <PaymentStep
+                    tenantId={tenant?.id}
+                    amount={activeStep.templateStep.stepPrice || 0}
+                    currency={activeStep.templateStep.stepPriceCurrency || 'ZAR'}
+                    stripeAccountId={stripeAccountId}
+                    onSuccess={() => {
+                      alert('Payment Successful!');
+                      triggerRefetch();
+                    }}
+                    onBack={() => {}}
+                    primaryColor="#4f46e5"
+                    visitId={data.token?.id}
+                    visitStepId={activeStep.id}
+                  />
+                ) : (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl text-sm font-medium">
+                    This location has not configured their payment gateway. Please pay at the counter.
+                  </div>
+                )}
               </div>
             )}
           </div>

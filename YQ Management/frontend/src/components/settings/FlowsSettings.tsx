@@ -20,7 +20,12 @@ export function FlowsSettings() {
     type: 'SERVICE',
     isOptional: false,
     triggerRule: 'MANUAL',
-    outcomeOptions: [] as string[]
+    outcomeOptions: [] as string[],
+    customerInstruction: '',
+    staffInstruction: '',
+    floorNumber: '',
+    roomNumber: '',
+    mapImageUrl: ''
   });
 
   const { data: services = [] } = useQuery({
@@ -110,10 +115,15 @@ export function FlowsSettings() {
 
   const handleSaveStep = () => {
     if (!stepForm.name) return toast.error('Name is required');
+    const payload = {
+      ...stepForm,
+      floorNumber: stepForm.floorNumber ? parseInt(stepForm.floorNumber, 10) : null,
+      stepPrice: stepForm.stepPrice ? parseFloat(stepForm.stepPrice) : null
+    };
     if (isAddingStep) {
-      createStepMutation.mutate({ ...stepForm, stepOrder: localSteps.length + 1 });
+      createStepMutation.mutate({ ...payload, stepOrder: localSteps.length + 1 });
     } else if (editingStep) {
-      updateStepMutation.mutate({ ...stepForm, id: editingStep.id });
+      updateStepMutation.mutate({ ...payload, id: editingStep.id });
     }
   };
 
@@ -126,14 +136,37 @@ export function FlowsSettings() {
       type: step.type,
       isOptional: step.isOptional,
       triggerRule: step.triggerRule || 'MANUAL',
-      outcomeOptions: step.outcomeOptions || []
+      outcomeOptions: step.outcomeOptions || [],
+      customerInstruction: step.customerInstruction || '',
+      staffInstruction: step.staffInstruction || '',
+      floorNumber: step.floorNumber?.toString() || '',
+      roomNumber: step.roomNumber || '',
+      mapImageUrl: step.mapImageUrl || '',
+      stepPrice: step.stepPrice?.toString() || '',
+      stepPriceCurrency: step.stepPriceCurrency || 'ZAR',
+      isPriceVariable: step.isPriceVariable || false
     });
   };
 
   const openAdd = () => {
     setIsAddingStep(true);
     setEditingStep(null);
-    setStepForm({ name: '', description: '', type: 'SERVICE', isOptional: false, triggerRule: 'MANUAL', outcomeOptions: [] });
+    setStepForm({ 
+      name: '', 
+      description: '', 
+      type: 'SERVICE', 
+      isOptional: false, 
+      triggerRule: 'MANUAL', 
+      outcomeOptions: [],
+      customerInstruction: '',
+      staffInstruction: '',
+      floorNumber: '',
+      roomNumber: '',
+      mapImageUrl: '',
+      stepPrice: '',
+      stepPriceCurrency: 'ZAR',
+      isPriceVariable: false
+    });
   };
 
   return (
@@ -280,6 +313,93 @@ export function FlowsSettings() {
                           </select>
                         </div>
                       </div>
+
+                      <div className="pt-4 border-t border-border dark:border-dark-border space-y-4">
+                        <h4 className="text-xs font-bold text-on-surface dark:text-white uppercase tracking-wider">Wayfinding & Instructions</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Floor No.</label>
+                            <input 
+                              type="number" 
+                              value={stepForm.floorNumber} 
+                              onChange={e => setStepForm({...stepForm, floorNumber: e.target.value})}
+                              className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                              placeholder="e.g. 2"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Room / Counter</label>
+                            <input 
+                              type="text" 
+                              value={stepForm.roomNumber} 
+                              onChange={e => setStepForm({...stepForm, roomNumber: e.target.value})}
+                              className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                              placeholder="e.g. Room A1"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Digital Ticket Instruction</label>
+                          <textarea 
+                            value={stepForm.customerInstruction} 
+                            onChange={e => setStepForm({...stepForm, customerInstruction: e.target.value})}
+                            className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm min-h-[60px] focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                            placeholder="e.g. Please wait here until called..."
+                          />
+                        </div>
+                      </div>
+
+                      {stepForm.type === 'PAYMENT' && (
+                        <div className="pt-4 border-t border-border dark:border-dark-border space-y-4 animate-in fade-in slide-in-from-top-2">
+                          <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Payment Settings</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Fixed Price</label>
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                  <span className="text-zinc-500 sm:text-sm">{stepForm.stepPriceCurrency === 'ZAR' ? 'R' : '$'}</span>
+                                </div>
+                                <input 
+                                  type="number" 
+                                  step="0.01"
+                                  value={stepForm.stepPrice} 
+                                  onChange={e => setStepForm({...stepForm, stepPrice: e.target.value})}
+                                  disabled={stepForm.isPriceVariable}
+                                  className="w-full pl-7 pr-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none disabled:opacity-50"
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Currency</label>
+                              <select 
+                                value={stepForm.stepPriceCurrency} 
+                                onChange={e => setStepForm({...stepForm, stepPriceCurrency: e.target.value})}
+                                className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                              >
+                                <option value="ZAR">ZAR (R)</option>
+                                <option value="USD">USD ($)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="GBP">GBP (£)</option>
+                              </select>
+                            </div>
+                          </div>
+                          
+                          <label className="flex items-center gap-3 cursor-pointer p-3 border border-border dark:border-dark-border rounded-xl hover:bg-surface-container-low dark:hover:bg-zinc-800/30 transition-colors">
+                            <input 
+                              type="checkbox" 
+                              checked={stepForm.isPriceVariable} 
+                              onChange={e => setStepForm({...stepForm, isPriceVariable: e.target.checked, stepPrice: e.target.checked ? '' : stepForm.stepPrice})}
+                              className="w-4 h-4 text-emerald-600 rounded border-gray-300 dark:border-zinc-700 bg-surface dark:bg-black"
+                            />
+                            <div>
+                              <div className="text-sm font-semibold text-on-surface dark:text-white">Variable Pricing (Quote)</div>
+                              <div className="text-xs text-on-surface-variant dark:text-zinc-400">Price is determined by staff during the visit based on services rendered.</div>
+                            </div>
+                          </label>
+                        </div>
+                      )}
+
 
                       <div className="pt-2 border-t border-border dark:border-dark-border">
                         <label className="flex items-center gap-3 cursor-pointer p-3 border border-border dark:border-dark-border rounded-xl hover:bg-surface-container-low dark:hover:bg-zinc-800/30 transition-colors">

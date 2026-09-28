@@ -11,7 +11,7 @@ export class LocationService {
 
   async create(
     tenantId: string,
-    data: { name: string; address?: string; city?: string },
+    data: { name: string; address?: string; city?: string; totalFloors?: number; businessHours?: any; exceptionDates?: string[] },
   ) {
     const currentLocationsCount =
       await this.prisma.extendedClient.location.count({
@@ -30,6 +30,9 @@ export class LocationService {
         name: data.name,
         address: data.address,
         city: data.city,
+        totalFloors: data.totalFloors,
+        businessHours: data.businessHours,
+        exceptionDates: data.exceptionDates,
       },
     });
   }
@@ -85,7 +88,7 @@ export class LocationService {
   async update(
     id: string,
     tenantId: string,
-    data: { name?: string; address?: string; city?: string },
+    data: { name?: string; address?: string; city?: string; totalFloors?: number; businessHours?: any; exceptionDates?: string[] },
   ) {
     return this.prisma.extendedClient.location
       .update({

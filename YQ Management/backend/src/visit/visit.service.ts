@@ -21,6 +21,7 @@ import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { ServiceService } from '../service/service.service';
 import { BlockOffService } from '../block-off/block-off.service';
 import { VisitStepService } from '../visit-step/visit-step.service';
+import { calculateAdvancedEWT } from '../utils/ewt.util';
 
 @Injectable()
 export class VisitService {
@@ -177,7 +178,13 @@ export class VisitService {
         location: { select: { name: true, address: true } },
         scheduledTime: true,
         language: true,
-        tenant: { select: { name: true } },
+        tenant: { 
+          select: { 
+            id: true,
+            name: true,
+            paymentAccount: { select: { connectedAccountId: true } } 
+          } 
+        },
         visitSteps: {
           select: {
             id: true,
@@ -189,8 +196,13 @@ export class VisitService {
                 type: true,
                 customerInstruction: true,
                 locationDescription: true,
+                stepPrice: true,
+                stepPriceCurrency: true,
+                isPriceVariable: true,
               }
-            }
+            },
+            amountCharged: true,
+            paymentStatus: true,
           },
           orderBy: { stepOrder: 'asc' }
         },
@@ -217,35 +229,7 @@ export class VisitService {
       });
       position = waitingAhead + 1;
       
-      // Dynamic AI Wait Time Estimation (C2)
-      // Calculate rolling average of the last 30 completed visits for this service
-      let avgServiceTime = visit.service?.expectedDuration || 5;
-      
-      if (visit.serviceId) {
-        const recentVisits = await this.prisma.visit.findMany({
-          where: { 
-            serviceId: visit.serviceId, 
-            currentState: 'COMPLETED',
-            serviceStart: { not: null },
-            completedAt: { not: null }
-          },
-          orderBy: { completedAt: 'desc' },
-          take: 30,
-          select: { serviceStart: true, completedAt: true }
-        });
-        
-        if (recentVisits.length > 0) {
-          const totalServiceTime = recentVisits.reduce((acc, v) => {
-            if (v.completedAt && v.serviceStart) {
-               return acc + (v.completedAt.getTime() - v.serviceStart.getTime()) / 60000;
-            }
-            return acc;
-          }, 0);
-          avgServiceTime = totalServiceTime / recentVisits.length;
-        }
-      }
-      
-      ewt = Math.round(waitingAhead * avgServiceTime);
+      ewt = await calculateAdvancedEWT(this.prisma, visit.queueId, visit.serviceId, waitingAhead, visit.service?.expectedDuration);
     }
 
     return {
@@ -279,7 +263,7 @@ export class VisitService {
         scheduledTime: true,
         appointmentId: true,
         customer: { select: { name: true } },
-        service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true } },
+        service: { select: { id: true, name: true, expectedDuration: true, emaExpectedDuration: true } },
         location: { select: { name: true, address: true } },
         tenant: { select: { name: true } },
         queue: { select: { status: true } },
@@ -300,7 +284,7 @@ export class VisitService {
             },
           });
           position = waitingAhead + 1;
-          ewt = waitingAhead * (visit.service?.emaExpectedDuration || visit.service?.expectedDuration || 5);
+          ewt = await calculateAdvancedEWT(this.prisma, visit.queueId, visit.service?.id || null, waitingAhead, visit.service?.expectedDuration);
         }
 
         return {

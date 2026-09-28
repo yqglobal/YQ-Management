@@ -9,27 +9,42 @@ import {
 import { TenantPaymentsService } from './tenant-payments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-@UseGuards(JwtAuthGuard)
 @Controller('tenant-payments')
 export class TenantPaymentsController {
   constructor(private readonly tenantPaymentsService: TenantPaymentsService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post('connect')
   createConnectAccount(@Req() req: any) {
     return this.tenantPaymentsService.createConnectAccount(req.user.tenantId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('status')
   getAccountStatus(@Req() req: any) {
     return this.tenantPaymentsService.getAccountStatus(req.user.tenantId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('intent')
   createPaymentIntent(
     @Req() req: any,
     @Body() dto: { amount: number; visitId?: string; visitStepId?: string; appointmentId?: string; description?: string }
   ) {
     return this.tenantPaymentsService.createPaymentIntent(req.user.tenantId, dto.amount, {
+      visitId: dto.visitId,
+      visitStepId: dto.visitStepId,
+      appointmentId: dto.appointmentId,
+      description: dto.description,
+    });
+  }
+
+  @Post('public/intent')
+  createPublicPaymentIntent(
+    @Body() dto: { tenantId: string; amount: number; visitId?: string; visitStepId?: string; appointmentId?: string; description?: string }
+  ) {
+    // For public bookings, they pass the tenantId in the body
+    return this.tenantPaymentsService.createPaymentIntent(dto.tenantId, dto.amount, {
       visitId: dto.visitId,
       visitStepId: dto.visitStepId,
       appointmentId: dto.appointmentId,

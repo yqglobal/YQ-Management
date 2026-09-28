@@ -13,7 +13,13 @@ export default function SlaPoliciesPage() {
     name: '',
     warningThresholdMins: 15,
     breachThresholdMins: 30,
-    escalationPhones: ''
+    escalationPhones: '',
+    serviceIds: [] as string[]
+  });
+
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => fetchApi('/service')
   });
 
   const { data: policies = [], isLoading } = useQuery({
@@ -68,7 +74,8 @@ export default function SlaPoliciesPage() {
       name: policy.name,
       warningThresholdMins: policy.warningThresholdMins,
       breachThresholdMins: policy.breachThresholdMins,
-      escalationPhones: policy.escalationPhones?.join(', ') || ''
+      escalationPhones: policy.escalationPhones?.join(', ') || '',
+      serviceIds: policy.services?.map((s: any) => s.id) || []
     });
     setIsEditing(policy.id);
   };
@@ -93,7 +100,7 @@ export default function SlaPoliciesPage() {
         {!isEditing && (
           <button 
             onClick={() => {
-              setFormData({ name: '', warningThresholdMins: 15, breachThresholdMins: 30, escalationPhones: '' });
+              setFormData({ name: '', warningThresholdMins: 15, breachThresholdMins: 30, escalationPhones: '', serviceIds: [] });
               setIsEditing('new');
             }}
             className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-primary-container transition-colors"
@@ -149,6 +156,35 @@ export default function SlaPoliciesPage() {
                 onChange={e => setFormData({ ...formData, breachThresholdMins: parseInt(e.target.value) })}
                 className="w-full bg-card dark:bg-dark-card border border-border dark:border-dark-border px-3 py-2 rounded-lg text-sm focus:border-primary outline-none" 
               />
+            </div>
+            
+            <div className="col-span-1 md:col-span-2 mt-2">
+              <label className="block text-sm font-medium mb-2">Connected Services</label>
+              {services.length === 0 ? (
+                <div className="text-sm text-zinc-500">No services available.</div>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {services.map((svc: any) => (
+                    <label key={svc.id} className="flex items-center gap-2 bg-card dark:bg-dark-card border border-border dark:border-dark-border px-4 py-2.5 rounded-xl cursor-pointer hover:border-primary transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.serviceIds.includes(svc.id)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFormData(prev => ({
+                            ...prev,
+                            serviceIds: checked 
+                              ? [...prev.serviceIds, svc.id]
+                              : prev.serviceIds.filter(id => id !== svc.id)
+                          }));
+                        }}
+                        className="rounded w-4 h-4 text-primary focus:ring-primary border-gray-300 dark:border-zinc-700 bg-surface dark:bg-black"
+                      />
+                      <span className="text-sm font-medium text-on-surface dark:text-white">{svc.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex justify-end gap-2">

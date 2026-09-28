@@ -27,6 +27,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [totalFloors, setTotalFloors] = useState<number | ''>('');
   
   const [businessHours, setBusinessHours] = useState<WeeklySchedule>(DEFAULT_HOURS);
   const [exceptionDates, setExceptionDates] = useState<string[]>([]);
@@ -37,6 +38,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
         setName(location.name || '');
         setAddress(location.address || '');
         setCity(location.city || '');
+        setTotalFloors(location.totalFloors || '');
 
         if (location.businessHours) {
           const newHours: AnyFixMe = { ...DEFAULT_HOURS };
@@ -57,6 +59,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
         setName('');
         setAddress('');
         setCity('');
+        setTotalFloors('');
         setBusinessHours(DEFAULT_HOURS);
         setExceptionDates([]);
       }
@@ -89,6 +92,7 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
       name,
       address,
       city,
+      totalFloors: totalFloors !== '' ? Number(totalFloors) : null,
       businessHours,
       exceptionDates,
     });
@@ -150,6 +154,20 @@ export function LocationModal({ isOpen, onClose, location }: LocationModalProps)
                     className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-4 py-2.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-white"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Total Floors (Wayfinding)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="200"
+                  value={totalFloors}
+                  onChange={(e) => setTotalFloors(e.target.value)}
+                  placeholder="e.g. 3"
+                  className="w-full bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-4 py-2.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1">Used to provide indoor navigation instructions on digital tickets.</p>
               </div>
             </div>
             

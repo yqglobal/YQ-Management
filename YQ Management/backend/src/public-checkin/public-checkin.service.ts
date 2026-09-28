@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { calculateAdvancedEWT } from '../utils/ewt.util';
 
 @Injectable()
 export class PublicCheckinService {
@@ -78,7 +79,7 @@ export class PublicCheckinService {
     const visits = await this.prisma.visit.findMany({
       where: whereClause,
       include: {
-        service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true, requireManualCheckIn: true } },
+        service: { select: { id: true, name: true, expectedDuration: true, emaExpectedDuration: true, requireManualCheckIn: true } },
         location: { select: { name: true, address: true } },
         queue: { select: { name: true, status: true } },
       },
@@ -98,7 +99,7 @@ export class PublicCheckinService {
             },
           });
           position = waitingAhead + 1;
-          estimatedWaitTime = waitingAhead * (visit.service?.emaExpectedDuration || visit.service?.expectedDuration || 5);
+          estimatedWaitTime = await calculateAdvancedEWT(this.prisma, visit.queueId, visit.service?.id || null, waitingAhead, visit.service?.expectedDuration);
         }
         return {
           id: visit.id,

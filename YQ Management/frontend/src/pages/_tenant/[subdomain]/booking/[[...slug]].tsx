@@ -18,6 +18,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { LocationStep } from '../../../../components/booking/LocationStep';
 import { ServiceStep } from '../../../../components/booking/ServiceStep';
 import { ContactStep } from '../../../../components/booking/ContactStep';
+import { PaymentStep } from '../../../../components/booking/PaymentStep';
 import { slugify } from '../../../../lib/utils';
 
 interface Service {
@@ -459,7 +460,20 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   };
 
   const handleConfirm = () => {
-    setStep(5);
+    // Check if any selected service requires or allows prepay
+    let prepayTotal = 0;
+    selectedServiceIds.forEach(sid => {
+      const s = services.find(x => x.id === sid);
+      if (s && (s as any).paymentMode === 'PREPAY' && (s as any).basePrice) {
+        prepayTotal += parseFloat((s as any).basePrice);
+      }
+    });
+
+    if (prepayTotal > 0 && tenant?.paymentAccount?.chargesEnabled) {
+      setStep(4.5); // Go to Payment Step
+    } else {
+      setStep(5);
+    }
   };
 
   const triggerJoinSequence = async () => {
@@ -1085,6 +1099,24 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                   Confirm Booking
                 </button>
               </div>
+            </motion.div>
+          )}
+
+          {/* STEP 4.5: Payment */}
+          {step === 4.5 && (
+            <motion.div key="step4_5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1 w-full space-y-6">
+              <PaymentStep
+                tenantId={tenant?.id}
+                amount={selectedServiceIds.reduce((total, sid) => {
+                  const s = services.find(x => x.id === sid);
+                  return total + (s && (s as any).paymentMode === 'PREPAY' && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0);
+                }, 0) * 100} // Stripe amount is in cents
+                currency={services.find(x => x.id === selectedServiceIds[0]) ? (services.find(x => x.id === selectedServiceIds[0]) as any).currency || 'usd' : 'usd'}
+                stripeAccountId={tenant?.paymentAccount?.connectedAccountId}
+                onSuccess={() => setStep(5)} // Move to processing
+                onBack={() => setStep(4)}
+                primaryColor={primaryColor}
+              />
             </motion.div>
           )}
 

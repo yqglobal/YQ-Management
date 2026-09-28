@@ -67,6 +67,9 @@ export class TenantService {
           orderBy: { createdAt: 'desc' },
           include: { plan: true },
         },
+        paymentAccount: {
+          select: { connectedAccountId: true, chargesEnabled: true }
+        }
       },
     });
 

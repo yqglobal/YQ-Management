@@ -9,6 +9,7 @@ export class SlaPolicyService {
     return this.prisma.slaPolicy.findMany({
       where: { tenantId },
       include: {
+        services: { select: { id: true, name: true } },
         _count: {
           select: { services: true }
         }
@@ -24,6 +25,9 @@ export class SlaPolicyService {
         breachThresholdMins: data.breachThresholdMins,
         escalationPhones: data.escalationPhones || [],
         tenantId,
+        services: data.serviceIds ? {
+          connect: data.serviceIds.map((id: string) => ({ id }))
+        } : undefined
       }
     });
   }
@@ -41,6 +45,9 @@ export class SlaPolicyService {
         warningThresholdMins: data.warningThresholdMins,
         breachThresholdMins: data.breachThresholdMins,
         escalationPhones: data.escalationPhones,
+        services: data.serviceIds ? {
+          set: data.serviceIds.map((id: string) => ({ id }))
+        } : undefined
       }
     });
   }

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { calculateAdvancedEWT } from '../utils/ewt.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
 import { ServiceService } from '../service/service.service';
@@ -213,6 +214,9 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
       serviceName: visit.service?.name,
       positionAhead: position,
       ticketNumber: visit.displayId,
+      _rawQueueId: visit.queueId,
+      _rawServiceId: visit.serviceId,
+      _rawExpectedDuration: visit.service?.expectedDuration,
     };
   }
 
@@ -221,8 +225,19 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
     if (!posResult.found) return posResult;
     if (posResult.status === 'IN_SERVICE') return posResult;
 
-    // Simple estimation: 5 mins per person. Can be enhanced in C2.
-    const estimatedMinutes = (posResult.positionAhead as number + 1) * 5;
+    const estimatedMinutes = await calculateAdvancedEWT(
+      this.prisma,
+      posResult._rawQueueId,
+      posResult._rawServiceId,
+      posResult.positionAhead as number,
+      posResult._rawExpectedDuration
+    );
+    
+    // Remove internal fields before returning to AI
+    delete posResult._rawQueueId;
+    delete posResult._rawServiceId;
+    delete posResult._rawExpectedDuration;
+
     return {
       ...posResult,
       estimatedWaitTimeMinutes: estimatedMinutes,
