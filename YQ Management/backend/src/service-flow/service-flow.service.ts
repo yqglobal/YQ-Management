@@ -259,7 +259,8 @@ export class ServiceFlowService {
         ]
       } : { tenantId: null },
       include: {
-        _count: { select: { steps: true } }
+        _count: { select: { steps: true } },
+        steps: { orderBy: { stepOrder: 'asc' } }
       }
     });
 
@@ -269,6 +270,7 @@ export class ServiceFlowService {
       description: t.description,
       businessTypes: t.businessTypes,
       stepCount: t._count.steps,
+      steps: t.steps,
     }));
   }
 

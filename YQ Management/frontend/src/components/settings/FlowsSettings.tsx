@@ -349,10 +349,10 @@ export function FlowsSettings() {
                       {tpl.description}
                     </div>
                     <div className="flex flex-wrap gap-1">
-                      {tpl.steps.slice(0, 3).map((s: any, i: number) => (
+                      {(tpl.steps || []).slice(0, 3).map((s: any, i: number) => (
                         <span key={i} className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">{s.name}</span>
                       ))}
-                      {tpl.steps.length > 3 && <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">+{tpl.steps.length - 3}</span>}
+                      {(tpl.steps || []).length > 3 && <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">+{(tpl.steps || []).length - 3}</span>}
                     </div>
                   </button>
                 ))}
