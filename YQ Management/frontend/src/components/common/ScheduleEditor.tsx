@@ -79,8 +79,6 @@ export function ScheduleEditor({ schedule, onChange, exceptionDates, onChangeExc
     const sourceSlots = schedule[sourceDay] || [];
     const newSchedule = { ...schedule };
     DAYS.forEach(day => {
-      // Don't copy to weekends by default, unless user explicitly copied FROM a weekend
-      if ((day === 'saturday' || day === 'sunday') && (sourceDay !== 'saturday' && sourceDay !== 'sunday')) return;
       newSchedule[day] = sourceSlots.map(s => ({ ...s }));
     });
     onChange(newSchedule);
@@ -196,7 +194,7 @@ export function ScheduleEditor({ schedule, onChange, exceptionDates, onChangeExc
                             type="button"
                             onClick={() => copyToAll(day)}
                             className="text-xs flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 px-2 py-1 rounded transition-colors"
-                            title="Copy to all weekdays"
+                            title="Copy to all days"
                           >
                             <Copy className="w-3 h-3" /> Copy to All
                           </button>
