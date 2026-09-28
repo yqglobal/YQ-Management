@@ -529,9 +529,9 @@ const CONFIGS: Record<BusinessType, IndustryConfig> = {
       appointment: 'Scheduled Event',
     },
     serviceDesk: {
-      pageTitle: 'Catering Kitchen Pipeline',
-      pipelineTitle: 'Incoming Orders',
-      poolTitle: 'Preparation Queue',
+      pageTitle: 'Service Desk',
+      pipelineTitle: 'Active Queues',
+      poolTitle: 'Waiting List',
       emptyHeading: 'All events prepped!',
       emptyBody: 'No pending catering orders right now.',
       emptyIcon: 'soup_kitchen',
