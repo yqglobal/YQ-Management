@@ -376,11 +376,11 @@ export default function StatusPage() {
                   </div>
 
                   <div className="flex justify-center mb-4 relative">
-                    {['WAITING', 'CHECKED_IN', 'SERVING', 'COMPLETED'].includes(visit.currentState) ? (
+                    {['COMPLETED'].includes(visit.currentState) ? (
                       <div className="flex flex-col items-center justify-center p-6 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl w-full text-emerald-700 dark:text-emerald-400">
                         <CheckCircle2 strokeWidth={1.5} className="w-16 h-16 mb-2" />
-                        <span className="font-bold text-lg">Ticket Scanned</span>
-                        <span className="text-sm opacity-80 mt-1 text-center font-medium">Please wait for your turn</span>
+                        <span className="font-bold text-lg">Service Completed</span>
+                        <span className="text-sm opacity-80 mt-1 text-center font-medium">Thank you for visiting</span>
                       </div>
                     ) : (
                       <div className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm relative group cursor-pointer" onClick={() => setExpandedVisit(visit)}>
@@ -517,10 +517,10 @@ export default function StatusPage() {
               </p>
               
               <div className="p-4 bg-white border border-gray-100 rounded-3xl shadow-sm mb-6 w-full flex justify-center">
-                {['WAITING', 'CHECKED_IN', 'SERVING', 'COMPLETED'].includes(expandedVisit.currentState) ? (
+                {['COMPLETED'].includes(expandedVisit.currentState) ? (
                   <div className="flex flex-col items-center justify-center p-6 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl w-full text-emerald-700 dark:text-emerald-400">
                     <CheckCircle2 strokeWidth={1.5} className="w-24 h-24 mb-4" />
-                    <span className="font-bold text-2xl text-center">Ticket Scanned</span>
+                    <span className="font-bold text-2xl text-center">Service Completed</span>
                   </div>
                 ) : (
                   <QRCode value={expandedVisit.id} size={200} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
