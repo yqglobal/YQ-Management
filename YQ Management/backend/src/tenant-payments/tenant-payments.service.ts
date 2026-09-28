@@ -65,8 +65,8 @@ export class TenantPaymentsService {
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const accountLink = await this.stripe.accountLinks.create({
       account: accountId,
-      refresh_url: `${baseUrl}/admin/settings/billing/stripe-refresh`,
-      return_url: `${baseUrl}/admin/settings/billing/stripe-return`,
+      refresh_url: `${baseUrl}/dashboard/settings/payments?stripe=refresh`,
+      return_url: `${baseUrl}/dashboard/settings/payments?stripe=return`,
       type: 'account_onboarding',
     });
     return { url: accountLink.url };
