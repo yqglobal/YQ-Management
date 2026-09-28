@@ -422,17 +422,18 @@ export class VisitService {
         },
       });
 
+      if (visit.serviceId) {
+        await this.visitStepService.instantiateStepsForVisit(
+          visit.tenantId,
+          visit.id,
+          visit.serviceId,
+          { accompanyingGuests: visit.accompanyingGuests || 0 },
+          tx
+        );
+      }
+
       return visit;
     });
-
-    if (result.serviceId) {
-      await this.visitStepService.instantiateStepsForVisit(
-        result.tenantId,
-        result.id,
-        result.serviceId,
-        { accompanyingGuests: result.accompanyingGuests || 0 }
-      );
-    }
 
     return result;
   }
@@ -633,6 +634,16 @@ export class VisitService {
         // the VISIT_CREATED outbox event above. This ensures atomicity: the visit is committed
         // to the DB first, and then notification fires asynchronously — a WhatsApp failure
         // cannot cause the DB transaction to roll back or retry.
+        
+        if (visit.serviceId) {
+          await this.visitStepService.instantiateStepsForVisit(
+            visit.tenantId,
+            visit.id,
+            visit.serviceId,
+            { accompanyingGuests: visit.accompanyingGuests || 0 },
+            tx
+          );
+        }
 
         visits.push(visit);
       }
@@ -644,18 +655,6 @@ export class VisitService {
     this.redisService.client.publish('outbox_events', 'WAKE_UP').catch(e => 
       console.error('Failed to publish outbox wake-up event', e)
     );
-
-    // Instantiate SEF steps for each created visit
-    for (const v of result) {
-      if (v.serviceId) {
-        await this.visitStepService.instantiateStepsForVisit(
-          v.tenantId,
-          v.id,
-          v.serviceId,
-          { accompanyingGuests: v.accompanyingGuests || 0 }
-        );
-      }
-    }
 
     return result;
   }

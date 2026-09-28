@@ -47,9 +47,11 @@ interface FlowBuilderProps {
   flow: any;
   onEditStep: (step: any) => void;
   onSaveTransitions: (fromStepId: string, transitions: any[]) => void;
+  onEditEdge?: (edge: any) => void;
 }
 
-export function FlowBuilder({ flow, onEditStep, onSaveTransitions }: FlowBuilderProps) {
+export function FlowBuilder(props: FlowBuilderProps) {
+  const { flow, onEditStep, onSaveTransitions } = props;
   // Convert flow steps and transitions into React Flow Nodes & Edges
   const initialNodes = useMemo(() => {
     if (!flow?.steps) return [];
@@ -120,12 +122,22 @@ export function FlowBuilder({ flow, onEditStep, onSaveTransitions }: FlowBuilder
   }, [initialNodes, initialEdges, setNodes, setEdges]);
 
   const onConnect = useCallback((params: any) => {
-    setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#6366f1', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#6366f1' } }, eds));
-    
-    // Save transition to backend
-    onSaveTransitions(params.source, [
-      { toStepId: params.target, isDefault: true }
-    ]);
+    setEdges((eds) => {
+      const newEdges = addEdge({ ...params, animated: true, style: { stroke: '#6366f1', strokeWidth: 2 }, markerEnd: { type: MarkerType.ArrowClosed, color: '#6366f1' } }, eds);
+      
+      // Calculate all outgoing transitions for the source node
+      const outgoingEdges = newEdges.filter(e => e.source === params.source);
+      const transitions = outgoingEdges.map((e, index) => ({
+        toStepId: e.target,
+        isDefault: index === 0,
+        label: e.label || ''
+      }));
+      
+      // Save all transitions to backend
+      onSaveTransitions(params.source, transitions);
+      
+      return newEdges;
+    });
   }, [setEdges, onSaveTransitions]);
 
   return (
@@ -136,6 +148,9 @@ export function FlowBuilder({ flow, onEditStep, onSaveTransitions }: FlowBuilder
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onEdgeClick={(_, edge) => {
+          if (props.onEditEdge) props.onEditEdge(edge);
+        }}
         nodeTypes={nodeTypes}
         fitView
         attributionPosition="bottom-right"

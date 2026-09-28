@@ -12,6 +12,12 @@ export function FlowsSettings() {
   const [editingStep, setEditingStep] = useState<any>(null);
   const [isAddingStep, setIsAddingStep] = useState(false);
   const [localSteps, setLocalSteps] = useState<any[]>([]);
+  const [editingEdge, setEditingEdge] = useState<any>(null);
+  const [edgeForm, setEdgeForm] = useState({
+    label: '',
+    isDefault: false,
+    conditionOutcome: ''
+  });
 
   // Form State
   const [stepForm, setStepForm] = useState({
@@ -130,6 +136,7 @@ export function FlowsSettings() {
   const openEdit = (step: any) => {
     setEditingStep(step);
     setIsAddingStep(false);
+    setEditingEdge(null);
     setStepForm({
       name: step.name,
       description: step.description || '',
@@ -148,9 +155,51 @@ export function FlowsSettings() {
     });
   };
 
+  const openEditEdge = (edge: any) => {
+    setEditingStep(null);
+    setIsAddingStep(false);
+    setEditingEdge(edge);
+    
+    const parentStep = flow?.steps?.find((s: any) => s.id === edge.source);
+    const transition = parentStep?.transitions?.find((t: any) => t.toStepId === edge.target);
+    
+    setEdgeForm({
+      label: transition?.label || '',
+      isDefault: transition?.isDefault || false,
+      conditionOutcome: transition?.condition?.outcome || ''
+    });
+  };
+
+  const handleSaveEdge = () => {
+    if (!editingEdge) return;
+    const parentStep = flow.steps.find((s: any) => s.id === editingEdge.source);
+    if (!parentStep) return;
+
+    const currentTransitions = parentStep.transitions || [];
+    
+    let updatedTransitions = currentTransitions.map((t: any) => {
+      if (t.toStepId === editingEdge.target) {
+        return {
+          ...t,
+          label: edgeForm.label,
+          isDefault: edgeForm.isDefault,
+          condition: edgeForm.conditionOutcome ? { outcome: edgeForm.conditionOutcome } : null
+        };
+      }
+      if (edgeForm.isDefault) {
+        return { ...t, isDefault: false };
+      }
+      return t;
+    });
+
+    updateStepMutation.mutate({ id: parentStep.id, transitions: updatedTransitions });
+    setEditingEdge(null);
+  };
+
   const openAdd = () => {
     setIsAddingStep(true);
     setEditingStep(null);
+    setEditingEdge(null);
     setStepForm({ 
       name: '', 
       description: '', 
@@ -234,6 +283,7 @@ export function FlowsSettings() {
                     flow={flow} 
                     onEditStep={openEdit} 
                     onSaveTransitions={handleSaveTransitions}
+                    onEditEdge={openEditEdge}
                   />
 
                   <motion.button 
@@ -249,7 +299,74 @@ export function FlowsSettings() {
 
               {/* Property Editor Panel */}
               <AnimatePresence mode="wait">
-                {(editingStep || isAddingStep) && (
+                {editingEdge && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20, transition: { duration: 0.15 } }}
+                    className="w-full lg:w-96 shrink-0 bg-surface-container-lowest dark:bg-[#0a0a0a] border border-border dark:border-dark-border rounded-2xl shadow-xl overflow-hidden flex flex-col h-fit"
+                  >
+                    <div className="p-5 border-b border-border dark:border-dark-border bg-surface-container-low dark:bg-zinc-800/50 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Settings2 className="w-5 h-5 text-indigo-500" />
+                        <h3 className="font-bold text-on-surface dark:text-white">Configure Transition</h3>
+                      </div>
+                      <button onClick={() => setEditingEdge(null)} className="text-zinc-400 hover:text-on-surface">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="p-5 space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Edge Label</label>
+                        <input 
+                          type="text" 
+                          value={edgeForm.label} 
+                          onChange={e => setEdgeForm({...edgeForm, label: e.target.value})}
+                          className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                          placeholder="e.g. Yes, No, Approved"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Condition Outcome (Exact Match)</label>
+                        <input 
+                          type="text" 
+                          value={edgeForm.conditionOutcome} 
+                          onChange={e => setEdgeForm({...edgeForm, conditionOutcome: e.target.value})}
+                          className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                          placeholder="e.g. Abnormal Result"
+                        />
+                        <p className="text-[10px] text-zinc-500 mt-1">If the parent node triggers this outcome, this route is taken.</p>
+                      </div>
+                      <div className="pt-2 border-t border-border dark:border-dark-border">
+                        <label className="flex items-center gap-3 cursor-pointer p-3 border border-border dark:border-dark-border rounded-xl hover:bg-surface-container-low dark:hover:bg-zinc-800/30 transition-colors">
+                          <input 
+                            type="checkbox" 
+                            checked={edgeForm.isDefault} 
+                            onChange={e => setEdgeForm({...edgeForm, isDefault: e.target.checked})}
+                            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 dark:bg-black dark:border-zinc-700"
+                          />
+                          <div>
+                            <div className="font-semibold text-sm text-on-surface dark:text-white">Is Default Route</div>
+                            <div className="text-xs text-on-surface-variant dark:text-zinc-400">Taken if no conditions match.</div>
+                          </div>
+                        </label>
+                      </div>
+                      <div className="pt-4 flex gap-3">
+                        <button 
+                          onClick={handleSaveEdge}
+                          disabled={updateStepMutation.isPending}
+                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-bold text-sm shadow-sm transition-colors flex justify-center items-center gap-2"
+                        >
+                          {updateStepMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                          Save Edge
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {(editingStep || isAddingStep) && !editingEdge && (
                   <motion.div 
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}

@@ -4,6 +4,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AdvanceStepDto } from './dto/advance-step.dto';
 import { RedeemEntitlementDto } from './dto/redeem-entitlement.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class VisitStepService {
@@ -16,8 +17,10 @@ export class VisitStepService {
     visitId: string,
     serviceId: string,
     bookingContext?: { accompanyingGuests?: number },
+    tx?: Prisma.TransactionClient,
   ) {
-    const flow = await this.prisma.serviceFlow.findUnique({
+    const db = tx || this.prisma;
+    const flow = await db.serviceFlow.findUnique({
       where: { serviceId },
       include: { steps: { include: { transitions: true }, orderBy: { stepOrder: 'asc' } } },
     });
@@ -59,15 +62,15 @@ export class VisitStepService {
       };
     });
 
-    await this.prisma.visitStep.createMany({
+    await db.visitStep.createMany({
       data: stepsToCreate as any,
     });
 
-    const createdSteps = await this.prisma.visitStep.findMany({
+    const createdSteps = await db.visitStep.findMany({
       where: { visitId },
     });
 
-    await this.prisma.visitStepEvent.createMany({
+    await db.visitStepEvent.createMany({
       data: createdSteps.map((s) => ({
         visitStepId: s.id,
         visitId,
@@ -271,6 +274,13 @@ export class VisitStepService {
     nextTemplateIds = [...new Set(nextTemplateIds.filter(Boolean))];
 
     if (nextTemplateIds.length > 0) {
+       // Infinite Loop Protection Circuit Breaker
+       const currentStepCount = await this.prisma.visitStep.count({ where: { visitId } });
+       if (currentStepCount > 100) {
+         this.logger.error(`Infinite loop protection triggered for visit ${visitId}. Aborting branch instantiation.`);
+         return;
+       }
+
        const nextTemplates = await this.prisma.flowStepTemplate.findMany({
          where: { id: { in: nextTemplateIds } }
        });
