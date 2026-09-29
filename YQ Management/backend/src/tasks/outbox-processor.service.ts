@@ -150,7 +150,9 @@ export class OutboxProcessorService implements OnModuleInit {
       'VISIT_CANCELLED',
       'VISIT_CHECKED_IN',
       'VISIT_STEP_ACTIVATED',
+      'STEP_ACTIVATED',
       'VISIT_STEP_COMPLETED',
+      'STEP_COMPLETED',
     ].includes(type);
 
     if (isVisitEvent) {

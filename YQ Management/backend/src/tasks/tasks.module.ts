@@ -21,7 +21,7 @@ import { WhatsappConsumer } from './consumers/whatsapp.consumer';
     forwardRef(() => QueueModule),
     WebhooksModule,
     CommunicationModule,
-    NotificationsModule,
+    forwardRef(() => NotificationsModule),
     BullModule.registerQueue(
       { name: 'queue_webhooks' },
       { name: 'queue_whatsapp' },
