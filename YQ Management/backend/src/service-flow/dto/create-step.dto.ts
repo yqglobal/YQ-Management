@@ -1,4 +1,4 @@
-import {
+import { Min, 
   IsString,
   IsOptional,
   IsBoolean,
@@ -84,6 +84,10 @@ export class CreateStepDto {
   @IsOptional()
   @IsInt()
   expiresAfterDays?: number;
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  expiresAfterHours?: number;
 
   @IsOptional()
   @IsString()

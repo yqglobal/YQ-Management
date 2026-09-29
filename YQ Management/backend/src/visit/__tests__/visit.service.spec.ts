@@ -8,6 +8,7 @@ import { AppointmentService } from '../../appointment/appointment.service';
 import { CommunicationService } from '../../communication/communication.service';
 import { ServiceService } from '../../service/service.service';
 import { BlockOffService } from '../../block-off/block-off.service';
+import { VisitStepService } from '../../visit-step/visit-step.service';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 
 describe('VisitService', () => {
@@ -48,6 +49,7 @@ describe('VisitService', () => {
         { provide: CommunicationService, useValue: {} },
         { provide: ServiceService, useValue: {} },
         { provide: BlockOffService, useValue: {} },
+        { provide: VisitStepService, useValue: { activateFirstPendingStep: jest.fn() } },
       ],
     }).compile();
 

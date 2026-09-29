@@ -312,7 +312,7 @@ export class PublicVisitController {
           where: { id: body.paymentId },
           data: {
             visitId: visitIds[0], // primary visit
-            status: 'COMPLETED', // mark successful since intent succeeded on frontend
+            status: 'SUCCEEDED', // mark successful since intent succeeded on frontend
           },
         });
       } catch (e) {
@@ -336,7 +336,7 @@ export class PublicVisitController {
               amount: service.basePrice,
               platformFeeAmount: 0, // No platform fee for offline payments
               tenantNetAmount: service.basePrice,
-              currency: service.currency || 'ZAR',
+              currency: service.priceCurrency || 'ZAR',
               status: 'PENDING',
               stripePaymentMethodType: 'OFFLINE',
             },

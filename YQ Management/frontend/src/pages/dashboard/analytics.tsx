@@ -10,7 +10,7 @@ import { fetchApi } from '../../lib/api';
 import { FeatureGuard } from '../../components/guards/FeatureGuard';
 import { Search, Users, Phone, Mail, Clock, BarChart2 } from 'lucide-react';
 import { useLocation } from '../../components/LocationContext';
-import type { AnalyticsResponse, Customer } from '@yq/shared';
+import type { AnalyticsResponse, Customer, Visit, Service } from '@yq/shared';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Download, Medal, Star } from 'lucide-react';
@@ -78,6 +78,7 @@ export default function Analytics() {
   const [startDate, endDate] = dateRange;
 
   const [activeTab, setActiveTab] = useState<'insights' | 'customers'>('insights');
+  const [selectedServiceId, setSelectedServiceId] = useState<string>('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerSort, setCustomerSort] = useState<'visits' | 'recent' | 'name'>('visits');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
@@ -111,11 +112,13 @@ export default function Analytics() {
     enabled: timeRange !== 'Custom' || (!!startDate && !!endDate),
   });
 
-  const { data: customersRaw, isLoading: isCustomersLoading } = useQuery({
-    queryKey: ['customers', 'with-visits'],
-    queryFn: (): Promise<Customer[] | null> => fetchApi<Customer[]>('/customer').catch(() => null),
+  const { data: visitsRaw, isLoading: isVisitsLoading } = useQuery({
+    queryKey: ['visits', 'analytics', timeParam, customRangeParam, activeLocationId, selectedServiceId, tz],
+    queryFn: (): Promise<Visit[] | null> => 
+      fetchApi<Visit[]>(`/visits?scope=analytics&timeframe=${timeParam}${locParam}${customRangeParam}${selectedServiceId ? `&serviceId=${selectedServiceId}` : ''}&tz=${encodeURIComponent(tz)}`).catch(() => null),
+    enabled: timeRange !== 'Custom' || (!!startDate && !!endDate),
   });
-  const customers: Customer[] = customersRaw ?? [];
+  const visits: Visit[] = visitsRaw ?? [];
 
   const { kpis, chartData: rawChartData, servicePerformance, heatmapData, staffPerformance } = analytics || {
     kpis: { totalVisits: 0, averageWaitTimeMins: 0, slaViolations: 0, dropOffRate: 0, csatScore: 0 },
@@ -148,30 +151,58 @@ export default function Analytics() {
     }
   };
 
+  const { data: services } = useQuery({
+    queryKey: ['services', activeLocationId],
+    queryFn: (): Promise<Service[]> => fetchApi<Service[]>(`/service${locParam ? `?locationId=${activeLocationId}` : ''}`).catch(() => []),
+  });
+
   const chartData = useMemo(() => {
     return (rawChartData || []).map((d) => ({ time: d.timeLabel, visits: d.volume }));
   }, [rawChartData]);
 
-  // ── Customer map ──────────────────────────────
-  const { people, totalVisits } = useMemo(() => {
-    let list = [...customers];
+  // ── Visits list ──────────────────────────────
+  const computeWaitMins = (record: any) => {
+    if (!record.serviceStart) return 0;
+    const start = new Date(record.waitingStart || record.createdAt).getTime();
+    const end = new Date(record.serviceStart).getTime();
+    const diff = end - start;
+    return diff > 0 ? Math.round(diff / 60000) : 0;
+  };
+  const computeServiceMins = (record: any) => {
+    if (!record.serviceStart || !record.completedAt) return 0;
+    const start = new Date(record.serviceStart).getTime();
+    const end = new Date(record.completedAt).getTime();
+    const diff = end - start;
+    return diff > 0 ? Math.round(diff / 60000) : 0;
+  };
 
-    const totalVisitsCount = list.reduce((sum, p) => sum + (p.totalVisits || 0), 0);
-
+  const { filteredVisits, uniqueCustomersCount, totalVisitsCount, avgWaitTime } = useMemo(() => {
+    let list = [...visits];
+    
     if (customerSearch) {
       const q = customerSearch.toLowerCase();
-      list = list.filter(p =>
-        p.name?.toLowerCase().includes(q) ||
-        p.phone?.includes(customerSearch) ||
-        p.email?.toLowerCase().includes(q)
+      list = list.filter(v =>
+        v.customer?.name?.toLowerCase().includes(q) ||
+        v.customer?.phone?.includes(q) ||
+        v.customer?.email?.toLowerCase().includes(q)
       );
     }
-    if (customerSort === 'visits') list.sort((a, b) => (b.totalVisits || 0) - (a.totalVisits || 0));
-    else if (customerSort === 'recent') list.sort((a, b) => (b.lastVisitMs || 0) - (a.lastVisitMs || 0));
-    else list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-    return { people: list, totalVisits: totalVisitsCount };
-  }, [customers, customerSearch, customerSort]);
+    if (customerSort === 'visits') {
+      // sort by wait time desc
+      list.sort((a, b) => computeWaitMins(b) - computeWaitMins(a));
+    } else if (customerSort === 'recent') {
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else {
+      list.sort((a, b) => (a.customer?.name || '').localeCompare(b.customer?.name || ''));
+    }
+
+    const uniqueSet = new Set(list.map(v => v.customerId).filter(Boolean));
+    const totalWaitMins = list.reduce((sum, v) => sum + computeWaitMins(v), 0);
+    const avgWait = list.length ? (totalWaitMins / list.length).toFixed(1) : '0';
+
+    return { filteredVisits: list, uniqueCustomersCount: uniqueSet.size, totalVisitsCount: list.length, avgWaitTime: avgWait };
+  }, [visits, customerSearch, customerSort]);
 
   const kpiVariants = {
     hidden: { opacity: 0, y: 15 },
@@ -431,9 +462,9 @@ export default function Analytics() {
               {/* Summary stats */}
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { label: 'Total Customers', value: people.length, icon: Users },
-                  { label: 'Total Visits', value: totalVisits, icon: BarChart2 },
-                  { label: 'Avg Visits / Customer', value: people.length ? (totalVisits / people.length).toFixed(1) : '0', icon: Clock },
+                  { label: 'Total Customers', value: uniqueCustomersCount, icon: Users },
+                  { label: 'Total Visits', value: totalVisitsCount, icon: BarChart2 },
+                  { label: 'Avg Wait (Mins)', value: avgWaitTime, icon: Clock },
                 ].map(({ label, value, icon: Icon }) => (
                   <div key={label} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-1">
@@ -458,7 +489,15 @@ export default function Analytics() {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-on-surface-variant">Sort:</span>
+                  <select 
+                    value={selectedServiceId}
+                    onChange={e => setSelectedServiceId(e.target.value)}
+                    className="bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl text-sm px-3 py-2 text-on-surface dark:text-white outline-none focus:ring-2 focus:ring-primary transition-all cursor-pointer"
+                  >
+                    <option value="">All Services</option>
+                    {services?.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  <span className="text-sm text-on-surface-variant ml-2">Sort:</span>
                   {(['visits', 'recent', 'name'] as const).map((s) => (
                     <button
                       key={s}
@@ -468,7 +507,7 @@ export default function Analytics() {
                           : 'bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border text-on-surface-variant hover:text-on-surface dark:hover:text-white'
                         }`}
                     >
-                      {s}
+                      {s === 'visits' ? 'Wait' : s}
                     </button>
                   ))}
                 </div>
@@ -476,63 +515,81 @@ export default function Analytics() {
 
               {/* Customer Table */}
               <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl shadow-sm overflow-hidden">
-                {isCustomersLoading ? (
+                {isVisitsLoading ? (
                   <div className="p-6 space-y-3">
                     {[1, 2, 3, 4].map(i => (
                       <div key={i} className="h-14 bg-surface-container-low dark:bg-white/5 animate-pulse rounded-xl" />
                     ))}
                   </div>
-                ) : people.length > 0 ? (
+                ) : filteredVisits.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left">
                       <thead>
                         <tr className="border-b border-border dark:border-dark-border bg-surface-container-low dark:bg-white/[0.02] text-xs uppercase tracking-wider text-on-surface-variant font-semibold">
                           <th className="p-4">Customer</th>
                           <th className="p-4">Contact</th>
-                          <th className="p-4 text-center">Visits</th>
-                          <th className="p-4 text-center">Avg Time</th>
-                          <th className="p-4">Last Visit</th>
+                          <th className="p-4">Service</th>
+                          <th className="p-4">Location</th>
+                          <th className="p-4 text-center">Wait</th>
+                          <th className="p-4">Status</th>
+                          <th className="p-4">Visit Date / Time</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border dark:divide-dark-border">
-                        {people.map((person: AnyFixMe) => (
-                          <tr key={person.id} onClick={() => setSelectedCustomerId(person.id)} className="hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors cursor-pointer">
+                        {filteredVisits.map((visit: any) => {
+                          const wMins = computeWaitMins(visit);
+                          const sMins = computeServiceMins(visit);
+                          return (
+                          <tr key={visit.id} onClick={() => visit.customerId ? setSelectedCustomerId(visit.customerId) : null} className="hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors cursor-pointer">
                             <td className="p-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center font-bold text-primary text-sm shrink-0">
-                                  {(person.name || '?').charAt(0).toUpperCase()}
+                                  {(visit.customer?.name || '?').charAt(0).toUpperCase()}
                                 </div>
-                                <p className="font-semibold text-on-surface dark:text-white text-sm">{person.name || 'Unknown'}</p>
+                                <p className="font-semibold text-on-surface dark:text-white text-sm">{visit.customer?.name || 'Walk-in'}</p>
                               </div>
                             </td>
                             <td className="p-4">
                               <div className="space-y-0.5">
-                                {person.phone && (
+                                {visit.customer?.phone && (
                                   <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-                                    <Phone className="w-3.5 h-3.5" strokeWidth={1.5} />{person.phone}
+                                    <Phone className="w-3.5 h-3.5" strokeWidth={1.5} />{visit.customer.phone}
                                   </div>
                                 )}
-                                {person.email && (
+                                {visit.customer?.email && (
                                   <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-                                    <Mail className="w-3.5 h-3.5" strokeWidth={1.5} />{person.email}
+                                    <Mail className="w-3.5 h-3.5" strokeWidth={1.5} />{visit.customer.email}
                                   </div>
                                 )}
-                                {!person.phone && !person.email && <span className="text-xs text-on-surface-variant">—</span>}
+                                {!visit.customer?.phone && !visit.customer?.email && <span className="text-xs text-on-surface-variant">—</span>}
                               </div>
                             </td>
-                            <td className="p-4 text-center">
-                              <span className="inline-flex items-center justify-center px-2.5 py-1 text-xs font-semibold bg-primary/10 dark:bg-primary/20 text-primary rounded-full">
-                                {person.totalVisits}
-                              </span>
-                            </td>
-                            <td className="p-4 text-center">
-                              <span className="text-sm text-on-surface-variant font-medium">{person.avgWaitMinutes}</span>
+                            <td className="p-4">
+                              <span className="text-sm font-medium text-on-surface dark:text-white">{visit.service?.name || '—'}</span>
                             </td>
                             <td className="p-4">
-                              <span className="text-sm text-on-surface-variant">{person.lastVisitLabel}</span>
+                              <span className="text-sm text-on-surface-variant">{visit.location?.name || '—'}</span>
+                            </td>
+                            <td className="p-4 text-center">
+                              <span className="text-sm text-on-surface-variant font-medium">{wMins > 0 ? `${wMins}m` : '—'}</span>
+                            </td>
+                            <td className="p-4">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider
+                                ${visit.currentState === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' :
+                                  ['NO_SHOW', 'CANCELLED'].includes(visit.currentState) ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' :
+                                  'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                                }`}>
+                                {visit.currentState.replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex flex-col">
+                                <span className="text-sm text-on-surface dark:text-white">{new Date(visit.createdAt).toLocaleDateString()}</span>
+                                <span className="text-xs text-on-surface-variant">{new Date(visit.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                              </div>
                             </td>
                           </tr>
-                        ))}
+                        )})}
                       </tbody>
                     </table>
                   </div>

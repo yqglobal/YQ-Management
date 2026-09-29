@@ -156,6 +156,7 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
 
     socket.on('connect', () => {
       socket.emit('joinQueueRoom', queueId);
+      socket.emit('joinVisitRoom', token.id);
     });
 
     const refresh = () => {
@@ -167,6 +168,12 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
     socket.on('token_serving', refresh);
     socket.on('token_completed', refresh);
     socket.on('token_missed', refresh);
+    socket.on('visit_updated', refresh);
+    socket.on('visit_called', refresh);
+    socket.on('visit_completed', refresh);
+    socket.on('visit_missed', refresh);
+    socket.on('visit_step_activated', refresh);
+    socket.on('visit_step_completed', refresh);
 
     return () => {
       socket.disconnect();

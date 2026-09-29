@@ -70,10 +70,14 @@ export class VisitService {
 
   async findAll(
     userTokenPayload: any,
-    scope?: 'today' | 'history',
+    scope?: 'today' | 'history' | 'analytics',
     locationId?: string,
     queueId?: string,
     tzParam?: string,
+    timeframe?: string,
+    startDate?: string,
+    endDate?: string,
+    serviceId?: string,
   ) {
     const where: any = { tenantId: userTokenPayload.tenantId };
     if (locationId) {
@@ -81,6 +85,9 @@ export class VisitService {
     }
     if (queueId) {
       where.queueId = queueId;
+    }
+    if (serviceId) {
+      where.serviceId = serviceId;
     }
     if (
       userTokenPayload.role === 'OPERATOR' ||
@@ -112,8 +119,28 @@ export class VisitService {
       const end = fromZonedTime(zonedEnd, tz);
 
       where.createdAt = { gte: start, lte: end };
-    } else if (scope === 'history') {
-      where.currentState = { in: ['COMPLETED', 'NO_SHOW', 'CANCELLED'] };
+    } else if (scope === 'history' || scope === 'analytics') {
+      if (scope === 'history') {
+        where.currentState = { in: ['COMPLETED', 'NO_SHOW', 'CANCELLED'] };
+      }
+      if (startDate && endDate) {
+        where.createdAt = { gte: new Date(startDate), lte: new Date(endDate) };
+      } else if (startDate) {
+        where.createdAt = { gte: new Date(startDate) };
+      } else if (timeframe === '7d') {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        where.createdAt = { gte: d };
+      } else if (timeframe === '30d') {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        where.createdAt = { gte: d };
+      } else if (timeframe === 'today') {
+        const tz = tzParam || 'UTC';
+        const zonedNow = require('date-fns-tz').toZonedTime(new Date(), tz);
+        zonedNow.setHours(0, 0, 0, 0);
+        where.createdAt = { gte: require('date-fns-tz').fromZonedTime(zonedNow, tz) };
+      }
     }
     return this.prisma.visit.findMany({
       where,
@@ -618,12 +645,13 @@ export class VisitService {
           (service.paymentMode === 'PREPAY' || 
            service.paymentMode === 'OPTIONAL_PREPAY' || 
            service.paymentMode === 'PAY_AT_SERVICE') && 
-          !data.paymentId
+          !(data as any).paymentId
         ) {
           currentState = 'PENDING_PAYMENT';
         }
 
-        // Verify that this slot is actually valid within business hours
+        if (scheduledTime) {
+          // Verify that this slot is actually valid within business hours
           // Timezone manipulation makes the simple string split unreliable if UTC date falls on previous day.
           // Let getAvailableSlots handle the raw date lookup using its internal timezone logic.
           const localDateStr = new Intl.DateTimeFormat('en-CA', {
@@ -794,6 +822,8 @@ export class VisitService {
           operatorId,
         },
       });
+      // Contextual Flow Support: activate the first pending step
+      await this.visitStepService.activateFirstPendingStep(visit.tenantId, visit.id, operatorId);
 
       await tx.outboxEvent.create({
         data: {
@@ -901,7 +931,7 @@ export class VisitService {
     return updated;
   }
 
-  async startService(id: string, tenantId: string) {
+  async startService(id: string, tenantId: string, operatorId?: string) {
     const visit = await this.findOne(id, tenantId);
     if (
       visit.currentState === 'IN_SERVICE' ||
@@ -915,8 +945,10 @@ export class VisitService {
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.visit.update({
         where: { id },
-        data: { currentState: 'IN_SERVICE', serviceStart: new Date() },
+        data: { currentState: 'IN_SERVICE', serviceStart: new Date(), operatorId: operatorId || undefined },
       });
+      // Contextual Flow Support: activate the first pending step
+      await this.visitStepService.activateFirstPendingStep(updated.tenantId, updated.id, operatorId);
 
       await tx.outboxEvent.create({
         data: {
@@ -1208,7 +1240,6 @@ export class VisitService {
       checkedIn:
         visit.currentState === 'CHECKED_IN' ||
         visit.currentState === 'IN_SERVICE' ||
-        visit.currentState === 'COMPLETED' ||
         visit.checkInTime !== null,
       checkInTime: visit.checkInTime,
       activeStep,
@@ -1281,13 +1312,27 @@ export class VisitService {
 
       const nextQueue = await tx.queue.findUnique({
         where: { id: nextQueueId, tenantId },
+        include: { services: true },
       });
       if (!nextQueue) throw new NotFoundException('Target queue not found');
+
+      // Unify Routing: Prevent manual transfer from breaking the ServiceFlow state machine
+      const activeSteps = await tx.visitStep.count({
+        where: { visitId, status: { in: ['PENDING', 'ACTIVE'] } }
+      });
+      
+      if (activeSteps > 0) {
+        throw new BadRequestException('Cannot manually transfer a ticket that is active in a Service Flow. Please use the workflow actions (Complete/Skip) to progress this visit.');
+      }
+
+      // Unify Routing: Update the serviceId if the target queue is dedicated to a single service.
+      const serviceUpdate = nextQueue.services.length === 1 ? nextQueue.services[0].id : visit.serviceId;
 
       const updated = await tx.visit.update({
         where: { id: visitId },
         data: {
           queueId: nextQueueId,
+          serviceId: serviceUpdate,
           currentState: 'WAITING',
         },
       });

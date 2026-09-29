@@ -5,6 +5,7 @@ import { RedisService } from '../../redis/redis.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConflictException } from '@nestjs/common';
 import { GoogleService } from '../../integrations/google/google.service';
+import { QueueGateway } from '../../queue/queue.gateway';
 
 describe('AppointmentService', () => {
   let service: AppointmentService;
@@ -41,6 +42,7 @@ describe('AppointmentService', () => {
         { provide: WhatsappService, useValue: mockWhatsappService },
         { provide: RedisService, useValue: mockRedisService },
         { provide: GoogleService, useValue: mockGoogleService },
+        { provide: QueueGateway, useValue: { broadcastTenantUpdate: jest.fn(), server: { to: jest.fn().mockReturnThis(), emit: jest.fn() } } },
       ],
     }).compile();
 

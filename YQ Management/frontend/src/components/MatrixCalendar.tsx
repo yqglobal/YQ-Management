@@ -8,6 +8,7 @@ const TOTAL_HOURS = END_HOUR - START_HOUR;
 const QUARTER_HOUR_COLS = TOTAL_HOURS * 4;
 const LEFT_SIDEBAR_WIDTH = 260; // px for the row label
 const ROW_HEIGHT_NORMAL = 108; // px base row height
+const HOUR_WIDTH = 120; // px
 
 // Generate time labels: 8:00 AM → 7:45 PM
 const TIMES = Array.from({ length: QUARTER_HOUR_COLS }, (_, i) => {

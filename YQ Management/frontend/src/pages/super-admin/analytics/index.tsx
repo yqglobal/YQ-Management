@@ -74,7 +74,6 @@ export default function SuperAdminAnalytics() {
     '/dashboard/check-in': QrCode,
     '/dashboard/display-picker': Tv,
     '/dashboard/settings/whatsapp': Smartphone,
-    '/dashboard/history': BarChart3,
   };
   const trafficPages = rawTraffic.map((t: AnyFixMe) => ({
     ...t,

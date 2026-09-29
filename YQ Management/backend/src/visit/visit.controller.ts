@@ -36,12 +36,16 @@ export class VisitController {
   @Get()
   findAll(
     @Req() req: AuthenticatedRequest,
-    @Query('scope') scope?: 'today' | 'history',
+    @Query('scope') scope?: 'today' | 'history' | 'analytics',
     @Query('locationId') locationId?: string,
     @Query('queueId') queueId?: string,
     @Query('tz') tz?: string,
+    @Query('timeframe') timeframe?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('serviceId') serviceId?: string,
   ) {
-    return this.visitService.findAll(req.user, scope, locationId, queueId, tz);
+    return this.visitService.findAll(req.user, scope, locationId, queueId, tz, timeframe, startDate, endDate, serviceId);
   }
 
   @Get(':id')
@@ -71,7 +75,7 @@ export class VisitController {
 
   @Post(':id/start')
   startService(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.visitService.startService(id, req.user.tenantId);
+    return this.visitService.startService(id, req.user.tenantId, req.user.userId);
   }
 
   @Post(':id/complete')

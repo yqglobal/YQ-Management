@@ -722,10 +722,10 @@ model Service {
   exceptionDatesOverride Json?
 
   // ── Booking Payments ─────────────────────────────────────────────────────
-  requiresPayment Boolean @default(false)
-  basePrice       Float? // Base price in minor units' currency
-  priceCurrency   String  @default("ZAR")
-  paymentMode     String  @default("NONE") // NONE | PREPAY | PAY_AT_SERVICE | OPTIONAL_PREPAY
+  requiresPayment     Boolean @default(false)
+  basePrice           Float? // Base price in minor units' currency
+  priceCurrency       String  @default("ZAR")
+  paymentMode         String  @default("NONE") // NONE | PREPAY | PAY_AT_SERVICE | OPTIONAL_PREPAY
   allowOfflinePayment Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -1124,9 +1124,10 @@ model FlowStepTemplate {
   prerequisites       Json? // [{stepOrder: 2, status: "DONE"}]
 
   // ── Timing & Deferral ────────────────────────────────────────────────────
-  deferredByDays   Int?
-  deferredByHours  Int?
-  expiresAfterDays Int?
+  deferredByDays    Int?
+  deferredByHours   Int?
+  expiresAfterDays  Int?
+  expiresAfterHours Int?
 
   // ── Entitlement / Collection ─────────────────────────────────────────────
   entitlementUnit         String?

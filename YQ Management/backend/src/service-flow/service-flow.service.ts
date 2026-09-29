@@ -134,6 +134,7 @@ export class ServiceFlowService {
           deferredByDays: step.deferredByDays ?? undefined,
           deferredByHours: step.deferredByHours ?? undefined,
           expiresAfterDays: step.expiresAfterDays ?? undefined,
+          expiresAfterHours: step.expiresAfterHours ?? undefined,
           entitlementUnit: step.entitlementUnit ?? undefined,
           entitlementFixed: step.entitlementFixed ?? undefined,
           entitlementFormula: step.entitlementFormula ?? undefined,

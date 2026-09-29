@@ -183,17 +183,17 @@ export default function PricingHub() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700 dark:text-zinc-300">Plan Name</label>
-                    <input type="text" value={editingPlan.name} onChange={e => setEditingPlan({...editingPlan, name: e.target.value})} className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
+                    <input type="text" value={editingPlan?.name} onChange={e => setEditingPlan({...editingPlan as PlanData, name: e.target.value})} className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700 dark:text-zinc-300">Price (Monthly)</label>
-                    <input type="number" value={editingPlan.price} onChange={e => setEditingPlan({...editingPlan, price: Number(e.target.value)})} className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
+                    <input type="number" value={editingPlan?.price} onChange={e => setEditingPlan({...editingPlan as PlanData, price: Number(e.target.value)})} className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-gray-700 dark:text-zinc-300">Description</label>
-                  <textarea value={editingPlan.description || ''} onChange={e => setEditingPlan({...editingPlan, description: e.target.value})} className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white h-24 resize-none" />
+                  <textarea value={editingPlan?.description || ''} onChange={e => setEditingPlan({...editingPlan as PlanData, description: e.target.value})} className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white h-24 resize-none" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-8 border-t border-gray-100 dark:border-white/10 pt-6">
@@ -202,15 +202,15 @@ export default function PricingHub() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <label className="text-sm text-gray-600 dark:text-zinc-400">Max Queues</label>
-                        <input type="number" value={editingPlan.limits.maxQueues} onChange={e => setEditingPlan({...editingPlan, limits: {...editingPlan.limits, maxQueues: Number(e.target.value)}})} className="w-24 px-3 py-1 rounded-lg bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 text-right text-gray-900 dark:text-white outline-none" />
+                        <input type="number" value={editingPlan?.limits.maxQueues} onChange={e => setEditingPlan({...editingPlan as PlanData, limits: {...editingPlan.limits, maxQueues: Number(e.target.value)}})} className="w-24 px-3 py-1 rounded-lg bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 text-right text-gray-900 dark:text-white outline-none" />
                       </div>
                       <div className="flex items-center justify-between">
                         <label className="text-sm text-gray-600 dark:text-zinc-400">Daily Tokens</label>
-                        <input type="number" value={editingPlan.limits.maxTokens} onChange={e => setEditingPlan({...editingPlan, limits: {...editingPlan.limits, maxTokens: Number(e.target.value)}})} className="w-24 px-3 py-1 rounded-lg bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 text-right text-gray-900 dark:text-white outline-none" />
+                        <input type="number" value={editingPlan?.limits.maxTokens} onChange={e => setEditingPlan({...editingPlan as PlanData, limits: {...editingPlan.limits, maxTokens: Number(e.target.value)}})} className="w-24 px-3 py-1 rounded-lg bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 text-right text-gray-900 dark:text-white outline-none" />
                       </div>
                       <div className="flex items-center justify-between">
                         <label className="text-sm text-gray-600 dark:text-zinc-400">Trial Days</label>
-                        <input type="number" value={editingPlan.trialDays} onChange={e => setEditingPlan({...editingPlan, trialDays: Number(e.target.value)})} className="w-24 px-3 py-1 rounded-lg bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 text-right text-gray-900 dark:text-white outline-none" />
+                        <input type="number" value={editingPlan?.trialDays} onChange={e => setEditingPlan({...editingPlan as PlanData, trialDays: Number(e.target.value)})} className="w-24 px-3 py-1 rounded-lg bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 text-right text-gray-900 dark:text-white outline-none" />
                       </div>
                     </div>
                   </div>
@@ -219,15 +219,15 @@ export default function PricingHub() {
                     <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2"><Shield className="w-4 h-4 text-emerald-500" /> Feature Flags</h3>
                     <div className="space-y-3">
                       <label className="flex items-center gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={editingPlan.features.whatsappNotifications} onChange={e => setEditingPlan({...editingPlan, features: {...editingPlan.features, whatsappNotifications: e.target.checked}})} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" />
+                        <input type="checkbox" checked={editingPlan?.features.whatsappNotifications} onChange={e => setEditingPlan({...editingPlan as PlanData, features: {...editingPlan.features, whatsappNotifications: e.target.checked}})} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" />
                         <span className="text-sm font-medium text-gray-700 dark:text-zinc-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">WhatsApp Integration</span>
                       </label>
                       <label className="flex items-center gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={editingPlan.features.whiteLabel} onChange={e => setEditingPlan({...editingPlan, features: {...editingPlan.features, whiteLabel: e.target.checked}})} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" />
+                        <input type="checkbox" checked={editingPlan?.features.whiteLabel} onChange={e => setEditingPlan({...editingPlan as PlanData, features: {...editingPlan.features, whiteLabel: e.target.checked}})} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" />
                         <span className="text-sm font-medium text-gray-700 dark:text-zinc-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">White Label (Remove Branding)</span>
                       </label>
                       <label className="flex items-center gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={editingPlan.features.advancedAnalytics} onChange={e => setEditingPlan({...editingPlan, features: {...editingPlan.features, advancedAnalytics: e.target.checked}})} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" />
+                        <input type="checkbox" checked={editingPlan?.features.advancedAnalytics} onChange={e => setEditingPlan({...editingPlan as PlanData, features: {...editingPlan.features, advancedAnalytics: e.target.checked}})} className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" />
                         <span className="text-sm font-medium text-gray-700 dark:text-zinc-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Advanced Analytics</span>
                       </label>
                     </div>
@@ -237,7 +237,7 @@ export default function PricingHub() {
               <div className="p-6 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-black/20 flex justify-end gap-3">
                 <button onClick={() => setIsEditing(false)} className="px-6 py-2 rounded-xl font-bold text-gray-600 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-white/5 transition-colors">Cancel</button>
                 <button 
-                  onClick={() => savePlanMutation.mutate(editingPlan)} 
+                  onClick={() => savePlanMutation.mutate(editingPlan as PlanData)} 
                   disabled={savePlanMutation.isPending}
                   className="px-8 py-2 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 disabled:opacity-50 transition-all"
                 >

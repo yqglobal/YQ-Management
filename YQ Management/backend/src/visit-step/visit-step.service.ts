@@ -71,6 +71,11 @@ export class VisitStepService {
         serviceId: template.serviceId,
         queueId: template.queueId,
         quantityAllocated: allocated,
+        expiresAt: template.expiresAfterDays 
+          ? new Date(Date.now() + template.expiresAfterDays * 24 * 60 * 60 * 1000)
+          : template.expiresAfterHours 
+            ? new Date(Date.now() + template.expiresAfterHours * 60 * 60 * 1000)
+            : null,
       };
     });
 
@@ -127,6 +132,22 @@ export class VisitStepService {
       throw new NotFoundException('Invalid or expired QR code.');
     }
 
+    // First, sweep any expired steps for this visit
+    const now = new Date();
+    for (const step of visit.visitSteps) {
+      if (
+        (step.status === 'PENDING' || step.status === 'ACTIVE' || step.status === 'DEFERRED') &&
+        step.expiresAt && step.expiresAt < now
+      ) {
+        await this.prisma.visitStep.update({
+          where: { id: step.id },
+          data: { status: 'EXPIRED' },
+        });
+        await this.logEvent(step.id, step.visitId, tenantId, 'EXPIRED', 'SYSTEM');
+        step.status = 'EXPIRED'; // update in-memory for the filter below
+      }
+    }
+
     const actionableSteps = visit.visitSteps.filter(
       (s) =>
         s.status === 'PENDING' ||
@@ -152,6 +173,10 @@ export class VisitStepService {
     }
 
     if (targetStep.type === 'CHECKPOINT' || targetStep.type === 'SERVICE') {
+      if (targetStep.status === 'ACTIVE') {
+        // Scanning an already active step completes it
+        return this.advanceStep(tenantId, targetStep.id, staffId, {});
+      }
       return this.activateStep(tenantId, targetStep.id, staffId);
     }
     if (targetStep.type === 'COLLECTION') {
@@ -161,6 +186,18 @@ export class VisitStepService {
       return { action: 'PROMPT_PAYMENT', step: targetStep };
     }
     return { action: 'MANUAL_ACTION_REQUIRED', step: targetStep };
+  }
+
+
+  async activateFirstPendingStep(tenantId: string, visitId: string, staffId?: string) {
+    const steps = await this.prisma.visitStep.findMany({
+      where: { visitId, tenantId, status: 'PENDING' },
+      orderBy: { stepOrder: 'asc' },
+      take: 1,
+    });
+    if (steps.length > 0) {
+      await this.activateStep(tenantId, steps[0].id, staffId || null as any);
+    }
   }
 
   async activateStep(tenantId: string, visitStepId: string, staffId: string) {
@@ -419,6 +456,11 @@ export class VisitStepService {
         serviceId: template.serviceId,
         queueId: template.queueId,
         quantityAllocated: template.entitlementFixed,
+        expiresAt: template.expiresAfterDays 
+          ? new Date(Date.now() + template.expiresAfterDays * 24 * 60 * 60 * 1000)
+          : template.expiresAfterHours 
+            ? new Date(Date.now() + template.expiresAfterHours * 60 * 60 * 1000)
+            : null,
       }));
 
       if (stepsToCreate.length > 0) {
@@ -443,12 +485,59 @@ export class VisitStepService {
             actorType: 'SYSTEM',
           })),
         });
+
+        // Sync parent visit queueId and serviceId to ensure UI updates reflect the flow transition
+        if (newSteps.length > 0) {
+          const primaryNextStep = newSteps[0];
+          const oldVisit = await this.prisma.visit.findUnique({ where: { id: visitId } });
+          const oldQueueId = oldVisit?.queueId;
+          const newQueueId = primaryNextStep.queueId;
+          
+          await this.prisma.visit.update({
+            where: { id: visitId },
+            data: {
+              queueId: primaryNextStep.queueId,
+              serviceId: primaryNextStep.serviceId || undefined,
+              currentState: 'WAITING', // reset to WAITING so they appear in the queue board
+            },
+          });
+          
+          const eventsToCreate = [];
+          
+          if (oldQueueId) {
+             eventsToCreate.push({
+                type: 'VISIT_UPDATED',
+                payload: { visitId, tenantId: completedStep.tenantId, queueId: oldQueueId },
+             });
+          }
+          if (newQueueId && newQueueId !== oldQueueId) {
+             eventsToCreate.push({
+                type: 'VISIT_UPDATED',
+                payload: { visitId, tenantId: completedStep.tenantId, queueId: newQueueId },
+             });
+          }
+          
+          if (eventsToCreate.length > 0) {
+             await this.prisma.outboxEvent.createMany({
+                data: eventsToCreate,
+             });
+          }
+        }
       }
     } else {
       await this.prisma.visit.update({
         where: { id: visitId },
         data: { currentState: 'COMPLETED' },
       });
+      const visit = await this.prisma.visit.findUnique({ where: { id: visitId } });
+      if (visit?.queueId) {
+          await this.prisma.outboxEvent.create({
+            data: {
+              type: 'VISIT_COMPLETED',
+              payload: { visitId, tenantId: completedStep.tenantId, queueId: visit.queueId },
+            }
+          });
+      }
     }
   }
 
@@ -461,16 +550,24 @@ export class VisitStepService {
     actorId?: string,
     payload?: any,
   ) {
-    await this.prisma.visitStepEvent.create({
-      data: {
-        visitStepId,
-        visitId,
-        tenantId,
-        eventType,
-        actorType,
-        actorId,
-        payload,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.visitStepEvent.create({
+        data: {
+          visitStepId,
+          visitId,
+          tenantId,
+          eventType,
+          actorType,
+          actorId,
+          payload,
+        },
+      });
+      await tx.outboxEvent.create({
+        data: {
+          type: eventType,
+          payload: { tenantId, visitId, visitStepId, eventType, actorId, ...payload },
+        },
+      });
     });
   }
 }

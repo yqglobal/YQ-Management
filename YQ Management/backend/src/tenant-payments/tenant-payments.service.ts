@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { VisitStepService } from '../visit-step/visit-step.service';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -12,7 +13,10 @@ export class TenantPaymentsService {
   private readonly logger = new Logger(TenantPaymentsService.name);
   private stripe: Stripe;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly visitStepService: VisitStepService,
+  ) {
     const stripeSecret = process.env.STRIPE_SECRET_KEY;
     if (stripeSecret) {
       this.stripe = new Stripe(stripeSecret, {
@@ -199,7 +203,7 @@ export class TenantPaymentsService {
     const payment = await this.prisma.bookingPayment.findUnique({
       where: { id: paymentId },
       include: {
-        tenantPaymentAccount: true,
+        paymentAccount: true,
       },
     });
     if (!payment) throw new BadRequestException('Payment not found');
@@ -215,29 +219,25 @@ export class TenantPaymentsService {
     const updated = await this.prisma.bookingPayment.update({
       where: { id: paymentId },
       data: { 
-        status: 'COMPLETED',
+        status: 'SUCCEEDED',
         ...(method ? { stripePaymentMethodType: method } : {})
       },
     });
 
     if (updated.visitStepId) {
-      // If this was an in-service payment, complete the step
-      await this.prisma.visitStep.update({
-        where: { id: updated.visitStepId },
-        data: {
-          status: 'COMPLETED',
-          completedAt: new Date(),
-        },
+      // If this was an in-service payment, complete the step using advanceStep to trigger transitions
+      const step = await this.prisma.visitStep.findUnique({
+        where: { id: updated.visitStepId }
       });
-
-      // Also trigger the websocket outbox event to refresh UI
-      await this.prisma.outboxEvent.create({
-        data: {
-          eventType: 'VISIT_UPDATED',
-          payload: { visitId: updated.visitId },
-          status: 'PENDING',
+      if (step && step.status !== 'DONE' && step.status !== 'SKIPPED') {
+        if (step.status === 'PENDING') {
+           await this.visitStepService.activateStep(step.tenantId, step.id, 'SYSTEM');
         }
-      });
+        await this.visitStepService.advanceStep(step.tenantId, step.id, 'SYSTEM', {
+          outcome: 'SUCCESS',
+          staffNotes: 'Payment succeeded'
+        });
+      }
     } else if (updated.visitId) {
       // It's an upfront booking payment
       const visit = await this.prisma.visit.findUnique({
@@ -255,7 +255,7 @@ export class TenantPaymentsService {
         });
         await this.prisma.outboxEvent.create({
           data: {
-            eventType: 'VISIT_UPDATED',
+            type: 'VISIT_UPDATED',
             payload: { visitId: updated.visitId },
             status: 'PENDING',
           }
@@ -280,8 +280,10 @@ export class TenantPaymentsService {
         tenantId,
         visitId,
         amount,
+        platformFeeAmount: 0,
+        tenantNetAmount: amount,
         currency: 'USD',
-        status: 'COMPLETED',
+        status: 'SUCCEEDED',
         stripePaymentMethodType: method,
         description: description || 'Manual Payment at Counter',
       }
@@ -298,7 +300,7 @@ export class TenantPaymentsService {
       });
       await this.prisma.outboxEvent.create({
         data: {
-          eventType: 'VISIT_UPDATED',
+          type: 'VISIT_UPDATED',
           payload: { visitId: visit.id },
           status: 'PENDING',
         }
