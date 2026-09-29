@@ -289,6 +289,7 @@ export class WhatsappChatbot {
       },
       include: {
         queue: { select: { name: true } },
+        tenant: true,
       },
     });
 
@@ -305,9 +306,10 @@ export class WhatsappChatbot {
     });
     
     if (hasPayment) {
+      const tenantEmail = visit.tenant.supportEmail || visit.tenant.email || 'the business directly';
       await this.sendMsg(
         jid,
-        `Your ticket *${visit.displayId || 'Unknown'}* has an active payment and cannot be cancelled automatically. Please contact support or request a refund.\n\nReply '0' for the main menu.`,
+        `Your ticket *${visit.displayId || 'Unknown'}* has an active payment and cannot be cancelled automatically.\n\nPlease contact ${tenantEmail} for assistance with cancellations and refunds.\n\nReply '0' for the main menu.`,
       );
       return;
     }

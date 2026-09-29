@@ -1230,6 +1230,7 @@ export default function ServiceDeskToday() {
                           <strong className="font-data-mono">{succeededPayment.currency} {succeededPayment.amount.toFixed(2)}</strong> paid via {succeededPayment.stripePaymentMethodType || 'Card'}.
                         </p>
                       </div>
+                      {/* 
                       <button 
                         onClick={async () => {
                           if (window.confirm('Are you sure you want to refund this payment? This will also cancel the visit.')) {
@@ -1248,6 +1249,7 @@ export default function ServiceDeskToday() {
                       >
                         Refund
                       </button>
+                      */}
                     </div>
                   );
                 })()}

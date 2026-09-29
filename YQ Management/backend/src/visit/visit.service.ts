@@ -1253,7 +1253,7 @@ export class VisitService {
   async cancelPublicVisit(accessToken: string) {
     const visit = await this.prisma.visit.findUnique({
       where: { accessToken },
-      include: { queue: { include: { location: true } }, customer: true },
+      include: { queue: { include: { location: true } }, customer: true, tenant: true },
     });
 
     if (!visit) throw new NotFoundException('Visit not found');
@@ -1272,7 +1272,8 @@ export class VisitService {
       where: { visitId: visit.id, status: 'SUCCEEDED' },
     });
     if (hasPayment) {
-      throw new BadRequestException('This ticket has an active payment. Please contact support for a refund.');
+      const tenantEmail = visit.tenant.supportEmail || visit.tenant.email || 'the business directly';
+      throw new BadRequestException(`This ticket has an active payment. Please contact ${tenantEmail} for assistance with cancellations and refunds.`);
     }
 
     const updated = await this.prisma.visit.update({
