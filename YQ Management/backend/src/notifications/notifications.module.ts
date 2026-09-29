@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 
@@ -11,7 +11,7 @@ import { WhatsappModule } from '../whatsapp/whatsapp.module';
     BullModule.registerQueue({
       name: 'whatsapp',
     }),
-    WhatsappModule,
+    forwardRef(() => WhatsappModule),
   ],
   providers: [NotificationsService, WhatsappProcessor],
   controllers: [NotificationsController],
