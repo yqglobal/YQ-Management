@@ -161,6 +161,32 @@ export class TasksService {
   }
 
   /**
+   * Cleanup abandoned upfront payment visits every 15 minutes.
+   * If a visit is in PENDING_PAYMENT state for more than 30 minutes, we assume
+   * the user abandoned the checkout and delete the ghost token.
+   */
+  @Cron('*/15 * * * *')
+  async handleAbandonedPaymentsCleanup() {
+    const thirtyMinutesAgo = new Date();
+    thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30);
+
+    try {
+      const result = await this.prisma.visit.deleteMany({
+        where: {
+          currentState: 'PENDING_PAYMENT',
+          createdAt: { lt: thirtyMinutesAgo },
+        },
+      });
+
+      if (result.count > 0) {
+        this.logger.log(`Cleaned up ${result.count} abandoned PENDING_PAYMENT visits.`);
+      }
+    } catch (err) {
+      this.logger.error('Failed to run abandoned payments cleanup', err);
+    }
+  }
+
+  /**
    * Check-in reminders: runs every minute and sends WhatsApp nudges
    * to customers who have upcoming or overdue appointments.
    */
