@@ -839,7 +839,7 @@ Qmova will not intentionally delay legally or contractually required notificatio
 
 Qmova maintains operational recovery processes intended to reduce the impact of major service disruptions.
 
-Business continuity considerations may include:
+Business continuity considerations include:
 
 * restoration of application services;
 * restoration of persistent data;
@@ -847,7 +847,10 @@ Business continuity considerations may include:
 * identification of critical dependencies;
 * communication during material incidents.
 
-Recovery objectives may evolve as the service matures.
+### 29.1 Recovery Metrics
+Qmova aims to meet the following targets during a major disaster or infrastructure failure:
+* **Recovery Time Objective (RTO):** 4 Hours (the maximum acceptable length of time that the platform can be offline).
+* **Recovery Point Objective (RPO):** 1 Hour (the maximum acceptable amount of data loss measured in time).
 
 Specific contractual Recovery Time Objectives (RTOs) or Recovery Point Objectives (RPOs) should not be assumed unless stated in the applicable Customer agreement or SLA.
 
@@ -1017,7 +1020,9 @@ Where a documented practice changes materially, the relevant documentation shoul
 
 Qmova's security program considers internationally recognized information-security practices and applicable privacy requirements.
 
-Qmova does not currently claim:
+Qmova's platform architecture and governance are currently built on the foundation of **SOC 2 Type I / Type II and ISO 27001 readiness**, incorporating strict Role-Based Access Controls (RBAC), continuous monitoring, data encryption, and separation of duties.
+
+While we are actively aligning with these frameworks, Qmova does not currently claim formal finalized certification for:
 
 * SOC 2 certification;
 * ISO 27001 certification;
