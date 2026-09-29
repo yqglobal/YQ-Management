@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { VisitStepService } from '../visit-step/visit-step.service';
 
 @Injectable()
 export class TasksService {
@@ -12,6 +13,7 @@ export class TasksService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly notificationsService: NotificationsService,
+    private readonly visitStepService: VisitStepService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -265,6 +267,42 @@ export class TasksService {
     });
     if (result.count > 0) {
       this.logger.log(`Cleaned up ${result.count} expired check-in OTPs`);
+    }
+  }
+
+  /**
+   * Check for expired SEF steps.
+   */
+  @Cron('*/15 * * * *')
+  async handleExpiredStepsCleanup() {
+    const now = new Date();
+    const expiredSteps = await this.prisma.visitStep.findMany({
+      where: {
+        status: { in: ['PENDING', 'ACTIVE', 'DEFERRED'] },
+        expiresAt: { lt: now },
+      },
+    });
+
+    for (const step of expiredSteps) {
+      try {
+        await this.prisma.visitStep.update({
+          where: { id: step.id },
+          data: {
+            status: 'SKIPPED',
+            completedAt: now,
+            staffNotes: 'Auto-skipped due to step expiration',
+          },
+        });
+        
+        // Let the normal SEF engine move them along
+        await this.visitStepService.evaluateNextSteps(step.visitId, step.id, 'EXPIRED');
+      } catch (err) {
+        this.logger.error(`Failed to handle expired step ${step.id}`, err);
+      }
+    }
+    
+    if (expiredSteps.length > 0) {
+      this.logger.log(`Cleaned up ${expiredSteps.length} expired visit steps.`);
     }
   }
 

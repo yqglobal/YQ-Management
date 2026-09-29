@@ -466,7 +466,7 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
               <div className="flex flex-col gap-6 relative z-10">
                 {token.visitSteps.map((step: any, idx: number) => {
                   const isActive = step.status === 'ACTIVE' || step.status === 'UNLOCKED';
-                  const isCompleted = step.status === 'COMPLETED';
+                  const isCompleted = step.status === 'DONE';
                   const isSkipped = step.status === 'SKIPPED';
                   const isPending = step.status === 'PENDING' || step.status === 'LOCKED';
                   

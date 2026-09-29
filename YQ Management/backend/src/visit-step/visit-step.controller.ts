@@ -69,4 +69,13 @@ export class VisitStepController {
       dto,
     );
   }
+
+  @Post(':stepId/skip')
+  skipStep(@Req() req: any, @Param('stepId') stepId: string) {
+    return this.visitStepService.skipStep(
+      req.user.tenantId,
+      stepId,
+      req.user.id,
+    );
+  }
 }

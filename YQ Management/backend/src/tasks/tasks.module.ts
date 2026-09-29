@@ -6,15 +6,12 @@ import { QueueModule } from '../queue/queue.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
 import { CommunicationModule } from '../communication/communication.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { VisitStepModule } from '../visit-step/visit-step.module';
 
 import { BullModule } from '@nestjs/bullmq';
 import { WebhookConsumer } from './consumers/webhook.consumer';
 import { WhatsappConsumer } from './consumers/whatsapp.consumer';
 
-// NOTE: WhatsappModule is intentionally NOT imported here.
-// WhatsApp notification logic is fully encapsulated in VisitNotificationService,
-// which is exported by CommunicationModule. This eliminates the forwardRef
-// circular dependency that previously existed between TasksModule and WhatsappModule.
 @Module({
   imports: [
     RedisModule,
@@ -22,6 +19,7 @@ import { WhatsappConsumer } from './consumers/whatsapp.consumer';
     WebhooksModule,
     CommunicationModule,
     forwardRef(() => NotificationsModule),
+    forwardRef(() => VisitStepModule),
     BullModule.registerQueue(
       { name: 'queue_webhooks' },
       { name: 'queue_whatsapp' },

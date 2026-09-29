@@ -95,4 +95,18 @@ export class TenantPaymentsController {
       body.description
     );
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/refund')
+  refundPayment(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.tenantPaymentsService.refundPayment(
+      req.user.tenantId,
+      id,
+      body?.reason,
+    );
+  }
 }

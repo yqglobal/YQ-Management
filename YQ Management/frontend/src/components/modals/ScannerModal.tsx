@@ -439,6 +439,18 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
     }
   }, [validationResult, onScanSuccess]);
 
+  const handleSkipStep = useCallback(async () => {
+    if (!validationResult?.activeStep?.id) return;
+    if (!confirm('Are you sure you want to skip this step?')) return;
+    try {
+      await fetchApi(`/visit-steps/${validationResult.activeStep.id}/skip`, { method: 'POST' });
+      setValidationResult((prev) => prev ? { ...prev, status: 'Skipped' } : prev);
+      onScanSuccess({ ...validationResult, checkedIn: true, status: 'Skipped' });
+    } catch (e: AnyFixMe) {
+      alert(e.message || 'Failed to skip step');
+    }
+  }, [validationResult, onScanSuccess]);
+
   const handleRedeem = useCallback(async (quantity: number) => {
     if (!validationResult?.activeStep?.id) return;
     try {
@@ -736,26 +748,31 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
                       {validationResult.valid ? (
                          validationResult.activeStep ? (
                            // SEF Step Actions
-                           validationResult.activeStep.templateStep?.type === 'CHECKPOINT' ? (
-                             <button onClick={handleAdvanceStep} className="w-full h-12 bg-emerald-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">
-                               <CheckCircle2 className="w-5 h-5"/> Check In / Clear
-                             </button>
-                           ) : validationResult.activeStep.templateStep?.type === 'COLLECTION' && ((validationResult.activeStep.quantityAllocated || 0) > (validationResult.activeStep.quantityRedeemed || 0)) ? (
-                             <div className="flex flex-col gap-2 w-full">
-                               <button onClick={() => handleRedeem(1)} className="w-full h-12 bg-primary/10 text-primary hover:bg-primary/20 font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors">
-                                 <CheckCircle2 className="w-5 h-5"/> Redeem 1 {validationResult.activeStep.templateStep?.entitlementUnit}
+                           <div className="w-full flex flex-col gap-2">
+                             {validationResult.activeStep.templateStep?.type === 'CHECKPOINT' ? (
+                               <button onClick={handleAdvanceStep} className="w-full h-12 bg-emerald-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">
+                                 <CheckCircle2 className="w-5 h-5"/> Check In / Clear
                                </button>
-                               {((validationResult.activeStep.quantityAllocated || 0) - (validationResult.activeStep.quantityRedeemed || 0)) > 1 && (
-                                 <button onClick={() => handleRedeem((validationResult.activeStep.quantityAllocated || 0) - (validationResult.activeStep.quantityRedeemed || 0))} className="w-full h-12 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors">
-                                   <CheckCircle2 className="w-5 h-5"/> Redeem All {((validationResult.activeStep.quantityAllocated || 0) - (validationResult.activeStep.quantityRedeemed || 0))}
+                             ) : validationResult.activeStep.templateStep?.type === 'COLLECTION' && ((validationResult.activeStep.quantityAllocated || 0) > (validationResult.activeStep.quantityRedeemed || 0)) ? (
+                               <div className="flex flex-col gap-2 w-full">
+                                 <button onClick={() => handleRedeem(1)} className="w-full h-12 bg-primary/10 text-primary hover:bg-primary/20 font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                                   <CheckCircle2 className="w-5 h-5"/> Redeem 1 {validationResult.activeStep.templateStep?.entitlementUnit}
                                  </button>
-                               )}
-                             </div>
-                           ) : (
-                             <button onClick={() => { stopScanning(); onScanSuccess(validationResult); }} className="w-full h-12 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2">
-                               Open Record
+                                 {((validationResult.activeStep.quantityAllocated || 0) - (validationResult.activeStep.quantityRedeemed || 0)) > 1 && (
+                                   <button onClick={() => handleRedeem((validationResult.activeStep.quantityAllocated || 0) - (validationResult.activeStep.quantityRedeemed || 0))} className="w-full h-12 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors">
+                                     <CheckCircle2 className="w-5 h-5"/> Redeem All {((validationResult.activeStep.quantityAllocated || 0) - (validationResult.activeStep.quantityRedeemed || 0))}
+                                   </button>
+                                 )}
+                               </div>
+                             ) : (
+                               <button onClick={() => { stopScanning(); onScanSuccess(validationResult); }} className="w-full h-12 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2">
+                                 Open Record
+                               </button>
+                             )}
+                             <button onClick={handleSkipStep} className="w-full h-10 bg-surface text-on-surface border border-border font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-surface-container transition-colors mt-2">
+                               Skip Step
                              </button>
-                           )
+                           </div>
                          ) : (
                            // Legacy Fallback Actions
                            validationResult.isAppointment && !validationResult.checkedIn ? (

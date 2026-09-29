@@ -306,6 +306,44 @@ export class VisitStepService {
     return updated;
   }
 
+  async skipStep(
+    tenantId: string,
+    visitStepId: string,
+    staffId: string,
+  ) {
+    const step = await this.prisma.visitStep.findUnique({
+      where: { id: visitStepId },
+    });
+    if (!step || step.tenantId !== tenantId)
+      throw new NotFoundException('Step not found');
+
+    if (step.status === 'DONE' || step.status === 'SKIPPED') {
+      throw new BadRequestException(`Step is already ${step.status}`);
+    }
+
+    const updated = await this.prisma.visitStep.update({
+      where: { id: step.id },
+      data: {
+        status: 'SKIPPED',
+        completedAt: new Date(),
+        staffNotes: 'Skipped manually by staff',
+      },
+    });
+
+    await this.logEvent(
+      step.id,
+      step.visitId,
+      tenantId,
+      'SKIPPED',
+      'STAFF',
+      staffId,
+    );
+
+    await this.evaluateNextSteps(step.visitId, step.id);
+
+    return updated;
+  }
+
   async redeemCollection(
     tenantId: string,
     visitStepId: string,
@@ -322,27 +360,35 @@ export class VisitStepService {
       throw new BadRequestException('Not a collection step');
 
     const totalAllowed = step.quantityAllocated ?? 1;
-    const remaining = totalAllowed - step.quantityRedeemed;
 
-    if (dto.quantity > remaining) {
-      throw new BadRequestException(
-        `Cannot redeem ${dto.quantity}. Only ${remaining} remaining.`,
-      );
-    }
-
-    const newRedeemed = step.quantityRedeemed + dto.quantity;
-    const isCompleted = newRedeemed >= totalAllowed;
-
-    const updated = await this.prisma.visitStep.update({
-      where: { id: step.id },
+    // Use atomic update to prevent race conditions (over-redemption)
+    const result = await this.prisma.visitStep.updateMany({
+      where: {
+        id: step.id,
+        quantityRedeemed: { lte: totalAllowed - dto.quantity },
+      },
       data: {
-        quantityRedeemed: newRedeemed,
+        quantityRedeemed: { increment: dto.quantity },
         lastRedeemedAt: new Date(),
         lastRedeemedBy: staffId,
-        status: isCompleted ? 'DONE' : 'ACTIVE',
-        completedAt: isCompleted ? new Date() : undefined,
       },
     });
+
+    if (result.count === 0) {
+      throw new BadRequestException(`Cannot redeem ${dto.quantity}. Limit exceeded or already fulfilled.`);
+    }
+
+    // Fetch the updated step to check if it's completed
+    const updated = await this.prisma.visitStep.findUnique({
+      where: { id: step.id },
+    });
+
+    if (updated!.quantityRedeemed >= totalAllowed) {
+      await this.prisma.visitStep.update({
+        where: { id: step.id },
+        data: { status: 'DONE', completedAt: new Date() },
+      });
+    }
 
     await this.logEvent(
       step.id,
@@ -365,30 +411,32 @@ export class VisitStepService {
     return updated;
   }
 
-  private async evaluateNextSteps(
+  public async evaluateNextSteps(
     visitId: string,
     completedVisitStepId?: string,
     outcome?: any,
   ) {
     if (!completedVisitStepId) return;
 
-    const completedStep = await this.prisma.visitStep.findUnique({
-      where: { id: completedVisitStepId },
-      include: { templateStep: { include: { transitions: true } } },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      // Lock the visit row to prevent parallel SEF branch race conditions
+      await tx.$queryRaw`SELECT id FROM "Visit" WHERE id = ${visitId} FOR UPDATE`;
 
-    if (!completedStep || !completedStep.templateStep) return;
+      const completedStep = await tx.visitStep.findUnique({
+        where: { id: completedVisitStepId },
+        include: { templateStep: { include: { transitions: true } } },
+      });
 
-    // Exclude the just-completed step — the DB update may not have committed yet
-    // when this runs in the same event loop tick, so we filter it out explicitly.
-    const activeSteps = await this.prisma.visitStep.findMany({
-      where: {
-        visitId,
-        id: { not: completedVisitStepId }, // exclude the step we just completed
-        status: { in: ['PENDING', 'ACTIVE', 'DEFERRED'] },
-      },
-    });
-    if (activeSteps.length > 0) return; // Wait until all parallel branches resolve
+      if (!completedStep || !completedStep.templateStep) return;
+
+      const activeSteps = await tx.visitStep.findMany({
+        where: {
+          visitId,
+          id: { not: completedVisitStepId },
+          status: { in: ['PENDING', 'ACTIVE', 'DEFERRED'] },
+        },
+      });
+      if (activeSteps.length > 0) return; // Wait until all parallel branches resolve
 
     const transitions = completedStep.templateStep.transitions;
     let nextTemplateIds: string[] = [];
@@ -431,17 +479,29 @@ export class VisitStepService {
 
     if (nextTemplateIds.length > 0) {
       // Infinite Loop Protection Circuit Breaker
-      const currentStepCount = await this.prisma.visitStep.count({
+      const existingSteps = await tx.visitStep.findMany({
         where: { visitId },
+        select: { templateStepId: true },
       });
-      if (currentStepCount > 100) {
+      
+      if (existingSteps.length > 20) {
         this.logger.error(
-          `Infinite loop protection triggered for visit ${visitId}. Aborting branch instantiation.`,
+          `Infinite loop protection triggered for visit ${visitId}. (>20 steps). Aborting.`,
         );
         return;
       }
 
-      const nextTemplates = await this.prisma.flowStepTemplate.findMany({
+      const instantiatedTemplateIds = new Set(existingSteps.map(s => s.templateStepId));
+      for (const nextId of nextTemplateIds) {
+        if (instantiatedTemplateIds.has(nextId)) {
+          this.logger.error(
+            `CIRCULAR_FLOW_DETECTED: templateStepId ${nextId} already instantiated for visit ${visitId}. Aborting to prevent loop.`,
+          );
+          return;
+        }
+      }
+
+      const nextTemplates = await tx.flowStepTemplate.findMany({
         where: { id: { in: nextTemplateIds } },
       });
 
@@ -464,11 +524,11 @@ export class VisitStepService {
       }));
 
       if (stepsToCreate.length > 0) {
-        await this.prisma.visitStep.createMany({
+        await tx.visitStep.createMany({
           data: stepsToCreate as any,
         });
 
-        const newSteps = await this.prisma.visitStep.findMany({
+        const newSteps = await tx.visitStep.findMany({
           where: {
             visitId,
             templateStepId: { in: nextTemplateIds },
@@ -476,7 +536,7 @@ export class VisitStepService {
           },
         });
 
-        await this.prisma.visitStepEvent.createMany({
+        await tx.visitStepEvent.createMany({
           data: newSteps.map((s) => ({
             visitStepId: s.id,
             visitId,
@@ -489,11 +549,11 @@ export class VisitStepService {
         // Sync parent visit queueId and serviceId to ensure UI updates reflect the flow transition
         if (newSteps.length > 0) {
           const primaryNextStep = newSteps[0];
-          const oldVisit = await this.prisma.visit.findUnique({ where: { id: visitId } });
+          const oldVisit = await tx.visit.findUnique({ where: { id: visitId } });
           const oldQueueId = oldVisit?.queueId;
           const newQueueId = primaryNextStep.queueId;
           
-          await this.prisma.visit.update({
+          await tx.visit.update({
             where: { id: visitId },
             data: {
               queueId: primaryNextStep.queueId,
@@ -518,20 +578,20 @@ export class VisitStepService {
           }
           
           if (eventsToCreate.length > 0) {
-             await this.prisma.outboxEvent.createMany({
+             await tx.outboxEvent.createMany({
                 data: eventsToCreate,
              });
           }
         }
       }
     } else {
-      await this.prisma.visit.update({
+      await tx.visit.update({
         where: { id: visitId },
-        data: { currentState: 'COMPLETED' },
+        data: { currentState: 'COMPLETED', completedAt: new Date() },
       });
-      const visit = await this.prisma.visit.findUnique({ where: { id: visitId } });
+      const visit = await tx.visit.findUnique({ where: { id: visitId } });
       if (visit?.queueId) {
-          await this.prisma.outboxEvent.create({
+          await tx.outboxEvent.create({
             data: {
               type: 'VISIT_COMPLETED',
               payload: { visitId, tenantId: completedStep.tenantId, queueId: visit.queueId },
@@ -539,6 +599,7 @@ export class VisitStepService {
           });
       }
     }
+    }); // End of transaction
   }
 
   private async logEvent(

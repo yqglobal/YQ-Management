@@ -300,6 +300,18 @@ export class WhatsappChatbot {
       return;
     }
 
+    const hasPayment = await this.prisma.bookingPayment.findFirst({
+      where: { visitId: visit.id, status: 'SUCCEEDED' },
+    });
+    
+    if (hasPayment) {
+      await this.sendMsg(
+        jid,
+        `Your ticket *${visit.displayId || 'Unknown'}* has an active payment and cannot be cancelled automatically. Please contact support or request a refund.\n\nReply '0' for the main menu.`,
+      );
+      return;
+    }
+
     const updated = await this.prisma.visit.update({
       where: { id: visit.id },
       data: {

@@ -401,6 +401,10 @@ export class VisitService {
     if (!queue.services || queue.services.length === 0) {
       throw new BadRequestException('Queue has no linked services');
     }
+    
+    if (queue.status === 'CLOSED' || queue.status === 'PAUSED') {
+      throw new BadRequestException('QUEUE_CLOSED');
+    }
 
     const isBlocked = await this.blockOffService.isTimeBlocked(
       queue.tenantId,
@@ -1264,6 +1268,13 @@ export class VisitService {
       );
     }
 
+    const hasPayment = await this.prisma.bookingPayment.findFirst({
+      where: { visitId: visit.id, status: 'SUCCEEDED' },
+    });
+    if (hasPayment) {
+      throw new BadRequestException('This ticket has an active payment. Please contact support for a refund.');
+    }
+
     const updated = await this.prisma.visit.update({
       where: { id: visit.id },
       data: { currentState: 'CANCELLED', cancelledBy: 'CUSTOMER' },
@@ -1315,6 +1326,10 @@ export class VisitService {
         include: { services: true },
       });
       if (!nextQueue) throw new NotFoundException('Target queue not found');
+
+      if (['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(visit.currentState)) {
+        throw new BadRequestException(`Cannot transfer a visit that is already ${visit.currentState}`);
+      }
 
       // Unify Routing: Prevent manual transfer from breaking the ServiceFlow state machine
       const activeSteps = await tx.visitStep.count({
