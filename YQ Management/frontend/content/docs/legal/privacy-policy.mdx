@@ -330,6 +330,13 @@ We may process information about how the Platform is used, such as:
 * operational events;
 * audit events.
 
+## 7.7 Payment Information
+
+When a Customer utilizes Qmova's direct-to-tenant payment features (Stripe Connect integration), End-Users may provide payment information (e.g., credit card details) to facilitate a booking or multi-step workflow.
+* Qmova **does not** collect, store, or process full credit card numbers or raw payment data.
+* Payment processing is handled directly by Stripe and the respective Customer (Tenant).
+* Qmova only receives and stores payment metadata necessary for tracking the transaction status, such as Stripe payment intent IDs, currency, amount charged, and the masked payment method type.
+
 ---
 
 # 8. Information We Do Not Intentionally Require
@@ -702,6 +709,7 @@ Examples of service categories include:
 * authentication;
 * transactional email;
 * WhatsApp connectivity;
+* payment processing;
 * hosting;
 * storage;
 * infrastructure;

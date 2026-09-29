@@ -269,13 +269,16 @@ Unless expressly permitted by Qmova, the Customer may not resell, sublicense, le
 
 Qmova is designed around the concept of a Visit.
 
-Visits may originate through:
+Visits may originate through or transition into:
 
 * Appointments;
 * Walk-ins;
 * Queues;
 * Referrals;
+* Multi-Step Workflows (e.g., automated progression through sequential or conditional steps);
 * Staff-created workflows.
+
+Where the Customer utilizes Multi-Step Workflows, the Customer is entirely responsible for designing and configuring the flow logic (e.g. conditional branches, payment enforcement at certain steps, and ticket status transfers). Qmova acts solely as the execution engine for these configurations.
 
 Customers are responsible for configuring these workflows appropriately for their operations.
 
@@ -593,6 +596,16 @@ Unless otherwise stated:
 The Customer is responsible for maintaining accurate billing information.
 
 Changes to pricing for future subscription periods may be communicated according to the applicable subscription terms.
+
+### 23.1 End-User Payments, Connect Accounts, and Platform Fees
+
+Where the Customer (Tenant) configures the Platform to accept payments from End-Users (e.g., for bookings, tickets, or multi-step service workflows), the following terms apply:
+
+* **Stripe Connect Integration:** Qmova facilitates payments through Stripe Connect using direct/destination charges. The Customer must link or create a Stripe Connect account through the Platform settings.
+* **Direct Transactions:** Payments made by End-Users are processed directly into the Customer's connected Stripe account. Qmova acts solely as a technology facilitator and does not hold the principal funds.
+* **Platform Application Fees:** Qmova deducts an automated application fee (commission) on each successful transaction facilitated through the Platform. This fee is automatically routed to Qmova by Stripe at the time of payment. The fee percentage is determined by the Customer's selected subscription plan or as agreed upon in a custom order form.
+* **Refunds and Disputes:** Qmova does not automatically process refunds or arbitrate disputes between the Customer and their End-Users. The Customer is solely responsible for managing, approving, and issuing refunds directly from their connected Stripe account in accordance with their own business policies. Qmova application fees may be non-refundable depending on the circumstances of the refund.
+* **Compliance:** The Customer remains fully responsible for complying with all applicable laws, consumer protection regulations, and Stripe's terms of service regarding the sale of their goods and services.
 
 ---
 
