@@ -1300,6 +1300,8 @@ model TenantPaymentAccount {
   platformFeeFixed   Float? // Flat fee per transaction (additional)
   feeMode            String @default("PERCENT") // PERCENT | FIXED | PERCENT_PLUS_FIXED
 
+  currency           String @default("ZAR") // Tenant's preferred operating currency
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

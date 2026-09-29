@@ -345,6 +345,7 @@ export class SubscriptionService {
       dataToUpdate.nextBillingDate = null;
     } else {
       // Deferred cancellation - status remains ACTIVE until nextBillingDate
+      dataToUpdate.cancelAtPeriodEnd = true;
       dataToUpdate.metadata.cancelAtPeriodEnd = true;
     }
 

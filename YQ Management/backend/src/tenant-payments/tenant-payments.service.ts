@@ -158,8 +158,8 @@ export class TenantPaymentsService {
     );
     const tenantNetAmount = amount - applicationFeeAmount;
 
-    // TODO: Make currency tenant-configurable (requires schema migration to add currency field)
-    const currency = 'zar';
+    // Determine currency from account config, default to ZAR
+    const currency = (account.currency || 'zar').toLowerCase();
 
     // Create Stripe PaymentIntent directly on the connected account
     const paymentIntent = await this.stripe.paymentIntents.create(

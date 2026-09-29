@@ -105,6 +105,60 @@ export class TasksService {
       this.logger.error('Failed to run data retention cleanup', err);
     }
   }
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async handleDeferredCancellations() {
+    this.logger.log('Running daily cleanup of deferred cancellations...');
+    const now = new Date();
+
+    const subscriptionsToCancel = await this.prisma.subscription.findMany({
+      where: {
+        cancelAtPeriodEnd: true,
+        status: 'ACTIVE',
+        currentPeriodEnd: { lte: now },
+      },
+      include: { plan: true },
+    });
+
+    if (subscriptionsToCancel.length === 0) {
+      this.logger.log('No deferred cancellations to process.');
+      return;
+    }
+
+    for (const sub of subscriptionsToCancel) {
+      try {
+        await this.prisma.subscription.update({
+          where: { id: sub.id },
+          data: {
+            status: 'CANCELLED',
+            endedAt: now,
+            nextBillingDate: null,
+            cancelAtPeriodEnd: false, // Reset flag
+            metadata: {
+              ...(sub.metadata as object || {}),
+              cancelledAt: now.toISOString(),
+            },
+          },
+        });
+
+        // Send email to owner
+        const owner = await this.prisma.user.findFirst({
+          where: { tenantId: sub.tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+          select: { email: true },
+        });
+
+        if (owner?.email && sub.plan?.name) {
+          await this.emailService.sendSubscriptionCancelledEmail(
+            owner.email,
+            sub.plan.name,
+          );
+        }
+      } catch (err) {
+        this.logger.error(`Failed to cancel deferred subscription ${sub.id}`, err);
+      }
+    }
+
+    this.logger.log(`Processed ${subscriptionsToCancel.length} deferred cancellations.`);
+  }
 
   /**
    * Check-in reminders: runs every minute and sends WhatsApp nudges

@@ -1628,14 +1628,37 @@ export class WhatsappService implements OnModuleInit {
         if (pendingSurveyVisit) {
           const rating = parseInt(rawText.trim(), 10);
           if (!isNaN(rating) && rating >= 1 && rating <= 5) {
+            // Try to extract any text after the number as feedback
+            const feedbackText = rawText.replace(/^\s*\d[.,\s-]*/, '').trim();
+            
             await this.prisma.visit.update({
               where: { id: pendingSurveyVisit.id },
-              data: { rating },
+              data: { 
+                rating,
+                ...(feedbackText ? { feedbackText } : {})
+              },
             });
+            let replyMessage = 'Thank you for your feedback! We appreciate it.';
+
+            if (rating >= 4) {
+              const location = await this.prisma.location.findUnique({
+                where: { id: pendingSurveyVisit.locationId },
+                select: { googlePlaceId: true },
+              });
+              if (location?.googlePlaceId) {
+                const reviewLink = `https://search.google.com/local/writereview?placeid=${location.googlePlaceId}`;
+                replyMessage = `We are thrilled you had a great experience! We would really appreciate it if you could share it on Google:\n${reviewLink}`;
+              } else {
+                replyMessage = 'Thank you for your fantastic feedback!';
+              }
+            } else {
+              replyMessage = "Thank you for your feedback. We are sorry your experience wasn't perfect. Our team has been notified and we will strive to do better next time.";
+            }
+
             await this.sendMessage(
               instanceName,
               jid,
-              'Thank you for your feedback! We appreciate it.',
+              replyMessage,
             );
             return { handled: true, action: 'survey_collected' };
           }
