@@ -43,7 +43,6 @@ export default function TVDisplay() {
   const [selfServeModeEnabled, setSelfServeModeEnabled] = useState(false);
   const [queueInfo, setQueueInfo] = useState<{name: string, serviceName?: string, status?: string} | null>(null);
   const [isPaused, setIsPaused] = useState(false);
-  const [activeStepAlert, setActiveStepAlert] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const isMutedRef = useRef(isMuted);
@@ -264,37 +263,6 @@ export default function TVDisplay() {
     socket.on('visit_missed', refreshCalledTokens);
     socket.on('visit_cancelled', refreshCalledTokens);
 
-    socket.on('step_activated', (data: any) => {
-      // Validate that this belongs to the current queue if queueId is set
-      if (queueId && data.queueId !== queueId) return;
-
-      setActiveStepAlert(data);
-
-      if (audioEnabledRef.current) {
-        // Optional chime for step activation
-        try {
-          const audioCtx = new (window.AudioContext || (window as AnyFixMe).webkitAudioContext)();
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(audioCtx.currentTime);
-          osc.stop(audioCtx.currentTime + 0.5);
-        } catch (e) {
-          console.error('Audio play failed', e);
-        }
-      }
-
-      // Clear alert after 10 seconds
-      setTimeout(() => {
-        setActiveStepAlert((prev: any) => (prev?.visitId === data.visitId ? null : prev));
-      }, 10000);
-    });
-
     return () => { socket.disconnect(); };
   }, [tenantId, speakAnnouncement]);
 
@@ -361,38 +329,6 @@ export default function TVDisplay() {
             <Volume2 className="w-16 h-16 text-amber-500 mb-4" />
             <h2 className="text-3xl font-bold text-white mb-2">Click anywhere to start display</h2>
             <p className="text-zinc-400">Audio announcements require user interaction to begin.</p>
-          </div>
-        </div>
-      )}
-
-      {/* Step Alert Overlay */}
-      {activeStepAlert && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-12 text-center backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-32 h-32 bg-amber-500 rounded-full flex items-center justify-center mb-8 shadow-[0_0_80px_rgba(245,158,11,0.4)] animate-pulse">
-            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          </div>
-          
-          <h2 className="text-4xl text-amber-500 font-bold uppercase tracking-widest mb-4">Please Proceed</h2>
-          
-          <div className="text-[120px] font-black text-white leading-none tracking-tighter mb-6 token-flash">
-            {activeStepAlert.displayId || activeStepAlert.visitId?.substring(0, 5).toUpperCase()}
-          </div>
-          
-          {activeStepAlert.customerName && (
-            <p className="text-3xl text-white/80 mb-8">{activeStepAlert.customerName}</p>
-          )}
-
-          <div className="bg-zinc-900 border-2 border-zinc-700 rounded-3xl p-8 max-w-4xl w-full">
-            <p className="text-2xl text-zinc-400 mb-2 uppercase tracking-widest font-semibold">Next Station</p>
-            <p className="text-5xl font-bold text-white mb-6">
-              {activeStepAlert.resourceName || 'Service Desk'}
-            </p>
-            
-            {activeStepAlert.instruction && (
-              <p className="text-2xl text-zinc-300 italic">
-                "{activeStepAlert.instruction}"
-              </p>
-            )}
           </div>
         </div>
       )}

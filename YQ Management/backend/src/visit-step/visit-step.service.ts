@@ -203,15 +203,6 @@ export class VisitStepService {
   async activateStep(tenantId: string, visitStepId: string, staffId: string) {
     const step = await this.prisma.visitStep.findUnique({
       where: { id: visitStepId },
-      include: {
-        templateStep: true,
-        visit: {
-          include: {
-            customer: true,
-            queue: true,
-          }
-        }
-      }
     });
     if (!step || step.tenantId !== tenantId)
       throw new NotFoundException('Step not found');
@@ -238,13 +229,6 @@ export class VisitStepService {
       'STEP_ACTIVATED',
       'STAFF',
       staffId,
-      {
-        queueId: step.visit.queueId,
-        displayId: step.visit.displayId,
-        customerName: step.visit.customer?.name,
-        resourceName: step.templateStep?.name || 'Next Station',
-        instruction: step.templateStep?.customerInstruction,
-      }
     );
     return updated;
   }
