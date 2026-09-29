@@ -10,6 +10,7 @@ import { fetchApi } from '../../lib/api';
 import { FeatureGuard } from '../../components/guards/FeatureGuard';
 import { Search, Users, Phone, Mail, Clock, BarChart2 } from 'lucide-react';
 import { useLocation } from '../../components/LocationContext';
+import { useAuth } from '../../components/AuthContext';
 import type { AnalyticsResponse, Customer, Visit, Service } from '@yq/shared';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -73,6 +74,7 @@ const SLA_THRESHOLD_MINS = 15;
 
 export default function Analytics() {
   const { activeLocationId } = useLocation();
+  const { user } = useAuth();
   const [timeRange, setTimeRange] = useState<'Day' | 'Week' | 'Month' | 'All' | 'Custom'>('Week');
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [startDate, endDate] = dateRange;
@@ -584,8 +586,8 @@ export default function Analytics() {
                             </td>
                             <td className="p-4">
                               <div className="flex flex-col">
-                                <span className="text-sm text-on-surface dark:text-white">{new Date(visit.createdAt).toLocaleDateString()}</span>
-                                <span className="text-xs text-on-surface-variant">{new Date(visit.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                <span className="text-sm text-on-surface dark:text-white">{new Date(visit.createdAt).toLocaleDateString(undefined, { timeZone: user?.tenant?.timezone || 'UTC' })}</span>
+                                <span className="text-xs text-on-surface-variant">{new Date(visit.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute:'2-digit', timeZone: user?.tenant?.timezone || 'UTC' })}</span>
                               </div>
                             </td>
                           </tr>

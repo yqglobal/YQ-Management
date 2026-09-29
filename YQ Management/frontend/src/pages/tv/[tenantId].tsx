@@ -216,20 +216,26 @@ export default function TVDisplay() {
                 newTokensToAnnounce.forEach((t: any) => announcedIdsRef.current.add(t.id));
 
                 if (audioEnabledRef.current) {
-                  // Play chime once for the batch
+                  // Play pre-recorded airport-style chime
                   try {
-                    const audioCtx = new (window.AudioContext || (window as AnyFixMe).webkitAudioContext)();
-                    [440, 550].forEach((freq, i) => {
-                      const osc = audioCtx.createOscillator();
-                      const gain = audioCtx.createGain();
-                      osc.type = 'sine';
-                      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.25);
-                      gain.gain.setValueAtTime(0.3, audioCtx.currentTime + i * 0.25);
-                      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.25 + 0.8);
-                      osc.connect(gain);
-                      gain.connect(audioCtx.destination);
-                      osc.start(audioCtx.currentTime + i * 0.25);
-                      osc.stop(audioCtx.currentTime + i * 0.25 + 0.8);
+                    const audio = new Audio('/audio/chime.mp3');
+                    audio.volume = 0.8;
+                    audio.play().catch(e => {
+                      console.error('Audio playback failed', e);
+                      // Fallback to oscillator if file missing or blocked
+                      const audioCtx = new (window.AudioContext || (window as AnyFixMe).webkitAudioContext)();
+                      [440, 550].forEach((freq, i) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.25);
+                        gain.gain.setValueAtTime(0.3, audioCtx.currentTime + i * 0.25);
+                        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.25 + 0.8);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(audioCtx.currentTime + i * 0.25);
+                        osc.stop(audioCtx.currentTime + i * 0.25 + 0.8);
+                      });
                     });
                   } catch (e) {
                     console.error('Audio play failed', e);
@@ -315,8 +321,10 @@ export default function TVDisplay() {
           onClick={() => {
             setAudioEnabled(true);
             try {
-              const audioCtx = new (window.AudioContext || (window as AnyFixMe).webkitAudioContext)();
-              audioCtx.resume();
+              new Audio('/audio/chime.mp3').play().then(() => {
+                const audioCtx = new (window.AudioContext || (window as AnyFixMe).webkitAudioContext)();
+                audioCtx.resume();
+              }).catch(e => {});
             } catch (e) {}
             if ('speechSynthesis' in window) {
               const utterance = new SpeechSynthesisUtterance('');

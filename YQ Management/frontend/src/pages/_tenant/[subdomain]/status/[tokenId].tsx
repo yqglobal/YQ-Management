@@ -340,8 +340,19 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="grid grid-cols-2 gap-4"
+                className="flex flex-col gap-4"
               >
+                {token?.queue?.status === 'PAUSED' && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+                    <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-amber-800 font-semibold text-sm">Queue is temporarily paused</p>
+                      <p className="text-amber-700 text-xs mt-1">We'll be right back. Your position in line is saved.</p>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 flex flex-col items-center justify-center">
                   <MapPin className="w-5 h-5 text-gray-400 mb-2" />
                   <motion.div 
@@ -365,6 +376,7 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
                     {fmtEwt(ewtSeconds)}
                   </motion.div>
                   <div className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Time remaining</div>
+                </div>
                 </div>
               </motion.div>
             )}
