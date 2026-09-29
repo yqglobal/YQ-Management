@@ -198,6 +198,7 @@ export class TasksService {
         currentState: 'WAITING',
         slaStatus: { not: 'BREACHED' },
         service: { slaPolicyId: { not: null } },
+        queue: { status: { not: 'PAUSED' } }, // ✅ Skip paused queues — timers don't run
       },
       include: {
         service: { include: { slaPolicy: true } },

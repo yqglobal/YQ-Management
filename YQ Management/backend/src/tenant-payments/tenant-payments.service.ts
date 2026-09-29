@@ -158,11 +158,14 @@ export class TenantPaymentsService {
     );
     const tenantNetAmount = amount - applicationFeeAmount;
 
+    // TODO: Make currency tenant-configurable (requires schema migration to add currency field)
+    const currency = 'zar';
+
     // Create Stripe PaymentIntent directly on the connected account
     const paymentIntent = await this.stripe.paymentIntents.create(
       {
         amount,
-        currency: 'zar',
+        currency,
         application_fee_amount: applicationFeeAmount,
         metadata: {
           ...metadata,
@@ -183,10 +186,10 @@ export class TenantPaymentsService {
         appointmentId: metadata.appointmentId,
         visitId: metadata.visitId,
         visitStepId: metadata.visitStepId,
-        amount: amount / 100, // Store in actual currency unit (ZAR)
+        amount: amount / 100, // Store in actual currency unit
         platformFeeAmount: applicationFeeAmount / 100,
         tenantNetAmount: tenantNetAmount / 100,
-        currency: 'ZAR',
+        currency: currency.toUpperCase(),
         stripePaymentIntentId: paymentIntent.id,
         status: 'PENDING',
         description: metadata.description,
@@ -282,7 +285,7 @@ export class TenantPaymentsService {
         amount,
         platformFeeAmount: 0,
         tenantNetAmount: amount,
-        currency: 'USD',
+        currency: 'ZAR', // ✅ Fixed: was 'USD', consistent with Stripe payments
         status: 'SUCCEEDED',
         stripePaymentMethodType: method,
         description: description || 'Manual Payment at Counter',
