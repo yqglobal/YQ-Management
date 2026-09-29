@@ -65,25 +65,36 @@ function InlineNotes({ visitId, initialNotes, placeholder }: { visitId: string; 
 }
 
 // ── Itinerary Progress Stepper ───────────────────────────────────────────────
-function ItineraryProgress({ itinerary }: { itinerary: any[] }) {
+function ItineraryProgress({ itinerary, visitId, onSkip }: { itinerary: any[], visitId?: string, onSkip?: (visitId: string, stepId: string) => void }) {
   if (!Array.isArray(itinerary) || itinerary.length === 0) return null;
   return (
     <div className="flex items-center gap-1 mt-2 flex-wrap">
       {itinerary.map((stop: any, idx: number) => {
-        const isCompleted = stop.status === 'COMPLETED';
+        const isCompleted = stop.status === 'COMPLETED' || stop.status === 'DONE';
+        const isSkipped = stop.status === 'SKIPPED';
         const isActive = stop.status === 'ACTIVE';
         const isPending = stop.status === 'PENDING';
         return (
           <React.Fragment key={idx}>
             <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all
               ${isCompleted ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : ''}
+              ${isSkipped ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400' : ''}
               ${isActive ? 'bg-primary/10 border-primary/40 text-primary animate-pulse' : ''}
               ${isPending ? 'bg-surface-container border-border text-outline' : ''}
             `}>
               <span className="material-symbols-outlined text-[10px]">
-                {isCompleted ? 'check_circle' : isActive ? 'radio_button_checked' : 'radio_button_unchecked'}
+                {isCompleted ? 'check_circle' : isSkipped ? 'next_plan' : isActive ? 'radio_button_checked' : 'radio_button_unchecked'}
               </span>
               {stop.name || stop.label || `Stop ${idx + 1}`}
+              {isActive && onSkip && visitId && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onSkip(visitId, stop.id); }}
+                  className="ml-1 opacity-60 hover:opacity-100 hover:text-red-500 transition-colors"
+                  title="Skip this step"
+                >
+                  <span className="material-symbols-outlined text-[12px] align-middle">skip_next</span>
+                </button>
+              )}
             </div>
             {idx < itinerary.length - 1 && (
               <span className="text-outline text-[10px]">→</span>
@@ -407,6 +418,16 @@ export default function ServiceDeskToday() {
     } catch (err) {
       console.error('Failed to complete visit/token', err);
       alert('Failed to complete. Please try again.');
+    }
+  };
+
+  const handleSkipStep = async (visitId: string, stepId: string) => {
+    try {
+      await api.post(`/visit-steps/${stepId}/skip`, { visitId });
+      queryClient.invalidateQueries(['service-desk-visits']);
+    } catch (error) {
+      console.error('Failed to skip step', error);
+      alert('Failed to skip step. Check console.');
     }
   };
 
@@ -1041,7 +1062,7 @@ export default function ServiceDeskToday() {
                 {industry.uiFlags.showItinerary && Array.isArray(selectedVisit.visitSteps) && selectedVisit.visitSteps.length > 0 && (
                   <div className="mt-2">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-outline mb-1.5">Patient Journey</div>
-                    <ItineraryProgress itinerary={selectedVisit.visitSteps} />
+                    <ItineraryProgress itinerary={selectedVisit.visitSteps} visitId={selectedVisit.id} onSkip={handleSkipStep} />
                   </div>
                 )}
                 {industry.uiFlags.enableVitalsMock && (
@@ -1193,6 +1214,43 @@ export default function ServiceDeskToday() {
                   );
                 })()}
 
+                {/* Successful Payments */}
+                {(() => {
+                  const succeededPayment = selectedVisit?.bookingPayments?.find((p: any) => p.status === 'SUCCEEDED');
+                  if (!succeededPayment) return null;
+                  
+                  return (
+                    <div className="mt-4 p-4 border border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-900/20 rounded-xl relative overflow-hidden flex items-center justify-between">
+                      <div>
+                        <h4 className="font-bold text-emerald-800 dark:text-emerald-300 mb-1 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                          Payment Successful
+                        </h4>
+                        <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                          <strong className="font-data-mono">{succeededPayment.currency} {succeededPayment.amount.toFixed(2)}</strong> paid via {succeededPayment.stripePaymentMethodType || 'Card'}.
+                        </p>
+                      </div>
+                      <button 
+                        onClick={async () => {
+                          if (window.confirm('Are you sure you want to refund this payment? This will also cancel the visit.')) {
+                            try {
+                              await api.post(`/tenant-payments/${succeededPayment.id}/refund`, { reason: 'requested_by_customer' });
+                              queryClient.invalidateQueries(['activeVisits']);
+                              queryClient.invalidateQueries(['service-desk-visits']);
+                              alert('Payment refunded and visit cancelled.');
+                              setSelectedVisit(null);
+                            } catch(e) {
+                              alert('Failed to refund payment');
+                            }
+                          }
+                        }}
+                        className="bg-white/50 hover:bg-red-100 dark:bg-black/20 dark:hover:bg-red-900/40 text-zinc-700 dark:text-zinc-300 hover:text-red-600 dark:hover:text-red-400 px-3 py-1.5 rounded text-sm font-medium transition-colors border border-emerald-200 dark:border-emerald-800/50 hover:border-red-300 dark:hover:border-red-800"
+                      >
+                        Refund
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 <div className="mt-4 flex gap-2">
                   {['WAITING', 'QUEUED'].includes(selectedVisit.currentState) && (
