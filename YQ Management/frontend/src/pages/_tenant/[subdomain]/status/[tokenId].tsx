@@ -374,10 +374,48 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
                 key="serving-alert"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6"
+                className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 relative overflow-hidden"
               >
-                <p className="text-emerald-700 font-medium mb-2">{t(lang, 'proceedToCounter')}</p>
-                <p className="text-sm text-emerald-600/70">Show this screen to the operator</p>
+                {/* Find the active step, if any */}
+                {(() => {
+                  const activeStep = token.visitSteps?.find((s: any) => s.status === 'ACTIVE');
+                  if (activeStep) {
+                    return (
+                      <div className="text-left">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-200 rounded-bl-full opacity-50 pointer-events-none"></div>
+                        <div className="absolute -top-2 -right-2 w-12 h-12 bg-emerald-300 rounded-full animate-ping opacity-20 pointer-events-none"></div>
+                        
+                        <p className="text-emerald-700 font-bold mb-3 uppercase tracking-widest text-xs">Action Required</p>
+                        <h4 className="text-2xl text-emerald-900 font-bold mb-1">
+                          Please proceed to: <span className="text-emerald-600 block text-3xl mt-1">{activeStep.name}</span>
+                        </h4>
+                        
+                        {activeStep.templateStep?.locationDescription && (
+                          <div className="flex items-start gap-2 text-emerald-800 font-medium mt-4 mb-2 bg-emerald-100/50 p-3 rounded-lg border border-emerald-200/50">
+                            <MapPin className="w-5 h-5 mt-0.5 text-emerald-600 shrink-0" />
+                            <span className="text-lg">{activeStep.templateStep.locationDescription}</span>
+                          </div>
+                        )}
+                        {activeStep.templateStep?.customerInstruction && (
+                          <div className="flex items-start gap-2 text-emerald-800 text-sm mt-3">
+                            <Info className="w-5 h-5 mt-0.5 text-emerald-600 shrink-0" />
+                            <span className="text-base italic">"{activeStep.templateStep.customerInstruction}"</span>
+                          </div>
+                        )}
+                        
+                        <p className="text-xs text-emerald-600/70 mt-6 text-center font-medium">Show this screen to the operator</p>
+                      </div>
+                    );
+                  }
+
+                  // Fallback for simple queues without steps
+                  return (
+                    <div className="text-center">
+                      <p className="text-emerald-700 font-medium mb-2 text-xl">{t(lang, 'proceedToCounter')}</p>
+                      <p className="text-sm text-emerald-600/70">Show this screen to the operator</p>
+                    </div>
+                  );
+                })()}
               </motion.div>
             )}
 
