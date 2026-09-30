@@ -30,6 +30,10 @@ export class TenantPaymentsService {
   // ── Onboarding ─────────────────────────────────────────────────────────────
 
   async createConnectAccount(tenantId: string) {
+    if (!this.stripe) {
+      throw new BadRequestException('Stripe is not configured on this server. Please add STRIPE_SECRET_KEY to your environment variables.');
+    }
+
     let account = await this.prisma.tenantPaymentAccount.findUnique({
       where: { tenantId },
     });
@@ -81,6 +85,10 @@ export class TenantPaymentsService {
       where: { tenantId },
     });
     if (!account) return { status: 'NOT_CONNECTED' };
+
+    if (!this.stripe) {
+      return { status: account.accountStatus || 'NOT_CONNECTED' };
+    }
 
     if (!account.connectedAccountId) {
       return { status: account.accountStatus };
@@ -134,6 +142,10 @@ export class TenantPaymentsService {
       description?: string;
     },
   ) {
+    if (!this.stripe) {
+      throw new BadRequestException('Stripe is not configured on this server. Payments are currently disabled.');
+    }
+
     let finalAmount = amount;
     
     // Server-side amount validation & tenant ownership check
