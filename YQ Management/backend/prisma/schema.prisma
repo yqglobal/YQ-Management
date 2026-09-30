@@ -6,1103 +6,19 @@ datasource db {
   provider = "postgresql"
 }
 
-model Tenant {
-  id                      String                 @id @default(uuid())
-  name                    String
-  subdomain               String                 @unique
-  branding                Json?
-  whatsappInstanceId      String?
-  whatsappConnected       Boolean                @default(false)
-  whatsappPhone           String?
-  chatbotEnabled          Boolean                @default(false)
-  chatbotConfig           Json?
-  customerExperience      Json?
-  appointmentApprovalMode String                 @default("AUTO")
-  operatingCountries      String[]               @default([])
-  autonomousEnabled       Boolean                @default(false)
-  createdAt               DateTime               @default(now())
-  enableSmartReviews      Boolean                @default(false)
-  reviewWaitThresholdMins Int                    @default(15)
-  ownerId                 String?
-  selfServeModeEnabled    Boolean                @default(false)
-  selfServeOtpEnabled     Boolean                @default(true)
-  showSupportInfo         Boolean                @default(true)
-  supportEmail            String?
-  supportPhone            String?
-  businessType            String                 @default("general")
-  strictPrivacyMode       Boolean                @default(false)
-  aiConfig                Json?
-  appointments            Appointment[]
-  blockOffs               BlockOff[]
-  blueprintFlows          BlueprintFlow[]
-  bookingPayments         BookingPayment[]
-  chatSessions            ChatSession[]
-  checkInOtps             CheckInOtp[]
-  communicationLogs       CommunicationLog[]
-  customers               Customer[]
-  customerConversations   CustomerConversation[]
-  enterpriseInquiries     EnterpriseInquiry[]
-  googleIntegrations      GoogleIntegration[]
-  invitations             Invitation[]
-  invoices                Invoice[]
-  locations               Location[]
-  messages                Message[]
-  queues                  Queue[]
-  resources               Resource[]
-  services                Service[]
-  slaPolicies             SlaPolicy[]
-  staffMembers            Staff[]
-  subscriptions           Subscription?
-  paymentAccount          TenantPaymentAccount?
-  usages                  TenantUsage[]
-  transactions            Transaction[]
-  users                   User[]
-  visits                  Visit[]
-  webhooks                WebhookEndpoint[]
-  webhookEvents           WebhookEvent[]
-  whatsappTemplates       WhatsAppTemplate[]
-}
-
-model CheckInOtp {
-  id         String   @id @default(uuid())
-  tenantId   String
-  phone      String
-  locationId String?
-  code       String
-  expiresAt  DateTime
-  verified   Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([phone, tenantId])
-}
-
-model User {
-  id                 String             @id @default(uuid())
-  email              String             @unique
-  password           String?
-  googleId           String?            @unique
-  role               Role
-  otpCode            String?
-  otpExpiresAt       DateTime?
-  allowedLocationIds String[]           @default([])
-  allowedPages       String[]           @default([])
-  allowedServiceIds  String[]           @default([])
-  personalSettings   Json?
-  tenantId           String
-  skills             String[]           @default([])
-  cookiePreferences  CookiePreference[]
-  policyAcceptances  PolicyAcceptance[]
-  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sessions           UserSession[]
-  operatorVisits     Visit[]            @relation("OperatorVisits")
-
-  @@index([tenantId])
-}
-
-model SlaPolicy {
-  id                   String    @id @default(uuid())
-  tenantId             String
-  name                 String
-  warningThresholdMins Int
-  breachThresholdMins  Int
-  escalationPhones     String[]  @default([])
-  services             Service[]
-  tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-}
-
-model PasswordReset {
-  id        String   @id @default(uuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([token])
-}
-
-model AuditLog {
-  id         String   @id @default(uuid())
-  userId     String?
-  ipAddress  String?
-  userAgent  String?
-  details    Json?
-  createdAt  DateTime @default(now())
-  customerId String?
-  durationMs Int?
-  endpoint   String?
-  method     String?
-  resource   String?
-  resourceId String?
-  statusCode Int?
-  tenantId   String?
-  action     String
-
-  @@index([tenantId])
-  @@index([userId])
-  @@index([customerId])
-  @@index([action])
-  @@index([resource])
-}
-
-model Queue {
-  id                 String      @id @default(uuid())
-  name               String
-  status             QueueStatus
-  nextQueueId        String?
-  formConfig         Json?
-  locationId         String?
-  tenantId           String
-  tokenDisplayConfig Json?
-  frozenAt           DateTime?
-  frozenByQuota      Boolean     @default(false)
-  createdAt          DateTime    @default(now())
-  maxCapacity        Int?
-  blockOffs          BlockOff[]
-  location           Location?   @relation(fields: [locationId], references: [id])
-  tenant             Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  visits             Visit[]
-  services           Service[]   @relation("QueueToService")
-
-  @@index([tenantId])
-  @@index([locationId])
-}
-
-model CustomerConversation {
-  id            String    @id @default(uuid())
-  tenantId      String
-  customerPhone String
-  status        String    @default("OPEN")
-  unreadCount   Int       @default(0)
-  lastMessageAt DateTime  @default(now())
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  messages      Message[]
-
-  @@unique([tenantId, customerPhone])
-  @@index([tenantId, status])
-}
-
-model Message {
-  id             String                @id @default(uuid())
-  body           String
-  sender         String
-  createdAt      DateTime              @default(now())
-  conversationId String?
-  customerPhone  String
-  isRead         Boolean               @default(false)
-  tenantId       String
-  visitId        String?
-  isDeleted      Boolean               @default(false)
-  whatsappId     String?               @unique
-  conversation   CustomerConversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  tenant         Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  visit          Visit?                @relation(fields: [visitId], references: [id], onDelete: Cascade)
-
-  @@index([visitId])
-  @@index([tenantId, customerPhone])
-  @@index([conversationId])
-}
-
-model Transaction {
-  id                  String   @id @default(uuid())
-  transactionRef      String   @unique
-  amount              Float
-  currency            String   @default("ZAR")
-  status              String   @default("PENDING")
-  ozowPayRequestId    String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  billingInterval     String?
-  planId              String?
-  rawProviderResponse Json?
-  tenantId            String
-  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-}
-
-model WebhookEndpoint {
-  id            String   @id @default(uuid())
-  url           String
-  secret        String?
-  events        String[]
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  tenantId      String
-  payloadFormat String   @default("DEFAULT")
-  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-}
-
-model Plan {
-  id                    String         @id @default(uuid())
-  name                  String
-  description           String?
-  price                 Float
-  currency              String         @default("ZAR")
-  trialDays             Int            @default(0)
-  features              Json?
-  limits                Json?
-  sortOrder             Int            @default(0)
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
-  active                Boolean        @default(true)
-  interval              String         @default("monthly")
-  maxQueues             Int?
-  maxVisits             Int?
-  type                  String         @default("standard")
-  billingInterval       String         @default("monthly")
-  annualDiscountPercent Int            @default(10)
-  subscriptions         Subscription[]
-}
-
-model Subscription {
-  id                 String             @id @default(uuid())
-  planId             String
-  status             SubscriptionStatus @default(TRIAL)
-  trialStartDate     DateTime?
-  trialEndDate       DateTime?
-  currentPeriodStart DateTime           @default(now())
-  currentPeriodEnd   DateTime
-  renewalDate        DateTime?
-  cancellationDate   DateTime?
-  nextBillingDate    DateTime?
-  endedAt            DateTime?
-  metadata           Json?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  cancelAtPeriodEnd  Boolean            @default(false)
-  ozowSubscriptionId String?
-  tenantId           String             @unique
-  billingInterval    String             @default("monthly")
-  plan               Plan               @relation(fields: [planId], references: [id])
-  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-}
-
-model PaymentProvider {
-  id             String              @id @default(uuid())
-  name           PaymentProviderName
-  sandboxEnabled Boolean             @default(true)
-  siteCode       String?
-  privateKey     String?
-  baseUrl        String?
-  config         Json?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  active         Boolean             @default(true)
-}
-
-model Invoice {
-  id        String    @id @default(uuid())
-  amount    Float
-  currency  String    @default("ZAR")
-  status    String    @default("DRAFT")
-  dueDate   DateTime?
-  paidAt    DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  tenantId  String
-  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-}
-
-model TenantUsage {
-  id               String   @id @default(uuid())
-  tenantId         String
-  tokensUsed       Int      @default(0)
-  messagesSent     Int      @default(0)
-  branches         Int      @default(0)
-  whatsappMessages Int      @default(0)
-  aiRequests       Int      @default(0)
-  storageBytes     BigInt   @default(0)
-  apiCalls         Int      @default(0)
-  activeQueues     Int      @default(0)
-  queueJoins       Int      @default(0)
-  operators        Int      @default(0)
-  periodStart      DateTime
-  periodEnd        DateTime
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, periodStart, periodEnd])
-  @@index([tenantId])
-}
-
-model WhatsAppTemplate {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  name      String
-  content   String
-  active    Boolean  @default(true)
-  isActive  Boolean  @default(true)
-  variables Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tenantId  String?
-  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-}
-
-model ChatSession {
-  id         String   @id @default(uuid())
-  tenantId   String
-  phone      String
-  step       Int      @default(0)
-  context    Json?
-  lastActive DateTime @default(now())
-  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, phone])
-  @@index([tenantId])
-}
-
-model CommunicationLog {
-  id          String    @id @default(uuid())
-  channel     String
-  type        String
-  recipient   String
-  subject     String?
-  body        String?
-  status      String
-  provider    String
-  providerId  String?
-  error       String?
-  sentAt      DateTime?
-  deliveredAt DateTime?
-  failedAt    DateTime?
-  createdAt   DateTime  @default(now())
-  tenantId    String?
-  readAt      DateTime?
-  tenant      Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-}
-
-model Invitation {
-  id                 String    @id @default(uuid())
-  code               String    @unique
-  email              String?
-  role               Role      @default(OPERATOR)
-  maxUses            Int       @default(1)
-  usedCount          Int       @default(0)
-  expiresAt          DateTime?
-  createdAt          DateTime  @default(now())
-  allowedLocationIds String[]  @default([])
-  allowedPages       String[]  @default([])
-  allowedServiceIds  String[]  @default([])
-  used               Boolean   @default(false)
-  usedAt             DateTime?
-  tenantId           String
-  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([code])
-}
-
-model WebhookEvent {
-  id               String                  @id @default(uuid())
-  eventType        WebhookEventType
-  transactionId    String?
-  payload          Json
-  headers          Json?
-  signatureValid   Boolean?
-  processingStatus WebhookProcessingStatus @default(PENDING)
-  processedAt      DateTime?
-  createdAt        DateTime                @default(now())
-  error            String?
-  tenantId         String
-  provider         String?
-  processingResult Json?
-  tenant           Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([eventType])
-  @@index([transactionId])
-}
-
-model Customer {
-  id           String        @id @default(uuid())
-  tenantId     String
-  name         String
-  phone        String?
-  email        String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  appointments Appointment[]
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  visits       Visit[]
-
-  @@index([tenantId])
-}
-
-model Location {
-  id                  String             @id @default(uuid())
-  tenantId            String
-  name                String
-  address             String?
-  city                String?
-  timezone            String             @default("UTC")
-  businessHours       Json?
-  exceptionDates      Json?
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  frozenAt            DateTime?
-  frozenByQuota       Boolean            @default(false)
-  googleIntegrationId String?
-  googlePlaceId       String?
-  googleCalendarId    String?
-  buildingMap         Json?
-  totalFloors         Int?
-  appointments        Appointment[]
-  blockOffs           BlockOff[]
-  googleIntegration   GoogleIntegration? @relation(fields: [googleIntegrationId], references: [id])
-  tenant              Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  queues              Queue[]
-  resources           Resource[]
-  services            Service[]
-  staff               Staff[]
-  visits              Visit[]
-
-  @@index([tenantId])
-  @@index([googleIntegrationId])
-}
-
-model GoogleIntegration {
-  id           String     @id @default(uuid())
-  tenantId     String
-  googleId     String
-  email        String
-  accessToken  String
-  refreshToken String?
-  tokenExpiry  DateTime?
-  createdAt    DateTime   @default(now())
-  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  locations    Location[]
-
-  @@unique([tenantId, email])
-  @@index([tenantId])
-}
-
-model Service {
-  id                         String        @id @default(uuid())
-  tenantId                   String
-  locationId                 String?
-  name                       String
-  description                String?
-  expectedDuration           Int           @default(30)
-  bufferDuration             Int           @default(0)
-  concurrentSlots            Int           @default(1)
-  minDuration                Int?
-  maxDuration                Int?
-  formConfig                 Json?
-  allowAppointments          Boolean       @default(false)
-  requireManualCheckIn       Boolean       @default(false)
-  appointmentGranularityMins Int           @default(15)
-  avgActualDurationMins      Int?
-  createdAt                  DateTime      @default(now())
-  updatedAt                  DateTime      @updatedAt
-  businessHoursOverride      Json?
-  exceptionDatesOverride     Json?
-  useLocationHours           Boolean       @default(true)
-  frozenAt                   DateTime?
-  frozenByQuota              Boolean       @default(false)
-  allowProviderSelection     Boolean       @default(false)
-  dateSelectionType          String        @default("calendar")
-  maxDaysInAdvance           Int           @default(30)
-  emaExpectedDuration        Float?
-  slaPolicyId                String?
-  requiredSkills             String[]      @default([])
-  basePrice                  Float?
-  paymentMode                String        @default("NONE")
-  priceCurrency              String        @default("ZAR")
-  requiresPayment            Boolean       @default(false)
-  allowOfflinePayment        Boolean       @default(false)
-  appointments               Appointment[]
-  location                   Location?     @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  slaPolicy                  SlaPolicy?    @relation(fields: [slaPolicyId], references: [id])
-  tenant                     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  serviceFlow                ServiceFlow?
-  visits                     Visit[]
-  queues                     Queue[]       @relation("QueueToService")
-  resources                  Resource[]    @relation("ResourceToService")
-  staff                      Staff[]       @relation("StaffToService")
-
-  @@index([tenantId])
-  @@index([locationId])
-}
-
-model Staff {
-  id             String        @id @default(uuid())
-  tenantId       String
-  locationId     String?
-  userId         String?
-  name           String
-  status         String        @default("ACTIVE")
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  avatarUrl      String?
-  bio            String?
-  capacity       Int           @default(1)
-  color          String?
-  email          String?
-  exceptionDates Json?
-  phone          String?
-  title          String?
-  weeklySchedule Json?
-  skills         String[]      @default([])
-  appointments   Appointment[]
-  location       Location?     @relation(fields: [locationId], references: [id])
-  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  visits         Visit[]
-  services       Service[]     @relation("StaffToService")
-
-  @@index([tenantId])
-  @@index([locationId])
-  @@index([userId])
-}
-
-model Resource {
-  id           String        @id @default(uuid())
-  tenantId     String
-  locationId   String?
-  name         String
-  type         String?
-  status       String        @default("ACTIVE")
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  appointments Appointment[]
-  location     Location?     @relation(fields: [locationId], references: [id])
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  visits       Visit[]
-  services     Service[]     @relation("ResourceToService")
-
-  @@index([tenantId])
-  @@index([locationId])
-}
-
-model Appointment {
-  id                     String            @id @default(uuid())
-  tenantId               String
-  customerId             String?
-  locationId             String
-  serviceId              String
-  staffId                String?
-  resourceId             String?
-  scheduledStart         DateTime
-  scheduledEnd           DateTime
-  status                 AppointmentStatus @default(SCHEDULED)
-  bookingSource          VisitSource       @default(APPOINTMENT)
-  customerNotes          String?
-  formData               Json?
-  reminderStatus         String?
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
-  accompanyingGuests     Int               @default(0)
-  paymentStatus          String            @default("NOT_REQUIRED")
-  pendingPaymentIntentId String?
-  requiresPayment        Boolean           @default(false)
-  customer               Customer?         @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  location               Location          @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  resource               Resource?         @relation(fields: [resourceId], references: [id])
-  service                Service           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  staff                  Staff?            @relation(fields: [staffId], references: [id])
-  tenant                 Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  bookingPayments        BookingPayment[]
-  visits                 Visit[]
-
-  @@index([tenantId])
-  @@index([customerId])
-  @@index([locationId])
-  @@index([serviceId])
-  @@index([scheduledStart])
-}
-
-model Visit {
-  id                 String           @id @default(uuid())
-  tenantId           String
-  customerId         String
-  locationId         String
-  serviceId          String
-  appointmentId      String?
-  source             VisitSource      @default(WALK_IN)
-  scheduledTime      DateTime?
-  actualArrival      DateTime?
-  checkInTime        DateTime?
-  waitingStart       DateTime?
-  serviceStart       DateTime?
-  serviceEnd         DateTime?
-  completedAt        DateTime?
-  assignedStaffId    String?
-  assignedResourceId String?
-  currentState       VisitState       @default(CREATED)
-  priority           Int              @default(0)
-  queueId            String?
-  notes              String?
-  metadata           Json?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  displayId          String?
-  accessToken        String           @unique @default(uuid())
-  operatorId         String?
-  language           String           @default("en")
-  rating             Int?
-  feedbackText       String?
-  purpose            String?
-  formResponses      Json?
-  cancelReason       String?
-  cancelledBy        String?
-  accompanyingGuests Int              @default(0)
-  itinerary          Json?
-  tags               String[]         @default([])
-  slaStatus          String           @default("OK")
-  surveySent         Boolean          @default(false)
-  currentStepId      String?
-  flowId             String?
-  flowStatus         String           @default("NOT_STARTED")
-  bookingPayments    BookingPayment[]
-  messages           Message[]
-  appointment        Appointment?     @relation(fields: [appointmentId], references: [id])
-  resource           Resource?        @relation(fields: [assignedResourceId], references: [id])
-  staff              Staff?           @relation(fields: [assignedStaffId], references: [id])
-  customer           Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  flow               ServiceFlow?     @relation(fields: [flowId], references: [id])
-  location           Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  operatorUser       User?            @relation("OperatorVisits", fields: [operatorId], references: [id])
-  queue              Queue?           @relation(fields: [queueId], references: [id])
-  service            Service          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  tenant             Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  visitSteps         VisitStep[]
-
-  @@index([tenantId])
-  @@index([locationId])
-  @@index([currentState])
-  @@index([customerId])
-  @@index([queueId])
-  @@index([flowId])
-}
-
-model Policy {
-  id          String             @id @default(uuid())
-  type        PolicyType
-  version     String
-  content     String
-  active      Boolean            @default(false)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  acceptances PolicyAcceptance[]
-
-  @@unique([type, version])
-}
-
-model PolicyAcceptance {
-  id         String   @id @default(uuid())
-  userId     String
-  policyId   String
-  ipAddress  String?
-  userAgent  String?
-  acceptedAt DateTime @default(now())
-  policy     Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([policyId])
-}
-
-model CookiePreference {
-  id          String   @id @default(uuid())
-  userId      String?
-  anonymousId String?  @unique
-  necessary   Boolean  @default(true)
-  analytics   Boolean  @default(false)
-  functional  Boolean  @default(false)
-  marketing   Boolean  @default(false)
-  ipAddress   String?
-  userAgent   String?
-  updatedAt   DateTime @updatedAt
-  createdAt   DateTime @default(now())
-  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([anonymousId])
-}
-
-model UserSession {
-  id           String   @id @default(uuid())
-  userId       String
-  token        String   @unique
-  ipAddress    String?
-  userAgent    String?
-  deviceInfo   Json?
-  lastActiveAt DateTime @default(now())
-  expiresAt    DateTime
-  isRevoked    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([token])
-}
-
-model OutboxEvent {
-  id          String    @id @default(uuid())
-  type        String
-  payload     Json
-  status      String    @default("PENDING")
-  error       String?
-  createdAt   DateTime  @default(now())
-  processedAt DateTime?
-
-  @@index([status])
-  @@index([createdAt])
-}
-
-model SystemLog {
-  id         String   @id @default(uuid())
-  level      String
-  message    String
-  stackTrace String?
-  context    Json?
-  tenantId   String?
-  createdAt  DateTime @default(now())
-
-  @@index([level])
-  @@index([createdAt])
-}
-
-model EnterpriseInquiry {
-  id          String   @id @default(uuid())
-  tenantId    String?
-  name        String
-  email       String
-  companyName String
-  phone       String?
-  message     String
-  status      String   @default("PENDING")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
-
-  @@index([tenantId])
-}
-
-model Blog {
-  id             String    @id @default(uuid())
-  title          String
-  slug           String    @unique
-  excerpt        String?
-  content        String
-  coverImage     String?
-  authorName     String?
-  seoTitle       String?
-  seoDescription String?
-  published      Boolean   @default(false)
-  publishedAt    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  @@index([slug])
-}
-
-model MarketingSubscriber {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  source    String   @default("WEBSITE")
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  @@index([email])
-}
-
-model BlockOff {
-  id         String    @id @default(uuid())
-  tenantId   String
-  locationId String?
-  queueId    String?
-  startTime  DateTime
-  endTime    DateTime
-  reason     String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  location   Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  queue      Queue?    @relation(fields: [queueId], references: [id], onDelete: Cascade)
-  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId, startTime])
-  @@index([locationId])
-  @@index([queueId])
-}
-
-model ServiceFlow {
-  id                     String             @id @default(uuid())
-  tenantId               String
-  serviceId              String             @unique
-  name                   String
-  description            String?
-  isActive               Boolean            @default(true)
-  allowPartialCompletion Boolean            @default(false)
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
-  steps                  FlowStepTemplate[]
-  service                Service            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  visits                 Visit[]
-
-  @@index([tenantId])
-}
-
-model FlowStepTemplate {
-  id                         String               @id @default(uuid())
-  flowId                     String
-  stepOrder                  Int
-  name                       String
-  description                String?
-  type                       StepType             @default(SERVICE)
-  trigger                    StepTrigger          @default(MANUAL_STAFF)
-  serviceId                  String?
-  queueId                    String?
-  isOptional                 Boolean              @default(false)
-  isRepeatable               Boolean              @default(false)
-  requiresQrScan             Boolean              @default(true)
-  requiresStaffAction        Boolean              @default(true)
-  prerequisites              Json?
-  deferredByDays             Int?
-  deferredByHours            Int?
-  expiresAfterDays           Int?
-  entitlementUnit            String?
-  entitlementFixed           Int?
-  entitlementFormula         String?
-  allowPartialRedemption     Boolean              @default(false)
-  preventDoubleRedemption    Boolean              @default(true)
-  customerInstruction        String?
-  staffInstruction           String?
-  locationDescription        String?
-  floorNumber                Int?
-  roomNumber                 String?
-  buildingWing               String?
-  mapImageUrl                String?
-  notifyCustomerOnActivation Boolean              @default(true)
-  notificationTemplate       String?
-  notifyStaffOnActivation    Boolean              @default(false)
-  stepPrice                  Float?
-  stepPriceCurrency          String               @default("ZAR")
-  isPriceVariable            Boolean              @default(false)
-  outcomeOptions             Json?
-  createdAt                  DateTime             @default(now())
-  updatedAt                  DateTime             @updatedAt
-  flow                       ServiceFlow          @relation(fields: [flowId], references: [id], onDelete: Cascade)
-  transitions                FlowStepTransition[] @relation("FromStep")
-  visitSteps                 VisitStep[]
-
-  @@index([flowId])
-  @@index([serviceId])
-}
-
-model FlowStepTransition {
-  id         String           @id @default(uuid())
-  fromStepId String
-  toStepId   String?
-  flowId     String
-  condition  Json?
-  label      String?
-  priority   Int              @default(0)
-  isDefault  Boolean          @default(false)
-  fromStep   FlowStepTemplate @relation("FromStep", fields: [fromStepId], references: [id], onDelete: Cascade)
-
-  @@index([fromStepId])
-  @@index([flowId])
-}
-
-model VisitStep {
-  id                String           @id @default(uuid())
-  visitId           String
-  templateStepId    String
-  tenantId          String
-  stepOrder         Int
-  name              String
-  type              StepType
-  status            VisitStepStatus  @default(LOCKED)
-  serviceId         String?
-  queueId           String?
-  assignedStaffId   String?
-  unlockedAt        DateTime?
-  deferredUntil     DateTime?
-  expiresAt         DateTime?
-  queuedAt          DateTime?
-  activatedAt       DateTime?
-  completedAt       DateTime?
-  skippedAt         DateTime?
-  quantityAllocated Int?
-  quantityRedeemed  Int              @default(0)
-  lastRedeemedAt    DateTime?
-  lastRedeemedBy    String?
-  outcome           String?
-  staffNotes        String?
-  amountCharged     Float?
-  paymentRef        String?
-  paymentStatus     String?
-  isSkipped         Boolean          @default(false)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  bookingPayments   BookingPayment[]
-  templateStep      FlowStepTemplate @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
-  visit             Visit            @relation(fields: [visitId], references: [id], onDelete: Cascade)
-  events            VisitStepEvent[]
-
-  @@index([visitId])
-  @@index([tenantId])
-  @@index([status])
-  @@index([templateStepId])
-}
-
-model VisitStepEvent {
-  id          String        @id @default(uuid())
-  visitStepId String
-  visitId     String
-  tenantId    String
-  eventType   StepEventType
-  actorType   String
-  actorId     String?
-  payload     Json?
-  notes       String?
-  createdAt   DateTime      @default(now())
-  visitStep   VisitStep     @relation(fields: [visitStepId], references: [id], onDelete: Cascade)
-
-  @@index([visitStepId])
-  @@index([visitId])
-  @@index([tenantId])
-}
-
-model TenantPaymentAccount {
-  id                    String           @id @default(uuid())
-  tenantId              String           @unique
-  provider              String           @default("stripe")
-  connectedAccountId    String?
-  accountStatus         String           @default("NOT_CONNECTED")
-  onboardingCompletedAt DateTime?
-  stripeOnboardingUrl   String?
-  chargesEnabled        Boolean          @default(false)
-  payoutsEnabled        Boolean          @default(false)
-  detailsSubmitted      Boolean          @default(false)
-  currentlyDue          Json?
-  eventuallyDue         Json?
-  pendingVerification   Json?
-  platformFeePercent    Float?
-  platformFeeFixed      Float?
-  feeMode               String           @default("PERCENT")
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-  currency              String           @default("ZAR")
-  payments              BookingPayment[]
-  tenant                Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([connectedAccountId])
-}
-
-model BookingPayment {
-  id                      String                @id @default(uuid())
-  tenantId                String
-  tenantPaymentAccountId  String?
-  appointmentId           String?
-  visitId                 String?
-  visitStepId             String?
-  customerId              String?
-  amount                  Float
-  platformFeeAmount       Float
-  tenantNetAmount         Float
-  currency                String                @default("ZAR")
-  status                  BookingPaymentStatus  @default(PENDING)
-  stripePaymentIntentId   String?               @unique
-  stripeChargeId          String?
-  stripePaymentMethodType String?
-  description             String?
-  receiptUrl              String?
-  metadata                Json?
-  refundedAmount          Float                 @default(0)
-  refundedAt              DateTime?
-  refundReason            String?
-  createdAt               DateTime              @default(now())
-  updatedAt               DateTime              @updatedAt
-  appointment             Appointment?          @relation(fields: [appointmentId], references: [id])
-  tenant                  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  paymentAccount          TenantPaymentAccount? @relation(fields: [tenantPaymentAccountId], references: [id])
-  visit                   Visit?                @relation(fields: [visitId], references: [id])
-  visitStep               VisitStep?            @relation(fields: [visitStepId], references: [id])
-
-  @@index([tenantId])
-  @@index([tenantPaymentAccountId])
-  @@index([appointmentId])
-  @@index([visitId])
-  @@index([stripePaymentIntentId])
-}
-
-model BlueprintFlow {
-  id            String          @id @default(uuid())
-  key           String          @unique
-  name          String
-  description   String?
-  businessTypes String[]        @default([])
-  tenantId      String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  tenant        Tenant?         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  steps         BlueprintStep[]
-
-  @@index([tenantId])
-}
-
-model BlueprintStep {
-  id                         String        @id @default(uuid())
-  blueprintId                String
-  stepOrder                  Int
-  name                       String
-  description                String?
-  type                       StepType      @default(SERVICE)
-  trigger                    StepTrigger   @default(MANUAL_STAFF)
-  isOptional                 Boolean       @default(false)
-  requiresQrScan             Boolean       @default(true)
-  requiresStaffAction        Boolean       @default(true)
-  deferredByDays             Int?
-  deferredByHours            Int?
-  entitlementUnit            String?
-  entitlementFixed           Int?
-  entitlementFormula         String?
-  allowPartialRedemption     Boolean       @default(false)
-  preventDoubleRedemption    Boolean       @default(true)
-  customerInstruction        String?
-  staffInstruction           String?
-  locationDescription        String?
-  notifyCustomerOnActivation Boolean       @default(true)
-  outcomeOptions             String[]      @default([])
-  stepPrice                  Float?
-  isPriceVariable            Boolean       @default(false)
-  blueprint                  BlueprintFlow @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
-
-  @@index([blueprintId])
-}
-
 enum Role {
   ADMIN
-  OPERATOR
   SUPER_ADMIN
   TENANT_ADMIN
   MANAGER
+  OPERATOR
 }
 
 enum QueueStatus {
   ACTIVE
   PAUSED
-  CLOSED
   PAUSED_FOR_EMERGENCY
+  CLOSED
 }
 
 enum SubscriptionStatus {
@@ -1142,9 +58,9 @@ enum AppointmentStatus {
   RESCHEDULED
   MISSED
   PENDING_APPROVAL
+  PENDING_VERIFICATION
   REJECTED
   BLOCKED
-  PENDING_VERIFICATION
 }
 
 enum VisitSource {
@@ -1160,6 +76,7 @@ enum VisitSource {
 }
 
 enum VisitState {
+  PENDING_PAYMENT
   CREATED
   SCHEDULED
   CHECKED_IN
@@ -1174,7 +91,6 @@ enum VisitState {
   ON_HOLD
   ABANDONED
   TRANSFERRED
-  PENDING_PAYMENT
 }
 
 enum PolicyType {
@@ -1185,50 +101,54 @@ enum PolicyType {
   DATA_PROCESSING_AGREEMENT
 }
 
+// ── Service Execution Flow (SEF) Enums ───────────────────────────────────────
+
 enum StepType {
-  SERVICE
-  CHECKPOINT
-  COLLECTION
-  WAITING_PERIOD
-  NOTIFICATION
-  PAYMENT
-  FORM
+  SERVICE // Routes to a queue/service for active serving
+  CHECKPOINT // QR scan only — no service time, just gate validation
+  COLLECTION // Entitlement redemption (meals, prescriptions, vouchers)
+  WAITING_PERIOD // Time-based deferred gap (e.g. await lab results)
+  NOTIFICATION // System sends message, no physical action
+  PAYMENT // Triggers a payment flow at this step
+  FORM // Customer fills a form before proceeding
 }
 
 enum StepTrigger {
-  AUTOMATIC
-  MANUAL_STAFF
-  MANUAL_CUSTOMER
-  SCHEDULED
-  CONDITION
+  AUTOMATIC // System auto-advances when current step completes
+  MANUAL_STAFF // Staff must explicitly advance
+  MANUAL_CUSTOMER // Customer self-advances (scan own QR)
+  SCHEDULED // Advances at a specific future time
+  CONDITION // Based on outcome/data condition
 }
 
 enum VisitStepStatus {
-  LOCKED
-  PENDING
-  DEFERRED
-  QUEUED
-  ACTIVE
-  DONE
-  SKIPPED
-  EXPIRED
-  FAILED
+  LOCKED // Prerequisites not met
+  PENDING // Next up, prerequisites met, not started
+  DEFERRED // Waiting for time-based delay to pass
+  QUEUED // In a service queue waiting to be called
+  ACTIVE // Currently being served at this step
+  DONE // Completed
+  SKIPPED // Optional step that was skipped
+  EXPIRED // Time window passed without completion
+  FAILED // Step failed (e.g. payment declined)
 }
 
 enum StepEventType {
-  UNLOCKED
-  QUEUED
-  ACTIVATED
-  QR_SCANNED
-  ENTITLEMENT_REDEEMED
-  OUTCOME_SET
-  COMPLETED
-  SKIPPED
-  DEFERRED
-  EXPIRED
-  STAFF_NOTE
-  PAYMENT_MADE
+  UNLOCKED // Prerequisites cleared, step became available
+  QUEUED // Visit entered a service queue for this step
+  ACTIVATED // Staff started / customer arrived at this step
+  QR_SCANNED // QR code was scanned at this step
+  ENTITLEMENT_REDEEMED // Partial or full entitlement collected
+  OUTCOME_SET // Staff selected an outcome
+  COMPLETED // Step marked done
+  SKIPPED // Step was skipped (optional)
+  DEFERRED // Step pushed to a future date/time
+  EXPIRED // Time window passed without action
+  STAFF_NOTE // Staff added a note
+  PAYMENT_MADE // Payment processed at this step
 }
+
+// ── Booking Payment Enums ────────────────────────────────────────────────────
 
 enum BookingPaymentStatus {
   PENDING
@@ -1239,4 +159,1261 @@ enum BookingPaymentStatus {
   PARTIALLY_REFUNDED
   DISPUTED
   CANCELLED
+}
+
+model Tenant {
+  id                 String  @id @default(uuid())
+  name               String
+  subdomain          String  @unique // e.g., 'hospitalname'
+  branding           Json? // Stores colors, logo URLs
+  whatsappInstanceId String? // Optional Evolution API instance name
+  whatsappConnected  Boolean @default(false)
+  whatsappPhone      String?
+  chatbotEnabled     Boolean @default(false)
+  chatbotConfig      Json? // Stores custom button menus and automated replies
+  aiConfig           Json? // Stores LLM provider keys (Gemini, Groq) and prompts
+  customerExperience Json? // Global settings for forms, feedback, and portal experience
+
+  // Customer Support Integration
+  supportEmail    String?
+  supportPhone    String?
+  showSupportInfo Boolean @default(true)
+
+  // Google Business Profile Integration
+  enableSmartReviews      Boolean @default(false)
+  reviewWaitThresholdMins Int     @default(15)
+
+  appointmentApprovalMode String            @default("AUTO") // AUTO, MANUAL
+  users                   User[]
+  queues                  Queue[]
+  transactions            Transaction[]
+  webhooks                WebhookEndpoint[]
+  webhookEvents           WebhookEvent[]
+
+  customers             Customer[]
+  locations             Location[]
+  services              Service[]
+  staffMembers          Staff[]
+  resources             Resource[]
+  appointments          Appointment[]
+  visits                Visit[]
+  enterpriseInquiries   EnterpriseInquiry[]
+  operatingCountries    String[]               @default([])
+  chatSessions          ChatSession[]
+  customerConversations CustomerConversation[]
+  messages              Message[]
+  subscriptions         Subscription[]
+  invoices              Invoice[]
+  usages                TenantUsage[]
+  invitations           Invitation[]
+  autonomousEnabled     Boolean                @default(false)
+  blockOffs             BlockOff[]
+  ownerId               String?
+  createdAt             DateTime               @default(now())
+
+  // Self-Serve / No-Receptionist Mode
+  selfServeModeEnabled Boolean @default(false)
+  selfServeOtpEnabled  Boolean @default(true)
+
+  googleIntegrations GoogleIntegration[]
+  communicationLogs  CommunicationLog[]
+  whatsappTemplates  WhatsAppTemplate[]
+  checkInOtps        CheckInOtp[]
+
+  strictPrivacyMode Boolean @default(false)
+  businessType      String  @default("general")
+
+  slaPolicies SlaPolicy[]
+
+  // SEF + Payments relations
+  paymentAccount  TenantPaymentAccount?
+  bookingPayments BookingPayment[]
+  blueprintFlows  BlueprintFlow[]
+}
+
+// OTP sessions for self-serve check-in (no receptionist mode)
+model CheckInOtp {
+  id         String   @id @default(uuid())
+  tenantId   String
+  phone      String
+  locationId String?
+  code       String // 6-digit OTP
+  expiresAt  DateTime
+  verified   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([phone, tenantId])
+}
+
+model User {
+  id               String    @id @default(uuid())
+  tenantId         String
+  email            String    @unique
+  password         String?
+  googleId         String?   @unique
+  role             Role
+  otpCode          String?
+  otpExpiresAt     DateTime?
+  personalSettings Json?
+
+  allowedLocationIds String[] @default([])
+  allowedServiceIds  String[] @default([])
+  allowedPages       String[] @default([])
+  skills             String[] @default([]) // Skills for intelligent routing
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  policyAcceptances PolicyAcceptance[]
+  cookiePreferences CookiePreference[]
+  sessions          UserSession[]
+  operatorVisits    Visit[]            @relation("OperatorVisits")
+
+  @@index([tenantId])
+}
+
+model SlaPolicy {
+  id                   String   @id @default(uuid())
+  tenantId             String
+  name                 String
+  warningThresholdMins Int
+  breachThresholdMins  Int
+  escalationPhones     String[] @default([])
+
+  services Service[]
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model AuditLog {
+  id         String  @id @default(uuid())
+  tenantId   String?
+  userId     String?
+  customerId String?
+
+  action     String
+  resource   String?
+  resourceId String?
+
+  endpoint   String?
+  method     String?
+  statusCode Int?
+  durationMs Int?
+
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([customerId])
+  @@index([action])
+  @@index([resource])
+}
+
+model Queue {
+  id                 String      @id @default(uuid())
+  tenantId           String
+  locationId         String? // Which location this queue belongs to
+  name               String
+  status             QueueStatus
+  nextQueueId        String? // For multi-step routing
+  formConfig         Json? // Dynamic form configuration
+  tokenDisplayConfig Json? // Display settings and token number generation config
+  maxCapacity        Int? // Maximum allowed concurrent visits in queue
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  visits   Visit[]
+  services Service[] @relation("QueueToService")
+
+  frozenByQuota Boolean   @default(false)
+  frozenAt      DateTime?
+  createdAt     DateTime  @default(now())
+
+  blockOffs BlockOff[]
+
+  @@index([tenantId])
+  @@index([locationId])
+}
+
+model CustomerConversation {
+  id            String   @id @default(uuid())
+  tenantId      String
+  customerPhone String
+  status        String   @default("OPEN") // OPEN, CLOSED
+  unreadCount   Int      @default(0)
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([tenantId, customerPhone])
+  @@index([tenantId, status])
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  tenantId       String
+  customerPhone  String
+  visitId        String?
+  conversationId String?
+  body           String
+  sender         String // 'OPERATOR', 'CUSTOMER', 'SYSTEM'
+  isRead         Boolean  @default(false)
+  whatsappId     String?  @unique
+  isDeleted      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  visit        Visit?                @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  conversation CustomerConversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([visitId])
+  @@index([tenantId, customerPhone])
+  @@index([conversationId])
+}
+
+model Transaction {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  transactionRef      String   @unique
+  amount              Float
+  currency            String   @default("ZAR")
+  status              String   @default("PENDING") // PENDING, SUCCESS, CANCELLED, FAILED
+  ozowPayRequestId    String?
+  rawProviderResponse Json?
+  planId              String?
+  billingInterval     String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model WebhookEndpoint {
+  id            String   @id @default(uuid())
+  tenantId      String
+  url           String
+  secret        String?
+  events        String[] // Array of event names, e.g. ["TOKEN_COMPLETED", "TOKEN_JOINED"]
+  active        Boolean  @default(true)
+  payloadFormat String   @default("DEFAULT") // e.g. "DEFAULT", "FHIR_ENCOUNTER", "SALESFORCE"
+  createdAt     DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Plan {
+  id                    String         @id @default(uuid())
+  name                  String
+  description           String?
+  type                  String         @default("standard")
+  price                 Float
+  currency              String         @default("ZAR")
+  interval              String         @default("monthly")
+  billingInterval       String         @default("monthly")
+  trialDays             Int            @default(0)
+  features              Json?
+  limits                Json?
+  maxVisits             Int?
+  maxQueues             Int?
+  sortOrder             Int            @default(0)
+  active                Boolean        @default(true)
+  annualDiscountPercent Int            @default(10)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  subscriptions         Subscription[]
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  tenantId           String
+  planId             String
+  status             SubscriptionStatus @default(TRIAL)
+  currentPeriodStart DateTime           @default(now())
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean            @default(false)
+  ozowSubscriptionId String?
+  trialStartDate     DateTime?
+  trialEndDate       DateTime?
+  billingInterval    String             @default("monthly")
+  nextBillingDate    DateTime?
+  renewalDate        DateTime?
+  cancellationDate   DateTime?
+  endedAt            DateTime?
+  metadata           Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  @@unique([tenantId])
+  @@index([tenantId])
+}
+
+model PaymentProvider {
+  id             String              @id @default(uuid())
+  name           PaymentProviderName
+  active         Boolean             @default(true)
+  config         Json?
+  siteCode       String?
+  privateKey     String?
+  baseUrl        String?
+  sandboxEnabled Boolean             @default(true)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+}
+
+model Invoice {
+  id        String    @id @default(uuid())
+  tenantId  String
+  amount    Float
+  currency  String    @default("ZAR")
+  status    String    @default("DRAFT")
+  dueDate   DateTime?
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model TenantUsage {
+  id               String   @id @default(uuid())
+  tenantId         String
+  tokensUsed       Int      @default(0)
+  messagesSent     Int      @default(0)
+  branches         Int      @default(0)
+  whatsappMessages Int      @default(0)
+  aiRequests       Int      @default(0)
+  storageBytes     BigInt   @default(0)
+  apiCalls         Int      @default(0)
+  activeQueues     Int      @default(0)
+  queueJoins       Int      @default(0)
+  operators        Int      @default(0)
+  periodStart      DateTime
+  periodEnd        DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, periodStart, periodEnd])
+  @@index([tenantId])
+}
+
+model WhatsAppTemplate {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  name      String
+  content   String
+  active    Boolean  @default(true)
+  isActive  Boolean  @default(true)
+  variables Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenantId  String?
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model ChatSession {
+  id         String   @id @default(uuid())
+  tenantId   String
+  phone      String
+  step       Int      @default(0) // 0: Menu, 1: Book Service, 2: Book Date, 3: Book Slot, etc.
+  context    Json? // To store temporary data (e.g. selected serviceId, date)
+  lastActive DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, phone])
+  @@index([tenantId])
+}
+
+model CommunicationLog {
+  id          String    @id @default(uuid())
+  channel     String
+  type        String
+  recipient   String
+  subject     String?
+  body        String?
+  status      String
+  provider    String
+  providerId  String?
+  error       String?
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+  failedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  tenantId    String?
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Invitation {
+  id                 String    @id @default(uuid())
+  tenantId           String // PRIMARY scope — tenant-wide invitations
+  code               String    @unique
+  email              String?
+  role               Role      @default(OPERATOR)
+  used               Boolean   @default(false)
+  usedCount          Int       @default(0)
+  maxUses            Int       @default(1)
+  usedAt             DateTime?
+  expiresAt          DateTime?
+  createdAt          DateTime  @default(now())
+  allowedLocationIds String[]  @default([])
+  allowedServiceIds  String[]  @default([])
+  allowedPages       String[]  @default([])
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([code])
+}
+
+model WebhookEvent {
+  id               String                  @id @default(uuid())
+  tenantId         String
+  transactionId    String?
+  eventType        WebhookEventType
+  payload          Json
+  headers          Json?
+  provider         String?
+  processingStatus WebhookProcessingStatus @default(PENDING)
+  processingResult Json?
+  signatureValid   Boolean?
+  processedAt      DateTime?
+  error            String?
+  createdAt        DateTime                @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([eventType])
+  @@index([transactionId])
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  visits       Visit[]
+  appointments Appointment[]
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Location {
+  id             String   @id @default(uuid())
+  tenantId       String
+  name           String
+  address        String?
+  city           String?
+  timezone       String   @default("UTC")
+  businessHours  Json?
+  exceptionDates Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // ── Wayfinding (for SEF step navigation instructions) ────────────────────
+  totalFloors Int? // Number of floors in the building
+  buildingMap Json? // [{floor:1,label:"Ground",rooms:["A1","B1"],description:"Reception"}]
+
+  services     Service[]
+  staff        Staff[]
+  resources    Resource[]
+  visits       Visit[]
+  appointments Appointment[]
+  queues       Queue[]
+  blockOffs    BlockOff[]
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  googleIntegrationId String?
+  googlePlaceId       String?
+  googleCalendarId    String?
+  googleIntegration   GoogleIntegration? @relation(fields: [googleIntegrationId], references: [id], onDelete: SetNull)
+
+  frozenByQuota Boolean   @default(false)
+  frozenAt      DateTime?
+
+  @@index([tenantId])
+  @@index([googleIntegrationId])
+}
+
+model GoogleIntegration {
+  id           String    @id @default(uuid())
+  tenantId     String
+  googleId     String
+  email        String
+  accessToken  String
+  refreshToken String?
+  tokenExpiry  DateTime?
+  createdAt    DateTime  @default(now())
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  locations Location[] // Locations using this specific Google account
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+model Service {
+  id                         String   @id @default(uuid())
+  tenantId                   String
+  locationId                 String?
+  name                       String
+  description                String?
+  expectedDuration           Int      @default(30)
+  bufferDuration             Int      @default(0)
+  concurrentSlots            Int      @default(1)
+  minDuration                Int?
+  maxDuration                Int?
+  formConfig                 Json?
+  allowAppointments          Boolean  @default(false)
+  requireManualCheckIn       Boolean  @default(false)
+  appointmentGranularityMins Int      @default(15)
+  dateSelectionType          String   @default("calendar")
+  maxDaysInAdvance           Int      @default(30)
+  avgActualDurationMins      Int?
+  emaExpectedDuration        Float?
+  slaPolicyId                String?
+  requiredSkills             String[] @default([])
+
+  // Cascading Scheduling & Availability
+  useLocationHours       Boolean @default(true)
+  businessHoursOverride  Json?
+  exceptionDatesOverride Json?
+
+  // ── Booking Payments ─────────────────────────────────────────────────────
+  requiresPayment     Boolean @default(false)
+  basePrice           Float? // Base price in minor units' currency
+  priceCurrency       String  @default("ZAR")
+  paymentMode         String  @default("NONE") // NONE | PREPAY | PAY_AT_SERVICE | OPTIONAL_PREPAY
+  allowOfflinePayment Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  visits       Visit[]
+  appointments Appointment[]
+  queues       Queue[]       @relation("QueueToService")
+  resources    Resource[]
+  slaPolicy    SlaPolicy?    @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+
+  allowProviderSelection Boolean @default(false)
+  staff                  Staff[] @relation("StaffToService")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  frozenByQuota Boolean   @default(false)
+  frozenAt      DateTime?
+
+  // SEF relation
+  serviceFlow ServiceFlow?
+
+  @@index([tenantId])
+  @@index([locationId])
+}
+
+model Staff {
+  id         String   @id @default(uuid())
+  tenantId   String
+  locationId String?
+  userId     String? // Optional link to a User (Member) account
+  name       String
+  title      String? // e.g. "Senior Dentist", "Lead Barber"
+  email      String? // Display email, not login
+  phone      String?
+  bio        String? // Short public-facing bio shown to customers
+  avatarUrl  String?
+  color      String? // Hex color for calendar/UI color-coding
+  status     String   @default("ACTIVE") // ACTIVE | INACTIVE | ON_LEAVE
+  capacity   Int      @default(1) // Max simultaneous active bookings
+  skills     String[] @default([]) // Skills this staff member possesses
+
+  // Availability (JSON for speed; migrate to relational later if needed)
+  weeklySchedule Json? // [{day:"MONDAY",startTime:"09:00",endTime:"17:00",enabled:true}]
+  exceptionDates Json? // [{date:"2026-12-25",reason:"Christmas",allDay:true}]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  visits       Visit[]
+  appointments Appointment[]
+  services     Service[]     @relation("StaffToService")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([locationId])
+  @@index([userId])
+}
+
+model Resource {
+  id         String   @id @default(uuid())
+  tenantId   String
+  locationId String?
+  name       String
+  type       String?
+  status     String   @default("ACTIVE")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  visits       Visit[]
+  appointments Appointment[]
+  services     Service[]
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([locationId])
+}
+
+model Appointment {
+  id                 String            @id @default(uuid())
+  tenantId           String
+  customerId         String?
+  locationId         String
+  serviceId          String
+  staffId            String?
+  resourceId         String?
+  scheduledStart     DateTime
+  scheduledEnd       DateTime
+  status             AppointmentStatus @default(SCHEDULED)
+  bookingSource      VisitSource       @default(APPOINTMENT)
+  customerNotes      String?
+  accompanyingGuests Int               @default(0)
+  formData           Json?
+  reminderStatus     String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  // ── Booking Payment ───────────────────────────────────────────────────────
+  requiresPayment        Boolean @default(false)
+  paymentStatus          String  @default("NOT_REQUIRED") // NOT_REQUIRED | PENDING | PAID | WAIVED
+  pendingPaymentIntentId String? // Stripe PaymentIntent ID awaiting confirmation
+
+  visits          Visit[]
+  bookingPayments BookingPayment[]
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  location Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  service  Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  staff    Staff?    @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  resource Resource? @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([locationId])
+  @@index([serviceId])
+  @@index([scheduledStart])
+}
+
+model Visit {
+  id                 String      @id @default(uuid())
+  tenantId           String
+  customerId         String
+  locationId         String
+  serviceId          String
+  appointmentId      String?
+  source             VisitSource @default(WALK_IN)
+  scheduledTime      DateTime?
+  actualArrival      DateTime?
+  checkInTime        DateTime?
+  waitingStart       DateTime?
+  serviceStart       DateTime?
+  serviceEnd         DateTime?
+  completedAt        DateTime?
+  assignedStaffId    String?
+  assignedResourceId String?
+  currentState       VisitState  @default(CREATED)
+  priority           Int         @default(0)
+  queueId            String?
+  notes              String?
+  tags               String[]    @default([])
+  metadata           Json?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  // Hybrid Queue Fields
+  displayId          String?
+  accessToken        String    @unique @default(uuid())
+  operatorId         String?
+  operatorUser       User?     @relation("OperatorVisits", fields: [operatorId], references: [id])
+  cancelledBy        String?
+  cancelReason       String?
+  language           String    @default("en")
+  rating             Int?
+  feedbackText       String?
+  surveySent         Boolean   @default(false)
+  purpose            String?
+  accompanyingGuests Int       @default(0)
+  formResponses      Json?
+  itinerary          Json? // Legacy: [{serviceId,status}]. Superseded by VisitStep for flow-enabled visits.
+  slaStatus          String    @default("OK")
+  messages           Message[]
+
+  // ── Service Execution Flow ────────────────────────────────────────────────
+  flowId        String? // FK to ServiceFlow (if this visit uses a flow)
+  currentStepId String? // FK to current active VisitStep (denormalized for perf)
+  flowStatus    String  @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | ABANDONED
+
+  visitSteps      VisitStep[]
+  bookingPayments BookingPayment[]
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  location    Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  service     Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  staff       Staff?       @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  resource    Resource?    @relation(fields: [assignedResourceId], references: [id], onDelete: SetNull)
+  queue       Queue?       @relation(fields: [queueId], references: [id], onDelete: SetNull)
+  flow        ServiceFlow? @relation(fields: [flowId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([locationId])
+  @@index([currentState])
+  @@index([customerId])
+  @@index([queueId])
+  @@index([flowId])
+}
+
+model Policy {
+  id        String     @id @default(uuid())
+  type      PolicyType
+  version   String // e.g., "1.0.0"
+  content   String     @db.Text
+  active    Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  acceptances PolicyAcceptance[]
+
+  @@unique([type, version])
+}
+
+model PolicyAcceptance {
+  id         String   @id @default(uuid())
+  userId     String
+  policyId   String
+  ipAddress  String?
+  userAgent  String?
+  acceptedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  policy Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([policyId])
+}
+
+model CookiePreference {
+  id          String   @id @default(uuid())
+  userId      String? // Optional, can be anonymous
+  anonymousId String?  @unique // For non-logged in users
+  necessary   Boolean  @default(true)
+  analytics   Boolean  @default(false)
+  functional  Boolean  @default(false)
+  marketing   Boolean  @default(false)
+  ipAddress   String?
+  userAgent   String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([anonymousId])
+}
+
+model UserSession {
+  id           String   @id @default(uuid())
+  userId       String
+  token        String   @unique
+  ipAddress    String?
+  userAgent    String?
+  deviceInfo   Json?
+  lastActiveAt DateTime @default(now())
+  expiresAt    DateTime
+  isRevoked    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model OutboxEvent {
+  id          String    @id @default(uuid())
+  type        String
+  payload     Json
+  status      String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  error       String?
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SystemLog {
+  id         String   @id @default(uuid())
+  level      String // INFO, WARN, ERROR
+  message    String
+  stackTrace String?
+  context    Json?
+  tenantId   String?
+  createdAt  DateTime @default(now())
+
+  @@index([level])
+  @@index([createdAt])
+}
+
+model EnterpriseInquiry {
+  id          String   @id @default(uuid())
+  tenantId    String?
+  name        String
+  email       String
+  companyName String
+  phone       String?
+  message     String   @db.Text
+  status      String   @default("PENDING") // PENDING, CONTACTED, RESOLVED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+}
+
+model Blog {
+  id             String    @id @default(uuid())
+  title          String
+  slug           String    @unique
+  excerpt        String?
+  content        String    @db.Text
+  coverImage     String?
+  authorName     String?
+  seoTitle       String?
+  seoDescription String?
+  published      Boolean   @default(false)
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([slug])
+}
+
+model MarketingSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  source    String   @default("WEBSITE")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model BlockOff {
+  id         String   @id @default(uuid())
+  tenantId   String
+  locationId String?
+  queueId    String? // Optional: if null, applies to all queues in location/tenant
+  startTime  DateTime
+  endTime    DateTime
+  reason     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  queue    Queue?    @relation(fields: [queueId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, startTime])
+  @@index([locationId])
+  @@index([queueId])
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SERVICE EXECUTION FLOW (SEF) MODELS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// The BLUEPRINT — defines the multi-stage journey for a service
+model ServiceFlow {
+  id                     String  @id @default(uuid())
+  tenantId               String
+  serviceId              String  @unique // One flow per service
+  name                   String
+  description            String?
+  isActive               Boolean @default(true)
+  allowPartialCompletion Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  service Service            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  steps   FlowStepTemplate[]
+  visits  Visit[]
+
+  @@index([tenantId])
+}
+
+// One stage in the BLUEPRINT
+model FlowStepTemplate {
+  id          String      @id @default(uuid())
+  flowId      String
+  stepOrder   Int
+  name        String
+  description String?
+  type        StepType    @default(SERVICE)
+  trigger     StepTrigger @default(MANUAL_STAFF)
+
+  // ── Service / Queue Linkage ──────────────────────────────────────────────
+  serviceId String? // Which service handles this step
+  queueId   String? // Which queue (null = service's default queue)
+
+  // ── Behaviour Flags ──────────────────────────────────────────────────────
+  isOptional          Boolean @default(false)
+  isRepeatable        Boolean @default(false)
+  requiresQrScan      Boolean @default(true)
+  requiresStaffAction Boolean @default(true)
+  prerequisites       Json? // [{stepOrder: 2, status: "DONE"}]
+
+  // ── Timing & Deferral ────────────────────────────────────────────────────
+  deferredByDays    Int?
+  deferredByHours   Int?
+  expiresAfterDays  Int?
+  expiresAfterHours Int?
+
+  // ── Entitlement / Collection ─────────────────────────────────────────────
+  entitlementUnit         String?
+  entitlementFixed        Int? // Fixed quantity (e.g. 4 plates)
+  entitlementFormula      String? // e.g. "accompanyingGuests + 1"
+  allowPartialRedemption  Boolean @default(false)
+  preventDoubleRedemption Boolean @default(true)
+
+  // ── Wayfinding & Instructions ────────────────────────────────────────────
+  customerInstruction String? // Shown on customer's digital ticket / WhatsApp
+  staffInstruction    String? // Shown on staff scanner result screen
+  locationDescription String? // e.g. "Ground Floor, Counter B, near Reception"
+  floorNumber         Int?
+  roomNumber          String?
+  buildingWing        String?
+  mapImageUrl         String?
+
+  // ── Notifications ────────────────────────────────────────────────────────
+  notifyCustomerOnActivation Boolean @default(true)
+  notificationTemplate       String?
+  notifyStaffOnActivation    Boolean @default(false)
+
+  // ── Pricing (for PAYMENT type steps) ────────────────────────────────────
+  stepPrice         Float?
+  stepPriceCurrency String  @default("ZAR")
+  isPriceVariable   Boolean @default(false)
+
+  // ── Post-Step Outcomes ───────────────────────────────────────────────────
+  outcomeOptions Json? // String[] — staff selects outcome after completing step
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  flow        ServiceFlow          @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  transitions FlowStepTransition[] @relation("FromStep")
+  visitSteps  VisitStep[]
+
+  @@index([flowId])
+  @@index([serviceId])
+}
+
+// Routing rules between steps (enables conditional branching)
+model FlowStepTransition {
+  id         String  @id @default(uuid())
+  fromStepId String
+  toStepId   String? // null = end of journey
+  flowId     String
+
+  condition Json? // e.g. {"outcome": "Needs Tests"} — null = default/always
+  label     String? // e.g. "Normal Result", "Abnormal — Refer"
+  priority  Int     @default(0)
+  isDefault Boolean @default(false)
+
+  fromStep FlowStepTemplate @relation("FromStep", fields: [fromStepId], references: [id], onDelete: Cascade)
+
+  @@index([fromStepId])
+  @@index([flowId])
+}
+
+// The RUNTIME INSTANCE — one VisitStep per FlowStepTemplate per Visit
+model VisitStep {
+  id             String   @id @default(uuid())
+  visitId        String
+  templateStepId String
+  tenantId       String
+  stepOrder      Int
+  name           String // Copied from template at instantiation
+  type           StepType
+
+  status VisitStepStatus @default(LOCKED)
+
+  // ── Assignment ────────────────────────────────────────────────────────────
+  serviceId       String?
+  queueId         String?
+  assignedStaffId String?
+
+  // ── Timestamps ────────────────────────────────────────────────────────────
+  unlockedAt    DateTime?
+  deferredUntil DateTime? // Earliest actionable time (for deferred steps)
+  expiresAt     DateTime?
+  queuedAt      DateTime?
+  activatedAt   DateTime?
+  completedAt   DateTime?
+  skippedAt     DateTime?
+
+  // ── Entitlement Tracking ─────────────────────────────────────────────────
+  quantityAllocated Int? // e.g. 4 plates (resolved from formula at instantiation)
+  quantityRedeemed  Int       @default(0)
+  lastRedeemedAt    DateTime?
+  lastRedeemedBy    String? // Staff userId
+
+  // ── Staff Outcome ─────────────────────────────────────────────────────────
+  outcome    String? // Selected from template's outcomeOptions
+  staffNotes String?
+
+  // ── Payment ───────────────────────────────────────────────────────────────
+  amountCharged Float?
+  paymentRef    String?
+  paymentStatus String? // PENDING | PAID | WAIVED
+
+  // ── Runtime Overrides ─────────────────────────────────────────────────────
+  isSkipped Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  visit           Visit            @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  templateStep    FlowStepTemplate @relation(fields: [templateStepId], references: [id], onDelete: Cascade)
+  events          VisitStepEvent[]
+  bookingPayments BookingPayment[]
+
+  @@index([visitId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([templateStepId])
+}
+
+// Append-only event log for every action on a VisitStep
+model VisitStepEvent {
+  id          String @id @default(uuid())
+  visitStepId String
+  visitId     String
+  tenantId    String
+
+  eventType StepEventType
+  actorType String // STAFF | CUSTOMER | SYSTEM
+  actorId   String? // User ID of staff, or null
+
+  payload Json?
+  notes   String?
+
+  createdAt DateTime @default(now())
+
+  visitStep VisitStep @relation(fields: [visitStepId], references: [id], onDelete: Cascade)
+
+  @@index([visitStepId])
+  @@index([visitId])
+  @@index([tenantId])
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BOOKING PAYMENT MODELS (Stripe Connect)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// One per tenant — stores their Stripe Connect credentials
+model TenantPaymentAccount {
+  id       String @id @default(uuid())
+  tenantId String @unique
+
+  provider           String  @default("stripe") // stripe | adyen | payfast
+  connectedAccountId String? // Stripe: acct_xxxx
+  accountStatus      String  @default("NOT_CONNECTED")
+  // NOT_CONNECTED | ONBOARDING | RESTRICTED | ENABLED | DISABLED
+
+  onboardingCompletedAt DateTime?
+  stripeOnboardingUrl   String? // Temp URL for onboarding redirect
+
+  // Stripe capabilities (synced via webhook)
+  chargesEnabled   Boolean @default(false)
+  payoutsEnabled   Boolean @default(false)
+  detailsSubmitted Boolean @default(false)
+
+  // Requirements (synced from Stripe)
+  currentlyDue        Json?
+  eventuallyDue       Json?
+  pendingVerification Json?
+
+  // Platform fee config (overrides global default if set per tenant)
+  platformFeePercent Float? // e.g. 5.0. Null = use plan default
+  platformFeeFixed   Float? // Flat fee per transaction (additional)
+  feeMode            String @default("PERCENT") // PERCENT | FIXED | PERCENT_PLUS_FIXED
+
+  currency           String @default("ZAR") // Tenant's preferred operating currency
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payments BookingPayment[]
+
+  @@index([connectedAccountId])
+}
+
+// One per booking payment transaction
+model BookingPayment {
+  id                     String  @id @default(uuid())
+  tenantId               String
+  tenantPaymentAccountId String? // FK to TenantPaymentAccount
+  appointmentId          String?
+  visitId                String?
+  visitStepId            String?
+  customerId             String?
+
+  // Amounts (in currency units, e.g. ZAR)
+  amount            Float // Total charged to customer
+  platformFeeAmount Float // Amount going to Qmova
+  tenantNetAmount   Float // Amount going to tenant
+  currency          String @default("ZAR")
+
+  status BookingPaymentStatus @default(PENDING)
+
+  // Stripe data
+  stripePaymentIntentId   String? @unique
+  stripeChargeId          String?
+  stripePaymentMethodType String?
+
+  // Metadata
+  description String?
+  receiptUrl  String?
+  metadata    Json?
+
+  // Refund tracking
+  refundedAmount Float     @default(0)
+  refundedAt     DateTime?
+  refundReason   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant         Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  paymentAccount TenantPaymentAccount? @relation(fields: [tenantPaymentAccountId], references: [id], onDelete: SetNull)
+  appointment    Appointment?          @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  visit          Visit?                @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  visitStep      VisitStep?            @relation(fields: [visitStepId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantPaymentAccountId])
+  @@index([appointmentId])
+  @@index([visitId])
+  @@index([stripePaymentIntentId])
+}
+
+// ── Blueprint Templates (Dynamic Industry Templates) ───────────────────────
+model BlueprintFlow {
+  id            String   @id @default(uuid())
+  key           String   @unique // e.g., 'hospital_consultation'
+  name          String
+  description   String?
+  businessTypes String[] @default([]) // Array of strings like ['hospital', 'clinic']
+  tenantId      String? // If null, it's a global platform template. If set, it's a private tenant template.
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  steps  BlueprintStep[]
+  tenant Tenant?         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model BlueprintStep {
+  id          String      @id @default(uuid())
+  blueprintId String
+  stepOrder   Int
+  name        String
+  description String?
+  type        StepType    @default(SERVICE)
+  trigger     StepTrigger @default(MANUAL_STAFF)
+
+  // Behaviour
+  isOptional          Boolean @default(false)
+  requiresQrScan      Boolean @default(true)
+  requiresStaffAction Boolean @default(true)
+
+  // Deferral
+  deferredByDays  Int?
+  deferredByHours Int?
+
+  // Entitlement
+  entitlementUnit         String?
+  entitlementFixed        Int?
+  entitlementFormula      String?
+  allowPartialRedemption  Boolean @default(false)
+  preventDoubleRedemption Boolean @default(true)
+
+  // Wayfinding
+  customerInstruction String?
+  staffInstruction    String?
+  locationDescription String?
+
+  // Notifications & Outcomes
+  notifyCustomerOnActivation Boolean  @default(true)
+  outcomeOptions             String[] @default([])
+  stepPrice                  Float?
+  isPriceVariable            Boolean  @default(false)
+
+  blueprint BlueprintFlow @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+
+  @@index([blueprintId])
 }
