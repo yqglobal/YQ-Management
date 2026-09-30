@@ -37,6 +37,10 @@ export class CreatePlanDto {
   @IsOptional()
   price?: number;
 
+  @IsNumber()
+  @IsOptional()
+  annualPrice?: number;
+
   @IsString()
   @IsOptional()
   currency?: string;
@@ -74,6 +78,10 @@ export class UpdatePlanDto {
   @IsNumber()
   @IsOptional()
   price?: number;
+
+  @IsNumber()
+  @IsOptional()
+  annualPrice?: number;
 
   @IsString()
   @IsOptional()

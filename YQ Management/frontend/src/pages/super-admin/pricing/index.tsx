@@ -21,6 +21,7 @@ export interface PlanData {
   name: string;
   description: string;
   price: number;
+  annualPrice: number;
   currency: string;
   billingInterval: string;
   trialDays: number;
@@ -123,9 +124,21 @@ export default function PricingHub() {
                     </div>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-zinc-400 min-h-[40px]">{plan.description}</p>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-3xl font-black text-gray-900 dark:text-white">{plan.currency === 'ZAR' ? 'R' : '$'}{plan.price}</span>
-                    <span className="text-sm text-gray-500 dark:text-zinc-400">/{plan.billingInterval}</span>
+                  <div className="mt-4 flex flex-col gap-1">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-gray-900 dark:text-white">{plan.currency === 'ZAR' ? 'R' : '$'}{plan.price}</span>
+                      <span className="text-sm text-gray-500 dark:text-zinc-400">/mo</span>
+                    </div>
+                    {plan.annualPrice > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-600 dark:text-zinc-400">
+                          {plan.currency === 'ZAR' ? 'R' : '$'}{plan.annualPrice} /yr
+                        </span>
+                        <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full font-bold">
+                          {Math.round(((plan.price * 12 - plan.annualPrice) / (plan.price * 12)) * 100)}% OFF
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -180,14 +193,18 @@ export default function PricingHub() {
                 <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white"><X className="w-6 h-6" /></button>
               </div>
               <div className="p-6 space-y-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700 dark:text-zinc-300">Plan Name</label>
                     <input type="text" value={editingPlan?.name} onChange={e => setEditingPlan({...editingPlan as PlanData, name: e.target.value})} className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700 dark:text-zinc-300">Price (Monthly)</label>
+                    <label className="text-sm font-bold text-gray-700 dark:text-zinc-300">Monthly Price</label>
                     <input type="number" value={editingPlan?.price} onChange={e => setEditingPlan({...editingPlan as PlanData, price: Number(e.target.value)})} className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-700 dark:text-zinc-300">Yearly Price</label>
+                    <input type="number" value={editingPlan?.annualPrice} onChange={e => setEditingPlan({...editingPlan as PlanData, annualPrice: Number(e.target.value)})} className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
                   </div>
                 </div>
                 

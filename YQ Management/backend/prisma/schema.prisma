@@ -429,6 +429,7 @@ model Plan {
   description           String?
   type                  String         @default("standard")
   price                 Float
+  annualPrice           Float          @default(0)
   currency              String         @default("ZAR")
   interval              String         @default("monthly")
   billingInterval       String         @default("monthly")

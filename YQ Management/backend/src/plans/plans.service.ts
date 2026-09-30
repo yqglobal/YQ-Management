@@ -144,6 +144,7 @@ export class PlansService {
         active: (dto.status || 'ACTIVE') === 'ACTIVE',
         billingInterval: dto.billingInterval || 'monthly',
         price: dto.price ?? 0,
+        annualPrice: dto.annualPrice ?? 0,
         currency: dto.currency || 'ZAR',
         trialDays: dto.trialDays ?? 0,
         features: (dto.features ?? null) as any,
@@ -163,6 +164,7 @@ export class PlansService {
     if (dto.billingInterval !== undefined)
       data.billingInterval = dto.billingInterval;
     if (dto.price !== undefined) data.price = dto.price;
+    if (dto.annualPrice !== undefined) data.annualPrice = dto.annualPrice;
     if (dto.currency !== undefined) data.currency = dto.currency;
     if (dto.trialDays !== undefined) data.trialDays = dto.trialDays;
     if (dto.features !== undefined) data.features = dto.features;
@@ -196,6 +198,7 @@ export class PlansService {
         type: existing.type,
         billingInterval: existing.billingInterval,
         price: existing.price,
+        annualPrice: existing.annualPrice,
         currency: existing.currency,
         trialDays: existing.trialDays,
         features: existing.features ?? undefined,

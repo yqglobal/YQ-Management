@@ -13,6 +13,7 @@ interface Plan {
   name: string;
   description: string;
   price: number;
+  annualPrice: number;
   currency: string;
   interval: string;
   features: {
@@ -32,6 +33,7 @@ interface PricingProps {
 
 export default function PricingPage({ plans }: PricingProps) {
   const { user } = useAuth();
+  const [isYearly, setIsYearly] = React.useState(false);
   
   return (
     <div className="dark bg-[#09090b] min-h-screen font-body-md text-white antialiased overflow-x-hidden selection:bg-sky-500/30">
@@ -91,6 +93,27 @@ export default function PricingPage({ plans }: PricingProps) {
           >
             Start for free, upgrade when you need to. No hidden fees or surprise charges.
           </motion.p>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="flex items-center gap-4 mt-8 bg-[#0f1219] p-2 rounded-full border border-white/10"
+          >
+            <button
+              onClick={() => setIsYearly(false)}
+              className={`px-6 py-2 rounded-full font-medium transition-colors ${!isYearly ? 'bg-sky-500 text-white' : 'text-zinc-400 hover:text-white'}`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setIsYearly(true)}
+              className={`px-6 py-2 rounded-full font-medium transition-colors flex items-center gap-2 ${isYearly ? 'bg-sky-500 text-white' : 'text-zinc-400 hover:text-white'}`}
+            >
+              Yearly
+              <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${isYearly ? 'bg-white/20 text-white' : 'bg-emerald-500/20 text-emerald-400'}`}>Save up to 20%</span>
+            </button>
+          </motion.div>
         </div>
       </section>
 
@@ -114,11 +137,25 @@ export default function PricingPage({ plans }: PricingProps) {
                 )}
                 <h3 className="text-xl font-semibold text-white mb-2">{plan.name}</h3>
                 <p className="text-sm text-zinc-400 mb-6">{plan.description || "Everything you need to get started."}</p>
-                <div className="mb-8">
+                <div className="mb-8 relative">
+                  {isYearly && plan.annualPrice > 0 && plan.price > 0 && (
+                    <div className="absolute -top-6 right-0 bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2 py-1 rounded-full">
+                      {Math.round(((plan.price * 12 - plan.annualPrice) / (plan.price * 12)) * 100)}% OFF
+                    </div>
+                  )}
                   <span className="text-4xl font-bold text-white">
-                    {plan.price === 0 ? "Free" : `${plan.currency === 'ZAR' ? 'R' : '$'}${plan.price}`}
+                    {plan.price === 0 ? "Free" : `${plan.currency === 'ZAR' ? 'R' : '$'}${isYearly && plan.annualPrice > 0 ? (plan.annualPrice / 12).toFixed(0) : plan.price}`}
                   </span>
-                  {plan.price > 0 && <span className="text-zinc-500">/{plan.interval || 'month'}</span>}
+                  {plan.price > 0 && (
+                    <div className="inline-flex flex-col ml-1">
+                      <span className="text-zinc-500">/mo</span>
+                    </div>
+                  )}
+                  {isYearly && plan.annualPrice > 0 && plan.price > 0 && (
+                    <div className="text-sm text-zinc-400 mt-1">
+                      Billed {plan.currency === 'ZAR' ? 'R' : '$'}{plan.annualPrice} yearly
+                    </div>
+                  )}
                 </div>
                 <Link href="/register" className={`w-full block py-3 px-6 rounded-xl ${isPopular ? 'bg-sky-500 hover:bg-sky-400 font-bold shadow-lg shadow-sky-500/25' : 'bg-white/10 hover:bg-white/20 font-medium'} text-white text-center transition-colors mb-8`}>
                   Start Free Trial
