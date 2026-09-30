@@ -306,7 +306,8 @@ export function MatrixCalendar({
   // Auto-scroll to current time on today
   useEffect(() => {
     if (now && currentDate.toDateString() === now.toDateString() && scrollRef.current && !hasScrolledRef.current) {
-      const nowPx = LEFT_SIDEBAR_WIDTH + minutesToPx(now.getHours() * 60 + now.getMinutes());
+      const pct = minutesToPercent(now.getHours() * 60 + now.getMinutes());
+      const nowPx = LEFT_SIDEBAR_WIDTH + (pct / 100) * (QUARTER_HOUR_COLS * (HOUR_WIDTH / 4));
       // scroll so the current time is slightly offset from the left to show more of the future
       scrollRef.current.scrollTo({ left: Math.max(0, nowPx - (LEFT_SIDEBAR_WIDTH + 20)), behavior: 'smooth' });
       hasScrolledRef.current = true;
@@ -556,7 +557,7 @@ export function MatrixCalendar({
                   {now && currentDate.toDateString() === now.toDateString() && (
                     <div
                       className="absolute inset-y-0 left-0 bg-zinc-500/[0.03] dark:bg-zinc-800/20 pointer-events-none z-0"
-                      style={{ width: `${minutesToPx(now.getHours() * 60 + now.getMinutes())}px` }}
+                      style={{ width: `${minutesToPercent(now.getHours() * 60 + now.getMinutes())}%` }}
                     />
                   )}
 
@@ -593,13 +594,13 @@ export function MatrixCalendar({
                       // Check if slot overlaps a booked range
                       const overlaps = bookedRanges.some(r => mins < r.end && (mins + slotDuration) > r.start);
                       if (!overlaps) {
-                        const leftPx = minutesToPx(mins);
-                        const widthPx = minutesToPx(slotDuration);
+                        const leftPct = minutesToPercent(mins);
+                        const widthPct = durationToPercent(slotDuration, mins);
                         placeholders.push(
                           <SlotPlaceholder
                             key={`slot-${mins}`}
-                            leftPct={leftPx}
-                            widthPct={widthPx}
+                            leftPct={leftPct}
+                            widthPct={widthPct}
                           />
                         );
                       }
@@ -615,7 +616,7 @@ export function MatrixCalendar({
                       <IdleBlock
                         key={`gap-${gi}`}
                         leftPct={minutesToPercent(startMins)}
-                        widthPct={minutesToPx(endMins - startMins)}
+                        widthPct={durationToPercent(endMins - startMins, startMins)}
                         durationMins={gap.durationMins}
                       />
                     );
@@ -628,7 +629,7 @@ export function MatrixCalendar({
                       timeStr = item.serviceStart;
                     }
                     const startMins = minutesFromMidnight(timeStr);
-                    const leftPx = minutesToPx(startMins);
+                    const leftPct = minutesToPercent(startMins);
 
                     let durationMins = row.effectiveDurationMins;
                     if (item._type === 'Appointment' && item.scheduledStart && item.scheduledEnd) {
@@ -638,7 +639,7 @@ export function MatrixCalendar({
                       durationMins = Math.max((new Date(end).getTime() - new Date(item.serviceStart).getTime()) / 60000, 15); // min 15m display
                     }
 
-                    const widthPx = minutesToPx(Math.max(durationMins, row.effectiveDurationMins));
+                    const widthPct = durationToPercent(Math.max(durationMins, row.effectiveDurationMins), startMins);
                     const laneTopPx = 8 + lanes[i] * (LANE_HEIGHT + LANE_MARGIN);
                     const isDraggable = !!onReschedule && item._type === 'Appointment';
 
@@ -646,8 +647,8 @@ export function MatrixCalendar({
                       <React.Fragment key={item.id || i}>
                         <AppointmentCard
                           apt={item}
-                          leftPct={leftPx}
-                          widthPct={widthPx}
+                          leftPct={leftPct}
+                          widthPct={widthPct}
                           topPx={laneTopPx}
                           isDraggable={isDraggable}
                           onClick={() => onSelectApt?.(item)}
@@ -655,8 +656,8 @@ export function MatrixCalendar({
                         {/* Buffer zone */}
                         {showBufferZones && row.bufferDuration > 0 && item._type === 'Appointment' && (
                           <BufferZone
-                            leftPct={leftPx + widthPx - 2}
-                            widthPct={minutesToPx(row.bufferDuration)}
+                            leftPct={leftPct + widthPct - 2}
+                            widthPct={durationToPercent(row.bufferDuration, startMins + Math.max(durationMins, row.effectiveDurationMins))}
                           />
                         )}
                       </React.Fragment>
