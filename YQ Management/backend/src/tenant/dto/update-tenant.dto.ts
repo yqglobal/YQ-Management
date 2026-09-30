@@ -40,4 +40,11 @@ export class UpdateTenantDto {
 
   @IsOptional()
   aiConfig?: any;
+  @IsOptional()
+  @IsBoolean()
+  selfServeModeEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  selfServeOtpEnabled?: boolean;
 }
