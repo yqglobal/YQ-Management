@@ -229,6 +229,11 @@ export class TenantService {
       businessType?: string;
       strictPrivacyMode?: boolean;
       aiConfig?: any;
+      supportEmail?: string | null;
+      supportPhone?: string | null;
+      showSupportInfo?: boolean;
+      selfServeModeEnabled?: boolean;
+      selfServeOtpEnabled?: boolean;
     },
   ) {
     const tenant = await this.prisma.tenant.findUnique({ where: { id } });
@@ -266,6 +271,12 @@ export class TenantService {
     if (data.strictPrivacyMode !== undefined)
       updateData.strictPrivacyMode = data.strictPrivacyMode;
     if (data.aiConfig !== undefined) updateData.aiConfig = data.aiConfig;
+    
+    if (data.supportEmail !== undefined) updateData.supportEmail = data.supportEmail;
+    if (data.supportPhone !== undefined) updateData.supportPhone = data.supportPhone;
+    if (data.showSupportInfo !== undefined) updateData.showSupportInfo = data.showSupportInfo;
+    if (data.selfServeModeEnabled !== undefined) updateData.selfServeModeEnabled = data.selfServeModeEnabled;
+    if (data.selfServeOtpEnabled !== undefined) updateData.selfServeOtpEnabled = data.selfServeOtpEnabled;
 
     return this.prisma.tenant.update({
       where: { id },
