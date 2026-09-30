@@ -1,12 +1,13 @@
 import { getTenantUrl } from "../../lib/utils";
 import React, { useState, useEffect } from 'react';
-import { Save, Loader2, Copy, ExternalLink } from 'lucide-react';
+import { Save, Loader2, Copy, ExternalLink, ChevronRight, ChevronLeft, CheckCircle2, ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SelectServiceModal } from '../modals/SelectServiceModal';
 import { ALL_INDUSTRY_CONFIGS } from '../../lib/industryConfig';
+import { INDUSTRY_GROUPS, type IndustryGroup, type SubIndustry } from '../../lib/subIndustries';
 import { Dialog, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 
@@ -304,7 +305,24 @@ export default function WorkspaceSettingsPage() {
   );
 }
 
-// ── Industry Template Selector (appended after main settings) ─────────────────
+// ── Industry & Sub-Industry Selector ─────────────────────────────────────────
+const COLOR_MAP: Record<string, { border: string; bg: string; text: string; badge: string; ring: string }> = {
+  sky:    { border: 'border-sky-400', bg: 'bg-sky-500/10 dark:bg-sky-500/10', text: 'text-sky-600 dark:text-sky-400', badge: 'bg-sky-500', ring: 'ring-sky-400' },
+  orange: { border: 'border-orange-400', bg: 'bg-orange-500/10', text: 'text-orange-600 dark:text-orange-400', badge: 'bg-orange-500', ring: 'ring-orange-400' },
+  pink:   { border: 'border-pink-400', bg: 'bg-pink-500/10', text: 'text-pink-600 dark:text-pink-400', badge: 'bg-pink-500', ring: 'ring-pink-400' },
+  indigo: { border: 'border-indigo-400', bg: 'bg-indigo-500/10', text: 'text-indigo-600 dark:text-indigo-400', badge: 'bg-indigo-500', ring: 'ring-indigo-400' },
+  amber:  { border: 'border-amber-400', bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', badge: 'bg-amber-500', ring: 'ring-amber-400' },
+  violet: { border: 'border-violet-400', bg: 'bg-violet-500/10', text: 'text-violet-600 dark:text-violet-400', badge: 'bg-violet-500', ring: 'ring-violet-400' },
+  teal:   { border: 'border-teal-400', bg: 'bg-teal-500/10', text: 'text-teal-600 dark:text-teal-400', badge: 'bg-teal-500', ring: 'ring-teal-400' },
+  green:  { border: 'border-green-400', bg: 'bg-green-500/10', text: 'text-green-600 dark:text-green-400', badge: 'bg-green-500', ring: 'ring-green-400' },
+  slate:  { border: 'border-slate-400', bg: 'bg-slate-500/10', text: 'text-slate-600 dark:text-slate-400', badge: 'bg-slate-500', ring: 'ring-slate-400' },
+  emerald:{ border: 'border-emerald-400', bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', badge: 'bg-emerald-500', ring: 'ring-emerald-400' },
+  blue:   { border: 'border-blue-400', bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', badge: 'bg-blue-500', ring: 'ring-blue-400' },
+  zinc:   { border: 'border-zinc-400', bg: 'bg-zinc-500/10', text: 'text-zinc-600 dark:text-zinc-400', badge: 'bg-zinc-500', ring: 'ring-zinc-400' },
+  rose:   { border: 'border-rose-400', bg: 'bg-rose-500/10', text: 'text-rose-600 dark:text-rose-400', badge: 'bg-rose-500', ring: 'ring-rose-400' },
+  purple: { border: 'border-purple-400', bg: 'bg-purple-500/10', text: 'text-purple-600 dark:text-purple-400', badge: 'bg-purple-500', ring: 'ring-purple-400' },
+};
+
 function IndustryTemplateCard({ businessType, setBusinessType, tenantId, queryClient }: {
   businessType: string;
   setBusinessType: (v: string) => void;
@@ -312,68 +330,63 @@ function IndustryTemplateCard({ businessType, setBusinessType, tenantId, queryCl
   queryClient: any;
 }) {
   const [saving, setSaving] = useState(false);
-  const [selectedNewIndustry, setSelectedNewIndustry] = useState<string | null>(null);
-  const industryList = Object.values(ALL_INDUSTRY_CONFIGS);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [selectedGroup, setSelectedGroup] = useState<IndustryGroup | null>(null);
+  const [pendingSub, setPendingSub] = useState<SubIndustry | null>(null);
+  const [provisionServices, setProvisionServices] = useState(true);
 
-  const handleCardClick = (newType: string) => {
-    if (!tenantId || newType === businessType) return;
-    setSelectedNewIndustry(newType);
+  const handleGroupClick = (group: IndustryGroup) => {
+    setSelectedGroup(group);
+    setStep(2);
+    setPendingSub(null);
   };
 
-  const handleConfirmSave = async (provisionServices: boolean) => {
-    if (!selectedNewIndustry) return;
+  const handleSubClick = (sub: SubIndustry) => {
+    setPendingSub(sub);
+  };
+
+  const handleConfirm = async () => {
+    if (!pendingSub || !tenantId) return;
     setSaving(true);
     try {
-      // 1. Update the tenant businessType
       await fetchApi(`/tenant/${tenantId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ businessType: selectedNewIndustry }),
+        body: JSON.stringify({ businessType: pendingSub.businessType }),
       });
-      
-      // 2. Provision services if requested
-      if (provisionServices) {
-        const template = ALL_INDUSTRY_CONFIGS[selectedNewIndustry as keyof typeof ALL_INDUSTRY_CONFIGS];
-        if (template && template.services) {
-          // Find first location to attach services to
-          const locations = await fetchApi('/location');
-          const locationId = locations.length > 0 ? locations[0].id : null;
-          
-          if (locationId) {
-            await Promise.all(template.services.map(async (s: any) => {
-              const service = await fetchApi('/service', {
-                method: 'POST',
-                body: JSON.stringify({ 
-                  name: `${s.name} Service`, 
-                  locationId,
-                  description: 'Auto-provisioned service',
-                  formConfig: s.formConfig,
-                  allowAppointments: true
-                }),
-              });
 
-              if (template.blueprintKey) {
-                await fetchApi(`/service-flows/templates/${template.blueprintKey}/apply?serviceId=${service.id}`, {
-                  method: 'POST'
-                }).catch((err: any) => {
-                  console.error('Failed to apply blueprint flow to service:', err);
-                });
-              }
-            }));
-            toast.success(`Industry updated and ${template.services.length} services provisioned!`);
-            queryClient.invalidateQueries({ queryKey: ['locations', 'services'] });
-          } else {
-            toast.success('Industry updated! (No locations found to provision services)');
+      if (provisionServices) {
+        const locations = await fetchApi('/location').catch(() => []);
+        const locationId = Array.isArray(locations) && locations.length > 0 ? locations[0].id : null;
+        if (locationId) {
+          const service = await fetchApi('/service', {
+            method: 'POST',
+            body: JSON.stringify({
+              name: `${pendingSub.label} Service`,
+              locationId,
+              description: `Auto-provisioned for ${pendingSub.label}`,
+              allowAppointments: true,
+            }),
+          }).catch(() => null);
+
+          if (service?.id) {
+            await fetchApi(`/service-flows/templates/${pendingSub.blueprintKey}/apply?serviceId=${service.id}`, {
+              method: 'POST',
+            }).catch((err: any) => console.warn('Blueprint apply failed:', err));
+            queryClient.invalidateQueries({ queryKey: ['services'] });
           }
         }
+        toast.success(`✅ ${pendingSub.label} set up with services & flow blueprint!`);
       } else {
-        toast.success('Industry template updated! Your dashboard will adapt immediately.');
+        toast.success(`✅ Business type updated to ${pendingSub.label}`);
       }
 
-      setBusinessType(selectedNewIndustry);
+      setBusinessType(pendingSub.businessType);
       queryClient.invalidateQueries({ queryKey: ['tenant', 'me'] });
-      setSelectedNewIndustry(null);
+      setStep(1);
+      setSelectedGroup(null);
+      setPendingSub(null);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update industry template');
+      toast.error(err.message || 'Failed to update business type');
     } finally {
       setSaving(false);
     }
@@ -381,116 +394,166 @@ function IndustryTemplateCard({ businessType, setBusinessType, tenantId, queryCl
 
   return (
     <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden">
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-emerald-500"></div>
+      <div className="absolute left-0 top-0 bottom-0 w-2 bg-emerald-500" />
+
+      {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
           <span className="material-symbols-outlined text-emerald-500 text-[22px]">category</span>
-          <h2 className="text-lg font-bold text-on-surface dark:text-white">Business Category</h2>
-          {saving && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
-        </div>
-        <p className="text-sm text-on-surface-variant dark:text-zinc-400">
-          Select the industry that best describes your business. This adapts your dashboard terminology, service desk layout, and available features to fit your workflow perfectly.
-        </p>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {industryList.map(cfg => {
-          const isSelected = businessType === cfg.id;
-          return (
+          <div className="flex items-center gap-2 flex-1">
+            <h2 className="text-lg font-bold text-on-surface dark:text-white">Business Category</h2>
+            {saving && <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />}
+          </div>
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-500">
             <button
-              key={cfg.id}
-              onClick={() => handleCardClick(cfg.id)}
-              disabled={saving}
-              className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center
-                ${isSelected
-                  ? 'border-primary bg-primary/5 shadow-md'
-                  : 'border-border dark:border-dark-border hover:border-primary/50 hover:bg-surface-container'
-                }`}
+              onClick={() => { setStep(1); setSelectedGroup(null); setPendingSub(null); }}
+              className={`font-semibold transition-colors ${step === 1 ? 'text-emerald-600 dark:text-emerald-400' : 'hover:text-on-surface dark:hover:text-white cursor-pointer'}`}
             >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center
-                ${isSelected ? 'bg-primary/10' : 'bg-surface-container'}`}
-              >
-                <span className={`material-symbols-outlined text-[22px] ${isSelected ? 'text-primary' : 'text-outline'}`}>
-                  {cfg.industryIcon}
-                </span>
-              </div>
-              <span className={`text-xs font-semibold ${isSelected ? 'text-primary' : 'text-on-surface dark:text-white'}`}>
-                {cfg.industryLabel}
-              </span>
-              {isSelected && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-white font-bold">Active</span>
-              )}
+              Industry
             </button>
-          );
-        })}
-      </div>
-      <ChangeIndustryModal 
-        isOpen={!!selectedNewIndustry}
-        onClose={() => setSelectedNewIndustry(null)}
-        newIndustryId={selectedNewIndustry}
-        onConfirm={handleConfirmSave}
-        isApplying={saving}
-      />
-    </div>
-  );
-}
-
-function ChangeIndustryModal({ isOpen, onClose, onConfirm, newIndustryId, isApplying }: {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: (provisionServices: boolean) => void;
-  newIndustryId: string | null;
-  isApplying: boolean;
-}) {
-  const [provisionServices, setProvisionServices] = useState(false);
-  const newIndustry = newIndustryId ? ALL_INDUSTRY_CONFIGS[newIndustryId as keyof typeof ALL_INDUSTRY_CONFIGS] : null;
-
-  if (!isOpen || !newIndustry) return null;
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose} className="sm:max-w-[550px] bg-surface dark:bg-zinc-900 border-border dark:border-zinc-800 p-8">
-      <div className="flex flex-col gap-4">
-        <div>
-          <DialogTitle className="text-xl text-on-surface dark:text-white">Change Business Category</DialogTitle>
-          <DialogDescription className="text-on-surface-variant dark:text-zinc-400 mt-2">
-            You are about to switch your workspace category to <b className="text-on-surface dark:text-white">{newIndustry.industryLabel}</b>.
-          </DialogDescription>
-        </div>
-        
-        <div className="py-2">
-          <p className="text-sm text-on-surface-variant dark:text-zinc-400 mb-6">
-            This will immediately adapt your dashboard terminology, icons, and menus to better fit the {newIndustry.industryLabel} workflow.
-          </p>
-
-          <div className="bg-surface-container-low dark:bg-black/20 border border-border dark:border-dark-border rounded-xl p-5 flex gap-4 items-start">
-            <input 
-              type="checkbox" 
-              id="provisionCheck"
-              className="mt-1 w-5 h-5 rounded border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-primary focus:ring-primary"
-              checked={provisionServices}
-              onChange={(e) => setProvisionServices(e.target.checked)}
-            />
-            <div>
-              <label htmlFor="provisionCheck" className="text-sm font-bold text-on-surface dark:text-white block cursor-pointer">
-                Also provision default {newIndustry.industryLabel} services & flows
-              </label>
-              <p className="text-[13px] leading-relaxed text-on-surface-variant dark:text-zinc-400 mt-2">
-                If checked, we will automatically create standard {newIndustry.industryLabel} services (e.g. {newIndustry.services?.slice(0,2).map((s:any) => s.name).join(', ')}) with their corresponding queue flows and blueprints. 
-                <br/><br/>
-                <span className="text-amber-600 dark:text-amber-500 font-semibold">Note:</span> Your existing services will remain completely untouched. You can manually delete old services if you no longer need them.
-              </p>
-            </div>
+            {step === 2 && (
+              <>
+                <ChevronRight className="w-3 h-3" />
+                <span className="text-on-surface dark:text-white font-semibold">{selectedGroup?.label}</span>
+              </>
+            )}
           </div>
         </div>
-
-        <div className="flex justify-end gap-2 mt-2">
-          <Button variant="outline" onClick={onClose} disabled={isApplying} className="dark:text-white dark:border-zinc-700 dark:hover:bg-zinc-800">Cancel</Button>
-          <Button onClick={() => onConfirm(provisionServices)} disabled={isApplying}>
-            {isApplying && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Confirm Change
-          </Button>
-        </div>
+        <p className="text-sm text-on-surface-variant dark:text-zinc-400">
+          {step === 1
+            ? 'Step 1: Choose your industry. This adapts your dashboard, terminology, and service desk to fit your business.'
+            : `Step 2: Choose the exact type of ${selectedGroup?.label} business you run to get a pre-configured flow blueprint.`
+          }
+        </p>
       </div>
-    </Dialog>
+
+      {/* Step 1 — Industry Groups */}
+      {step === 1 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {INDUSTRY_GROUPS.map(group => {
+            const colors = COLOR_MAP[group.color] ?? COLOR_MAP.slate;
+            const isActive = group.subIndustries.some(s => s.businessType === businessType);
+            return (
+              <button
+                key={group.id}
+                onClick={() => handleGroupClick(group)}
+                disabled={saving}
+                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all text-center group hover:-translate-y-0.5 hover:shadow-md ${
+                  isActive ? `${colors.border} ${colors.bg} shadow-sm` : 'border-border dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600'
+                }`}
+              >
+                <span className="text-2xl">{group.icon}</span>
+                <span className={`text-[11px] font-bold leading-tight ${isActive ? colors.text : 'text-on-surface dark:text-white'}`}>
+                  {group.label}
+                </span>
+                {isActive && (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${colors.badge} text-white font-bold`}>Active</span>
+                )}
+                <span className="text-[9px] text-zinc-400 dark:text-zinc-600 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors">
+                  {group.subIndustries.length} types
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Step 2 — Sub-Industries */}
+      {step === 2 && selectedGroup && (() => {
+        const colors = COLOR_MAP[selectedGroup.color] ?? COLOR_MAP.slate;
+        return (
+          <div>
+            <button
+              onClick={() => { setStep(1); setSelectedGroup(null); setPendingSub(null); }}
+              className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-on-surface dark:hover:text-white mb-5 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" /> Back to all industries
+            </button>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+              {selectedGroup.subIndustries.map(sub => {
+                const isSelected = pendingSub?.id === sub.id;
+                return (
+                  <button
+                    key={sub.id}
+                    onClick={() => handleSubClick(sub)}
+                    className={`flex flex-col gap-2 p-4 rounded-2xl border-2 text-left transition-all group ${
+                      isSelected
+                        ? `${colors.border} ${colors.bg}`
+                        : 'border-border dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600 hover:-translate-y-0.5 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xl">{sub.icon}</span>
+                      {isSelected && <CheckCircle2 className={`w-4 h-4 ${colors.text}`} />}
+                    </div>
+                    <div>
+                      <div className={`font-bold text-sm ${isSelected ? colors.text : 'text-on-surface dark:text-white'}`}>{sub.label}</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-0.5 leading-relaxed">{sub.description}</div>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {sub.whatYouGet.slice(0, 3).map((step, i) => (
+                        <span key={i} className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+                          {step}
+                        </span>
+                      ))}
+                      {sub.whatYouGet.length > 3 && (
+                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+                          +{sub.whatYouGet.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Confirm Panel */}
+            {pendingSub && (
+              <div className={`p-5 rounded-2xl border-2 ${colors.border} ${colors.bg}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Sparkles className={`w-4 h-4 ${colors.text}`} />
+                      <span className={`font-bold text-sm ${colors.text}`}>Ready to configure: {pendingSub.icon} {pendingSub.label}</span>
+                    </div>
+                    <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-3">Your flow blueprint will include:</div>
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {pendingSub.whatYouGet.map((step, i) => (
+                        <span key={i} className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                          <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />{step}
+                        </span>
+                      ))}
+                    </div>
+                    <label className="flex items-center gap-3 cursor-pointer p-3 bg-white dark:bg-zinc-800/60 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                      <input
+                        type="checkbox"
+                        checked={provisionServices}
+                        onChange={e => setProvisionServices(e.target.checked)}
+                        className="w-4 h-4 rounded text-emerald-600"
+                      />
+                      <div>
+                        <div className="text-sm font-semibold text-on-surface dark:text-white">Auto-create a service & apply the flow blueprint</div>
+                        <div className="text-xs text-zinc-500">Creates a ready-to-use service and configures the customer journey stages automatically. Existing services stay untouched.</div>
+                      </div>
+                    </label>
+                  </div>
+                  <button
+                    onClick={handleConfirm}
+                    disabled={saving}
+                    className={`shrink-0 flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm text-white transition-all shadow-lg disabled:opacity-60 ${colors.badge} hover:opacity-90`}
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                    Apply
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+    </div>
   );
 }
 
