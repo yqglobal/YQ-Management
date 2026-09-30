@@ -102,8 +102,10 @@ export function usePlan(): UsePlanResult {
 
   return useMemo((): UsePlanResult => {
     const status = (sub?.status as PlanStatus) ?? null;
+    const canAccess = status === null || status === 'TRIAL' || status === 'ACTIVE' || status === 'PAST_DUE' || status === 'PENDING_PAYMENT';
     const plan = sub?.plan;
-    const planName: string | null = plan?.name ?? null;
+    const planNameRaw: string | null = plan?.name ?? null;
+    const planName: string | null = canAccess ? planNameRaw : 'Free';
     const planTier = guessTier(planName ?? undefined);
     const rawLimits = plan?.limits;
     const parsedLimits = typeof rawLimits === 'string' ? JSON.parse(rawLimits) : rawLimits;
@@ -155,7 +157,7 @@ export function usePlan(): UsePlanResult {
 
     // If status is null (no subscription found — e.g. SUPER_ADMIN or API error), grant access by default.
     // Only block access when we explicitly know the subscription is EXPIRED or CANCELLED.
-    const canAccess = status === null || status === 'TRIAL' || status === 'ACTIVE' || status === 'PAST_DUE' || status === 'PENDING_PAYMENT';
+    // (canAccess is computed earlier to correctly determine planName)
     
     // hasNoPlan is true when there is genuinely no subscription record (status null),
     // which means the user hasn't started a trial or purchased yet.
