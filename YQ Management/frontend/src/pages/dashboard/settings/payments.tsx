@@ -59,7 +59,7 @@ export default function PaymentsSettingsPage() {
             </div>
           ) : !status?.accountId ? (
             <div className="flex flex-col items-start gap-6">
-              <div className="flex items-start gap-3 bg-blue-50 dark:bg-blue-500/10 p-4 rounded-xl text-blue-700 dark:text-blue-300 w-full max-w-xl">
+              <div className="flex items-start gap-3 bg-blue-50 dark:bg-blue-500/10 p-4 rounded-xl text-blue-700 dark:text-blue-300 w-full">
                 <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-semibold mb-1">Secure & Automated</p>
