@@ -25,6 +25,7 @@ jobs:
               NEXT_PUBLIC_API_URL=https://api.qmova.yqbuddy.com
               NEXT_PUBLIC_BACKEND_URL=https://api.qmova.yqbuddy.com
               NEXT_PUBLIC_WS_URL=https://api.qmova.yqbuddy.com
+              NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51TncmkIdVVmQLEG3kmpaJE7ROAPd9XcW94BzXuJoLlEjuGCMVflLVSw3chR4GL3IlI9Wnq2WkQKtkVrhxGRSB8mA00G5T3CIYn
           - service: backend
             context: ./backend
             image: ghcr.io/yqglobal/yq-management-backend
