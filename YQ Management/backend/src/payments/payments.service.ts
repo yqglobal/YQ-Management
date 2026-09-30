@@ -62,14 +62,9 @@ export class PaymentsService {
       throw new BadRequestException('Plan not found');
     }
 
-    // Example calculation: If yearly, apply dynamic discount, else normal price.
-    // Here we'll just assume plan.price is monthly.
     let finalAmount = plan.price;
-    if (billingInterval === 'yearly' && plan.billingInterval === 'monthly') {
-      const discountRate = 1 - (plan.annualDiscountPercent || 10) / 100;
-      finalAmount = plan.price * 12 * discountRate;
-    } else if (billingInterval === 'yearly') {
-      finalAmount = plan.price;
+    if (billingInterval === 'yearly' && plan.annualPrice != null && plan.annualPrice > 0) {
+      finalAmount = plan.annualPrice;
     }
 
     // Ensure amount has 2 decimal places for Ozow

@@ -86,8 +86,8 @@ export function PlanSelectModal({ isOpen, onClose, onSelectPlan, isPendingPaymen
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {(plans as Record<string, unknown>[]).map((plan) => {
-            const price = billingInterval === 'yearly' && plan.billingInterval === 'monthly'
-              ? Math.floor(plan.price * 12 * (1 - (plan.annualDiscountPercent || 10) / 100))
+            const price = billingInterval === 'yearly' && plan.annualPrice > 0
+              ? plan.annualPrice
               : plan.price;
             const isPopular = plan.name.toLowerCase().includes('standard') || plan.name.toLowerCase().includes('pro');
             const isCurrent = plan.name === planName;
@@ -110,6 +110,11 @@ export function PlanSelectModal({ isOpen, onClose, onSelectPlan, isPendingPaymen
                 <div className="mb-8">
                   <span className="font-data-mono-lg text-4xl font-extrabold text-on-surface dark:text-white">{plan.currency === 'ZAR' ? 'R' : '$'}{price}</span>
                   <span className="text-on-surface-variant dark:text-zinc-500 ml-1 font-medium">/{billingInterval === 'yearly' ? 'year' : 'month'}</span>
+                  {billingInterval === 'yearly' && plan.annualPrice > 0 && plan.price > 0 && (
+                    <div className="mt-2 inline-block bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs px-2 py-0.5 rounded-full font-bold">
+                      {Math.round(((plan.price as number * 12 - (plan.annualPrice as number)) / (plan.price as number * 12)) * 100)}% OFF
+                    </div>
+                  )}
                 </div>
                 
                 <Button
