@@ -447,12 +447,12 @@ function ChangeIndustryModal({ isOpen, onClose, onConfirm, newIndustryId, isAppl
   if (!isOpen || !newIndustry) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose} className="sm:max-w-[550px]">
+    <Dialog open={isOpen} onOpenChange={onClose} className="sm:max-w-[550px] bg-surface dark:bg-zinc-900 border-border dark:border-zinc-800 p-8">
       <div className="flex flex-col gap-4">
         <div>
-          <DialogTitle className="text-xl">Change Business Category</DialogTitle>
-          <DialogDescription>
-            You are about to switch your workspace category to <b>{newIndustry.industryLabel}</b>.
+          <DialogTitle className="text-xl text-on-surface dark:text-white">Change Business Category</DialogTitle>
+          <DialogDescription className="text-on-surface-variant dark:text-zinc-400 mt-2">
+            You are about to switch your workspace category to <b className="text-on-surface dark:text-white">{newIndustry.industryLabel}</b>.
           </DialogDescription>
         </div>
         
@@ -461,11 +461,11 @@ function ChangeIndustryModal({ isOpen, onClose, onConfirm, newIndustryId, isAppl
             This will immediately adapt your dashboard terminology, icons, and menus to better fit the {newIndustry.industryLabel} workflow.
           </p>
 
-          <div className="bg-surface-container-low dark:bg-white/[0.02] border border-border dark:border-dark-border rounded-xl p-5 flex gap-4 items-start">
+          <div className="bg-surface-container-low dark:bg-black/20 border border-border dark:border-dark-border rounded-xl p-5 flex gap-4 items-start">
             <input 
               type="checkbox" 
               id="provisionCheck"
-              className="mt-1 w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+              className="mt-1 w-5 h-5 rounded border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-primary focus:ring-primary"
               checked={provisionServices}
               onChange={(e) => setProvisionServices(e.target.checked)}
             />
@@ -483,7 +483,7 @@ function ChangeIndustryModal({ isOpen, onClose, onConfirm, newIndustryId, isAppl
         </div>
 
         <div className="flex justify-end gap-2 mt-2">
-          <Button variant="outline" onClick={onClose} disabled={isApplying}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={isApplying} className="dark:text-white dark:border-zinc-700 dark:hover:bg-zinc-800">Cancel</Button>
           <Button onClick={() => onConfirm(provisionServices)} disabled={isApplying}>
             {isApplying && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Confirm Change
