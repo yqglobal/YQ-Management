@@ -344,6 +344,66 @@ export class VisitStepService {
     return updated;
   }
 
+  /**
+   * Staff-facing revert: undo a SKIPPED step and set it back to ACTIVE.
+   * Cascades: any steps that were unlocked as a result of the skip are re-locked.
+   */
+  async revertStep(
+    tenantId: string,
+    visitStepId: string,
+    staffId: string,
+  ) {
+    const step = await this.prisma.visitStep.findUnique({
+      where: { id: visitStepId },
+      include: { visit: true },
+    });
+    if (!step || step.tenantId !== tenantId)
+      throw new NotFoundException('Step not found');
+
+    if (step.status !== 'SKIPPED') {
+      throw new BadRequestException('Only SKIPPED steps can be reverted');
+    }
+
+    if (step.visit.currentState === 'COMPLETED' || step.visit.currentState === 'CANCELLED') {
+      throw new BadRequestException('Cannot revert a step on a completed or cancelled visit');
+    }
+
+    // Find all steps that came after this one in the flow that may now need to be locked again
+    const subsequentSteps = await this.prisma.visitStep.findMany({
+      where: {
+        visitId: step.visitId,
+        stepOrder: { gt: step.stepOrder ?? 0 },
+        status: { in: ['ACTIVE', 'PENDING', 'QUEUED', 'DEFERRED'] },
+      },
+    });
+
+    await this.prisma.$transaction(async (tx) => {
+      // Revert the step to ACTIVE
+      await tx.visitStep.update({
+        where: { id: step.id },
+        data: {
+          status: 'ACTIVE',
+          completedAt: null,
+          staffNotes: step.staffNotes
+            ? `${step.staffNotes} | Reverted by staff`
+            : 'Reverted by staff',
+        },
+      });
+
+      // Lock any steps that were unlocked downstream
+      if (subsequentSteps.length > 0) {
+        await tx.visitStep.updateMany({
+          where: { id: { in: subsequentSteps.map((s) => s.id) } },
+          data: { status: 'LOCKED' },
+        });
+      }
+    });
+
+    await this.logEvent(step.id, step.visitId, tenantId, 'ACTIVE', 'STAFF', staffId);
+
+    return { success: true, stepId: step.id };
+  }
+
   async redeemCollection(
     tenantId: string,
     visitStepId: string,
@@ -383,7 +443,10 @@ export class VisitStepService {
       where: { id: step.id },
     });
 
-    if (updated!.quantityRedeemed >= totalAllowed) {
+    const newRedeemed = updated!.quantityRedeemed || 0;
+    const isCompleted = newRedeemed >= totalAllowed;
+
+    if (isCompleted) {
       await this.prisma.visitStep.update({
         where: { id: step.id },
         data: { status: 'DONE', completedAt: new Date() },
@@ -630,5 +693,85 @@ export class VisitStepService {
         },
       });
     });
+  }
+
+  async skipStepPublic(accessToken: string, stepId: string) {
+    const step = await this.prisma.visitStep.findFirst({
+      where: { id: stepId, visit: { accessToken } },
+      include: { templateStep: true },
+    });
+    
+    if (!step) throw new NotFoundException('Step not found');
+    if (step.status !== 'ACTIVE' && step.status !== 'PENDING') {
+      throw new BadRequestException(`Cannot skip step in status ${step.status}`);
+    }
+    if (!step.templateStep?.isOptional) {
+      throw new BadRequestException('This step is mandatory and cannot be skipped');
+    }
+
+    const updated = await this.prisma.visitStep.update({
+      where: { id: step.id },
+      data: {
+        status: 'SKIPPED',
+        completedAt: new Date(),
+        staffNotes: 'Skipped by customer',
+      },
+    });
+
+    await this.logEvent(
+      step.id,
+      step.visitId,
+      step.tenantId,
+      'SKIPPED',
+      'CUSTOMER',
+      'CUSTOMER',
+    );
+
+    await this.evaluateNextSteps(step.visitId, step.id);
+    return updated;
+  }
+
+  async revertStepPublic(accessToken: string, stepId: string) {
+    const step = await this.prisma.visitStep.findFirst({
+      where: { id: stepId, visit: { accessToken } },
+      include: { visit: { include: { visitSteps: true } } },
+    });
+    
+    if (!step) throw new NotFoundException('Step not found');
+    if (step.status !== 'SKIPPED') {
+      throw new BadRequestException(`Can only revert skipped steps`);
+    }
+
+    // Find steps that were unlocked after this one, and lock them.
+    const subsequentActiveSteps = step.visit.visitSteps.filter(
+       s => (s.status === 'ACTIVE' || s.status === 'PENDING') && s.stepOrder > step.stepOrder
+    );
+
+    for (const subStep of subsequentActiveSteps) {
+       await this.prisma.visitStep.update({
+         where: { id: subStep.id },
+         data: { status: 'LOCKED' }
+       });
+    }
+
+    const updated = await this.prisma.visitStep.update({
+      where: { id: step.id },
+      data: {
+        status: 'ACTIVE',
+        completedAt: null,
+        staffNotes: 'Reverted by customer',
+      },
+    });
+
+    await this.logEvent(
+      step.id,
+      step.visitId,
+      step.tenantId,
+      'REVERTED',
+      'CUSTOMER',
+      'CUSTOMER',
+    );
+
+    return updated;
   }
 }

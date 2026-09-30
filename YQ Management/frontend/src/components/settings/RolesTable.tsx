@@ -88,6 +88,16 @@ const FEATURE_MATRIX: FeatureRow[] = [
       { label: 'Manage customers', owner: true, admin: true, manager: true, staff: 'partial' },
     ],
   },
+  {
+    category: 'Service Flow Operations',
+    features: [
+      { label: 'Configure & build service flows', description: 'Create, edit, apply templates to services', owner: true, admin: true, manager: false, staff: false },
+      { label: 'Advance steps (complete)', description: 'Mark a step as done', owner: true, admin: true, manager: true, staff: 'partial' },
+      { label: 'Skip optional steps', description: 'Skip an optional step on behalf of customer', owner: true, admin: true, manager: true, staff: 'partial' },
+      { label: 'Revert skipped steps', description: 'Undo a skip and return step to active', owner: true, admin: true, manager: true, staff: 'partial' },
+      { label: 'Redeem entitlements', description: 'Scan and redeem collection/entitlement steps', owner: true, admin: true, manager: true, staff: 'partial' },
+    ],
+  },
 ];
 
 const COLUMNS = [

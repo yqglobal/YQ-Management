@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Loader2, QrCode } from 'lucide-react';
+import { X, Loader2, QrCode, ListOrdered, Info } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/router';
 import { fetchApi } from '../../lib/api';
@@ -22,6 +22,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
   const [age, setAge] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [accompanyingGuests, setAccompanyingGuests] = useState(0);
   
   const [isBlockMode, setIsBlockMode] = useState(false);
   
@@ -104,6 +105,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
     setAge('');
     setPhone('');
     setEmail('');
+    setAccompanyingGuests(0);
     setLocationId('');
     setQueueId('');
     setServiceId('');
@@ -113,6 +115,9 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
     setIsBlockMode(false);
     onClose();
   };
+
+  const selectedService = services.find((s: AnyFixMe) => s.id === serviceId);
+  const flowSteps = selectedService?.template?.steps?.sort((a: any, b: any) => a.order - b.order) || [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,6 +163,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
         scheduledEnd: scheduledEnd.toISOString(),
         bookingSource: 'APPOINTMENT',
         status: isBlockMode ? 'BLOCKED' : 'CONFIRMED',
+        accompanyingGuests,
         ...(age && !isBlockMode ? { formData: { age } } : {})
       });
     } catch (error) {
@@ -255,6 +261,18 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">Accompanying Guests</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={accompanyingGuests}
+                        onChange={(e) => setAccompanyingGuests(parseInt(e.target.value) || 0)}
+                        className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -296,6 +314,42 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                     <option key={s.id} value={s.id}>{s.name} ({s.expectedDuration} min)</option>
                   ))}
                 </select>
+
+                {/* Service Flow Preview */}
+                {serviceId && (
+                  <div className="mt-3">
+                    {flowSteps.length > 0 ? (
+                      <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-xl p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <ListOrdered className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                          <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                            Service Flow: {flowSteps.length} step{flowSteps.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {flowSteps.map((step: AnyFixMe, i: number) => (
+                            <span
+                              key={step.id}
+                              className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                                step.isOptional
+                                  ? 'bg-indigo-100/80 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300'
+                                  : 'bg-indigo-200 text-indigo-800 dark:bg-indigo-800/60 dark:text-indigo-200'
+                              }`}
+                            >
+                              {i + 1}. {step.name}{step.isOptional ? ' *' : ''}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-indigo-500 dark:text-indigo-400 mt-1.5">* Optional steps can be skipped by the customer or staff</p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-100 dark:bg-white/5 rounded-xl p-3 border border-gray-200 dark:border-white/10">
+                        <Info className="w-4 h-4 shrink-0" />
+                        <p>This service does not have a multi-step flow configured.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>

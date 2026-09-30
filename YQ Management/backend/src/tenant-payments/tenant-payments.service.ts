@@ -249,9 +249,11 @@ export class TenantPaymentsService {
 
     if (payment.stripePaymentIntentId && method !== 'OFFLINE_CASH' && payment.paymentAccount?.connectedAccountId) {
       // Verify with Stripe
-      const intent = await this.stripe.paymentIntents.retrieve(payment.stripePaymentIntentId, {
-        stripeAccount: payment.paymentAccount.connectedAccountId,
-      });
+      const intent = await this.stripe.paymentIntents.retrieve(
+        payment.stripePaymentIntentId,
+        undefined,
+        { stripeAccount: payment.paymentAccount.connectedAccountId }
+      );
       if (intent.status !== 'succeeded') {
         throw new BadRequestException(`Payment intent is not succeeded. Status: ${intent.status}`);
       }

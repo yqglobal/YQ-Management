@@ -21,6 +21,7 @@ import { VisitService } from './visit.service';
 import { RedisService } from '../redis/redis.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { VisitStepService } from '../visit-step/visit-step.service';
 
 @Controller('public-visit')
 export class PublicVisitController {
@@ -31,6 +32,7 @@ export class PublicVisitController {
     private readonly redisService: RedisService,
     private readonly whatsappService: WhatsappService,
     private readonly prisma: PrismaService,
+    private readonly visitStepService: VisitStepService,
   ) {}
 
   @Get('status-multiple')
@@ -242,6 +244,22 @@ export class PublicVisitController {
   @Post(':accessToken/cancel')
   async cancelPublicVisit(@Param('accessToken') accessToken: string) {
     return this.visitService.cancelPublicVisit(accessToken);
+  }
+
+  @Post(':accessToken/skip-step/:stepId')
+  async skipStepPublic(
+    @Param('accessToken') accessToken: string,
+    @Param('stepId') stepId: string,
+  ) {
+    return this.visitStepService.skipStepPublic(accessToken, stepId);
+  }
+
+  @Post(':accessToken/revert-step/:stepId')
+  async revertStepPublic(
+    @Param('accessToken') accessToken: string,
+    @Param('stepId') stepId: string,
+  ) {
+    return this.visitStepService.revertStepPublic(accessToken, stepId);
   }
 
   /**

@@ -207,6 +207,26 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
   };
 
 
+  const skipStepMutation = useMutation({
+    mutationFn: async (stepId: string) => {
+      const data = await fetchApi(`/public-visit/${tokenId}/skip-step/${stepId}`, { method: 'POST' });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['token-status', tokenId] });
+    },
+  });
+
+  const revertStepMutation = useMutation({
+    mutationFn: async (stepId: string) => {
+      const data = await fetchApi(`/public-visit/${tokenId}/revert-step/${stepId}`, { method: 'POST' });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['token-status', tokenId] });
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col p-6 items-center justify-center">
@@ -402,10 +422,14 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
                           Please proceed to: <span className="text-emerald-600 block text-3xl mt-1">{activeStep.name}</span>
                         </h4>
                         
-                        {activeStep.templateStep?.locationDescription && (
+                        {(activeStep.templateStep?.roomNumber || activeStep.templateStep?.floorNumber) && (
                           <div className="flex items-start gap-2 text-emerald-800 font-medium mt-4 mb-2 bg-emerald-100/50 p-3 rounded-lg border border-emerald-200/50">
                             <MapPin className="w-5 h-5 mt-0.5 text-emerald-600 shrink-0" />
-                            <span className="text-lg">{activeStep.templateStep.locationDescription}</span>
+                            <span className="text-lg">
+                              {activeStep.templateStep.roomNumber ? `Room ${activeStep.templateStep.roomNumber}` : ''}
+                              {activeStep.templateStep.roomNumber && activeStep.templateStep.floorNumber ? ', ' : ''}
+                              {activeStep.templateStep.floorNumber ? `Floor ${activeStep.templateStep.floorNumber}` : ''}
+                            </span>
                           </div>
                         )}
                         {activeStep.templateStep?.customerInstruction && (
@@ -504,10 +528,14 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
                             animate={{ height: 'auto', opacity: 1 }}
                             className="bg-indigo-50 rounded-xl p-4 mt-3 border border-indigo-100"
                           >
-                            {step.templateStep?.locationDescription && (
+                            {(step.templateStep?.roomNumber || step.templateStep?.floorNumber) && (
                               <div className="flex items-start gap-2 text-indigo-900 font-medium mb-2">
                                 <MapPin className="w-4 h-4 mt-0.5 text-indigo-500 shrink-0" />
-                                <span>{step.templateStep.locationDescription}</span>
+                                <span>
+                                  {step.templateStep.roomNumber ? `Room ${step.templateStep.roomNumber}` : ''}
+                                  {step.templateStep.roomNumber && step.templateStep.floorNumber ? ', ' : ''}
+                                  {step.templateStep.floorNumber ? `Floor ${step.templateStep.floorNumber}` : ''}
+                                </span>
                               </div>
                             )}
                             {step.templateStep?.customerInstruction && (
@@ -516,7 +544,31 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
                                 <span>{step.templateStep.customerInstruction}</span>
                               </div>
                             )}
+                            
+                            {step.templateStep?.isOptional && (
+                              <div className="mt-4 flex justify-end">
+                                <button
+                                  onClick={() => skipStepMutation.mutate(step.id)}
+                                  disabled={skipStepMutation.isPending}
+                                  className="text-sm px-4 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors disabled:opacity-50"
+                                >
+                                  {skipStepMutation.isPending ? 'Skipping...' : 'Skip Step'}
+                                </button>
+                              </div>
+                            )}
                           </motion.div>
+                        )}
+
+                        {isSkipped && token.status !== 'COMPLETED' && token.status !== 'MISSED' && (
+                          <div className="mt-2">
+                             <button
+                               onClick={() => revertStepMutation.mutate(step.id)}
+                               disabled={revertStepMutation.isPending}
+                               className="text-xs px-3 py-1 bg-white border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
+                             >
+                               {revertStepMutation.isPending ? 'Reverting...' : 'Undo / Revisit Step'}
+                             </button>
+                          </div>
                         )}
                       </div>
                     </div>

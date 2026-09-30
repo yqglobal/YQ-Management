@@ -1118,7 +1118,8 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                 tenantId={tenant?.id}
                 amount={selectedServiceIds.reduce((total, sid) => {
                   const s = services.find(x => x.id === sid);
-                  return total + (s && ((s as any).paymentMode === 'PREPAY' || (s as any).paymentMode === 'OPTIONAL_PREPAY') && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0);
+                  const base = s && ((s as any).paymentMode === 'PREPAY' || (s as any).paymentMode === 'OPTIONAL_PREPAY') && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0;
+                  return total + (base * (1 + accompanyingGuests));
                 }, 0) * 100} // Stripe amount is in cents
                 currency={services.find(x => x.id === selectedServiceIds[0]) ? (services.find(x => x.id === selectedServiceIds[0]) as any).currency || 'usd' : 'usd'}
                 stripeAccountId={tenant?.paymentAccount?.connectedAccountId}

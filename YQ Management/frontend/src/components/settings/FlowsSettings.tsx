@@ -31,7 +31,19 @@ export function FlowsSettings() {
     staffInstruction: '',
     floorNumber: '',
     roomNumber: '',
-    mapImageUrl: ''
+    mapImageUrl: '',
+    expiresAfterDays: '',
+    expiresAfterHours: '',
+    deferredByDays: '',
+    deferredByHours: '',
+    stepPrice: '',
+    stepPriceCurrency: 'ZAR',
+    isPriceVariable: false,
+    entitlementUnit: '',
+    entitlementFormula: '',
+    entitlementFixed: '',
+    allowPartialRedemption: false,
+    preventDoubleRedemption: true
   });
 
   const { data: services = [] } = useQuery({
@@ -124,7 +136,12 @@ export function FlowsSettings() {
     const payload = {
       ...stepForm,
       floorNumber: stepForm.floorNumber ? parseInt(stepForm.floorNumber, 10) : null,
-      stepPrice: stepForm.stepPrice ? parseFloat(stepForm.stepPrice) : null
+      stepPrice: stepForm.stepPrice ? parseFloat(stepForm.stepPrice) : null,
+      expiresAfterDays: stepForm.expiresAfterDays ? parseInt(stepForm.expiresAfterDays, 10) : null,
+      expiresAfterHours: stepForm.expiresAfterHours ? parseInt(stepForm.expiresAfterHours, 10) : null,
+      deferredByDays: stepForm.deferredByDays ? parseInt(stepForm.deferredByDays, 10) : null,
+      deferredByHours: stepForm.deferredByHours ? parseInt(stepForm.deferredByHours, 10) : null,
+      entitlementFixed: stepForm.entitlementFixed ? parseInt(stepForm.entitlementFixed, 10) : null
     };
     if (isAddingStep) {
       createStepMutation.mutate({ ...payload, stepOrder: localSteps.length + 1 });
@@ -151,7 +168,16 @@ export function FlowsSettings() {
       mapImageUrl: step.mapImageUrl || '',
       stepPrice: step.stepPrice?.toString() || '',
       stepPriceCurrency: step.stepPriceCurrency || 'ZAR',
-      isPriceVariable: step.isPriceVariable || false
+      isPriceVariable: step.isPriceVariable || false,
+      expiresAfterDays: step.expiresAfterDays?.toString() || '',
+      expiresAfterHours: step.expiresAfterHours?.toString() || '',
+      deferredByDays: step.deferredByDays?.toString() || '',
+      deferredByHours: step.deferredByHours?.toString() || '',
+      entitlementUnit: step.entitlementUnit || '',
+      entitlementFormula: step.entitlementFormula || '',
+      entitlementFixed: step.entitlementFixed?.toString() || '',
+      allowPartialRedemption: step.allowPartialRedemption || false,
+      preventDoubleRedemption: step.preventDoubleRedemption ?? true
     });
   };
 
@@ -214,7 +240,16 @@ export function FlowsSettings() {
       mapImageUrl: '',
       stepPrice: '',
       stepPriceCurrency: 'ZAR',
-      isPriceVariable: false
+      isPriceVariable: false,
+      expiresAfterDays: '',
+      expiresAfterHours: '',
+      deferredByDays: '',
+      deferredByHours: '',
+      entitlementUnit: '',
+      entitlementFormula: '',
+      entitlementFixed: '',
+      allowPartialRedemption: false,
+      preventDoubleRedemption: true
     });
   };
 
@@ -415,6 +450,7 @@ export function FlowsSettings() {
                           >
                             <option value="CHECKPOINT">Checkpoint</option>
                             <option value="SERVICE">Service Area</option>
+                            <option value="COLLECTION">Collection / Redemption</option>
                             <option value="PAYMENT">Payment</option>
                           </select>
                         </div>
@@ -532,6 +568,83 @@ export function FlowsSettings() {
                           </div>
                         </label>
                       </div>
+
+                      <div className="pt-4 border-t border-border dark:border-dark-border space-y-4">
+                        <h4 className="text-xs font-bold text-on-surface dark:text-white uppercase tracking-wider">Time-to-Live (TTL) & Delays</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Auto-Expire (Days)</label>
+                            <input 
+                              type="number" 
+                              value={stepForm.expiresAfterDays} 
+                              onChange={e => setStepForm({...stepForm, expiresAfterDays: e.target.value})}
+                              className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                              placeholder="e.g. 1"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Auto-Expire (Hours)</label>
+                            <input 
+                              type="number" 
+                              value={stepForm.expiresAfterHours} 
+                              onChange={e => setStepForm({...stepForm, expiresAfterHours: e.target.value})}
+                              className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                              placeholder="e.g. 24"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {stepForm.type === 'COLLECTION' && (
+                        <div className="pt-4 border-t border-border dark:border-dark-border space-y-4">
+                          <h4 className="text-xs font-bold text-on-surface dark:text-white uppercase tracking-wider">Collection Config</h4>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Entitlement Formula</label>
+                              <input 
+                                type="text" 
+                                value={stepForm.entitlementFormula} 
+                                onChange={e => setStepForm({...stepForm, entitlementFormula: e.target.value})}
+                                className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                placeholder="e.g. accompanyingGuests + 1"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Fixed Quantity</label>
+                              <input 
+                                type="number" 
+                                value={stepForm.entitlementFixed} 
+                                onChange={e => setStepForm({...stepForm, entitlementFixed: e.target.value})}
+                                className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                placeholder="e.g. 4"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                checked={stepForm.allowPartialRedemption} 
+                                onChange={e => setStepForm({...stepForm, allowPartialRedemption: e.target.checked})}
+                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-zinc-300">Allow Partial Claim</span>
+                            </label>
+
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                checked={stepForm.preventDoubleRedemption} 
+                                onChange={e => setStepForm({...stepForm, preventDoubleRedemption: e.target.checked})}
+                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-zinc-300">Prevent Double Claim</span>
+                            </label>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="pt-4 flex gap-3">
                         <button 

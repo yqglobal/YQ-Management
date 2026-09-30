@@ -78,4 +78,13 @@ export class VisitStepController {
       req.user.id,
     );
   }
+
+  @Post(':stepId/revert')
+  revertStep(@Req() req: any, @Param('stepId') stepId: string) {
+    return this.visitStepService.revertStep(
+      req.user.tenantId,
+      stepId,
+      req.user.id,
+    );
+  }
 }

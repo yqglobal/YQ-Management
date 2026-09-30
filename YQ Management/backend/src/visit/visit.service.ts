@@ -68,6 +68,80 @@ export class VisitService {
     });
   }
 
+  /**
+   * Staff-initiated walk-in: finds (or uses provided) queue for the location+service,
+   * then routes through joinQueue to guarantee flow steps are always instantiated.
+   */
+  async staffWalkIn(
+    tenantId: string,
+    operatorId: string,
+    dto: {
+      customerName: string;
+      phone?: string;
+      email?: string;
+      age?: number;
+      locationId: string;
+      serviceId: string;
+      queueId?: string;
+      accompanyingGuests?: number;
+      notes?: string;
+      priority?: number;
+    },
+  ) {
+    // 1. Resolve queue: use provided queueId or find the first active queue at location that serves this service
+    let resolvedQueueId = dto.queueId;
+    if (!resolvedQueueId) {
+      const queue = await this.prisma.queue.findFirst({
+        where: {
+          tenantId,
+          locationId: dto.locationId,
+          status: 'ACTIVE',
+          services: { some: { id: dto.serviceId } },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (!queue) {
+        throw new Error('No open queue found for this location and service. Please open a queue first or specify one manually.');
+      }
+      resolvedQueueId = queue.id;
+    }
+
+    // 2. Use joinQueue which handles: customer upsert, token generation, flow instantiation, outbox events
+    const result = await this.joinQueue(resolvedQueueId, {
+      name: dto.customerName,
+      phone: dto.phone || null,
+      serviceId: dto.serviceId,
+      accompanyingGuests: dto.accompanyingGuests ?? 0,
+    });
+
+    // 3. Patch additional staff-only fields: email, age, notes, priority, operatorId
+    const updates: any = { operatorId };
+    if (dto.notes) updates.notes = dto.notes;
+    if (dto.priority !== undefined) updates.priority = dto.priority;
+    if (dto.email || dto.age) {
+      const metaUpdate: any = {};
+      if (dto.age) metaUpdate.age = dto.age;
+      updates.metadata = metaUpdate;
+    }
+
+    if (dto.email) {
+      // Update customer email separately (joinQueue only takes phone)
+      await this.prisma.customer.update({
+        where: { id: result.customerId },
+        data: { email: dto.email },
+      }).catch(() => {}); // Non-critical, don't fail the walk-in
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await this.prisma.visit.update({
+        where: { id: result.id },
+        data: updates,
+      });
+    }
+
+    return result;
+  }
+
   async findAll(
     userTokenPayload: any,
     scope?: 'today' | 'history' | 'analytics',
@@ -1272,7 +1346,7 @@ export class VisitService {
       where: { visitId: visit.id, status: 'SUCCEEDED' },
     });
     if (hasPayment) {
-      const tenantEmail = visit.tenant.supportEmail || visit.tenant.email || 'the business directly';
+      const tenantEmail = visit.tenant.supportEmail || 'the business directly';
       throw new BadRequestException(`This ticket has an active payment. Please contact ${tenantEmail} for assistance with cancellations and refunds.`);
     }
 

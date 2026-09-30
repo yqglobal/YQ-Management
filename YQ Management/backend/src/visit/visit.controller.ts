@@ -140,6 +140,7 @@ export class VisitController {
     return this.visitService.updateNotes(id, req.user.tenantId, body.notes);
   }
 
+
   @Patch(':id/tags')
   updateTags(
     @Req() req: AuthenticatedRequest,
@@ -147,5 +148,32 @@ export class VisitController {
     @Body() body: { tags: string[] },
   ) {
     return this.visitService.updateTags(id, req.user.tenantId, body.tags);
+  }
+
+  /**
+   * Staff Walk-in — routes through joinQueue so flow steps are always instantiated.
+   * Accepts richer payload (notes, priority, accompanyingGuests, age, email, queueId).
+   */
+  @Post('staff-walkin')
+  async staffWalkIn(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: {
+      customerName: string;
+      phone?: string;
+      email?: string;
+      age?: number;
+      locationId: string;
+      serviceId: string;
+      queueId?: string;
+      accompanyingGuests?: number;
+      notes?: string;
+      priority?: number;
+    },
+  ) {
+    return this.visitService.staffWalkIn(
+      req.user.tenantId,
+      req.user.userId,
+      body,
+    );
   }
 }

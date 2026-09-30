@@ -38,10 +38,19 @@ export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }:
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'inbox', label: 'Inbox (WhatsApp)' },
     { id: 'service-desk', label: 'Service Desk' },
+    { id: 'check-in', label: 'Check-in / QR Scanner' },
     { id: 'appointments', label: 'Appointments' },
     { id: 'customers', label: 'Customers' },
     { id: 'analytics', label: 'Analytics' },
-    { id: 'queues', label: 'Queues' }
+    { id: 'queues', label: 'Queues' },
+    { id: 'service-flow', label: 'Service Flow Builder' },
+  ];
+
+  const flowOperations = [
+    { id: 'flow:advance', label: 'Advance Steps', description: 'Mark a step as completed' },
+    { id: 'flow:skip', label: 'Skip Optional Steps', description: 'Skip an optional step on behalf of the customer' },
+    { id: 'flow:revert', label: 'Revert Skipped Steps', description: 'Undo a skip and return a step to active' },
+    { id: 'flow:redeem', label: 'Redeem Entitlements', description: 'Scan and redeem collection/entitlement steps' },
   ];
 
   const settingsPages = [
@@ -213,13 +222,34 @@ export function UserPermissionsModal({ isOpen, onClose, userToEdit, onSuccess }:
                     <div className="grid grid-cols-2 gap-3">
                       {corePages.map((page) => (
                         <label key={page.id} className="flex items-center gap-2 p-3 border border-gray-200 dark:border-white/10 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={allowedPages.includes(page.id)}
                             onChange={() => toggleSelection(setAllowedPages, allowedPages, page.id)}
                             className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
                           />
                           <span className="text-sm text-gray-700 dark:text-zinc-300">{page.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm mt-6">Service Flow Operations</h3>
+                    <p className="text-xs text-gray-500 dark:text-zinc-500 mb-3">Control which step actions this staff member can perform on active visits.</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {flowOperations.map((op) => (
+                        <label key={op.id} className="flex items-start gap-2 p-3 border border-gray-200 dark:border-white/10 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">
+                          <input
+                            type="checkbox"
+                            checked={allowedPages.includes(op.id)}
+                            onChange={() => toggleSelection(setAllowedPages, allowedPages, op.id)}
+                            className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 mt-0.5 shrink-0"
+                          />
+                          <div>
+                            <div className="text-sm text-gray-700 dark:text-zinc-300 font-medium">{op.label}</div>
+                            <div className="text-xs text-gray-500 dark:text-zinc-500">{op.description}</div>
+                          </div>
                         </label>
                       ))}
                     </div>

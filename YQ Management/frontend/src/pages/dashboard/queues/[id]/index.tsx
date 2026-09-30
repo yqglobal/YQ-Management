@@ -185,7 +185,11 @@ export default function QueueDetails() {
       queryClient.invalidateQueries({ queryKey: ['queue', id, 'tokens'] });
       setTransferTokenId(null);
     },
-    onError: () => toast.error('Failed to transfer token')
+    onError: (err: any) => {
+      const msg = err?.message || err?.response?.data?.message || 'Failed to transfer token';
+      toast.error(msg, { duration: 6000 });
+    }
+
   });
 
   const { data: allQueues } = useQuery({

@@ -9,7 +9,7 @@ import { WelcomeModal } from '../../components/modals/WelcomeModal';
 import { CreateVisitModal } from '../../components/modals/CreateVisitModal';
 import { ScannerModal } from '../../components/modals/ScannerModal';
 import { WhatsAppChatPanel } from '../../components/WhatsAppChatPanel';
-import { MonitorPlay, ScanLine, StickyNote, Check, AlertTriangle } from 'lucide-react';
+import { MonitorPlay, ScanLine, StickyNote, Check, AlertTriangle, Loader2 } from 'lucide-react';
 import { usePlan } from '../../hooks/usePlan';
 import Link from 'next/link';
 import { useLocation } from '../../components/LocationContext';
@@ -65,7 +65,14 @@ function InlineNotes({ visitId, initialNotes, placeholder }: { visitId: string; 
 }
 
 // ── Itinerary Progress Stepper ───────────────────────────────────────────────
-function ItineraryProgress({ itinerary, visitId, onSkip }: { itinerary: any[], visitId?: string, onSkip?: (visitId: string, stepId: string) => void }) {
+function ItineraryProgress({
+  itinerary, visitId, onSkip, onRevert
+}: {
+  itinerary: any[],
+  visitId?: string,
+  onSkip?: (visitId: string, stepId: string) => void,
+  onRevert?: (visitId: string, stepId: string) => void,
+}) {
   if (!Array.isArray(itinerary) || itinerary.length === 0) return null;
   return (
     <div className="flex items-center gap-1 mt-2 flex-wrap">
@@ -74,6 +81,7 @@ function ItineraryProgress({ itinerary, visitId, onSkip }: { itinerary: any[], v
         const isSkipped = stop.status === 'SKIPPED';
         const isActive = stop.status === 'ACTIVE';
         const isPending = stop.status === 'PENDING';
+        const isOptional = stop.templateStep?.isOptional;
         return (
           <React.Fragment key={idx}>
             <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all
@@ -86,13 +94,22 @@ function ItineraryProgress({ itinerary, visitId, onSkip }: { itinerary: any[], v
                 {isCompleted ? 'check_circle' : isSkipped ? 'next_plan' : isActive ? 'radio_button_checked' : 'radio_button_unchecked'}
               </span>
               {stop.name || stop.label || `Stop ${idx + 1}`}
-              {isActive && onSkip && visitId && (
-                <button 
+              {isActive && isOptional && onSkip && visitId && (
+                <button
                   onClick={(e) => { e.stopPropagation(); onSkip(visitId, stop.id); }}
-                  className="ml-1 opacity-60 hover:opacity-100 hover:text-red-500 transition-colors"
-                  title="Skip this step"
+                  className="ml-1 opacity-60 hover:opacity-100 hover:text-amber-500 transition-colors"
+                  title="Skip this optional step"
                 >
                   <span className="material-symbols-outlined text-[12px] align-middle">skip_next</span>
+                </button>
+              )}
+              {isSkipped && onRevert && visitId && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRevert(visitId, stop.id); }}
+                  className="ml-1 opacity-60 hover:opacity-100 hover:text-blue-500 transition-colors"
+                  title="Undo skip — revert step to active"
+                >
+                  <span className="material-symbols-outlined text-[12px] align-middle">undo</span>
                 </button>
               )}
             </div>
@@ -423,11 +440,21 @@ export default function ServiceDeskToday() {
 
   const handleSkipStep = async (visitId: string, stepId: string) => {
     try {
-      await api.post(`/visit-steps/${stepId}/skip`, { visitId });
-      queryClient.invalidateQueries(['service-desk-visits']);
-    } catch (error) {
-      console.error('Failed to skip step', error);
-      alert('Failed to skip step. Check console.');
+      await fetchApi(`/visit-steps/${stepId}/skip`, { method: 'POST', body: JSON.stringify({ visitId }) });
+      queryClient.invalidateQueries({ queryKey: ['service-desk-visits'] });
+      toast.success('Step skipped');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Failed to skip step');
+    }
+  };
+
+  const handleRevertStep = async (visitId: string, stepId: string) => {
+    try {
+      await fetchApi(`/visit-steps/${stepId}/revert`, { method: 'POST', body: JSON.stringify({ visitId }) });
+      queryClient.invalidateQueries({ queryKey: ['service-desk-visits'] });
+      toast.success('Step reverted to active');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Failed to revert step');
     }
   };
 
@@ -673,7 +700,7 @@ export default function ServiceDeskToday() {
 
           <div className="mt-4 pt-6 border-t border-border dark:border-dark-border">
             <div>
-              <h3 className="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-1">{industry.serviceDesk.activeServicesTitle || 'Active Services'}</h3>
+              <h3 className="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-1">Active Services</h3>
               <p className="text-[10px] text-outline mb-4">Clients currently being served.</p>
             </div>
             <div className="flex flex-col gap-3">
@@ -1062,7 +1089,7 @@ export default function ServiceDeskToday() {
                 {industry.uiFlags.showItinerary && Array.isArray(selectedVisit.visitSteps) && selectedVisit.visitSteps.length > 0 && (
                   <div className="mt-2">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-outline mb-1.5">Patient Journey</div>
-                    <ItineraryProgress itinerary={selectedVisit.visitSteps} visitId={selectedVisit.id} onSkip={handleSkipStep} />
+                    <ItineraryProgress itinerary={selectedVisit.visitSteps} visitId={selectedVisit.id} onSkip={handleSkipStep} onRevert={handleRevertStep} />
                   </div>
                 )}
                 {industry.uiFlags.enableVitalsMock && (

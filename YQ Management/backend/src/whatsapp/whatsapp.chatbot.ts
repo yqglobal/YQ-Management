@@ -306,7 +306,7 @@ export class WhatsappChatbot {
     });
     
     if (hasPayment) {
-      const tenantEmail = visit.tenant.supportEmail || visit.tenant.email || 'the business directly';
+      const tenantEmail = visit.tenant.supportEmail || 'the business directly';
       await this.sendMsg(
         jid,
         `Your ticket *${visit.displayId || 'Unknown'}* has an active payment and cannot be cancelled automatically.\n\nPlease contact ${tenantEmail} for assistance with cancellations and refunds.\n\nReply '0' for the main menu.`,
