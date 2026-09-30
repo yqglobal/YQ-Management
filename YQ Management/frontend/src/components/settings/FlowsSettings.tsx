@@ -4,11 +4,12 @@ import { fetchApi } from '../../lib/api';
 import {
   Workflow, Trash2, Plus, Loader2, ArrowRight, Settings2, X, AlertCircle,
   MessageCircle, QrCode, Users, Info, Zap, CreditCard, Package,
-  ChevronDown, ChevronUp, Eye, BellRing,
+  ChevronDown, ChevronUp, Eye, BellRing, Sparkles, Star,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FlowBuilder } from './FlowBuilder';
+import { INDUSTRY_GROUPS } from '../../lib/subIndustries';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -186,6 +187,24 @@ export function FlowsSettings() {
     queryKey: ['service-flow-templates'],
     queryFn: () => fetchApi('/service-flows/templates/list'),
   });
+
+  const { data: tenant } = useQuery({
+    queryKey: ['tenant-me'],
+    queryFn: () => fetchApi('/tenant/me').catch(() => null),
+  });
+
+  // Compute which templates are recommended based on tenant businessType
+  const recommendedKeys = useMemo(() => {
+    const bt = tenant?.businessType || '';
+    if (!bt) return new Set<string>();
+    const keys = new Set<string>();
+    for (const group of INDUSTRY_GROUPS) {
+      for (const sub of group.subIndustries) {
+        if (sub.businessType === bt) keys.add(sub.blueprintKey);
+      }
+    }
+    return keys;
+  }, [tenant?.businessType]);
 
   useEffect(() => {
     if (flow?.steps) {
@@ -957,43 +976,89 @@ export function FlowsSettings() {
           </AnimatePresence>
         </div>
       ) : (
-        /* No flow configured — show blueprint picker */
+        /* No flow configured — show smart blueprint picker */
         <div className="px-6 sm:px-8 py-12">
-          <div className="text-center py-12 px-4 bg-surface-container-lowest dark:bg-zinc-900/50 rounded-3xl border border-dashed border-border dark:border-zinc-700 mb-8">
-            <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Workflow className="w-8 h-8 text-indigo-500" />
-            </div>
-            <h3 className="text-xl font-bold text-on-surface dark:text-white mb-2">No Custom Flow Yet</h3>
-            <p className="text-on-surface-variant dark:text-zinc-400 max-w-lg mx-auto mb-2 leading-relaxed">
-              Start from a template below, or add stages manually after applying one. Each template is fully editable.
-            </p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-600 mb-8">Tip: Templates are starting points — you can add, remove or modify every step.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-left max-w-5xl mx-auto">
-              {templates.map((tpl: any) => (
-                <button
-                  key={tpl.key}
-                  onClick={() => applyTemplateMutation.mutate(tpl.key)}
-                  disabled={applyTemplateMutation.isPending}
-                  className="p-5 rounded-2xl border border-border dark:border-zinc-700 hover:border-indigo-500 hover:shadow-lg dark:hover:shadow-indigo-500/10 hover:-translate-y-1 bg-surface dark:bg-zinc-900 transition-all group flex flex-col h-full text-left"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="font-bold text-on-surface dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+
+          {/* Recommended Blueprints Banner */}
+          {recommendedKeys.size > 0 && templates.some((t: any) => recommendedKeys.has(t.key)) && (
+            <div className="mb-8 p-6 rounded-3xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/20 border border-indigo-200 dark:border-indigo-900/40">
+              <div className="flex items-center gap-2.5 mb-1">
+                <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <h3 className="font-bold text-indigo-700 dark:text-indigo-300 text-lg">Recommended for your business</h3>
+              </div>
+              <p className="text-sm text-indigo-600/70 dark:text-indigo-400/70 mb-5">
+                Based on your configured business type, these blueprints are the best fit for your workflow.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {templates.filter((t: any) => recommendedKeys.has(t.key)).map((tpl: any) => (
+                  <button
+                    key={tpl.key}
+                    onClick={() => applyTemplateMutation.mutate(tpl.key)}
+                    disabled={applyTemplateMutation.isPending}
+                    className="p-5 rounded-2xl border-2 border-indigo-300 dark:border-indigo-700 hover:border-indigo-500 hover:shadow-xl hover:-translate-y-1 bg-white dark:bg-indigo-900/20 transition-all group flex flex-col h-full text-left relative overflow-hidden"
+                  >
+                    <div className="absolute top-3 right-3">
+                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-600 text-white">
+                        <Star className="w-2.5 h-2.5 fill-white" /> Recommended
+                      </span>
+                    </div>
+                    <div className="font-bold text-on-surface dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors mb-1 pr-24">
                       {tpl.name}
                     </div>
-                    <ArrowRight className="w-4 h-4 text-zinc-300 dark:text-zinc-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
-                  </div>
-                  <div className="text-xs text-on-surface-variant dark:text-zinc-400 leading-relaxed mb-3 flex-1">{tpl.description}</div>
-                  <div className="flex flex-wrap gap-1">
-                    {(tpl.steps || []).slice(0, 4).map((s: any, i: number) => (
-                      <span key={i} className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">{s.name}</span>
-                    ))}
-                    {(tpl.steps || []).length > 4 && (
-                      <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">+{(tpl.steps || []).length - 4} more</span>
+                    <div className="text-xs text-on-surface-variant dark:text-zinc-400 leading-relaxed mb-3 flex-1">{tpl.description}</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(tpl.steps || []).map((s: any, i: number) => (
+                        <span key={i} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+                          {i + 1}. {s.name}
+                        </span>
+                      ))}
+                    </div>
+                    {applyTemplateMutation.isPending && (
+                      <div className="absolute inset-0 bg-white/70 dark:bg-zinc-900/70 flex items-center justify-center rounded-2xl">
+                        <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+                      </div>
                     )}
-                  </div>
-                </button>
-              ))}
+                  </button>
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* All Templates */}
+          <div className="text-center mb-6">
+            <h3 className="text-lg font-bold text-on-surface dark:text-white mb-1">
+              {recommendedKeys.size > 0 ? 'All Flow Blueprints' : 'Choose a Flow Blueprint'}
+            </h3>
+            <p className="text-sm text-on-surface-variant dark:text-zinc-400">
+              {recommendedKeys.size > 0 ? 'Explore all available templates — every one is fully customisable.' : 'Templates are starting points. You can add, remove or modify every step after applying.'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {templates.filter((t: any) => recommendedKeys.size === 0 || !recommendedKeys.has(t.key)).map((tpl: any) => (
+              <button
+                key={tpl.key}
+                onClick={() => applyTemplateMutation.mutate(tpl.key)}
+                disabled={applyTemplateMutation.isPending}
+                className="p-5 rounded-2xl border border-border dark:border-zinc-700 hover:border-indigo-500 hover:shadow-lg dark:hover:shadow-indigo-500/10 hover:-translate-y-1 bg-surface dark:bg-zinc-900 transition-all group flex flex-col h-full text-left"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-bold text-on-surface dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors text-sm">
+                    {tpl.name}
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-zinc-300 dark:text-zinc-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all shrink-0" />
+                </div>
+                <div className="text-xs text-on-surface-variant dark:text-zinc-400 leading-relaxed mb-3 flex-1">{tpl.description}</div>
+                <div className="flex flex-wrap gap-1">
+                  {(tpl.steps || []).slice(0, 4).map((s: any, i: number) => (
+                    <span key={i} className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">{s.name}</span>
+                  ))}
+                  {(tpl.steps || []).length > 4 && (
+                    <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">+{(tpl.steps || []).length - 4} more</span>
+                  )}
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       )}
