@@ -3,6 +3,7 @@ import { Save, Loader2 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
+import PhoneInput from '../PhoneInput';
 
 export default function ProfileSettingsPage() {
   const { user, refetch } = useAuth();
@@ -99,13 +100,14 @@ export default function ProfileSettingsPage() {
           
           <div>
             <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">Phone Number</label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow text-on-surface dark:text-white"
-              placeholder="+1 555-0000"
-            />
+            <div className="h-[44px] rounded-lg bg-white dark:bg-zinc-900 border border-border dark:border-dark-border focus-within:ring-1 focus-within:ring-primary focus-within:border-primary overflow-hidden">
+              <PhoneInput
+                value={phone}
+                onChange={setPhone}
+                className="w-full h-full !border-none !bg-transparent px-4 font-body-md text-on-surface dark:text-white"
+                placeholder="234 567 8900"
+              />
+            </div>
           </div>
         </div>
 

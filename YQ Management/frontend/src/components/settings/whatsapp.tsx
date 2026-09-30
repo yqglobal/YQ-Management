@@ -19,9 +19,7 @@ export default function WhatsAppSettingsPage() {
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [connectionMode, setConnectionMode] = useState<'qr' | 'code'>('qr');
   const [pairingPhoneNumber, setPairingPhoneNumber] = useState('');
-  const [pairingCountryCode, setPairingCountryCode] = useState('+1');
   const [testPhone, setTestPhone] = useState('');
-  const [testCountryCode, setTestCountryCode] = useState('+1');
   const [testMessage, setTestMessage] = useState('Test message from Qmova');
   const [qrCountdown, setQrCountdown] = useState<number>(60);
   
@@ -249,19 +247,16 @@ export default function WhatsAppSettingsPage() {
                         <PhoneInput 
                           value={pairingPhoneNumber}
                           onChange={setPairingPhoneNumber}
-                          countryCode={pairingCountryCode}
-                          onCountryCodeChange={setPairingCountryCode}
                           placeholder="234 567 8900"
                           className="w-full h-full !border-none !bg-transparent px-3 text-on-surface dark:text-white font-body-md"
-                          autoDetect={true}
                         />
                       </div>
                     </div>
                     <button 
                       onClick={async () => {
                         try {
-                          logToBackend('info', 'User requested pairing code', { phone: `${pairingCountryCode}${pairingPhoneNumber}` });
-                          const res: AnyFixMe = await pairingCodeMutation.mutateAsync(`${pairingCountryCode}${pairingPhoneNumber}`);
+                          logToBackend('info', 'User requested pairing code', { phone: pairingPhoneNumber });
+                          const res: AnyFixMe = await pairingCodeMutation.mutateAsync(pairingPhoneNumber);
                           if (res?.pairingCode) {
                             setPairingCode(res.pairingCode);
                             logToBackend('info', 'Pairing code received successfully');
@@ -383,11 +378,8 @@ export default function WhatsAppSettingsPage() {
                     <PhoneInput 
                       value={testPhone} 
                       onChange={setTestPhone} 
-                      countryCode={testCountryCode}
-                      onCountryCodeChange={setTestCountryCode}
                       placeholder="234 567 8900"
                       className="w-full h-full !border-none !bg-transparent px-3 text-on-surface dark:text-white font-body-md"
-                      autoDetect={true}
                     />
                   </div>
                 </div>
@@ -408,8 +400,8 @@ export default function WhatsAppSettingsPage() {
                   </div>
                   <button 
                     onClick={() => {
-                      logToBackend('info', 'User sent a test message', { phone: `${testCountryCode}${testPhone}` });
-                      testMutation.mutate({ phone: `${testCountryCode}${testPhone}`, message: testMessage }, {
+                      logToBackend('info', 'User sent a test message', { phone: testPhone });
+                      testMutation.mutate({ phone: testPhone, message: testMessage }, {
                         onSuccess: () => {
                           toast.success('Test message sent successfully');
                           logToBackend('info', 'Test message sent successfully');

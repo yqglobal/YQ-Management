@@ -10,6 +10,7 @@ import { ALL_INDUSTRY_CONFIGS } from '../../lib/industryConfig';
 import { INDUSTRY_GROUPS, type IndustryGroup, type SubIndustry } from '../../lib/subIndustries';
 import { Dialog, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
+import PhoneInput from '../PhoneInput';
 
 export default function WorkspaceSettingsPage() {
   const { user, refetch } = useAuth();
@@ -218,13 +219,14 @@ export default function WorkspaceSettingsPage() {
                 </div>
                 <div>
                   <label className="block text-body-sm text-on-surface-variant dark:text-outline mb-1">Support Phone</label>
-                  <input
-                    type="tel"
-                    value={supportPhone}
-                    onChange={(e) => setSupportPhone(e.target.value)}
-                    className="w-full h-[40px] bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-3 font-body-sm text-body-md focus:ring-1 focus:ring-primary outline-none text-on-surface dark:text-white"
-                    placeholder="+1 (555) 000-0000"
-                  />
+                  <div className="h-[40px] rounded-lg bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border focus-within:ring-1 focus-within:ring-primary overflow-hidden">
+                    <PhoneInput
+                      value={supportPhone}
+                      onChange={setSupportPhone}
+                      className="w-full h-full !border-none !bg-transparent px-3 text-sm text-on-surface dark:text-white"
+                      placeholder="234 567 8900"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
