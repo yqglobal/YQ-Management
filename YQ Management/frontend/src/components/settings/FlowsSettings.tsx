@@ -254,212 +254,238 @@ export function FlowsSettings() {
   };
 
   return (
-    <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-6 sm:p-8 relative overflow-hidden mb-8 min-h-[600px]">
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-b from-indigo-500 to-purple-500" />
-      
-      <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
+    <div className="flex flex-col gap-0 -mx-6 sm:-mx-8 -mb-8">
+      {/* ─── Header ─────────────────────────────────────────────────────── */}
+      <div className="px-6 sm:px-8 pt-6 pb-5 border-b border-border dark:border-dark-border bg-surface dark:bg-dark-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl shrink-0">
               <Workflow className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             </div>
-            <h2 className="font-headline-sm text-headline-sm font-semibold text-on-surface dark:text-white tracking-tight">Workflow Engine</h2>
+            <div>
+              <h2 className="font-bold text-xl text-on-surface dark:text-white tracking-tight">Workflow Engine</h2>
+              <p className="text-sm text-on-surface-variant dark:text-zinc-400 mt-0.5">
+                Design multi-stage routing flows with conditional branching and automated transitions.
+              </p>
+            </div>
           </div>
-          <p className="text-on-surface-variant dark:text-zinc-400 font-body-sm text-body-sm max-w-xl leading-relaxed">
-            Design dynamic, multi-stage routing for your business operations. Build custom funnels, add conditional checkpoints, and orchestrate complex patient or customer journeys.
-          </p>
+
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {[
+              { color: '#6366f1', label: 'Checkpoint' },
+              { color: '#8b5cf6', label: 'Service' },
+              { color: '#059669', label: 'Collection' },
+              { color: '#f59e0b', label: 'Payment' },
+            ].map(({ color, label }) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+                <span className="text-xs text-on-surface-variant dark:text-zinc-400 font-medium">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Service Selector */}
+        <div className="mt-5 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          <label className="text-sm font-bold text-on-surface dark:text-white whitespace-nowrap shrink-0">Target Service:</label>
+          <select
+            value={selectedServiceId}
+            onChange={e => setSelectedServiceId(e.target.value)}
+            className="flex-1 sm:max-w-sm h-11 px-4 bg-surface-container-lowest dark:bg-zinc-900 border border-border dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-on-surface dark:text-white font-medium text-sm"
+          >
+            <option value="all">— Select a Service to Configure —</option>
+            {services.map((s: any) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+          {selectedServiceId !== 'all' && flow && flow.id && (
+            <button
+              onClick={() => {
+                if (confirm('Reset this flow back to a standard queue?')) deleteFlowMutation.mutate(flow.id);
+              }}
+              className="h-11 px-4 flex items-center gap-2 rounded-xl text-sm font-semibold text-red-500 bg-red-50 dark:bg-red-900/15 hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-900/30 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" /> Reset Flow
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="mb-8">
-        <label className="block text-sm font-semibold text-on-surface dark:text-white mb-2 uppercase tracking-wide">Target Service</label>
-        <select 
-          value={selectedServiceId} 
-          onChange={e => setSelectedServiceId(e.target.value)}
-          className="w-full sm:max-w-md px-4 py-3 bg-surface-container-lowest dark:bg-[#0a0a0a] border border-border dark:border-dark-border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
-        >
-          <option value="all">-- Select a Service to Configure --</option>
-          {services.map((s: any) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-      </div>
+      {/* ─── Body ────────────────────────────────────────────────────────── */}
+      {selectedServiceId === 'all' ? (
+        <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+          <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl flex items-center justify-center mb-5 mx-auto">
+            <Workflow className="w-10 h-10 text-indigo-400" />
+          </div>
+          <h3 className="text-xl font-bold text-on-surface dark:text-white mb-2">Select a Service to Begin</h3>
+          <p className="text-on-surface-variant dark:text-zinc-400 max-w-md leading-relaxed">
+            Choose a service above to configure or view its workflow. Each service can have its own multi-stage routing pipeline.
+          </p>
+        </div>
+      ) : flowLoading ? (
+        <div className="flex justify-center items-center py-32">
+          <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
+        </div>
+      ) : flow && flow.id ? (
+        <div className="flex flex-col lg:flex-row h-[calc(100vh-280px)] min-h-[600px]">
 
-      {selectedServiceId !== 'all' && (
-        <div className="mt-8 border-t border-border dark:border-dark-border pt-8 relative">
-          {flowLoading ? (
-            <div className="flex justify-center p-12"><Loader2 className="w-10 h-10 animate-spin text-indigo-500" /></div>
-          ) : flow && flow.id ? (
-            <div className="flex flex-col lg:flex-row gap-8">
-              
-              {/* Visual Flow Canvas */}
-              <div className="flex-1 max-w-2xl">
-                <div className="flex justify-between items-center mb-6 bg-surface-container-low dark:bg-zinc-800/30 p-4 rounded-2xl border border-border dark:border-dark-border">
-                  <div>
-                    <h3 className="text-xl font-bold text-on-surface dark:text-white flex items-center gap-2">
-                      {flow.name}
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider">Active</span>
+          {/* ── Canvas ── */}
+          <div className="flex-1 relative overflow-hidden bg-zinc-50 dark:bg-zinc-950/50">
+            {/* Canvas header bar */}
+            <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-5 py-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border-b border-border dark:border-dark-border">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-bold text-sm text-on-surface dark:text-white">{flow.name}</span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Active</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-on-surface-variant dark:text-zinc-500">{localSteps.length} stage{localSteps.length !== 1 ? 's' : ''}</span>
+                <button
+                  onClick={openAdd}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Stage
+                </button>
+              </div>
+            </div>
+
+            {/* Canvas area */}
+            <div className="absolute inset-0 pt-[52px]">
+              <FlowBuilder
+                flow={flow}
+                onEditStep={openEdit}
+                onSaveTransitions={handleSaveTransitions}
+                onEditEdge={openEditEdge}
+              />
+            </div>
+          </div>
+
+          {/* ── Side Panel ── */}
+          <AnimatePresence mode="wait">
+            {(editingStep || isAddingStep || editingEdge) && (
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 40, transition: { duration: 0.15 } }}
+                className="w-full lg:w-[380px] shrink-0 flex flex-col bg-surface dark:bg-zinc-900 border-l border-border dark:border-zinc-800 overflow-y-auto"
+              >
+                {/* Panel header */}
+                <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 bg-surface dark:bg-zinc-900 border-b border-border dark:border-zinc-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                      <Settings2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <h3 className="font-bold text-on-surface dark:text-white text-sm">
+                      {editingEdge ? 'Configure Transition' : isAddingStep ? 'New Stage' : 'Edit Stage'}
                     </h3>
-                    <p className="text-sm text-on-surface-variant dark:text-zinc-400 mt-1">{flow.description}</p>
                   </div>
-                  <button 
-                    onClick={() => {
-                      if (confirm('Delete this flow and revert to basic?')) deleteFlowMutation.mutate(flow.id);
-                    }}
-                    className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
-                    title="Reset Flow"
+                  <button
+                    onClick={() => { setEditingStep(null); setIsAddingStep(false); setEditingEdge(null); }}
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-on-surface hover:bg-surface-container-low dark:hover:bg-zinc-800 transition-colors"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <div className="relative">
-                  <FlowBuilder 
-                    flow={flow} 
-                    onEditStep={openEdit} 
-                    onSaveTransitions={handleSaveTransitions}
-                    onEditEdge={openEditEdge}
-                  />
-
-                  <motion.button 
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={openAdd}
-                    className="absolute bottom-4 left-4 z-10 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/50 shadow-lg transition-colors"
-                  >
-                    <Plus className="w-4 h-4" /> Add New Stage
-                  </motion.button>
-                </div>
-              </div>
-
-              {/* Property Editor Panel */}
-              <AnimatePresence mode="wait">
+                {/* Edge editor */}
                 {editingEdge && (
-                  <motion.div 
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20, transition: { duration: 0.15 } }}
-                    className="w-full lg:w-96 shrink-0 bg-surface-container-lowest dark:bg-[#0a0a0a] border border-border dark:border-dark-border rounded-2xl shadow-xl overflow-hidden flex flex-col h-fit"
-                  >
-                    <div className="p-5 border-b border-border dark:border-dark-border bg-surface-container-low dark:bg-zinc-800/50 flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <Settings2 className="w-5 h-5 text-indigo-500" />
-                        <h3 className="font-bold text-on-surface dark:text-white">Configure Transition</h3>
-                      </div>
-                      <button onClick={() => setEditingEdge(null)} className="text-zinc-400 hover:text-on-surface">
-                        <X className="w-5 h-5" />
-                      </button>
+                  <div className="p-5 space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-2">Edge Label</label>
+                      <input
+                        type="text"
+                        value={edgeForm.label}
+                        onChange={e => setEdgeForm({ ...edgeForm, label: e.target.value })}
+                        className="w-full h-11 px-4 bg-surface-container-lowest dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        placeholder="e.g. Yes, No, Approved"
+                      />
                     </div>
-
-                    <div className="p-5 space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Edge Label</label>
-                        <input 
-                          type="text" 
-                          value={edgeForm.label} 
-                          onChange={e => setEdgeForm({...edgeForm, label: e.target.value})}
-                          className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                          placeholder="e.g. Yes, No, Approved"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Condition Outcome (Exact Match)</label>
-                        <input 
-                          type="text" 
-                          value={edgeForm.conditionOutcome} 
-                          onChange={e => setEdgeForm({...edgeForm, conditionOutcome: e.target.value})}
-                          className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                          placeholder="e.g. Abnormal Result"
-                        />
-                        <p className="text-[10px] text-zinc-500 mt-1">If the parent node triggers this outcome, this route is taken.</p>
-                      </div>
-                      <div className="pt-2 border-t border-border dark:border-dark-border">
-                        <label className="flex items-center gap-3 cursor-pointer p-3 border border-border dark:border-dark-border rounded-xl hover:bg-surface-container-low dark:hover:bg-zinc-800/30 transition-colors">
-                          <input 
-                            type="checkbox" 
-                            checked={edgeForm.isDefault} 
-                            onChange={e => setEdgeForm({...edgeForm, isDefault: e.target.checked})}
-                            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 dark:bg-black dark:border-zinc-700"
-                          />
-                          <div>
-                            <div className="font-semibold text-sm text-on-surface dark:text-white">Is Default Route</div>
-                            <div className="text-xs text-on-surface-variant dark:text-zinc-400">Taken if no conditions match.</div>
-                          </div>
-                        </label>
-                      </div>
-                      <div className="pt-4 flex gap-3">
-                        <button 
-                          onClick={handleSaveEdge}
-                          disabled={updateStepMutation.isPending}
-                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-bold text-sm shadow-sm transition-colors flex justify-center items-center gap-2"
-                        >
-                          {updateStepMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                          Save Edge
-                        </button>
-                      </div>
+                    <div>
+                      <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-2">Condition Outcome</label>
+                      <input
+                        type="text"
+                        value={edgeForm.conditionOutcome}
+                        onChange={e => setEdgeForm({ ...edgeForm, conditionOutcome: e.target.value })}
+                        className="w-full h-11 px-4 bg-surface-container-lowest dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        placeholder="e.g. Abnormal Result"
+                      />
+                      <p className="text-[11px] text-zinc-500 mt-1.5">If the parent step produces this exact outcome, this route is taken.</p>
                     </div>
-                  </motion.div>
+                    <label className="flex items-center gap-3 cursor-pointer p-3.5 border border-border dark:border-zinc-700 rounded-xl hover:bg-surface-container-low dark:hover:bg-zinc-800 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={edgeForm.isDefault}
+                        onChange={e => setEdgeForm({ ...edgeForm, isDefault: e.target.checked })}
+                        className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-zinc-700"
+                      />
+                      <div>
+                        <div className="font-semibold text-sm text-on-surface dark:text-white">Default Route</div>
+                        <div className="text-xs text-on-surface-variant dark:text-zinc-400">Taken when no other conditions match.</div>
+                      </div>
+                    </label>
+                    <button
+                      onClick={handleSaveEdge}
+                      disabled={updateStepMutation.isPending}
+                      className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-sm transition-colors flex justify-center items-center gap-2 disabled:opacity-60"
+                    >
+                      {updateStepMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                      Save Transition
+                    </button>
+                  </div>
                 )}
 
+                {/* Step editor */}
                 {(editingStep || isAddingStep) && !editingEdge && (
-                  <motion.div 
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20, transition: { duration: 0.15 } }}
-                    className="w-full lg:w-96 shrink-0 bg-surface-container-lowest dark:bg-[#0a0a0a] border border-border dark:border-dark-border rounded-2xl shadow-xl overflow-hidden flex flex-col h-fit"
-                  >
-                    <div className="p-5 border-b border-border dark:border-dark-border bg-surface-container-low dark:bg-zinc-800/50 flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <Settings2 className="w-5 h-5 text-indigo-500" />
-                        <h3 className="font-bold text-on-surface dark:text-white">{isAddingStep ? 'New Stage' : 'Configure Stage'}</h3>
-                      </div>
-                      <button onClick={() => { setEditingStep(null); setIsAddingStep(false); }} className="text-zinc-400 hover:text-on-surface">
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
+                  <div className="p-5 space-y-5">
 
-                    <div className="p-5 space-y-4">
+                    {/* Basic Info */}
+                    <section className="space-y-3">
+                      <h4 className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Basic Info</h4>
                       <div>
-                        <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Stage Name</label>
-                        <input 
-                          type="text" 
-                          value={stepForm.name} 
-                          onChange={e => setStepForm({...stepForm, name: e.target.value})}
-                          className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                        <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Stage Name *</label>
+                        <input
+                          type="text"
+                          value={stepForm.name}
+                          onChange={e => setStepForm({ ...stepForm, name: e.target.value })}
+                          className="w-full h-11 px-4 bg-surface-container-lowest dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                           placeholder="e.g. Triage, Payment, Checkout"
                         />
                       </div>
-                      
                       <div>
-                        <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Description</label>
-                        <textarea 
-                          value={stepForm.description} 
-                          onChange={e => setStepForm({...stepForm, description: e.target.value})}
-                          className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm min-h-[80px] focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
-                          placeholder="Internal notes for this stage..."
+                        <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Description</label>
+                        <textarea
+                          value={stepForm.description}
+                          onChange={e => setStepForm({ ...stepForm, description: e.target.value })}
+                          className="w-full px-4 py-3 bg-surface-container-lowest dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white min-h-[80px] focus:ring-2 focus:ring-indigo-500 outline-none resize-none transition-all"
+                          placeholder="Internal notes for staff..."
                         />
                       </div>
+                    </section>
 
-                      <div className="grid grid-cols-2 gap-4">
+                    {/* Stage Type & Trigger */}
+                    <section className="space-y-3">
+                      <h4 className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Stage Configuration</h4>
+                      <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Node Type</label>
-                          <select 
-                            value={stepForm.type} 
-                            onChange={e => setStepForm({...stepForm, type: e.target.value})}
-                            className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                          <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Node Type</label>
+                          <select
+                            value={stepForm.type}
+                            onChange={e => setStepForm({ ...stepForm, type: e.target.value })}
+                            className="w-full h-11 px-3 bg-surface-container-lowest dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                           >
                             <option value="CHECKPOINT">Checkpoint</option>
                             <option value="SERVICE">Service Area</option>
-                            <option value="COLLECTION">Collection / Redemption</option>
+                            <option value="COLLECTION">Collection</option>
                             <option value="PAYMENT">Payment</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Trigger</label>
-                          <select 
-                            value={stepForm.triggerRule} 
-                            onChange={e => setStepForm({...stepForm, triggerRule: e.target.value})}
-                            className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                          <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Trigger</label>
+                          <select
+                            value={stepForm.triggerRule}
+                            onChange={e => setStepForm({ ...stepForm, triggerRule: e.target.value })}
+                            className="w-full h-11 px-3 bg-surface-container-lowest dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                           >
                             <option value="MANUAL">Manual Routing</option>
                             <option value="AUTO">Auto-Advance</option>
@@ -467,248 +493,245 @@ export function FlowsSettings() {
                         </div>
                       </div>
 
-                      <div className="pt-4 border-t border-border dark:border-dark-border space-y-4">
-                        <h4 className="text-xs font-bold text-on-surface dark:text-white uppercase tracking-wider">Wayfinding & Instructions</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Floor No.</label>
-                            <input 
-                              type="number" 
-                              value={stepForm.floorNumber} 
-                              onChange={e => setStepForm({...stepForm, floorNumber: e.target.value})}
-                              className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                              placeholder="e.g. 2"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Room / Counter</label>
-                            <input 
-                              type="text" 
-                              value={stepForm.roomNumber} 
-                              onChange={e => setStepForm({...stepForm, roomNumber: e.target.value})}
-                              className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                              placeholder="e.g. Room A1"
-                            />
-                          </div>
+                      <label className="flex items-center gap-3 cursor-pointer p-3.5 border border-border dark:border-zinc-700 rounded-xl hover:bg-surface-container-low dark:hover:bg-zinc-800 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={stepForm.isOptional}
+                          onChange={e => setStepForm({ ...stepForm, isOptional: e.target.checked })}
+                          className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-zinc-700"
+                        />
+                        <div>
+                          <div className="font-semibold text-sm text-on-surface dark:text-white">Optional Stage</div>
+                          <div className="text-xs text-on-surface-variant dark:text-zinc-400">Can be skipped by customers or staff.</div>
+                        </div>
+                      </label>
+                    </section>
+
+                    {/* Wayfinding */}
+                    <section className="space-y-3">
+                      <h4 className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Wayfinding</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Floor No.</label>
+                          <input
+                            type="number"
+                            value={stepForm.floorNumber}
+                            onChange={e => setStepForm({ ...stepForm, floorNumber: e.target.value })}
+                            className="w-full h-11 px-4 bg-surface-container-lowest dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="e.g. 2"
+                          />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Digital Ticket Instruction</label>
-                          <textarea 
-                            value={stepForm.customerInstruction} 
-                            onChange={e => setStepForm({...stepForm, customerInstruction: e.target.value})}
-                            className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm min-h-[60px] focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
-                            placeholder="e.g. Please wait here until called..."
+                          <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Room / Counter</label>
+                          <input
+                            type="text"
+                            value={stepForm.roomNumber}
+                            onChange={e => setStepForm({ ...stepForm, roomNumber: e.target.value })}
+                            className="w-full h-11 px-4 bg-surface-container-lowest dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="e.g. Room A1"
                           />
                         </div>
                       </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Customer Instruction</label>
+                        <textarea
+                          value={stepForm.customerInstruction}
+                          onChange={e => setStepForm({ ...stepForm, customerInstruction: e.target.value })}
+                          className="w-full px-4 py-3 bg-surface-container-lowest dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white min-h-[60px] focus:ring-2 focus:ring-indigo-500 outline-none resize-none transition-all"
+                          placeholder="e.g. Please wait here until called..."
+                        />
+                      </div>
+                    </section>
 
-                      {stepForm.type === 'PAYMENT' && (
-                        <div className="pt-4 border-t border-border dark:border-dark-border space-y-4 animate-in fade-in slide-in-from-top-2">
-                          <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Payment Settings</h4>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Fixed Price</label>
-                              <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                  <span className="text-zinc-500 sm:text-sm">{stepForm.stepPriceCurrency === 'ZAR' ? 'R' : '$'}</span>
-                                </div>
-                                <input 
-                                  type="number" 
-                                  step="0.01"
-                                  value={stepForm.stepPrice} 
-                                  onChange={e => setStepForm({...stepForm, stepPrice: e.target.value})}
-                                  disabled={stepForm.isPriceVariable}
-                                  className="w-full pl-7 pr-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none disabled:opacity-50"
-                                  placeholder="0.00"
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Currency</label>
-                              <select 
-                                value={stepForm.stepPriceCurrency} 
-                                onChange={e => setStepForm({...stepForm, stepPriceCurrency: e.target.value})}
-                                className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                              >
-                                <option value="ZAR">ZAR (R)</option>
-                                <option value="USD">USD ($)</option>
-                                <option value="EUR">EUR (€)</option>
-                                <option value="GBP">GBP (£)</option>
-                              </select>
+                    {/* Payment Settings */}
+                    {stepForm.type === 'PAYMENT' && (
+                      <section className="space-y-3 p-4 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10">
+                        <h4 className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">Payment Settings</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Fixed Price</label>
+                            <div className="relative">
+                              <span className="absolute inset-y-0 left-3 flex items-center text-zinc-500 text-sm">{stepForm.stepPriceCurrency === 'ZAR' ? 'R' : '$'}</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={stepForm.stepPrice}
+                                onChange={e => setStepForm({ ...stepForm, stepPrice: e.target.value })}
+                                disabled={stepForm.isPriceVariable}
+                                className="w-full h-11 pl-8 pr-3 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-amber-500 outline-none disabled:opacity-50"
+                                placeholder="0.00"
+                              />
                             </div>
                           </div>
-                          
-                          <label className="flex items-center gap-3 cursor-pointer p-3 border border-border dark:border-dark-border rounded-xl hover:bg-surface-container-low dark:hover:bg-zinc-800/30 transition-colors">
-                            <input 
-                              type="checkbox" 
-                              checked={stepForm.isPriceVariable} 
-                              onChange={e => setStepForm({...stepForm, isPriceVariable: e.target.checked, stepPrice: e.target.checked ? '' : stepForm.stepPrice})}
-                              className="w-4 h-4 text-emerald-600 rounded border-gray-300 dark:border-zinc-700 bg-surface dark:bg-black"
-                            />
-                            <div>
-                              <div className="text-sm font-semibold text-on-surface dark:text-white">Variable Pricing (Quote)</div>
-                              <div className="text-xs text-on-surface-variant dark:text-zinc-400">Price is determined by staff during the visit based on services rendered.</div>
-                            </div>
-                          </label>
+                          <div>
+                            <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Currency</label>
+                            <select
+                              value={stepForm.stepPriceCurrency}
+                              onChange={e => setStepForm({ ...stepForm, stepPriceCurrency: e.target.value })}
+                              className="w-full h-11 px-3 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                            >
+                              <option value="ZAR">ZAR (R)</option>
+                              <option value="USD">USD ($)</option>
+                              <option value="EUR">EUR (€)</option>
+                              <option value="GBP">GBP (£)</option>
+                            </select>
+                          </div>
                         </div>
-                      )}
-
-
-                      <div className="pt-2 border-t border-border dark:border-dark-border">
-                        <label className="flex items-center gap-3 cursor-pointer p-3 border border-border dark:border-dark-border rounded-xl hover:bg-surface-container-low dark:hover:bg-zinc-800/30 transition-colors">
-                          <input 
-                            type="checkbox" 
-                            checked={stepForm.isOptional} 
-                            onChange={e => setStepForm({...stepForm, isOptional: e.target.checked})}
-                            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 dark:bg-black dark:border-zinc-700"
+                        <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700">
+                          <input
+                            type="checkbox"
+                            checked={stepForm.isPriceVariable}
+                            onChange={e => setStepForm({ ...stepForm, isPriceVariable: e.target.checked, stepPrice: e.target.checked ? '' : stepForm.stepPrice })}
+                            className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500"
                           />
                           <div>
-                            <div className="font-semibold text-sm text-on-surface dark:text-white">Optional Stage</div>
-                            <div className="text-xs text-on-surface-variant dark:text-zinc-400">Can be skipped by customers</div>
+                            <div className="text-sm font-semibold text-on-surface dark:text-white">Variable Pricing</div>
+                            <div className="text-xs text-on-surface-variant dark:text-zinc-400">Set by staff during visit.</div>
                           </div>
                         </label>
-                      </div>
+                      </section>
+                    )}
 
-                      <div className="pt-4 border-t border-border dark:border-dark-border space-y-4">
-                        <h4 className="text-xs font-bold text-on-surface dark:text-white uppercase tracking-wider">Time-to-Live (TTL) & Delays</h4>
-                        <div className="grid grid-cols-2 gap-4">
+                    {/* Collection Settings */}
+                    {stepForm.type === 'COLLECTION' && (
+                      <section className="space-y-3 p-4 rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-900/10">
+                        <h4 className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Collection Config</h4>
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Auto-Expire (Days)</label>
-                            <input 
-                              type="number" 
-                              value={stepForm.expiresAfterDays} 
-                              onChange={e => setStepForm({...stepForm, expiresAfterDays: e.target.value})}
-                              className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                              placeholder="e.g. 1"
+                            <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Formula</label>
+                            <input
+                              type="text"
+                              value={stepForm.entitlementFormula}
+                              onChange={e => setStepForm({ ...stepForm, entitlementFormula: e.target.value })}
+                              className="w-full h-11 px-4 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                              placeholder="accompanyingGuests + 1"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Auto-Expire (Hours)</label>
-                            <input 
-                              type="number" 
-                              value={stepForm.expiresAfterHours} 
-                              onChange={e => setStepForm({...stepForm, expiresAfterHours: e.target.value})}
-                              className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                              placeholder="e.g. 24"
+                            <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Fixed Qty</label>
+                            <input
+                              type="number"
+                              value={stepForm.entitlementFixed}
+                              onChange={e => setStepForm({ ...stepForm, entitlementFixed: e.target.value })}
+                              className="w-full h-11 px-4 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                              placeholder="e.g. 4"
                             />
                           </div>
                         </div>
-                      </div>
-
-                      {stepForm.type === 'COLLECTION' && (
-                        <div className="pt-4 border-t border-border dark:border-dark-border space-y-4">
-                          <h4 className="text-xs font-bold text-on-surface dark:text-white uppercase tracking-wider">Collection Config</h4>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Entitlement Formula</label>
-                              <input 
-                                type="text" 
-                                value={stepForm.entitlementFormula} 
-                                onChange={e => setStepForm({...stepForm, entitlementFormula: e.target.value})}
-                                className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                                placeholder="e.g. accompanyingGuests + 1"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-bold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5">Fixed Quantity</label>
-                              <input 
-                                type="number" 
-                                value={stepForm.entitlementFixed} 
-                                onChange={e => setStepForm({...stepForm, entitlementFixed: e.target.value})}
-                                className="w-full px-3 py-2 bg-surface dark:bg-black border border-border dark:border-dark-border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                                placeholder="e.g. 4"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input 
-                                type="checkbox" 
-                                checked={stepForm.allowPartialRedemption} 
-                                onChange={e => setStepForm({...stepForm, allowPartialRedemption: e.target.checked})}
-                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                              />
-                              <span className="text-sm text-gray-700 dark:text-zinc-300">Allow Partial Claim</span>
-                            </label>
-
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input 
-                                type="checkbox" 
-                                checked={stepForm.preventDoubleRedemption} 
-                                onChange={e => setStepForm({...stepForm, preventDoubleRedemption: e.target.checked})}
-                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                              />
-                              <span className="text-sm text-gray-700 dark:text-zinc-300">Prevent Double Claim</span>
-                            </label>
-                          </div>
+                        <div className="flex items-center gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={stepForm.allowPartialRedemption}
+                              onChange={e => setStepForm({ ...stepForm, allowPartialRedemption: e.target.checked })}
+                              className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                            />
+                            <span className="text-sm text-on-surface dark:text-zinc-300 font-medium">Allow Partial</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={stepForm.preventDoubleRedemption}
+                              onChange={e => setStepForm({ ...stepForm, preventDoubleRedemption: e.target.checked })}
+                              className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                            />
+                            <span className="text-sm text-on-surface dark:text-zinc-300 font-medium">Prevent Double</span>
+                          </label>
                         </div>
-                      )}
+                      </section>
+                    )}
 
-                      <div className="pt-4 flex gap-3">
-                        <button 
-                          onClick={handleSaveStep}
-                          disabled={createStepMutation.isPending || updateStepMutation.isPending}
-                          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-bold text-sm shadow-sm transition-colors flex justify-center items-center gap-2"
+                    {/* TTL */}
+                    <section className="space-y-3">
+                      <h4 className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Time-to-Live (TTL)</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Expire After Days</label>
+                          <input
+                            type="number"
+                            value={stepForm.expiresAfterDays}
+                            onChange={e => setStepForm({ ...stepForm, expiresAfterDays: e.target.value })}
+                            className="w-full h-11 px-4 bg-surface-container-lowest dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="e.g. 1"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 mb-1.5">Expire After Hours</label>
+                          <input
+                            type="number"
+                            value={stepForm.expiresAfterHours}
+                            onChange={e => setStepForm({ ...stepForm, expiresAfterHours: e.target.value })}
+                            className="w-full h-11 px-4 bg-surface-container-lowest dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            placeholder="e.g. 24"
+                          />
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Action buttons */}
+                    <div className="pt-2 flex gap-3 sticky bottom-0 bg-surface dark:bg-zinc-900 pb-4">
+                      <button
+                        onClick={handleSaveStep}
+                        disabled={createStepMutation.isPending || updateStepMutation.isPending}
+                        className="flex-1 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-sm transition-colors flex justify-center items-center gap-2 disabled:opacity-60"
+                      >
+                        {(createStepMutation.isPending || updateStepMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
+                        {isAddingStep ? 'Create Stage' : 'Save Changes'}
+                      </button>
+                      {editingStep && (
+                        <button
+                          onClick={() => { if (confirm('Delete this stage?')) deleteStepMutation.mutate(editingStep.id); }}
+                          className="h-11 px-4 text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/20 rounded-xl transition-colors border border-red-200 dark:border-red-900/30 flex items-center"
+                          title="Delete Stage"
                         >
-                          {(createStepMutation.isPending || updateStepMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
-                          Save Configuration
+                          <Trash2 className="w-4 h-4" />
                         </button>
-                        {editingStep && (
-                          <button 
-                            onClick={() => {
-                              if (confirm('Delete this stage?')) deleteStepMutation.mutate(editingStep.id);
-                            }}
-                            className="p-2.5 text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/20 rounded-xl transition-colors"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        )}
-                      </div>
+                      )}
                     </div>
-                  </motion.div>
+                  </div>
                 )}
-              </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      ) : (
+        /* No flow configured */
+        <div className="px-6 sm:px-8 py-12">
+          <div className="text-center py-16 px-4 bg-surface-container-lowest dark:bg-zinc-900/50 rounded-3xl border border-dashed border-border dark:border-zinc-700">
+            <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Workflow className="w-8 h-8 text-indigo-500" />
             </div>
-          ) : (
-            <div className="text-center py-16 px-4 bg-surface-container-lowest dark:bg-[#0a0a0a] rounded-3xl border border-dashed border-border dark:border-dark-border">
-              <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Workflow className="w-8 h-8 text-indigo-500" />
-              </div>
-              <h3 className="text-xl font-bold text-on-surface dark:text-white mb-2 tracking-tight">No Dynamic Flow Configured</h3>
-              <p className="text-base text-on-surface-variant dark:text-zinc-400 max-w-lg mx-auto mb-8 leading-relaxed">
-                Unlock advanced capabilities. Apply a multi-stage blueprint below to instantly generate a specialized routing architecture for your industry.
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-left max-w-5xl mx-auto">
-                {templates.map((tpl: any) => (
-                  <button 
-                    key={tpl.key}
-                    onClick={() => applyTemplateMutation.mutate(tpl.key)}
-                    disabled={applyTemplateMutation.isPending}
-                    className="p-5 rounded-2xl border border-border dark:border-dark-border hover:border-indigo-500 hover:shadow-md dark:hover:shadow-indigo-500/10 hover:-translate-y-1 bg-surface dark:bg-zinc-900 transition-all group flex flex-col h-full"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="font-bold text-on-surface dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                        {tpl.name}
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-zinc-300 dark:text-zinc-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+            <h3 className="text-xl font-bold text-on-surface dark:text-white mb-2">No Dynamic Flow Configured</h3>
+            <p className="text-on-surface-variant dark:text-zinc-400 max-w-lg mx-auto mb-8 leading-relaxed">
+              Apply a multi-stage blueprint to instantly generate a specialized routing architecture for your industry.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-left max-w-5xl mx-auto">
+              {templates.map((tpl: any) => (
+                <button
+                  key={tpl.key}
+                  onClick={() => applyTemplateMutation.mutate(tpl.key)}
+                  disabled={applyTemplateMutation.isPending}
+                  className="p-5 rounded-2xl border border-border dark:border-zinc-700 hover:border-indigo-500 hover:shadow-lg dark:hover:shadow-indigo-500/10 hover:-translate-y-1 bg-surface dark:bg-zinc-900 transition-all group flex flex-col h-full"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-bold text-on-surface dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      {tpl.name}
                     </div>
-                    <div className="text-xs text-on-surface-variant dark:text-zinc-400 leading-relaxed mb-3 flex-1">
-                      {tpl.description}
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {(tpl.steps || []).slice(0, 3).map((s: any, i: number) => (
-                        <span key={i} className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">{s.name}</span>
-                      ))}
-                      {(tpl.steps || []).length > 3 && <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">+{(tpl.steps || []).length - 3}</span>}
-                    </div>
-                  </button>
-                ))}
-              </div>
+                    <ArrowRight className="w-4 h-4 text-zinc-300 dark:text-zinc-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+                  </div>
+                  <div className="text-xs text-on-surface-variant dark:text-zinc-400 leading-relaxed mb-3 flex-1">{tpl.description}</div>
+                  <div className="flex flex-wrap gap-1">
+                    {(tpl.steps || []).slice(0, 3).map((s: any, i: number) => (
+                      <span key={i} className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">{s.name}</span>
+                    ))}
+                    {(tpl.steps || []).length > 3 && (
+                      <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">+{(tpl.steps || []).length - 3}</span>
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>
