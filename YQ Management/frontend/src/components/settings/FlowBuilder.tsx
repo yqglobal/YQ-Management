@@ -15,11 +15,11 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Settings2, ScanLine, Package, CreditCard, LayoutGrid } from 'lucide-react';
 
-const TYPE_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  CHECKPOINT: { label: 'Checkpoint',   color: '#6366f1', icon: ScanLine },
-  SERVICE:    { label: 'Service Area', color: '#8b5cf6', icon: LayoutGrid },
-  COLLECTION: { label: 'Collection',   color: '#059669', icon: Package },
-  PAYMENT:    { label: 'Payment',      color: '#f59e0b', icon: CreditCard },
+const TYPE_CONFIG: Record<string, { label: string; color: string; darkColor: string; icon: any }> = {
+  CHECKPOINT: { label: 'Checkpoint',   color: '#6366f1', darkColor: '#818cf8', icon: ScanLine },
+  SERVICE:    { label: 'Service Area', color: '#8b5cf6', darkColor: '#a78bfa', icon: LayoutGrid },
+  COLLECTION: { label: 'Collection',   color: '#059669', darkColor: '#34d399', icon: Package },
+  PAYMENT:    { label: 'Payment',      color: '#f59e0b', darkColor: '#fbbf24', icon: CreditCard },
 };
 
 const CustomNode = ({ data }: any) => {
@@ -50,7 +50,7 @@ const CustomNode = ({ data }: any) => {
             {cfg.label}
           </span>
           {data.isOptional && (
-            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-400">
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500">
               Optional
             </span>
           )}
@@ -71,8 +71,8 @@ const CustomNode = ({ data }: any) => {
         {/* Edit button */}
         <button
           onClick={() => data.onEdit(data.step)}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
-          style={{ color: cfg.color, background: `${cfg.color}15` }}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all border"
+          style={{ color: cfg.color, background: `${cfg.color}15`, borderColor: `${cfg.color}30` }}
         >
           <Settings2 className="w-3.5 h-3.5" /> Edit Properties
         </button>
@@ -191,7 +191,72 @@ export function FlowBuilder(props: FlowBuilderProps) {
   }, [setEdges, onSaveTransitions]);
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full flow-builder-canvas">
+      <style>{`
+        .flow-builder-canvas .react-flow__controls {
+          background: white;
+          border: 1px solid #e4e4e7;
+          border-radius: 12px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+          overflow: hidden;
+        }
+        .dark .flow-builder-canvas .react-flow__controls {
+          background: #18181b;
+          border: 1px solid #3f3f46;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        .flow-builder-canvas .react-flow__controls-button {
+          background: white;
+          border: none;
+          border-bottom: 1px solid #e4e4e7;
+          color: #52525b;
+          width: 32px;
+          height: 32px;
+          padding: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .dark .flow-builder-canvas .react-flow__controls-button {
+          background: #18181b;
+          border-bottom: 1px solid #3f3f46;
+          color: #a1a1aa;
+          fill: #a1a1aa;
+        }
+        .flow-builder-canvas .react-flow__controls-button:hover {
+          background: #f4f4f5;
+          color: #6366f1;
+        }
+        .dark .flow-builder-canvas .react-flow__controls-button:hover {
+          background: #27272a;
+          color: #818cf8;
+          fill: #818cf8;
+        }
+        .flow-builder-canvas .react-flow__controls-button svg {
+          fill: currentColor;
+          width: 14px;
+          height: 14px;
+        }
+        .flow-builder-canvas .react-flow__minimap {
+          background: white;
+          border: 1px solid #e4e4e7;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        .dark .flow-builder-canvas .react-flow__minimap {
+          background: #18181b;
+          border: 1px solid #3f3f46;
+        }
+        .flow-builder-canvas .react-flow__minimap-svg {
+          background: transparent !important;
+        }
+        .dark .flow-builder-canvas .react-flow__edge-path {
+          stroke-opacity: 0.85;
+        }
+        .dark .flow-builder-canvas .react-flow__background {
+          color: #3f3f46;
+        }
+      `}</style>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -217,4 +282,3 @@ export function FlowBuilder(props: FlowBuilderProps) {
     </div>
   );
 }
-
