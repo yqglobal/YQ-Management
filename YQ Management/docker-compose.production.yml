@@ -107,6 +107,7 @@ services:
       - OZOW_PRIVATE_KEY=${OZOW_PRIVATE_KEY}
       - OZOW_API_KEY=${OZOW_API_KEY}
       - OZOW_IS_TEST=${OZOW_IS_TEST:-false}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
     depends_on:
       db:
         condition: service_healthy

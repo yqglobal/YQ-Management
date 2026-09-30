@@ -367,3 +367,73 @@ body {
 .dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.4);
 }
+
+/* React Phone Number Input Overrides */
+.PhoneInput {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.PhoneInputInput {
+  flex: 1 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  color: inherit;
+}
+
+.PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  margin-right: 0.5rem;
+  position: relative;
+}
+
+.PhoneInputCountrySelect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  color: #000;
+  background: #fff;
+}
+
+.dark .PhoneInputCountrySelect {
+  color: #fff;
+  background: #18181b;
+}
+
+.PhoneInputCountrySelect option {
+  color: #000;
+  background: #fff;
+}
+
+.dark .PhoneInputCountrySelect option {
+  color: #fff;
+  background: #18181b;
+}
+
+.PhoneInputCountryIcon {
+  width: 1.5rem;
+  height: 1rem;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  border-radius: 2px;
+}
+.PhoneInputCountryIcon--border {
+  border: 1px solid rgba(128, 128, 128, 0.3);
+}
+.PhoneInputCountryIconImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+

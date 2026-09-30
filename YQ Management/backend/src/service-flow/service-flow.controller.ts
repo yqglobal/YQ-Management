@@ -48,11 +48,13 @@ export class ServiceFlowController {
     @Req() req: any,
     @Param('templateKey') templateKey: string,
     @Query('serviceId') serviceId: string,
+    @Body() body?: { includedStepNames?: string[] },
   ) {
     return this.serviceFlowService.applyIndustryTemplate(
       req.user.tenantId,
       serviceId,
       templateKey,
+      body?.includedStepNames,
     );
   }
 

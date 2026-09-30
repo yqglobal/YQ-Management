@@ -311,6 +311,7 @@ export class ServiceFlowService {
     tenantId: string,
     serviceId: string,
     templateKey: string,
+    includedStepNames?: string[],
   ) {
     const template = await this.prisma.blueprintFlow.findUnique({
       where: { key: templateKey },
@@ -346,13 +347,19 @@ export class ServiceFlowService {
       },
     });
 
-    // Create all steps
+    // Filter and Create steps
+    let orderIndex = 0;
     for (const stepData of template.steps) {
+      if (includedStepNames && !includedStepNames.includes(stepData.name)) {
+        continue; // Skip this step if not included
+      }
+
       const { id, blueprintId, ...data } = stepData as any;
       await this.prisma.flowStepTemplate.create({
         data: {
           flowId: flow.id,
           ...data,
+          stepOrder: orderIndex++, // Reassign order cleanly
         },
       });
     }

@@ -180,6 +180,19 @@ export function FlowsSettings() {
   const queryClient = useQueryClient();
   const [selectedServiceId, setSelectedServiceId] = useState<string>("all");
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [selectedTemplateSteps, setSelectedTemplateSteps] = useState<string[]>(
+    [],
+  );
+
+  useEffect(() => {
+    if (selectedTemplate) {
+      // By default, check only the required (important) steps.
+      const initial = (selectedTemplate.steps || [])
+        .filter((s: any) => !s.isOptional)
+        .map((s: any) => s.name);
+      setSelectedTemplateSteps(initial);
+    }
+  }, [selectedTemplate]);
   const [editingStep, setEditingStep] = useState<any>(null);
   const [isAddingStep, setIsAddingStep] = useState(false);
   const [localSteps, setLocalSteps] = useState<any[]>([]);
@@ -250,7 +263,10 @@ export function FlowsSettings() {
     mutationFn: (templateKey: string) =>
       fetchApi(
         `/service-flows/templates/${templateKey}/apply?serviceId=${selectedServiceId}`,
-        { method: "POST" },
+        {
+          method: "POST",
+          body: JSON.stringify({ includedStepNames: selectedTemplateSteps }),
+        },
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -1651,45 +1667,79 @@ export function FlowsSettings() {
                 </h3>
                 <div className="space-y-3 mb-6">
                   {(selectedTemplate.steps || []).map(
-                    (step: any, i: number) => (
-                      <div
-                        key={i}
-                        className="flex gap-4 p-4 rounded-xl border border-border dark:border-zinc-800 bg-surface-container-low dark:bg-zinc-900/50"
-                      >
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold mt-0.5">
-                          {i + 1}
-                        </div>
-                        <div>
-                          <div className="font-bold text-sm text-on-surface dark:text-white flex items-center gap-2">
-                            {step.name}
-                            {step.isOptional && (
-                              <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-bold">
-                                Optional
-                              </span>
-                            )}
+                    (step: any, i: number) => {
+                      const isChecked = selectedTemplateSteps.includes(
+                        step.name,
+                      );
+                      return (
+                        <label
+                          key={i}
+                          className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
+                            isChecked
+                              ? "border-primary bg-primary/5 dark:bg-primary/10"
+                              : "border-border dark:border-zinc-800 bg-surface-container-low dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                          }`}
+                        >
+                          <div className="pt-1">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedTemplateSteps([
+                                    ...selectedTemplateSteps,
+                                    step.name,
+                                  ]);
+                                } else {
+                                  setSelectedTemplateSteps(
+                                    selectedTemplateSteps.filter(
+                                      (name) => name !== step.name,
+                                    ),
+                                  );
+                                }
+                              }}
+                              className="w-5 h-5 rounded text-primary focus:ring-primary border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800"
+                            />
                           </div>
-                          <div className="text-xs text-on-surface-variant dark:text-zinc-400 mt-1">
-                            {step.customerInstruction || "Internal stage"}
+                          <div className="flex-1">
+                            <div className="font-bold text-sm text-on-surface dark:text-white flex items-center gap-2">
+                              {step.name}
+                              {step.isOptional && (
+                                <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-bold">
+                                  Optional
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-on-surface-variant dark:text-zinc-400 mt-1">
+                              {step.customerInstruction || "Internal stage"}
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    ),
+                        </label>
+                      );
+                    },
                   )}
                 </div>
 
                 <div className="p-4 rounded-xl border border-border dark:border-zinc-800 bg-surface-container-low dark:bg-zinc-900/50">
-                  <h3 className="font-bold text-sm text-on-surface dark:text-white mb-2">Target Service</h3>
+                  <h3 className="font-bold text-sm text-on-surface dark:text-white mb-2">
+                    Target Service
+                  </h3>
                   <p className="text-xs text-on-surface-variant dark:text-zinc-400 mb-3">
-                    Select which service this blueprint should be applied to. Existing flows on that service will be replaced.
+                    Select which service this blueprint should be applied to.
+                    Existing flows on that service will be replaced.
                   </p>
                   <select
                     value={selectedServiceId}
                     onChange={(e) => setSelectedServiceId(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-border dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                   >
-                    <option value="all" disabled>Select a service to apply to...</option>
+                    <option value="all" disabled>
+                      Select a service to apply to...
+                    </option>
                     {services.map((s: any) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -1705,7 +1755,10 @@ export function FlowsSettings() {
                   onClick={() =>
                     applyTemplateMutation.mutate(selectedTemplate.key)
                   }
-                  disabled={applyTemplateMutation.isPending || selectedServiceId === "all"}
+                  disabled={
+                    applyTemplateMutation.isPending ||
+                    selectedServiceId === "all"
+                  }
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-primary hover:opacity-90 transition-opacity shadow-md disabled:opacity-50"
                 >
                   {applyTemplateMutation.isPending ? (

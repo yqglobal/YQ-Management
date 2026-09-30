@@ -31,12 +31,14 @@ export default function PhoneInput({
     }
   }, []);
 
+  const sanitizedValue = value ? value.replace(/\s+/g, '') : value;
+
   return (
     <div className={`phone-input-wrapper w-full ${className}`}>
       <PhoneInputLib
         international
         defaultCountry={defaultCountry}
-        value={value}
+        value={sanitizedValue}
         onChange={(val) => onChange(val || '')}
         placeholder={placeholder}
         disabled={disabled}
