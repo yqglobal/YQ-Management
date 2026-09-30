@@ -114,6 +114,7 @@ export class TenantController {
       subdomain: tenant?.subdomain,
       customerExperience: tenant?.customerExperience,
       planFeatures: (tenant as any)?.planFeatures,
+      isPaused: (tenant as any)?.isPaused,
     };
   }
 

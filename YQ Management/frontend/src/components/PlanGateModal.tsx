@@ -3,6 +3,7 @@ import { fetchApi } from '../lib/api';
 import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Loader2, Zap, Shield, Star, Crown, ArrowRight, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 
 interface PlanGateModalProps {
   mode?: 'no-plan' | 'expired';
@@ -139,6 +140,11 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
               <button onClick={() => setShowForcedTrial(false)} className="w-full h-12 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold transition-all">
                 Choose a Plan
               </button>
+              {mode === 'expired' && (
+                <Link href="/dashboard/settings" className="w-full h-12 flex items-center justify-center rounded-xl bg-transparent border border-white/10 hover:bg-white/5 text-zinc-300 font-medium transition-all">
+                  Manage Settings
+                </Link>
+              )}
               {mode !== 'expired' && (
                 <button 
                   onClick={() => { setTrialAgreed(true); freePlan && handleStartTrial(freePlan.id); }} 
@@ -365,6 +371,14 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
               <input key={field} type="hidden" name={field.charAt(0).toUpperCase() + field.slice(1)} value={String(paymentData[field] ?? '')} />
             ))}
           </form>
+        )}
+
+        {mode === 'expired' && (
+          <div className="mt-4 flex justify-center pb-4">
+            <Link href="/dashboard/settings" className="text-sm text-zinc-400 hover:text-white underline decoration-zinc-600 underline-offset-4 transition-colors">
+              Manage Data & Settings (Read Only)
+            </Link>
+          </div>
         )}
           </>
         )}

@@ -220,7 +220,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
         <PlanGateModal mode="no-plan" />
       )}
       {/* Expired/cancelled gate */}
-      {!plan.isLoading && !plan.hasNoPlan && !plan.canAccess && !!user?.tenantId && (
+      {!plan.isLoading && !plan.hasNoPlan && !plan.canAccess && !!user?.tenantId && !router.pathname.startsWith('/dashboard/settings') && (
         <PlanGateModal mode="expired" />
       )}
       {!hasAcceptedPolicies && !!user?.tenantId && user?.personalSettings?.onboardingCompleted !== false && <AdvancedPoliciesModal />}
@@ -732,6 +732,15 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
       <main className={`ml-0 md:ml-sidebar-w w-full md:w-[calc(100%-256px)] flex-1 flex flex-col bg-canvas dark:bg-dark-canvas relative min-w-0 ${settingsMode ? 'pt-[108px]' : 'pt-header-h'}`}>
         <div className={`flex-1 w-full min-w-0 relative flex flex-col ${noPadding ? '' : 'p-margin-mobile md:p-margin-desktop'}`}>
+           {!plan.isLoading && !plan.canAccess && !plan.hasNoPlan && !!user?.tenantId && router.pathname.startsWith('/dashboard/settings') && (
+             <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-xl mb-6 flex items-center gap-3 shadow-sm mx-4 mt-4 md:mx-0 md:mt-0">
+               <span className="material-symbols-outlined text-[20px] shrink-0">warning</span>
+               <div className="flex-1">
+                 <p className="text-sm font-bold">Subscription Expired (Read-Only Mode)</p>
+                 <p className="text-xs opacity-90 mt-0.5">You only have access to settings and data exports. <Link href="/dashboard/settings/billing" className="underline font-semibold ml-1 text-red-400">Renew now</Link> to restore full access.</p>
+               </div>
+             </div>
+           )}
            {isAccessDenied ? null : children}
         </div>
       </main>
