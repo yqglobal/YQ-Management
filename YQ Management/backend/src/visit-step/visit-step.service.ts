@@ -60,6 +60,17 @@ export class VisitStepService {
         allocated = guests + 1;
       }
 
+      let status = 'PENDING';
+      let deferredUntil: Date | null = null;
+      if (template.deferredByDays || template.deferredByHours) {
+        status = 'DEFERRED';
+        deferredUntil = new Date(
+          Date.now() + 
+          (template.deferredByDays || 0) * 24 * 60 * 60 * 1000 + 
+          (template.deferredByHours || 0) * 60 * 60 * 1000
+        );
+      }
+
       return {
         visitId,
         tenantId,
@@ -67,7 +78,8 @@ export class VisitStepService {
         stepOrder: template.stepOrder,
         name: template.name,
         type: template.type,
-        status: 'PENDING',
+        status: status,
+        deferredUntil,
         serviceId: template.serviceId,
         queueId: template.queueId,
         quantityAllocated: allocated,
@@ -203,6 +215,7 @@ export class VisitStepService {
   async activateStep(tenantId: string, visitStepId: string, staffId: string) {
     const step = await this.prisma.visitStep.findUnique({
       where: { id: visitStepId },
+      include: { templateStep: true },
     });
     if (!step || step.tenantId !== tenantId)
       throw new NotFoundException('Step not found');
@@ -227,9 +240,16 @@ export class VisitStepService {
       step.visitId,
       tenantId,
       'STEP_ACTIVATED',
-      'STAFF',
-      staffId,
+      staffId === 'SYSTEM' ? 'SYSTEM' : 'STAFF',
+      staffId === 'SYSTEM' ? undefined : staffId,
     );
+
+    // If it's a notification, immediately advance it.
+    // The WhatsApp message is handled asynchronously via the outbox event.
+    if (step.templateStep.type === 'NOTIFICATION') {
+      await this.advanceStep(tenantId, step.id, 'SYSTEM', { outcome: 'SENT' });
+    }
+
     return updated;
   }
 
@@ -568,23 +588,37 @@ export class VisitStepService {
         where: { id: { in: nextTemplateIds } },
       });
 
-      const stepsToCreate = nextTemplates.map((template) => ({
-        visitId,
-        tenantId: completedStep.tenantId,
-        templateStepId: template.id,
-        stepOrder: template.stepOrder,
-        name: template.name,
-        type: template.type,
-        status: 'PENDING',
-        serviceId: template.serviceId,
-        queueId: template.queueId,
-        quantityAllocated: template.entitlementFixed,
-        expiresAt: template.expiresAfterDays 
-          ? new Date(Date.now() + template.expiresAfterDays * 24 * 60 * 60 * 1000)
-          : template.expiresAfterHours 
-            ? new Date(Date.now() + template.expiresAfterHours * 60 * 60 * 1000)
-            : null,
-      }));
+      const stepsToCreate = nextTemplates.map((template) => {
+        let status = 'PENDING';
+        let deferredUntil: Date | null = null;
+        if (template.deferredByDays || template.deferredByHours) {
+          status = 'DEFERRED';
+          deferredUntil = new Date(
+            Date.now() + 
+            (template.deferredByDays || 0) * 24 * 60 * 60 * 1000 + 
+            (template.deferredByHours || 0) * 60 * 60 * 1000
+          );
+        }
+
+        return {
+          visitId,
+          tenantId: completedStep.tenantId,
+          templateStepId: template.id,
+          stepOrder: template.stepOrder,
+          name: template.name,
+          type: template.type,
+          status: status,
+          deferredUntil,
+          serviceId: template.serviceId,
+          queueId: template.queueId,
+          quantityAllocated: template.entitlementFixed,
+          expiresAt: template.expiresAfterDays 
+            ? new Date(Date.now() + template.expiresAfterDays * 24 * 60 * 60 * 1000)
+            : template.expiresAfterHours 
+              ? new Date(Date.now() + template.expiresAfterHours * 60 * 60 * 1000)
+              : null,
+        };
+      });
 
       if (stepsToCreate.length > 0) {
         await tx.visitStep.createMany({

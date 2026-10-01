@@ -141,6 +141,7 @@ export default function ServiceDeskToday() {
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [queueFilter, setQueueFilter] = useState<'all' | 'walkin' | 'appointment'>('all');
+  const [selectedQueueId, setSelectedQueueId] = useState<'all' | string>('all');
   const { socket } = useSocket();
   
   const plan = usePlan();
@@ -487,8 +488,9 @@ export default function ServiceDeskToday() {
     }
   };
 
-  // Apply search + type filter
+  // Apply search + type filter + desk filter
   const applyFilters = (pool: AnyFixMe[]) => pool.filter((v: AnyFixMe) => {
+    const matchesQueue = selectedQueueId === 'all' || v.queueId === selectedQueueId;
     const matchesSearch =
       !searchQuery ||
       v.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -498,7 +500,7 @@ export default function ServiceDeskToday() {
       queueFilter === 'all' ||
       (queueFilter === 'appointment' && (v.source === 'APPOINTMENT' || v.scheduledTime)) ||
       (queueFilter === 'walkin' && v.source !== 'APPOINTMENT' && !v.scheduledTime);
-    return matchesSearch && matchesType;
+    return matchesQueue && matchesSearch && matchesType;
   });
 
   const displayArrived = applyFilters(arrivedPool);
@@ -599,8 +601,13 @@ export default function ServiceDeskToday() {
               const isEmergencyPaused = q.status === 'PAUSED_FOR_EMERGENCY';
               const isPaused = q.status === 'PAUSED' || isEmergencyPaused;
               return (
-              <div key={q.id} className={`flex flex-col gap-2 p-3 border rounded-xl shadow-sm transition-all
-                ${isEmergencyPaused ? 'border-red-500/50 bg-red-50 dark:bg-red-950/30' : 'border-border dark:border-dark-border bg-surface-container-low dark:bg-inverse-surface'}
+              <div 
+                key={q.id} 
+                onClick={() => setSelectedQueueId(selectedQueueId === q.id ? 'all' : q.id)}
+                className={`flex flex-col gap-2 p-3 border rounded-xl shadow-sm transition-all cursor-pointer
+                ${isEmergencyPaused ? 'border-red-500/50 bg-red-50 dark:bg-red-950/30' : 
+                  selectedQueueId === q.id ? 'border-primary ring-1 ring-primary bg-primary/5 dark:bg-primary/10' : 
+                  'border-border dark:border-dark-border bg-surface-container-low dark:bg-inverse-surface hover:border-primary/50'}
               `}>
                 <div className="flex flex-wrap items-start xl:items-center justify-between gap-3">
                   <div className="flex flex-col min-w-0 flex-1">
@@ -628,7 +635,8 @@ export default function ServiceDeskToday() {
                     {/* Emergency Pause button */}
                     {industry.uiFlags.showEmergencyPause && !isPaused && (
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           toast('Pause for emergency?', {
                             description: `All waiting customers in ${q.name} will be notified.`,
                             action: {
@@ -651,7 +659,7 @@ export default function ServiceDeskToday() {
                     )}
                     {!isPaused && (
                       <button 
-                        onClick={() => handleCallNextQueue(q.id)}
+                        onClick={(e) => { e.stopPropagation(); handleCallNextQueue(q.id); }}
                         className="bg-primary hover:bg-primary-container text-on-primary px-3 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm flex items-center gap-1"
                       >
                         <span className="material-symbols-outlined text-[18px]">campaign</span>
@@ -660,7 +668,7 @@ export default function ServiceDeskToday() {
                     )}
                     {isPaused && (
                       <button
-                        onClick={() => fetchApi(`/queue/${q.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'ACTIVE' }) }).then(() => queryClient.invalidateQueries({ queryKey: ['queues'] }))}
+                        onClick={(e) => { e.stopPropagation(); fetchApi(`/queue/${q.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'ACTIVE' }) }).then(() => queryClient.invalidateQueries({ queryKey: ['queues'] })) }}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
                       >
                         Resume

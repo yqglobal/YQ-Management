@@ -210,6 +210,7 @@ export default function Onboarding() {
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteInfo, setInviteInfo] = useState<AnyFixMe>(null);
   const [selectedType, setSelectedType] = useState<string>('general');
+  const [operatingMode, setOperatingMode] = useState<'QUEUE_ONLY' | 'APPOINTMENTS' | 'JOURNEY'>('QUEUE_ONLY');
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
@@ -532,6 +533,16 @@ export default function Onboarding() {
           }),
         });
 
+        // Auto-create a Queue (Desk/Resource) for this service
+        await fetchApi('/queue', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: `${s.name} Desk`,
+            locationId: location.id,
+            serviceIds: [service.id]
+          }),
+        });
+
         if (template.blueprintKey) {
           await fetchApi(`/service-flows/templates/${template.blueprintKey}/apply?serviceId=${service.id}`, {
             method: 'POST'
@@ -553,6 +564,7 @@ export default function Onboarding() {
              },
              // Persist the selected industry template — this drives UI adaptations across the whole app
              businessType: selectedType,
+             operatingMode,
           })
         }).catch(() => null);
       }
@@ -995,6 +1007,41 @@ export default function Onboarding() {
                 })}
               </div>
               
+              <div className="space-y-6 pt-6 border-t border-border dark:border-dark-border">
+                <div className="space-y-4">
+                  <header className="flex flex-col gap-1">
+                    <h2 className="font-headline-sm text-headline-sm text-on-surface dark:text-white">
+                      How do you primarily operate?
+                    </h2>
+                    <p className="font-body-sm text-on-surface-variant dark:text-outline">
+                      This configures your default dashboard view and features.
+                    </p>
+                  </header>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {[
+                      { id: 'QUEUE_ONLY', title: 'Walk-ins / Queue', desc: 'Customers arrive and wait in line.' },
+                      { id: 'APPOINTMENTS', title: 'Appointments', desc: 'Pre-scheduled time slots.' },
+                      { id: 'JOURNEY', title: 'Journeys', desc: 'Multi-step complex flows.' }
+                    ].map(mode => (
+                      <motion.label whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                        key={mode.id}
+                        onClick={() => setOperatingMode(mode.id as any)}
+                        className={`relative flex flex-col cursor-pointer rounded-2xl border p-4 transition-all ${
+                          operatingMode === mode.id
+                            ? 'bg-primary-fixed dark:bg-sky-900/20 border-primary shadow-[0_0_0_2px_rgba(0,97,148,0.2)] dark:shadow-[0_0_0_2px_rgba(14,165,233,0.2)]'
+                            : 'bg-canvas dark:bg-black/50 border-border dark:border-dark-border hover:border-outline-variant dark:hover:border-outline'
+                        }`}
+                      >
+                        <input type="radio" name="opMode" checked={operatingMode === mode.id} readOnly className="sr-only" />
+                        <span className="font-headline-sm text-on-surface dark:text-white">{mode.title}</span>
+                        <span className="font-body-sm text-on-surface-variant dark:text-outline mt-1">{mode.desc}</span>
+                      </motion.label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-6 pt-6 border-t border-border dark:border-dark-border">
                 <div className="space-y-4">
                   <div className="space-y-2">

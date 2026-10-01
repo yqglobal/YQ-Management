@@ -23,6 +23,7 @@ const VISIT_NOTIFICATION_TYPES: VisitNotificationType[] = [
   'VISIT_CANCELLED',
   'VISIT_MISSED',
   'VISIT_COMPLETED',
+  'STEP_ACTIVATED',
 ];
 
 /**

@@ -1,12 +1,10 @@
 import React from 'react';
-import Head from 'next/head';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CreditCard, ExternalLink, ShieldCheck, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
-import SettingsLayout from '../../../components/SettingsLayout';
-import { fetchApi } from '../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 
-export default function PaymentsSettingsPage() {
+export default function StripePaymentsSettings() {
   const queryClient = useQueryClient();
 
   const { data: status, isLoading, refetch } = useQuery({
@@ -28,13 +26,8 @@ export default function PaymentsSettingsPage() {
   });
 
   return (
-    <SettingsLayout 
-      pageTitle="Payments & Payouts" 
-      pageSubtitle="Connect your Stripe account to accept pre-booking deposits and in-person digital payments."
-    >
-      <Head>
-        <title>Payments & Payouts | Settings</title>
-      </Head>
+    <div className="w-full">
+
 
       <div className="bg-surface dark:bg-dark-surface border border-border dark:border-dark-border rounded-2xl overflow-hidden shadow-sm">
         <div className="p-8 border-b border-border dark:border-dark-border bg-surface-container-low dark:bg-dark-card flex items-start gap-4">
@@ -154,6 +147,6 @@ export default function PaymentsSettingsPage() {
           )}
         </div>
       </div>
-    </SettingsLayout>
+    </div>
   );
 }

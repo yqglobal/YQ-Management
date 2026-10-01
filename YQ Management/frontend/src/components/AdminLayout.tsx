@@ -117,7 +117,9 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     { label: 'Scanner', href: '/dashboard/check-in', icon: 'qr_code_scanner', pageId: 'service-desk' },
     { label: 'Inbox', href: '/dashboard/inbox', icon: 'chat', pageId: 'inbox' },
     { label: 'Schedule', href: '/dashboard/appointments', icon: 'calendar_today', pageId: 'appointments' },
-    { label: 'Queues', href: '/dashboard/queues', icon: 'list_alt', pageId: 'service-desk', id: 'tour-queues-nav' },
+    ...(tenant?.operatingMode === 'JOURNEY' 
+      ? [{ label: 'Journeys', href: '/dashboard/journeys', icon: 'route', pageId: 'journeys', id: 'tour-journeys-nav' }] 
+      : [{ label: 'Queues', href: '/dashboard/queues', icon: 'list_alt', pageId: 'queues', id: 'tour-queues-nav' }]),
     { label: 'Analytics', href: '/dashboard/analytics', icon: 'analytics', pageId: 'analytics' },
   ];
 
@@ -485,118 +487,21 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
               </Link>
             );
           })}
-          {/* Onboarding Progress Tracker */}
-          {(() => {
-            if (!tenant) return null;
-
-            const bookingShared = typeof window !== 'undefined' && !!localStorage.getItem('bookingPageShared');
-
-            const bookingUrl = tenant.subdomain ? getTenantUrl(tenant.subdomain, '/booking') : '';
-
-            const steps: { label: string; done: boolean; href?: string; onClick?: () => void; isButton?: boolean }[] = [
-              { label: 'Add a Location', done: !!(tenant.locations && tenant.locations.length > 0), href: '/dashboard/settings/operations' },
-              { label: 'Create a Service', done: !!(tenant.services && tenant.services.length > 0), href: '/dashboard/settings/operations' },
-              { label: 'Set up a Queue', done: !!(tenant.queues && tenant.queues.length > 0), href: '/dashboard/queues' },
-              { label: 'Connect WhatsApp', done: !!tenant.whatsappConnected, href: '/dashboard/settings/integrations' },
-              {
-                label: 'Share Booking Page',
-                done: bookingShared,
-                isButton: true,
-                onClick: () => {
-                  const url = bookingUrl || window.location.origin;
-                  navigator.clipboard.writeText(url).then(() => {
-                    localStorage.setItem('bookingPageShared', '1');
-                    // Force re-render via router refresh trick
-                    router.replace(router.asPath);
-                  }).catch(() => {});
-                  // toast is imported via sonner on consuming pages; use native alert fallback
-                  const toastEvent = new CustomEvent('admin-toast', { detail: { message: 'Booking page link copied to clipboard!', type: 'success' } });
-                  window.dispatchEvent(toastEvent);
-                }
-              },
-            ];
-            const doneCount = steps.filter(s => s.done).length;
-            const allDone = doneCount === steps.length;
-            
-            // renderUpgradeCard logic removed here
-
-            if (allDone) {
-              return null; // Upgrade card moved down
-            }
-
-            return (
-              <>
-                <div className="px-2 pb-2 mt-4">
-                  <div className="bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-2xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-bold text-on-surface dark:text-white uppercase tracking-wider">Setup</p>
-                      <span className="text-xs font-mono text-primary font-semibold">{doneCount}/{steps.length}</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-border dark:bg-dark-border rounded-full mb-3 overflow-hidden">
-                      <div
-                        className="h-full bg-primary rounded-full transition-all duration-500"
-                        style={{ width: `${(doneCount / steps.length) * 100}%` }}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      {steps.map((step, i) => {
-                        const icon = (
-                          <span className={`material-symbols-outlined text-[14px] shrink-0 ${
-                            step.done ? 'text-emerald-500' : 'text-on-surface-variant'
-                          }`} style={{ fontVariationSettings: step.done ? "'FILL' 1" : "'FILL' 0" }}>
-                            {step.done ? 'check_circle' : 'radio_button_unchecked'}
-                          </span>
-                        );
-                        const textClass = `flex items-center gap-2 text-xs py-1 transition-colors ${
-                          step.done ? 'text-on-surface-variant' : 'text-on-surface dark:text-white hover:text-primary cursor-pointer'
-                        }`;
-
-                        if (step.isButton) {
-                          return (
-                            <button
-                              key={i}
-                              type="button"
-                              onClick={step.onClick}
-                              className={textClass + ' w-full text-left'}
-                            >
-                              {icon}
-                              {step.label}
-                              {!step.done && (
-                                <span className="material-symbols-outlined text-[12px] text-outline ml-auto">content_copy</span>
-                              )}
-                            </button>
-                          );
-                        }
-                        return (
-                          <Link
-                            key={i}
-                            href={step.href!}
-                            className={textClass}
-                          >
-                            {icon}
-                            {step.label}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
+          {/* Setup CTA (replaces ghost heuristic) */}
+          {tenant && !tenant.setupComplete && (
+            <div className="px-2 pb-2 mt-4">
+              <Link href="/dashboard/setup-guide" className="block bg-surface-container-low hover:bg-surface-container-high dark:bg-zinc-900 border border-primary/20 dark:border-sky-900 rounded-2xl p-4 transition-colors">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="material-symbols-outlined text-primary text-[18px]">rocket_launch</span>
+                  <p className="text-sm font-bold text-on-surface dark:text-white">Workspace Setup</p>
                 </div>
-              </>
-            );
-          })()}
-          {/* Upgrade Card */}
+                <p className="text-xs text-on-surface-variant dark:text-zinc-400">Click here to complete your workspace setup guide.</p>
+              </Link>
+            </div>
+          )}
+
           {/* Upgrade / Trial Card */}
           {(() => {
-            const bookingShared = typeof window !== 'undefined' && !!localStorage.getItem('bookingPageShared');
-            const steps = [
-              { done: !!(tenant?.locations && tenant.locations.length > 0) },
-              { done: !!(tenant?.services && tenant.services.length > 0) },
-              { done: !!(tenant?.queues && tenant.queues.length > 0) },
-              { done: !!tenant?.whatsappConnected },
-              { done: bookingShared }
-            ];
-            const allDone = steps.filter(s => s.done).length === steps.length;
-
             if (plan.isLoading) return null;
 
             // Trial card: always show regardless of setup progress

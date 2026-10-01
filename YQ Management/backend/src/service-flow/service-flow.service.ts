@@ -106,7 +106,7 @@ export class ServiceFlowService {
     const newFlow = await this.prisma.serviceFlow.create({
       data: {
         tenantId,
-        serviceId: '', // placeholder — user must update
+        serviceId: null, // placeholder — user must update
         name: `${flow.name} (Copy)`,
         description: flow.description,
         isActive: false,

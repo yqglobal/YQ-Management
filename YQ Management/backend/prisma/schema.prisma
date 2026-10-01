@@ -161,6 +161,12 @@ enum BookingPaymentStatus {
   CANCELLED
 }
 
+enum OperatingMode {
+  QUEUE_ONLY
+  APPOINTMENTS
+  JOURNEY
+}
+
 model Tenant {
   id                 String  @id @default(uuid())
   name               String
@@ -173,6 +179,8 @@ model Tenant {
   chatbotConfig      Json? // Stores custom button menus and automated replies
   aiConfig           Json? // Stores LLM provider keys (Gemini, Groq) and prompts
   customerExperience Json? // Global settings for forms, feedback, and portal experience
+  setupComplete      Boolean @default(false) // Tracks if onboarding is finished
+  operatingMode      OperatingMode @default(QUEUE_ONLY) // QUEUE_ONLY, APPOINTMENTS, JOURNEY
 
   // Customer Support Integration
   supportEmail    String?
@@ -891,7 +899,8 @@ model Visit {
   purpose            String?
   accompanyingGuests Int       @default(0)
   formResponses      Json?
-  itinerary          Json? // Legacy: [{serviceId,status}]. Superseded by VisitStep for flow-enabled visits.
+  /// @deprecated Superseded by visitSteps (Service Execution Flow). Kept for legacy compatibility.
+  itinerary          Json?
   slaStatus          String    @default("OK")
   messages           Message[]
 
@@ -1087,7 +1096,7 @@ model BlockOff {
 model ServiceFlow {
   id                     String  @id @default(uuid())
   tenantId               String
-  serviceId              String  @unique // One flow per service
+  serviceId              String? @unique // One flow per service (optional for drafts)
   name                   String
   description            String?
   isActive               Boolean @default(true)
@@ -1096,7 +1105,7 @@ model ServiceFlow {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  service Service            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  service Service?           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   steps   FlowStepTemplate[]
   visits  Visit[]
 

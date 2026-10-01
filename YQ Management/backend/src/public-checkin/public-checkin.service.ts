@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { calculateAdvancedEWT } from '../utils/ewt.util';
+import { VisitStepService } from '../visit-step/visit-step.service';
 
 @Injectable()
 export class PublicCheckinService {
@@ -16,6 +17,7 @@ export class PublicCheckinService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly visitStepService: VisitStepService,
   ) {}
 
   async sendOtp(dto: { phone: string; tenantId: string; locationId?: string }) {
@@ -239,6 +241,15 @@ export class PublicCheckinService {
           },
         },
       });
+      if (visit.serviceId) {
+        await this.visitStepService.instantiateStepsForVisit(
+          u.tenantId,
+          u.id,
+          visit.serviceId,
+          { accompanyingGuests: u.accompanyingGuests || 0 },
+          tx,
+        );
+      }
       return u;
     });
 

@@ -18,13 +18,15 @@ export type VisitNotificationType =
   | 'VISIT_CANCELLED'
   | 'VISIT_MISSED'
   | 'VISIT_COMPLETED'
-  | 'VISIT_CSAT';
+  | 'VISIT_CSAT'
+  | 'STEP_ACTIVATED';
 
 /** Minimal payload shape from the outbox event. */
 interface VisitEventPayload {
   visitId?: string;
   tenantId?: string;
   displayId?: string;
+  visitStepId?: string;
 }
 
 /**
@@ -93,6 +95,7 @@ export class VisitNotificationService {
       VISIT_MISSED: (p) => this.handleVisitMissed(p),
       VISIT_COMPLETED: (p) => this.handleVisitCompleted(p),
       VISIT_CSAT: (p) => this.handleVisitCsat(p),
+      STEP_ACTIVATED: (p) => this.handleStepActivated(p),
     };
     return handlers[type] ?? null;
   }
@@ -563,5 +566,57 @@ export class VisitNotificationService {
         );
       }
     }
+  }
+
+  private async handleStepActivated(payload: VisitEventPayload) {
+    if (!payload.visitStepId) return;
+
+    const step = await this.prisma.visitStep.findUnique({
+      where: { id: payload.visitStepId },
+      include: { templateStep: true },
+    });
+
+    if (!step) return;
+    
+    // Only NOTIFICATION and FORM steps proactively message the customer upon activation by default,
+    // OR if the step template explicitly requires it via notifyCustomerOnActivation.
+    const shouldNotify = 
+      step.templateStep.type === 'NOTIFICATION' || 
+      step.templateStep.type === 'FORM' ||
+      step.templateStep.notifyCustomerOnActivation;
+
+    if (!shouldNotify) return;
+
+    const visit = await this.fetchVisitBase(step.visitId);
+    if (!this.canSendWhatsApp(visit, 'STEP_ACTIVATED' as any)) return;
+
+    let message = step.templateStep.customerInstruction;
+    if (!message) {
+      if (step.templateStep.type === 'FORM') {
+        message = `Hi ${visit.customer.name}, please complete the following form to proceed: ${process.env.NEXT_PUBLIC_APP_URL}/c/${visit.tenantId}/form/${step.id}`;
+      } else {
+        message = `Hi ${visit.customer.name}, your visit has advanced to: ${step.name}`;
+      }
+    }
+
+    const result = await this.whatsappService.sendMessage(
+      visit.tenant.whatsappInstanceId!,
+      visit.customer.phone!,
+      message,
+    );
+
+    await this.communicationLogService.log({
+      tenantId: visit.tenantId,
+      channel: CommunicationChannel.WHATSAPP,
+      type: 'step_activated',
+      recipient: visit.customer.phone!,
+      body: message,
+      status: result.success
+        ? CommunicationStatus.SENT
+        : CommunicationStatus.FAILED,
+      provider: 'evolution',
+      providerId: (result as any).providerId,
+      errorMessage: result.error,
+    });
   }
 }

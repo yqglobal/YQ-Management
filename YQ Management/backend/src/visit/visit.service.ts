@@ -954,6 +954,16 @@ export class VisitService {
         },
       });
 
+      if (u.serviceId) {
+        await this.visitStepService.instantiateStepsForVisit(
+          u.tenantId,
+          u.id,
+          u.serviceId,
+          { accompanyingGuests: u.accompanyingGuests || 0 },
+          tx,
+        );
+      }
+
       return u;
     });
 
@@ -1044,23 +1054,52 @@ export class VisitService {
   }
 
   async completeService(id: string, tenantId?: string, operatorId?: string) {
-    const result = await this.prisma.$transaction(async (tx) => {
-      const visit = await tx.visit.findUnique({ where: { id } });
-      if (!visit) throw new NotFoundException('Visit not found');
-
-      if (tenantId && visit.tenantId !== tenantId) {
-        throw new NotFoundException('Visit not found');
+    // 1. Pre-flight check: Is this a SEF (Service Execution Flow) visit?
+    const visitPreCheck = await this.prisma.visit.findUnique({
+      where: { id },
+      include: { 
+        visitSteps: { 
+          where: { status: { in: ['ACTIVE', 'PENDING', 'DEFERRED'] } },
+          orderBy: { stepOrder: 'asc' } 
+        } 
       }
+    });
 
-      if (
-        visit.currentState === 'COMPLETED' ||
-        visit.currentState === 'MISSED' ||
-        visit.currentState === 'CANCELLED'
-      ) {
-        throw new BadRequestException(
-          `Visit is already ${visit.currentState.toLowerCase()}`,
+    if (!visitPreCheck) throw new NotFoundException('Visit not found');
+    if (tenantId && visitPreCheck.tenantId !== tenantId) {
+      throw new NotFoundException('Visit not found');
+    }
+
+    if (
+      visitPreCheck.currentState === 'COMPLETED' ||
+      visitPreCheck.currentState === 'MISSED' ||
+      visitPreCheck.currentState === 'CANCELLED'
+    ) {
+      throw new BadRequestException(`Visit is already ${visitPreCheck.currentState.toLowerCase()}`);
+    }
+
+    // 2. If it is a SEF visit, delegate completely to visitStepService
+    if (visitPreCheck.visitSteps && visitPreCheck.visitSteps.length > 0) {
+      // Find the first active/actionable step and advance it
+      const activeStep = visitPreCheck.visitSteps.find(s => s.status === 'ACTIVE') || visitPreCheck.visitSteps[0];
+      if (activeStep) {
+        // This handles completion, transition, and visit updates automatically
+        await this.visitStepService.advanceStep(
+          visitPreCheck.tenantId,
+          activeStep.id,
+          operatorId || 'SYSTEM',
+          {}
         );
+        return this.prisma.visit.findUnique({ where: { id } });
       }
+    }
+
+    // 3. Legacy (Itinerary/Basic Queue) path
+    const result = await this.prisma.$transaction(async (tx) => {
+      const visit = await tx.visit.findUnique({ 
+        where: { id }
+      });
+      if (!visit) throw new NotFoundException('Visit not found');
 
       let nextState: any = 'COMPLETED';
       let nextQueueId = visit.queueId;

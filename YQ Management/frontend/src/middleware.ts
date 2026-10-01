@@ -40,7 +40,8 @@ export async function middleware(req: NextRequest) {
     
     // Fallbacks for known deployments if env var isn't set
     if (!baseDomain) {
-      if (hostname.includes('qmova.yqbuddy.com')) baseDomain = 'qmova.yqbuddy.com';
+      const expectedDomain = process.env.NEXT_PUBLIC_DOMAIN_BASE || 'qmova.yqbuddy.com';
+      if (hostname.includes(expectedDomain)) baseDomain = expectedDomain;
     }
 
     if (baseDomain && hostname.endsWith(`.${baseDomain}`)) {

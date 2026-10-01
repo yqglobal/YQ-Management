@@ -420,4 +420,45 @@ export class VisitCron {
       this.logger.error('Error during Appointment Reminders check:', error);
     }
   }
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleDeferredSteps() {
+    this.logger.debug('Running Deferred Steps Monitor...');
+    try {
+      const now = new Date();
+      
+      const readySteps = await this.prisma.visitStep.findMany({
+        where: {
+          status: 'DEFERRED',
+          deferredUntil: { lte: now }
+        }
+      });
+
+      if (readySteps.length === 0) return;
+
+      this.logger.log(`Found ${readySteps.length} deferred steps ready to activate.`);
+
+      for (const step of readySteps) {
+        await this.prisma.visitStep.update({
+          where: { id: step.id },
+          data: {
+            status: 'PENDING',
+            deferredUntil: null // Clear it once processed
+          }
+        });
+
+        await this.prisma.outboxEvent.create({
+          data: {
+            type: 'STEP_ACTIVATED',
+            payload: {
+              visitStepId: step.id,
+              visitId: step.visitId,
+              tenantId: step.tenantId
+            }
+          }
+        });
+      }
+    } catch (err) {
+      this.logger.error('Error during Deferred Steps Monitor:', err);
+    }
+  }
 }

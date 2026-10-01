@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import Head from 'next/head';
-import SettingsLayout from '../../../components/SettingsLayout';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { fetchApi } from '../../../lib/api';
+import { fetchApi } from '../../lib/api';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -87,10 +85,7 @@ export default function SlaPoliciesPage() {
   };
 
   return (
-    <SettingsLayout pageTitle="SLA & Automation" pageSubtitle="Manage Service Level Agreements (SLAs) for Wait Times">
-      <Head>
-        <title>SLA Policies | Settings</title>
-      </Head>
+    <div className="w-full">
 
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -237,6 +232,6 @@ export default function SlaPoliciesPage() {
           ))}
         </div>
       )}
-    </SettingsLayout>
+    </div>
   );
 }
