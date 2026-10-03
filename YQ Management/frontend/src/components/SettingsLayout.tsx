@@ -12,7 +12,6 @@ interface SettingsLayoutProps {
 }
 
 const settingsNavLinks = [
-  { label: 'My Profile', href: '/dashboard/settings/profile', icon: <User className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Workspace & Identity', href: '/dashboard/settings/workspace', icon: <Building className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Team & Security', href: '/dashboard/settings/team', icon: <Shield className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Operations', href: '/dashboard/settings/operations', icon: <Box className="w-4 h-4" strokeWidth={1.5} /> },
@@ -29,7 +28,7 @@ export default function SettingsLayout({ children, pageTitle = 'Settings', pageS
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN';
 
   const filteredNavLinks = settingsNavLinks.filter(link => {
-    if (link.href === '/dashboard/settings/profile') return true;
+    if (link.href === '/dashboard/settings/workspace') return true;
     if (isAdmin) return true;
     
     // Check if the operator has explicit permission for this settings page

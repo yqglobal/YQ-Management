@@ -71,7 +71,7 @@ export default function SuperAdminAnalytics() {
 
   const iconsMap: Record<string, AnyFixMe> = {
     '/dashboard/queues': Activity,
-    '/dashboard/check-in': QrCode,
+    '/dashboard/scan': QrCode,
     '/dashboard/display-picker': Tv,
     '/dashboard/settings/whatsapp': Smartphone,
   };

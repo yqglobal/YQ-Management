@@ -6,7 +6,7 @@ export default function SettingsIndex() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/dashboard/settings/profile');
+    router.replace('/dashboard/settings/workspace');
   }, [router]);
 
   return (

@@ -143,7 +143,7 @@ export function CreateVisitModal({ isOpen, onClose, defaultLocationId }: CreateV
               <div className="flex items-center gap-4">
                 <h2 className="text-xl font-bold text-on-surface dark:text-white">New Walk-in</h2>
                 <button
-                  onClick={() => { handleClose(); router.push('/dashboard/check-in'); }}
+                  onClick={() => { handleClose(); router.push('/dashboard/scan'); }}
                   className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold rounded-lg transition-all"
                 >
                   <QrCode className="w-4 h-4" /> Scan QR Instead

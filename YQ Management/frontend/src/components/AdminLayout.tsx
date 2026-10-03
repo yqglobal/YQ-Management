@@ -129,7 +129,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   const navItems = [
     { label: industry.navLabel, href: '/dashboard/service-desk', icon: industry.industryIcon, pageId: 'service-desk' },
-    { label: 'Scanner', href: '/dashboard/check-in', icon: 'qr_code_scanner', pageId: 'service-desk' },
+    { label: 'Scanner', href: '/dashboard/scan', icon: 'qr_code_scanner', pageId: 'service-desk' },
     { label: 'Inbox', href: '/dashboard/inbox', icon: 'chat', pageId: 'inbox' },
     { label: 'Schedule', href: '/dashboard/appointments', icon: 'calendar_today', pageId: 'appointments' },
     ...(tenant?.operatingMode === 'JOURNEY' 
@@ -143,7 +143,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   const bottomItems = [
     ...(isSuperAdmin ? [{ label: 'Super Admin', href: '/super-admin', icon: 'shield', adminOnly: true, pageId: 'super-admin' }] : []),
-    { label: 'Settings', href: '/dashboard/settings/profile', icon: 'settings', id: 'tour-settings-nav', adminOnly: true, pageId: 'settings' },
+    { label: 'Settings', href: '/dashboard/settings/workspace', icon: 'settings', id: 'tour-settings-nav', adminOnly: true, pageId: 'settings' },
   ];
 
   const hasPageAccess = (pageId?: string) => {
@@ -173,7 +173,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     if (path.startsWith('/dashboard/queues')) return user?.allowedPages?.includes('queues');
     
     if (path.startsWith('/dashboard/settings')) {
-      if (path === '/dashboard/settings/profile') return true;
+      if (path === '/dashboard/settings/workspace') return true;
       if (path.startsWith('/dashboard/settings/workspace')) return user?.allowedPages?.includes('settings-workspace');
       if (path.startsWith('/dashboard/settings/team')) return user?.allowedPages?.includes('settings-team');
       if (path.startsWith('/dashboard/settings/operations')) return user?.allowedPages?.includes('settings-operations');
@@ -724,7 +724,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
               </button>
 
               <Link
-                href="/dashboard/settings/profile"
+                href="/dashboard/settings/workspace"
                 onClick={() => setProfileOpen(false)}
                 className="flex w-full items-center gap-3 px-6 py-3 text-sm text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors"
               >
@@ -733,7 +733,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
               </Link>
 
               <Link
-                href="/dashboard/settings/profile"
+                href="/dashboard/settings/workspace"
                 onClick={() => setProfileOpen(false)}
                 className="flex w-full items-center gap-3 px-6 py-3 text-sm text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors"
               >

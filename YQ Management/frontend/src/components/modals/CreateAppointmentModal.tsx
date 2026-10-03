@@ -197,7 +197,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                 <button
                   onClick={() => {
                     handleClose();
-                    router.push('/dashboard/check-in');
+                    router.push('/dashboard/scan');
                   }}
                   className="flex items-center gap-2 px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-all active:scale-[0.98]"
                 >
