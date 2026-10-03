@@ -234,6 +234,7 @@ export class TenantService {
       showSupportInfo?: boolean;
       selfServeModeEnabled?: boolean;
       selfServeOtpEnabled?: boolean;
+      operatingMode?: any;
     },
   ) {
     const tenant = await this.prisma.tenant.findUnique({ where: { id } });
@@ -268,6 +269,8 @@ export class TenantService {
       updateData.chatbotConfig = data.chatbotConfig;
     if (data.businessType !== undefined)
       updateData.businessType = data.businessType;
+    if (data.operatingMode !== undefined)
+      updateData.operatingMode = data.operatingMode;
     if (data.strictPrivacyMode !== undefined)
       updateData.strictPrivacyMode = data.strictPrivacyMode;
     if (data.aiConfig !== undefined) updateData.aiConfig = data.aiConfig;
