@@ -6,10 +6,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
 import { Plus, MoreVertical, Copy, Edit2, Trash2, Workflow, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { CreateJourneyModal } from '../../../components/modals/CreateJourneyModal';
 
 export default function JourneysIndex() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { data: flows = [], isLoading } = useQuery({
     queryKey: ['service-flows'],
@@ -19,36 +21,6 @@ export default function JourneysIndex() {
   const { data: services = [] } = useQuery({
     queryKey: ['services'],
     queryFn: () => fetchApi('/service'),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: { name: string; description?: string }) => {
-      // Create the underlying Service first
-      const service = await fetchApi('/service', {
-        method: 'POST',
-        body: JSON.stringify({ 
-          name: data.name,
-          description: data.description || '',
-          allowAppointments: true
-        }),
-      });
-
-      // Create the ServiceFlow linked to the new Service
-      const flow = await fetchApi('/service-flows', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: data.name,
-          description: data.description,
-          serviceId: service.id
-        }),
-      });
-      return flow;
-    },
-    onSuccess: (data) => {
-      toast.success('Journey created successfully');
-      router.push(`/dashboard/journeys/${data.id}`);
-    },
-    onError: () => toast.error('Failed to create journey'),
   });
 
   const deleteMutation = useMutation({
@@ -67,14 +39,6 @@ export default function JourneysIndex() {
       router.push(`/dashboard/journeys/${data.id}`);
     },
   });
-
-  const handleCreateNew = () => {
-    const name = prompt('Enter a name for the new journey (e.g. "Onboarding Process"):');
-    if (!name) return;
-    
-    // Create unlinked to start
-    createMutation.mutate({ name });
-  };
 
   const getServiceForFlow = (serviceId: string) => {
     return services.find((s: any) => s.id === serviceId);
@@ -98,8 +62,7 @@ export default function JourneysIndex() {
             </p>
           </div>
           <button 
-            onClick={handleCreateNew}
-            disabled={createMutation.isPending}
+            onClick={() => setIsCreateModalOpen(true)}
             className="bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-emerald-600 transition-colors flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -119,7 +82,7 @@ export default function JourneysIndex() {
               A journey defines the stages a customer goes through, like intake, testing, and checkout.
             </p>
             <button 
-              onClick={handleCreateNew}
+              onClick={() => setIsCreateModalOpen(true)}
               className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-6 py-2 rounded-lg font-semibold hover:bg-emerald-500/20 transition-colors"
             >
               Build Your First Journey
@@ -206,6 +169,11 @@ export default function JourneysIndex() {
           </div>
         )}
       </div>
+
+      <CreateJourneyModal 
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
     </AdminLayout>
   );
 }

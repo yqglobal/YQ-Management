@@ -30,6 +30,11 @@ export class ServiceFlowController {
     return this.serviceFlowService.createFlow(req.user.tenantId, dto);
   }
 
+  @Get()
+  getAllFlows(@Req() req: any) {
+    return this.serviceFlowService.getAllFlows(req.user.tenantId);
+  }
+
   @Get('by-service/:serviceId')
   getFlowByService(@Req() req: any, @Param('serviceId') serviceId: string) {
     return this.serviceFlowService.getFlowByServiceId(

@@ -20,25 +20,40 @@ export class ServiceFlowService {
   // ── Flow CRUD ───────────────────────────────────────────────────────────────
 
   async createFlow(tenantId: string, dto: CreateFlowDto) {
-    // Check if flow already exists for this service
-    const existing = await this.prisma.serviceFlow.findUnique({
-      where: { serviceId: dto.serviceId },
-    });
-    if (existing) {
-      throw new ConflictException(
-        `A flow already exists for service ${dto.serviceId}. Use updateFlow or deleteFlow first.`,
-      );
+    // Check if flow already exists for this service (only if serviceId is provided)
+    if (dto.serviceId) {
+      const existing = await this.prisma.serviceFlow.findUnique({
+        where: { serviceId: dto.serviceId },
+      });
+      if (existing) {
+        throw new ConflictException(
+          `A flow already exists for service ${dto.serviceId}. Use updateFlow or deleteFlow first.`,
+        );
+      }
     }
     return this.prisma.serviceFlow.create({
       data: {
         tenantId,
-        serviceId: dto.serviceId,
+        serviceId: dto.serviceId, // undefined if not provided
         name: dto.name,
         description: dto.description,
         isActive: dto.isActive ?? true,
         allowPartialCompletion: dto.allowPartialCompletion ?? false,
       },
       include: { steps: { orderBy: { stepOrder: 'asc' } } },
+    });
+  }
+
+  async getAllFlows(tenantId: string) {
+    return this.prisma.serviceFlow.findMany({
+      where: { tenantId },
+      include: {
+        service: true,
+        steps: {
+          orderBy: { stepOrder: 'asc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
