@@ -476,7 +476,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 </span>
               )}
             </div>
-            <button onClick={toggleSidebar} className={`hidden md:flex p-2 rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0 transition-transform duration-300 ${isSidebarCollapsed ? '' : ''}`}>
+            <button onClick={toggleSidebar} className={`hidden md:flex rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'w-12 h-12 items-center justify-center' : 'p-2'}`}>
               <span className="material-symbols-outlined">{isSidebarCollapsed ? 'menu' : 'menu_open'}</span>
             </button>
             <button onClick={() => setMobileOpen(false)} className={`md:hidden p-2 rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0 ${isSidebarCollapsed ? 'hidden' : 'ml-auto'}`}>
@@ -494,7 +494,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 href={item.href}
                 id={(item as any).id}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md relative group ${isSidebarCollapsed ? 'px-0 justify-center' : 'px-4 justify-start'} ${
+                className={`flex items-center py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md relative group ${isSidebarCollapsed ? 'w-12 h-12 mx-auto justify-center px-0 gap-0' : 'w-full px-4 justify-start gap-3'} ${
                   active 
                     ? 'text-primary dark:text-white font-semibold bg-surface-container-low dark:bg-white/10' 
                     : 'text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-white/5'
@@ -644,7 +644,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 href={item.href}
                 id={item.id}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md relative group ${isSidebarCollapsed ? 'px-0 justify-center' : 'px-4 justify-start'} ${
+                className={`flex items-center py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md relative group ${isSidebarCollapsed ? 'w-12 h-12 mx-auto justify-center px-0 gap-0' : 'w-full px-4 justify-start gap-3'} ${
                   active 
                     ? 'text-primary dark:text-white font-semibold bg-surface-container-low dark:bg-white/10' 
                     : 'text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-white/5'
