@@ -322,10 +322,98 @@ export class ServiceService {
       });
   }
 
-  async remove(id: string, tenantId: string) {
+  async remove(id: string, tenantId: string, strategy?: string, reassignToId?: string, keepHistory?: boolean) {
     const exists = await this.findOne(id, tenantId);
-    return this.prisma.extendedClient.service.delete({
-      where: { id: exists.id },
+
+    return this.prisma.$transaction(async (tx) => {
+      if (strategy === 'reassign' && reassignToId) {
+        const targetService = await tx.service.findFirst({
+          where: { id: reassignToId, tenantId },
+        });
+        if (!targetService) {
+          throw new NotFoundException('Target service not found for reassignment');
+        }
+
+        const queuesToReassign = await tx.queue.findMany({
+          where: { services: { some: { id } } },
+          include: { services: true }
+        });
+
+        for (const queue of queuesToReassign) {
+          await tx.queue.update({
+            where: { id: queue.id },
+            data: {
+              services: {
+                disconnect: { id },
+                connect: { id: reassignToId }
+              }
+            }
+          });
+        }
+
+        await tx.serviceFlow.updateMany({
+          where: { serviceId: id },
+          data: { serviceId: reassignToId }
+        });
+
+        await tx.visit.updateMany({
+          where: { serviceId: id },
+          data: { serviceId: reassignToId }
+        });
+        
+        await tx.appointment.updateMany({
+          where: { serviceId: id },
+          data: { serviceId: reassignToId }
+        });
+
+      } else if (strategy === 'delete_all') {
+        const relatedQueues = await tx.queue.findMany({
+          where: { services: { some: { id } } }
+        });
+        
+        const relatedWorkflows = await tx.serviceFlow.findMany({
+          where: { serviceId: id }
+        });
+
+        if (keepHistory) {
+          let archiveService = await tx.service.findFirst({
+            where: { name: 'Archived Services', tenantId }
+          });
+          
+          if (!archiveService) {
+            archiveService = await tx.service.create({
+              data: {
+                name: 'Archived Services',
+                tenantId,
+                description: 'Container for historical data of deleted services.'
+              }
+            });
+          }
+          
+          await tx.visit.updateMany({
+            where: { serviceId: id },
+            data: { serviceId: archiveService.id, queueId: null, flowId: null }
+          });
+          
+          await tx.appointment.updateMany({
+            where: { serviceId: id },
+            data: { serviceId: archiveService.id }
+          });
+        }
+        
+        for (const flow of relatedWorkflows) {
+           await tx.serviceFlow.delete({ where: { id: flow.id } });
+        }
+        
+        for (const queue of relatedQueues) {
+           await tx.queue.delete({ where: { id: queue.id } });
+        }
+      }
+
+      // Finally, delete the service
+      return tx.service.delete({
+        where: { id: exists.id },
+      });
     });
   }
 

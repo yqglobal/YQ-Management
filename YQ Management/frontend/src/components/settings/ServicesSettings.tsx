@@ -4,6 +4,7 @@ import { fetchApi } from '../../lib/api';
 import { Layers, Plus, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ServiceModal } from '../modals/ServiceModal';
+import { DeleteServiceModal } from '../modals/DeleteServiceModal';
 import { QuotaFreezeGuard } from '../QuotaFreezeGuard';
 import { QuotaWarningBanner } from '../QuotaWarningBanner';
 import { usePlan } from '../../hooks/usePlan';
@@ -14,6 +15,8 @@ export function ServicesSettings() {
   
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [selectedServiceForEdit, setSelectedServiceForEdit] = useState<any>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedServiceForDelete, setSelectedServiceForDelete] = useState<any>(null);
   const [serviceSearchQuery, setServiceSearchQuery] = useState('');
   const [selectedServiceLocationId, setSelectedServiceLocationId] = useState('all');
   const [serviceSort, setServiceSort] = useState('name-asc');
@@ -28,14 +31,7 @@ export function ServicesSettings() {
     queryFn: () => fetchApi('/service'),
   });
 
-  const deleteServiceMutation = useMutation({
-    mutationFn: (id: string) => fetchApi(`/service/${id}`, { method: 'DELETE' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] });
-      toast.success('Service deleted');
-    },
-    onError: (err: any) => toast.error(err.message || 'Failed to delete service')
-  });
+
 
   const filteredServices = React.useMemo(() => {
     return services.filter((s: any) => {
@@ -154,7 +150,7 @@ export function ServicesSettings() {
                     <button onClick={() => { setSelectedServiceForEdit(service); setIsServiceModalOpen(true); }} className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Edit">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button onClick={() => { if (confirm(`Delete "${service.name}"? Queues linked to this service may be affected.`)) deleteServiceMutation.mutate(service.id); }}
+                    <button onClick={() => { setSelectedServiceForDelete(service); setIsDeleteModalOpen(true); }}
                       className="p-2 text-on-surface-variant hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Delete">
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -173,6 +169,15 @@ export function ServicesSettings() {
           onClose={() => setIsServiceModalOpen(false)} 
           service={selectedServiceForEdit} 
           locationId={selectedServiceLocationId !== 'all' ? selectedServiceLocationId : undefined}
+        />
+      )}
+
+      {isDeleteModalOpen && (
+        <DeleteServiceModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          service={selectedServiceForDelete}
+          services={services}
         />
       )}
     </>

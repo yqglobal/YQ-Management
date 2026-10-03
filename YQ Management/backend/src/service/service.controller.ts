@@ -124,7 +124,13 @@ export class ServiceController {
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
-  remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.serviceService.remove(id, req.user.tenantId);
+  remove(
+    @Req() req: AuthenticatedRequest, 
+    @Param('id') id: string,
+    @Query('strategy') strategy?: string,
+    @Query('reassignToId') reassignToId?: string,
+    @Query('keepHistory') keepHistory?: string
+  ) {
+    return this.serviceService.remove(id, req.user.tenantId, strategy, reassignToId, keepHistory === 'true');
   }
 }
