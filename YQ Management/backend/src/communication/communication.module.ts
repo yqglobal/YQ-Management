@@ -10,12 +10,14 @@ import { CommunicationProcessor } from './communication.processor';
 import { CommunicationController } from './communication.controller';
 import { WhatsAppTemplateService } from './templates/whatsapp-template.service';
 import { VisitNotificationService } from './visit-notification.service';
+import { SmsModule } from '../sms/sms.module';
 
 @Global()
 @Module({
   imports: [
     PrismaModule,
     forwardRef(() => WhatsappModule),
+    SmsModule,
     BullModule.registerQueue({
       name: 'communication',
     }),

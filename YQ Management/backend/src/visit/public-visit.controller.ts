@@ -254,6 +254,15 @@ export class PublicVisitController {
     return this.visitStepService.skipStepPublic(accessToken, stepId);
   }
 
+  @Post(':accessToken/submit-form/:stepId')
+  async submitFormPublic(
+    @Param('accessToken') accessToken: string,
+    @Param('stepId') stepId: string,
+    @Body() body: { formData: any },
+  ) {
+    return this.visitStepService.submitFormPublic(accessToken, stepId, body.formData);
+  }
+
   @Post(':accessToken/revert-step/:stepId')
   async revertStepPublic(
     @Param('accessToken') accessToken: string,

@@ -56,6 +56,7 @@ import { ServiceFlowModule } from './service-flow/service-flow.module';
 import { VisitStepModule } from './visit-step/visit-step.module';
 import { TenantPaymentsModule } from './tenant-payments/tenant-payments.module';
 import { AiSetupModule } from './ai-setup/ai-setup.module';
+import { SmsModule } from './sms/sms.module';
 
 @Module({
   imports: [
@@ -149,6 +150,7 @@ import { AiSetupModule } from './ai-setup/ai-setup.module';
     ServiceFlowModule,
     VisitStepModule,
     TenantPaymentsModule,
+    SmsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

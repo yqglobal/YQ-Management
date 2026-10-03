@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 export enum CommunicationChannel {
   EMAIL = 'email',
   WHATSAPP = 'whatsapp',
+  SMS = 'sms',
 }
 
 export enum CommunicationStatus {

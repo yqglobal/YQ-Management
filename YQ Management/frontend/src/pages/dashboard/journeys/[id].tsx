@@ -116,6 +116,7 @@ const defaultForm = {
   notifyCustomerOnActivation: false,
   notificationTemplate: "",
   notifyStaffOnActivation: false,
+  formConfig: "",
 };
 
 // ─── Stage type labels (plain English) ───────────────────────────────────────
@@ -150,6 +151,11 @@ const STAGE_TYPES = [
     value: "NOTIFICATION",
     label: "🔔 Notification Only",
     info: "Sends a WhatsApp or system message to the customer automatically. No physical action needed.",
+  },
+  {
+    value: "FORM",
+    label: "📋 Form",
+    info: "Customer must fill out a dynamic form at this stage (e.g. intake, triage).",
   },
 ];
 
@@ -309,6 +315,9 @@ export default function JourneyBuilder() {
         ? form.notificationTemplate || undefined
         : undefined,
       notifyStaffOnActivation: form.notifyStaffOnActivation,
+      formConfig: form.type === 'FORM' && form.formConfig
+        ? JSON.parse(form.formConfig)
+        : undefined,
     };
     if (stepOrder !== undefined) dto.stepOrder = stepOrder;
     // Remove undefined keys to keep payload clean
@@ -443,6 +452,7 @@ export default function JourneyBuilder() {
       notifyCustomerOnActivation: step.notifyCustomerOnActivation || false,
       notificationTemplate: step.notificationTemplate || "",
       notifyStaffOnActivation: step.notifyStaffOnActivation || false,
+      formConfig: step.formConfig ? JSON.stringify(step.formConfig, null, 2) : "",
     });
   };
 
@@ -1408,6 +1418,35 @@ export default function JourneyBuilder() {
                               One-time only (no repeats)
                             </span>
                           </label>
+                        </div>
+                      </section>
+                    )}
+
+                    {/* Form Settings */}
+                    {stepForm.type === "FORM" && (
+                      <section className="space-y-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50 dark:bg-indigo-900/10">
+                        <h4 className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                          📋 Form Settings
+                        </h4>
+                        <p className="text-[11px] text-indigo-700 dark:text-indigo-400">
+                          Configure the JSON structure for this form step.
+                        </p>
+                        <div>
+                          <FieldLabel
+                            label="Form Configuration (JSON)"
+                            info="Provide a valid JSON configuration representing the form fields."
+                          />
+                          <textarea
+                            value={stepForm.formConfig}
+                            onChange={(e) =>
+                              setStepForm({
+                                ...stepForm,
+                                formConfig: e.target.value,
+                              })
+                            }
+                            className="w-full h-48 p-4 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white font-mono focus:ring-2 focus:ring-indigo-500 outline-none resize-y"
+                            placeholder='{\n  "title": "Intake Form",\n  "fields": [\n    { "name": "reason", "label": "Reason for visit", "type": "text" }\n  ]\n}'
+                          />
                         </div>
                       </section>
                     )}

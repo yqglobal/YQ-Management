@@ -38,6 +38,21 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const { activeLocationId, setActiveLocationId, allowedLocations: locations } = useLocation();
   const { socket } = useSocket();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('qmova_sidebar_collapsed');
+    if (saved) setIsSidebarCollapsed(saved === 'true');
+  }, []);
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const newState = !prev;
+      localStorage.setItem('qmova_sidebar_collapsed', String(newState));
+      return newState;
+    });
+  };
+
   const [profileOpen, setProfileOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -239,7 +254,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
       )}
 
       {/* TopAppBar */}
-      <header className={`fixed top-0 right-0 bg-surface dark:bg-dark-card border-b border-border dark:border-dark-border flex flex-col justify-end transition-all duration-200 z-50 ${mobileOpen ? 'w-full' : 'w-full md:w-[calc(100%-256px)]'} ${settingsMode ? 'h-auto' : 'h-header-h'}`}>
+      <header className={`fixed top-0 right-0 bg-surface dark:bg-dark-card border-b border-border dark:border-dark-border flex flex-col justify-end transition-all duration-300 z-50 ${mobileOpen ? 'w-full' : (isSidebarCollapsed ? 'w-full md:w-[calc(100%-80px)]' : 'w-full md:w-[calc(100%-256px)]')} ${settingsMode ? 'h-auto' : 'h-header-h'}`}>
         {settingsMode ? (
           /* ── Settings-specific header ── */
           <div className="flex flex-col">
@@ -449,19 +464,22 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
       {/* SideNavBar */}
       <nav 
         aria-label="Main Navigation" 
-        className={`fixed left-0 top-0 h-full w-sidebar-w bg-surface dark:bg-dark-canvas border-r border-border dark:border-dark-border flex flex-col py-gutter px-4 z-[70] transition-transform duration-300 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed left-0 top-0 h-full bg-surface dark:bg-dark-canvas border-r border-border dark:border-dark-border flex flex-col py-gutter z-[70] transition-all duration-300 ease-in-out md:translate-x-0 overflow-x-hidden ${mobileOpen ? 'translate-x-0 w-sidebar-w' : '-translate-x-full'} ${isSidebarCollapsed ? 'md:w-20 px-2' : 'md:w-sidebar-w px-4'}`}
       >
-        <div className="mb-8 px-4 flex flex-col mt-2">
-          <div className="flex items-start gap-3">
-            <div className="flex flex-col">
+        <div className={`mb-8 flex flex-col mt-2 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
+          <div className="flex items-center gap-2">
+            <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
               <Logo width={140} height={22} />
               {!plan.isLoading && (plan.planName || plan.isTrialActive) && (
-                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-primary dark:text-primary mt-1 ml-1 opacity-80">
+                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-primary dark:text-primary mt-1 ml-1 opacity-80 whitespace-nowrap">
                   {plan.isTrialActive ? 'Trial' : plan.planName?.replace(' Plan', '')}
                 </span>
               )}
             </div>
-            <button onClick={() => setMobileOpen(false)} className="md:hidden ml-auto p-2 rounded-lg hover:bg-surface-container-low text-on-surface-variant">
+            <button onClick={toggleSidebar} className="hidden md:flex p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0 ml-auto transition-transform duration-300">
+              <span className="material-symbols-outlined">{isSidebarCollapsed ? 'keyboard_double_arrow_right' : 'keyboard_double_arrow_left'}</span>
+            </button>
+            <button onClick={() => setMobileOpen(false)} className="md:hidden ml-auto p-2 rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0">
               <span className="material-symbols-outlined">close</span>
             </button>
           </div>
@@ -476,18 +494,22 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 href={item.href}
                 id={(item as any).id}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md ${
+                className={`flex items-center gap-3 py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md relative group ${isSidebarCollapsed ? 'px-0 justify-center' : 'px-4 justify-start'} ${
                   active 
                     ? 'text-primary dark:text-white font-semibold bg-surface-container-low dark:bg-white/10' 
                     : 'text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-white/5'
                 }`}
+                title={isSidebarCollapsed ? item.label : undefined}
               >
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{item.icon}</span>
-                {item.label}
+                <span className="material-symbols-outlined shrink-0" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{item.icon}</span>
+                <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'opacity-0 w-0 -translate-x-2' : 'opacity-100 w-auto translate-x-0'}`}>
+                  {item.label}
+                </span>
               </Link>
             );
           })}
           {/* Setup CTA (replaces ghost heuristic) */}
+          <div className={`transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'opacity-0 h-0 scale-95' : 'opacity-100 h-auto scale-100'}`}>
           {tenant && !tenant.setupComplete && (
             <div className="px-2 pb-2 mt-4">
               <Link href="/dashboard/setup-guide" className="block bg-surface-container-low hover:bg-surface-container-high dark:bg-zinc-900 border border-primary/20 dark:border-sky-900 rounded-2xl p-4 transition-colors">
@@ -609,6 +631,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
               </div>
             );
           })()}
+          </div>
         </div>
 
         <div className="flex flex-col gap-2 pt-4 border-t border-border dark:border-dark-border">
@@ -621,21 +644,24 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 href={item.href}
                 id={item.id}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md ${
+                className={`flex items-center gap-3 py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md relative group ${isSidebarCollapsed ? 'px-0 justify-center' : 'px-4 justify-start'} ${
                   active 
                     ? 'text-primary dark:text-white font-semibold bg-surface-container-low dark:bg-white/10' 
                     : 'text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-white/5'
                 }`}
+                title={isSidebarCollapsed ? item.label : undefined}
               >
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{item.icon}</span>
-                {item.label}
+                <span className="material-symbols-outlined shrink-0" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{item.icon}</span>
+                <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'opacity-0 w-0 -translate-x-2' : 'opacity-100 w-auto translate-x-0'}`}>
+                  {item.label}
+                </span>
               </Link>
             );
           })}
         </div>
       </nav>
 
-      <main className={`ml-0 md:ml-sidebar-w w-full md:w-[calc(100%-256px)] flex-1 flex flex-col bg-canvas dark:bg-dark-canvas relative min-w-0 ${settingsMode ? 'pt-[108px]' : 'pt-header-h'}`}>
+      <main className={`ml-0 w-full flex-1 flex flex-col bg-canvas dark:bg-dark-canvas relative min-w-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-20 md:w-[calc(100%-80px)]' : 'md:ml-sidebar-w md:w-[calc(100%-256px)]'} ${settingsMode ? 'pt-[108px]' : 'pt-header-h'}`}>
         <div className={`flex-1 w-full min-w-0 relative flex flex-col ${noPadding ? '' : 'p-margin-mobile md:p-margin-desktop'}`}>
            {!plan.isLoading && !plan.canAccess && !plan.hasNoPlan && !!user?.tenantId && router.pathname.startsWith('/dashboard/settings') && (
              <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-xl mb-6 flex items-center gap-3 shadow-sm mx-4 mt-4 md:mx-0 md:mt-0">

@@ -70,6 +70,20 @@ export class VisitStepController {
     );
   }
 
+  @Post(':stepId/submit-form')
+  submitForm(
+    @Req() req: any,
+    @Param('stepId') stepId: string,
+    @Body() dto: { formData: any },
+  ) {
+    return this.visitStepService.submitForm(
+      req.user.tenantId,
+      stepId,
+      req.user.id,
+      dto.formData,
+    );
+  }
+
   @Post(':stepId/skip')
   skipStep(@Req() req: any, @Param('stepId') stepId: string) {
     return this.visitStepService.skipStep(

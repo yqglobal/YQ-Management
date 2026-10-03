@@ -197,6 +197,9 @@ export class VisitStepService {
     if (targetStep.type === 'PAYMENT') {
       return { action: 'PROMPT_PAYMENT', step: targetStep };
     }
+    if (targetStep.type === 'FORM') {
+      return { action: 'FORM_REQUIRED', step: targetStep };
+    }
     return { action: 'MANUAL_ACTION_REQUIRED', step: targetStep };
   }
 
@@ -494,6 +497,46 @@ export class VisitStepService {
     return updated;
   }
 
+  async submitForm(
+    tenantId: string,
+    visitStepId: string,
+    staffId: string,
+    formData: any,
+  ) {
+    const step = await this.prisma.visitStep.findUnique({
+      where: { id: visitStepId },
+      include: { templateStep: true },
+    });
+    if (!step || step.tenantId !== tenantId)
+      throw new NotFoundException('Step not found');
+    if (step.type !== 'FORM')
+      throw new BadRequestException('Not a form step');
+    if (step.status === 'DONE' || step.status === 'SKIPPED')
+      throw new BadRequestException(`Step is already ${step.status}`);
+
+    const updated = await this.prisma.visitStep.update({
+      where: { id: step.id },
+      data: {
+        status: 'DONE',
+        completedAt: new Date(),
+        formData,
+      },
+    });
+
+    await this.logEvent(
+      step.id,
+      step.visitId,
+      tenantId,
+      'COMPLETED',
+      'STAFF',
+      staffId,
+      { formData },
+    );
+
+    await this.evaluateNextSteps(step.visitId, step.id);
+    return updated;
+  }
+
   public async evaluateNextSteps(
     visitId: string,
     completedVisitStepId?: string,
@@ -759,6 +802,42 @@ export class VisitStepService {
       'SKIPPED',
       'CUSTOMER',
       'CUSTOMER',
+    );
+
+    await this.evaluateNextSteps(step.visitId, step.id);
+    return updated;
+  }
+
+  async submitFormPublic(accessToken: string, stepId: string, formData: any) {
+    const step = await this.prisma.visitStep.findFirst({
+      where: { id: stepId, visit: { accessToken } },
+      include: { templateStep: true },
+    });
+    
+    if (!step) throw new NotFoundException('Step not found');
+    if (step.type !== 'FORM')
+      throw new BadRequestException('Not a form step');
+    if (step.status === 'DONE' || step.status === 'SKIPPED') {
+      throw new BadRequestException(`Cannot submit form on step in status ${step.status}`);
+    }
+
+    const updated = await this.prisma.visitStep.update({
+      where: { id: step.id },
+      data: {
+        status: 'DONE',
+        completedAt: new Date(),
+        formData,
+      },
+    });
+
+    await this.logEvent(
+      step.id,
+      step.visitId,
+      step.tenantId,
+      'COMPLETED',
+      'CUSTOMER',
+      'CUSTOMER',
+      { formData },
     );
 
     await this.evaluateNextSteps(step.visitId, step.id);

@@ -175,6 +175,8 @@ model Tenant {
   whatsappInstanceId String? // Optional Evolution API instance name
   whatsappConnected  Boolean @default(false)
   whatsappPhone      String?
+  smsConnected       Boolean @default(false)
+  smsProvider        String? // e.g., "TWILIO", "AFRICASTALKING"
   chatbotEnabled     Boolean @default(false)
   chatbotConfig      Json? // Stores custom button menus and automated replies
   aiConfig           Json? // Stores LLM provider keys (Gemini, Groq) and prompts
