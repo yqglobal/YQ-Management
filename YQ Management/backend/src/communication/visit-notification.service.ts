@@ -507,7 +507,6 @@ export class VisitNotificationService {
           `VISIT_CSAT: failed to set chat session step 20 — ${err.message}`,
         );
       }
-    }
   }
 
   private async handleStepActivated(payload: VisitEventPayload) {

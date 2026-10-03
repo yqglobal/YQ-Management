@@ -1225,6 +1225,9 @@ model VisitStep {
   completedAt   DateTime?
   skippedAt     DateTime?
 
+  // ── Form Data ────────────────────────────────────────────────────────────
+  formData          Json?
+
   // ── Entitlement Tracking ─────────────────────────────────────────────────
   quantityAllocated Int? // e.g. 4 plates (resolved from formula at instantiation)
   quantityRedeemed  Int       @default(0)
