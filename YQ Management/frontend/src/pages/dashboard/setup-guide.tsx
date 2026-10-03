@@ -7,8 +7,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { useAuth } from '../../components/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, ChevronRight, Rocket, MapPin, Layers, Users, QrCode, Zap, ExternalLink, ArrowRight } from 'lucide-react';
+import { Check, ChevronRight, Rocket, MapPin, Layers, Users, QrCode, Zap, ExternalLink, ArrowRight, Workflow } from 'lucide-react';
 import { toast } from 'sonner';
+import { getTenantUrl } from '../../lib/utils';
 
 // ── Setup Step Definition ────────────────────────────────────────────────────
 
@@ -41,6 +42,14 @@ const SETUP_STEPS: SetupStep[] = [
     action: 'Add Service',
   },
   {
+    id: 'flows',
+    icon: <Workflow className="w-5 h-5" />,
+    title: 'Configure your workflows',
+    description: 'Set up custom workflows, queues, and service templates to perfectly match your business operations.',
+    href: '/dashboard/settings/operations?tab=flows',
+    action: 'Configure Flows',
+  },
+  {
     id: 'queue',
     icon: <span className="text-base">🎟️</span>,
     title: 'Create a queue',
@@ -59,13 +68,12 @@ const SETUP_STEPS: SetupStep[] = [
     modes: ['APPOINTMENTS', 'JOURNEY'],
   },
   {
-    id: 'journey',
-    icon: <span className="text-base">🗺️</span>,
-    title: 'Design a service journey',
-    description: 'A Journey defines the stages a customer moves through (e.g. Registration → Blood Test → Results Collection). Build it in the Journey Builder.',
-    href: '/dashboard/journeys',
-    action: 'Open Journey Builder',
-    modes: ['JOURNEY'],
+    id: 'whatsapp',
+    icon: <Zap className="w-5 h-5" />,
+    title: 'Connect WhatsApp',
+    description: 'Send automatic confirmations, reminders, and position updates to customers via WhatsApp. Requires an Evolution API instance.',
+    href: '/dashboard/settings/integrations?tab=whatsapp',
+    action: 'Connect WhatsApp',
   },
   {
     id: 'staff',
@@ -80,17 +88,9 @@ const SETUP_STEPS: SetupStep[] = [
     icon: <QrCode className="w-5 h-5" />,
     title: 'Share your booking portal',
     description: 'Each queue and service has a unique QR code and booking link. Print or display it at your entrance, or embed it on your website.',
-    href: '/dashboard/queues',
-    action: 'Get QR Code',
-  },
-  {
-    id: 'whatsapp',
-    icon: <Zap className="w-5 h-5" />,
-    title: 'Connect WhatsApp (optional)',
-    description: 'Send automatic confirmations, reminders, and position updates to customers via WhatsApp. Requires an Evolution API instance.',
-    href: '/dashboard/settings/integrations?tab=whatsapp',
-    action: 'Connect WhatsApp',
-  },
+    href: 'CUSTOM_BOOKING_LINK',
+    action: 'Open Booking Portal',
+  }
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -291,11 +291,19 @@ export default function SetupGuide() {
                           </button>
                         )}
                         {step.href && !isDone && (
-                          <Link href={step.href}>
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors">
-                              {step.action || 'Go'} <ChevronRight className="w-3 h-3" />
-                            </button>
-                          </Link>
+                          step.href === 'CUSTOM_BOOKING_LINK' ? (
+                            <a href={tenant?.subdomain ? getTenantUrl(tenant.subdomain, '/booking') : '#'} target="_blank" rel="noopener noreferrer">
+                              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors">
+                                {step.action || 'Go'} <ChevronRight className="w-3 h-3" />
+                              </button>
+                            </a>
+                          ) : (
+                            <Link href={step.href}>
+                              <button className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors">
+                                {step.action || 'Go'} <ChevronRight className="w-3 h-3" />
+                              </button>
+                            </Link>
+                          )
                         )}
                       </div>
                     </div>
