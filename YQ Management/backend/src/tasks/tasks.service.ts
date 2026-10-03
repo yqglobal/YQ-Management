@@ -217,7 +217,7 @@ export class TasksService {
 
       const diffMins = (visit.scheduledTime.getTime() - now.getTime()) / 60000;
       const baseUrl =
-        process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com';
+        process.env.NEXT_PUBLIC_APP_URL || `${process.env.NEXT_PUBLIC_APP_URL || "https://app.qmova.yqbuddy.com"}`;
       const statusUrl = `${baseUrl}/status/${visit.accessToken}`;
 
       let message: string | null = null;

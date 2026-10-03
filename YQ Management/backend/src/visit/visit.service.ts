@@ -999,7 +999,7 @@ export class VisitService {
           (fullVisit?.service?.emaExpectedDuration ||
             fullVisit?.service?.expectedDuration ||
             5);
-        const statusUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com'}/status/${updated.accessToken}`;
+        const statusUrl = `${process.env.NEXT_PUBLIC_APP_URL || `${process.env.NEXT_PUBLIC_APP_URL || "https://app.qmova.yqbuddy.com"}`}/status/${updated.accessToken}`;
         const msg =
           `✅ Reception confirmed your arrival at *${fullVisit?.location?.name || fullVisit?.tenant?.name}*!\n\n` +
           `📋 Booking: *${fullVisit?.service?.name}*\n` +

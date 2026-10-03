@@ -205,7 +205,7 @@ export class UsersService {
         email: data.email,
         role: data.role,
         tenantName,
-        inviteUrl: `https://qmova.yqbuddy.com/register?inviteCode=${invite.code}`,
+        inviteUrl: `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/register?inviteCode=${invite.code}`,
         message:
           'No Qmova account found for this email. An invitation join code has been generated.',
       };
@@ -250,7 +250,7 @@ export class UsersService {
       select: { name: true },
     });
     const tenantName = tenant?.name || 'Your Team';
-    const inviteUrl = `https://qmova.yqbuddy.com/register?inviteCode=${data.code}`;
+    const inviteUrl = `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/register?inviteCode=${data.code}`;
     const res = await this.emailService.sendStaffInvitation(
       data.email,
       tenantName,
@@ -294,7 +294,7 @@ export class UsersService {
       email: updated.email || '',
       role: updated.role,
       tenantName: invite.tenant?.name || 'Your Team',
-      inviteUrl: `https://qmova.yqbuddy.com/register?inviteCode=${updated.code}`,
+      inviteUrl: `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/register?inviteCode=${updated.code}`,
     };
   }
 

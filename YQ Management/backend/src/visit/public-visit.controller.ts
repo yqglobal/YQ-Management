@@ -219,7 +219,7 @@ export class PublicVisitController {
         domain:
           process.env.COOKIE_DOMAIN ||
           (process.env.NODE_ENV === 'production'
-            ? '.qmova.yqbuddy.com'
+            ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
             : undefined),
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       });
@@ -386,7 +386,7 @@ export class PublicVisitController {
         domain:
           process.env.COOKIE_DOMAIN ||
           (process.env.NODE_ENV === 'production'
-            ? '.qmova.yqbuddy.com'
+            ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
             : undefined),
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       });

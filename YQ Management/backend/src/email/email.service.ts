@@ -272,7 +272,7 @@ export class EmailService {
       const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Staff Invitation Expired</h2>
       <p style="color: #4b5563; line-height: 1.6;">The workspace invitation sent to <strong>${staffEmail}</strong> to join <strong>${workspaceName}</strong> has remained unaccepted for over 3 days and has expired.</p>
       <p style="color: #4b5563; line-height: 1.6;">For organizational security, the joining code has been automatically disabled. You can easily reissue a fresh 3-day invitation anytime directly from your Staff Directory settings in the dashboard.</p>
-      ${generateButtonHtml('Manage Staff & Resend', 'https://qmova.yqbuddy.com/dashboard/settings/staff')}`;
+      ${generateButtonHtml('Manage Staff & Resend', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard/settings/staff`)}`;
 
       const htmlContent = createBrandEmailLayout({
         title: 'Staff Invitation Expired Notice',
@@ -327,7 +327,7 @@ export class EmailService {
       <p style="color: #4b5563; line-height: 1.6;">Your role in the workspace <strong>${workspaceName}</strong> has been updated.</p>
       <p style="color: #4b5563; line-height: 1.6;">You are now assigned the role of <strong>${newRole}</strong>.</p>
       <p style="color: #4b5563; line-height: 1.6;">If you believe this was a mistake, please contact your workspace administrator.</p>
-      ${generateButtonHtml('Go to Dashboard', 'https://qmova.yqbuddy.com/dashboard')}`;
+      ${generateButtonHtml('Go to Dashboard', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard`)}`;
 
       const htmlContent = createBrandEmailLayout({
         title: 'Your Qmova Role was Updated',
@@ -371,7 +371,7 @@ export class EmailService {
       const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Admin Privileges Granted</h2>
       <p style="color: #4b5563; line-height: 1.6;">You have been granted full <strong>Admin</strong> privileges in the workspace <strong>${workspaceName}</strong> by ${oldAdminEmail}.</p>
       <p style="color: #4b5563; line-height: 1.6;">You now have full control over the workspace settings, billing, and staff management.</p>
-      ${generateButtonHtml('Access Workspace', 'https://qmova.yqbuddy.com/dashboard')}`;
+      ${generateButtonHtml('Access Workspace', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard`)}`;
 
       const htmlContent = createBrandEmailLayout({
         title: 'You are now an Admin',
@@ -423,7 +423,7 @@ export class EmailService {
         title,
         preheader,
         content,
-        logoUrl: 'https://qmova.yqbuddy.com/qmova-light-logo.png',
+        logoUrl: `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/qmova-light-logo.png`,
       });
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
@@ -457,7 +457,7 @@ export class EmailService {
     role: string,
   ) {
     const subject = `You've been invited to join ${workspaceName} on Qmova`;
-    const frontendUrl = process.env.FRONTEND_URL || 'https://qmova.yqbuddy.com';
+    const frontendUrl = process.env.FRONTEND_URL || `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}`;
     const inviteLink = `${frontendUrl}/onboarding?inviteCode=${inviteCode}`;
     const roleName = role === 'OPERATOR' ? 'Service Provider' : 'Team Member';
 
@@ -480,7 +480,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Welcome aboard, ${name || 'there'}!</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your Qmova account has been successfully created. We're thrilled to have you join us.</p>
     <p style="color: #4b5563; line-height: 1.6;">You can now log in and start configuring your workspace to manage queues and services effortlessly.</p>
-    ${generateButtonHtml('Go to Dashboard', 'https://qmova.yqbuddy.com/dashboard')}`;
+    ${generateButtonHtml('Go to Dashboard', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard`)}`;
     await this.sendEmail(
       email,
       subject,
@@ -507,7 +507,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Thank You for Your Purchase!</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your payment was successful and your subscription to the <strong>${planName}</strong> plan is now active.</p>
     <p style="color: #4b5563; line-height: 1.6;">Enjoy the premium features of Qmova. You can review your billing details in the dashboard settings.</p>
-    ${generateButtonHtml('View Billing', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
+    ${generateButtonHtml('View Billing', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard/settings/billing`)}`;
     await this.sendEmail(
       email,
       subject,
@@ -527,7 +527,7 @@ export class EmailService {
     <p style="color: #4b5563; line-height: 1.6;">An administrator has assigned the <strong>${planName}</strong> plan to your workspace.</p>
     ${isFree ? `<p style="color: #4b5563; line-height: 1.6;">This subscription has been granted to you for free, and you will not be billed.</p>` : ''}
     <p style="color: #4b5563; line-height: 1.6;">Enjoy the premium features of Qmova. You can review your billing details in the dashboard settings.</p>
-    ${generateButtonHtml('View Billing', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}
+    ${generateButtonHtml('View Billing', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard/settings/billing`)}
     <p style="color: #4b5563; line-height: 1.6; font-size: 14px; margin-top: 20px;">If you have any questions, please reach out to our support team.</p>`;
     await this.sendEmail(
       email,
@@ -547,7 +547,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Subscription Cancelled</h2>
     <p style="color: #4b5563; line-height: 1.6;">${cancelledByAdmin ? `An administrator has cancelled your subscription to the <strong>${planName}</strong> plan.` : `Your subscription to the <strong>${planName}</strong> plan has been cancelled.`}</p>
     <p style="color: #4b5563; line-height: 1.6;">You will continue to have access until the end of your current billing period. If this was a mistake, you can always renew your plan from the billing settings.</p>
-    ${generateButtonHtml('Manage Billing', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
+    ${generateButtonHtml('Manage Billing', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard/settings/billing`)}`;
     await this.sendEmail(
       email,
       subject,
@@ -566,7 +566,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Plan Renewal Reminder</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your subscription to the <strong>${planName}</strong> plan is renewing in <strong>${daysRemaining}</strong> days.</p>
     <p style="color: #4b5563; line-height: 1.6;">Please ensure your payment method is up to date to avoid any service interruptions.</p>
-    ${generateButtonHtml('Manage Billing', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
+    ${generateButtonHtml('Manage Billing', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard/settings/billing`)}`;
     await this.sendEmail(
       email,
       subject,
@@ -581,7 +581,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Subscription Expired</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your subscription to the <strong>${planName}</strong> plan has officially expired.</p>
     <p style="color: #4b5563; line-height: 1.6;">To regain access to premium features, please renew your plan through your billing dashboard.</p>
-    ${generateButtonHtml('Renew Plan', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
+    ${generateButtonHtml('Renew Plan', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard/settings/billing`)}`;
     await this.sendEmail(
       email,
       subject,
@@ -606,7 +606,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Welcome to Qmova!</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your ${trialDays}-day free trial for the <strong>${planName}</strong> plan has officially started.</p>
     <p style="color: #4b5563; line-height: 1.6;">We are excited for you to explore all the premium features. If you have any questions, our support team is here to help.</p>
-    ${generateButtonHtml('Go to Dashboard', 'https://qmova.yqbuddy.com/dashboard')}`;
+    ${generateButtonHtml('Go to Dashboard', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard`)}`;
     await this.sendEmail(
       email,
       subject,
@@ -621,7 +621,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Trial Expiring Soon</h2>
     <p style="color: #4b5563; line-height: 1.6;">Your free trial is coming to an end in <strong>${daysLeft} days</strong>.</p>
     <p style="color: #4b5563; line-height: 1.6;">To continue using Qmova without interruption, please add a payment method to your billing settings.</p>
-    ${generateButtonHtml('Update Billing', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
+    ${generateButtonHtml('Update Billing', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard/settings/billing`)}`;
     await this.sendEmail(
       email,
       subject,
@@ -702,7 +702,7 @@ export class EmailService {
     const content = `<h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">Upgrade Successful</h2>
     <p style="color: #4b5563; line-height: 1.6;">You have successfully upgraded your subscription from <strong>${fromPlan}</strong> to the <strong>${toPlan}</strong> plan.</p>
     <p style="color: #4b5563; line-height: 1.6;">Any resources that were previously frozen due to quota limits have been automatically restored. Enjoy your new premium features!</p>
-    ${generateButtonHtml('Go to Dashboard', 'https://qmova.yqbuddy.com/dashboard')}`;
+    ${generateButtonHtml('Go to Dashboard', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard`)}`;
     await this.sendEmail(
       email,
       subject,
@@ -723,7 +723,7 @@ export class EmailService {
     <p style="color: #4b5563; line-height: 1.6;">Your subscription has been changed from <strong>${fromPlan}</strong> to the <strong>${toPlan}</strong> plan.</p>
     ${frozenSummary ? `<p style="color: #b91c1c; font-weight: 600; line-height: 1.6;">Important: ${frozenSummary}</p>` : ''}
     <p style="color: #4b5563; line-height: 1.6;">Frozen resources are not deleted, but they are inaccessible to your customers. Your oldest resources remain active. You can restore frozen resources at any time by upgrading your plan or deleting excess resources.</p>
-    ${generateButtonHtml('Review Resources', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
+    ${generateButtonHtml('Review Resources', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard/settings/billing`)}`;
     await this.sendEmail(
       email,
       subject,
@@ -744,7 +744,7 @@ export class EmailService {
     <p style="color: #4b5563; line-height: 1.6;">You have reached the maximum limit for <strong>${resourceType}</strong> on your current plan.</p>
     <p style="color: #4b5563; line-height: 1.6;">Current usage: ${current} / Limit: ${limit}</p>
     <p style="color: #4b5563; line-height: 1.6;">To add more ${resourceType}, please upgrade your subscription or archive existing ones.</p>
-    ${generateButtonHtml('Upgrade Plan', 'https://qmova.yqbuddy.com/dashboard/settings/billing')}`;
+    ${generateButtonHtml('Upgrade Plan', `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/dashboard/settings/billing`)}`;
     await this.sendEmail(
       email,
       subject,

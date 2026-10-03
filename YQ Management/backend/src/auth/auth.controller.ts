@@ -71,7 +71,7 @@ export class AuthController {
         domain:
           process.env.COOKIE_DOMAIN ||
           (process.env.NODE_ENV === 'production'
-            ? '.qmova.yqbuddy.com'
+            ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
             : undefined),
         maxAge: 30 * 24 * 60 * 60 * 1000,
       });
@@ -122,7 +122,7 @@ export class AuthController {
       domain:
         process.env.COOKIE_DOMAIN ||
         (process.env.NODE_ENV === 'production'
-          ? '.qmova.yqbuddy.com'
+          ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
           : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
@@ -145,7 +145,7 @@ export class AuthController {
       domain:
         process.env.COOKIE_DOMAIN ||
         (process.env.NODE_ENV === 'production'
-          ? '.qmova.yqbuddy.com'
+          ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
           : undefined),
     });
     return { success: true, message: 'Logged out successfully' };
@@ -203,7 +203,7 @@ export class AuthController {
       domain:
         process.env.COOKIE_DOMAIN ||
         (process.env.NODE_ENV === 'production'
-          ? '.qmova.yqbuddy.com'
+          ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
           : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
@@ -255,7 +255,7 @@ export class AuthController {
       domain:
         process.env.COOKIE_DOMAIN ||
         (process.env.NODE_ENV === 'production'
-          ? '.qmova.yqbuddy.com'
+          ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
           : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
@@ -590,7 +590,7 @@ export class AuthController {
       domain:
         process.env.COOKIE_DOMAIN ||
         (process.env.NODE_ENV === 'production'
-          ? '.qmova.yqbuddy.com'
+          ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
           : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });

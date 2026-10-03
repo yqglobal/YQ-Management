@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../../components/AuthContext';
 import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
 import ProvidersSettings from '../../../components/settings/providers';
@@ -8,7 +9,10 @@ import { ResourcesSettings } from '../../../components/settings/ResourcesSetting
 import { FlowsSettings } from '../../../components/settings/FlowsSettings';
 
 export default function ResourcesSettingsPage() {
+  const { tenant } = useAuth();
   const [activeTab, setActiveTab] = useState<'locations' | 'services' | 'flows' | 'resources' | 'providers'>('locations');
+  
+  const isJourneyMode = tenant?.operatingMode === 'JOURNEY';
 
   return (
     <SettingsLayout pageTitle="Operations" pageSubtitle="Manage your business locations, services, and operational resources.">
@@ -27,26 +31,30 @@ export default function ResourcesSettingsPage() {
         >
           Locations
         </button>
-        <button
-          onClick={() => setActiveTab('services')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'services'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-              : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
-          }`}
-        >
-          Services
-        </button>
-        <button
-          onClick={() => setActiveTab('flows')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'flows'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-              : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
-          }`}
-        >
-          Flows
-        </button>
+        {!isJourneyMode && (
+          <>
+            <button
+              onClick={() => setActiveTab('services')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'services'
+                  ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                  : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
+              }`}
+            >
+              Services
+            </button>
+            <button
+              onClick={() => setActiveTab('flows')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'flows'
+                  ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                  : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
+              }`}
+            >
+              Flows
+            </button>
+          </>
+        )}
         <button
           onClick={() => setActiveTab('resources')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -70,8 +78,8 @@ export default function ResourcesSettingsPage() {
       </div>
 
       {activeTab === 'locations' && <LocationsSettings />}
-      {activeTab === 'services' && <ServicesSettings />}
-      {activeTab === 'flows' && <FlowsSettings />}
+      {!isJourneyMode && activeTab === 'services' && <ServicesSettings />}
+      {!isJourneyMode && activeTab === 'flows' && <FlowsSettings />}
       {activeTab === 'resources' && <ResourcesSettings />}
       {activeTab === 'providers' && <ProvidersSettings />}
     </SettingsLayout>

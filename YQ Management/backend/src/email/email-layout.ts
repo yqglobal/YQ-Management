@@ -13,7 +13,7 @@ export function createBrandEmailLayout(options: {
     content,
     brandColor = '#0ea5e9', // Primary brand color (sky-500)
   } = options;
-  const frontendUrl = process.env.FRONTEND_URL || 'https://qmova.yqbuddy.com';
+  const frontendUrl = process.env.FRONTEND_URL || `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}`;
   const logoUrl = options.logoUrl || `${frontendUrl}/qmova-light-logo.png`;
   const year = new Date().getFullYear();
 
