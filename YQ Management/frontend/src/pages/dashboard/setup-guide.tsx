@@ -40,6 +40,7 @@ const SETUP_STEPS: SetupStep[] = [
     description: 'Services define what customers come in for (e.g. "General Consultation", "Pharmacy Pickup"). Each service can have its own hours, staff, and queue.',
     href: '/dashboard/settings/operations?tab=services',
     action: 'Add Service',
+    modes: ['QUEUE_ONLY', 'APPOINTMENTS'],
   },
   {
     id: 'flows',
@@ -48,6 +49,16 @@ const SETUP_STEPS: SetupStep[] = [
     description: 'Set up custom workflows, queues, and service templates to perfectly match your business operations.',
     href: '/dashboard/settings/operations?tab=flows',
     action: 'Configure Flows',
+    modes: ['QUEUE_ONLY', 'APPOINTMENTS'],
+  },
+  {
+    id: 'journey',
+    icon: <span className="text-base">🗺️</span>,
+    title: 'Design a service journey',
+    description: 'A Journey defines the stages a customer moves through (e.g. Registration → Blood Test → Results Collection). Build it in the Journey Builder.',
+    href: '/dashboard/journeys',
+    action: 'Open Journey Builder',
+    modes: ['JOURNEY'],
   },
   {
     id: 'queue',
@@ -65,7 +76,7 @@ const SETUP_STEPS: SetupStep[] = [
     description: 'Turn on "Allow Appointments" for each service to let customers book time slots online. Set your hours and slot duration.',
     href: '/dashboard/settings/operations?tab=services',
     action: 'Configure Booking',
-    modes: ['APPOINTMENTS', 'JOURNEY'],
+    modes: ['APPOINTMENTS'],
   },
   {
     id: 'whatsapp',
