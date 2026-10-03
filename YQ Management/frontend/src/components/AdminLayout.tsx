@@ -466,9 +466,9 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
         aria-label="Main Navigation" 
         className={`fixed left-0 top-0 h-full bg-surface dark:bg-dark-canvas border-r border-border dark:border-dark-border flex flex-col py-gutter z-[70] transition-all duration-300 ease-in-out md:translate-x-0 overflow-x-hidden ${mobileOpen ? 'translate-x-0 w-sidebar-w' : '-translate-x-full'} ${isSidebarCollapsed ? 'md:w-20 px-2' : 'md:w-sidebar-w px-4'}`}
       >
-        <div className={`mb-8 flex flex-col mt-2 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
-          <div className="flex items-center gap-2">
-            <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+        <div className={`mb-8 flex flex-col mt-2 ${isSidebarCollapsed ? 'px-0' : 'px-4'}`}>
+          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+            <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 h-0 opacity-0 hidden' : 'w-auto opacity-100 flex-1'}`}>
               <Logo width={140} height={22} />
               {!plan.isLoading && (plan.planName || plan.isTrialActive) && (
                 <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-primary dark:text-primary mt-1 ml-1 opacity-80 whitespace-nowrap">
@@ -476,10 +476,10 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 </span>
               )}
             </div>
-            <button onClick={toggleSidebar} className="hidden md:flex p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0 ml-auto transition-transform duration-300">
-              <span className="material-symbols-outlined">{isSidebarCollapsed ? 'keyboard_double_arrow_right' : 'keyboard_double_arrow_left'}</span>
+            <button onClick={toggleSidebar} className={`hidden md:flex p-2 rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0 transition-transform duration-300 ${isSidebarCollapsed ? '' : ''}`}>
+              <span className="material-symbols-outlined">{isSidebarCollapsed ? 'menu' : 'menu_open'}</span>
             </button>
-            <button onClick={() => setMobileOpen(false)} className="md:hidden ml-auto p-2 rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0">
+            <button onClick={() => setMobileOpen(false)} className={`md:hidden p-2 rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0 ${isSidebarCollapsed ? 'hidden' : 'ml-auto'}`}>
               <span className="material-symbols-outlined">close</span>
             </button>
           </div>
