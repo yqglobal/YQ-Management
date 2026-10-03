@@ -546,9 +546,9 @@ function IndustryTemplateCard({
       {step === 1 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {INDUSTRY_GROUPS.map((group) => {
-            const isActive = group.subIndustries.some(
-              (s) => s.id === businessType || s.businessType === businessType,
-            );
+            const isActive =
+              group.id === businessType ||
+              group.subIndustries.some((s) => s.id === businessType);
             return (
               <button
                 key={group.id}
