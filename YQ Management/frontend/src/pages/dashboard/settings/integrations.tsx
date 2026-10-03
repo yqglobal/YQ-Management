@@ -31,6 +31,8 @@ export default function IntegrationsSettingsPage() {
       setActiveTab('google');
       toast.error('Failed to connect to Google. Please try again.');
       router.replace('/dashboard/settings/integrations', undefined, { shallow: true });
+    } else if (router.query.tab) {
+      setActiveTab(router.query.tab as TabId);
     }
   }, [router.query]);
 

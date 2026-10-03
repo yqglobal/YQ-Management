@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../components/AuthContext';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { useEffect } from 'react';
 import SettingsLayout from '../../../components/SettingsLayout';
 import ProvidersSettings from '../../../components/settings/providers';
 import { LocationsSettings } from '../../../components/settings/LocationsSettings';
@@ -10,7 +12,14 @@ import { FlowsSettings } from '../../../components/settings/FlowsSettings';
 
 export default function ResourcesSettingsPage() {
   const { tenant } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'locations' | 'services' | 'flows' | 'resources' | 'providers'>('locations');
+
+  useEffect(() => {
+    if (router.query.tab) {
+      setActiveTab(router.query.tab as any);
+    }
+  }, [router.query.tab]);
   
   const isJourneyMode = tenant?.operatingMode === 'JOURNEY';
 

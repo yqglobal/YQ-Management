@@ -29,7 +29,7 @@ const SETUP_STEPS: SetupStep[] = [
     icon: <MapPin className="w-5 h-5" />,
     title: 'Create your first location',
     description: 'A location is a physical site (branch, clinic, store). All queues and services live under a location.',
-    href: '/dashboard/settings/workspace',
+    href: '/dashboard/settings/operations?tab=locations',
     action: 'Add Location',
   },
   {
@@ -37,7 +37,7 @@ const SETUP_STEPS: SetupStep[] = [
     icon: <Layers className="w-5 h-5" />,
     title: 'Set up your services',
     description: 'Services define what customers come in for (e.g. "General Consultation", "Pharmacy Pickup"). Each service can have its own hours, staff, and queue.',
-    href: '/dashboard/settings/workspace',
+    href: '/dashboard/settings/operations?tab=services',
     action: 'Add Service',
   },
   {
@@ -54,7 +54,7 @@ const SETUP_STEPS: SetupStep[] = [
     icon: <span className="text-base">📅</span>,
     title: 'Enable appointment booking',
     description: 'Turn on "Allow Appointments" for each service to let customers book time slots online. Set your hours and slot duration.',
-    href: '/dashboard/settings/workspace',
+    href: '/dashboard/settings/operations?tab=services',
     action: 'Configure Booking',
     modes: ['APPOINTMENTS', 'JOURNEY'],
   },
@@ -88,7 +88,7 @@ const SETUP_STEPS: SetupStep[] = [
     icon: <Zap className="w-5 h-5" />,
     title: 'Connect WhatsApp (optional)',
     description: 'Send automatic confirmations, reminders, and position updates to customers via WhatsApp. Requires an Evolution API instance.',
-    href: '/dashboard/settings/integrations',
+    href: '/dashboard/settings/integrations?tab=whatsapp',
     action: 'Connect WhatsApp',
   },
 ];
