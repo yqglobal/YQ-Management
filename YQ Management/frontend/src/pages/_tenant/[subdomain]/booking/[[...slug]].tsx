@@ -87,7 +87,12 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>('US');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [regionBlocked, setRegionBlocked] = useState(false);
-  const idempotencyKey = React.useMemo(() => crypto.randomUUID(), []);
+  const idempotencyKey = React.useMemo(() => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  }, []);
 
   const [createdVisits, setCreatedVisits] = useState<any[]>([]);
   
