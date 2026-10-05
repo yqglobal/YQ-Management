@@ -31,7 +31,7 @@ export class ServiceFlowService {
         );
       }
     }
-    return this.prisma.serviceFlow.create({
+    const created = await this.prisma.serviceFlow.create({
       data: {
         tenantId,
         serviceId: dto.serviceId, // undefined if not provided
@@ -39,9 +39,71 @@ export class ServiceFlowService {
         description: dto.description,
         isActive: dto.isActive ?? true,
         allowPartialCompletion: dto.allowPartialCompletion ?? false,
+        paymentTiming: dto.paymentTiming ?? 'CHECKIN',
+        checkinPayMode: dto.checkinPayMode ?? 'ONLINE_OR_COUNTER',
+        autoSendInvoice: dto.autoSendInvoice ?? false,
+        allowUnpaidCheckout: dto.allowUnpaidCheckout ?? false,
       },
+    });
+    await this.ensureBookends(created.id);
+    return this.prisma.serviceFlow.findUnique({
+      where: { id: created.id },
       include: { steps: { orderBy: { stepOrder: 'asc' } } },
     });
+  }
+
+  /**
+   * Every flow has two locked system stages: CHECK_IN (stepOrder 0, booking via QR)
+   * and CHECK_OUT (always last, receptionist completes). They are metadata only —
+   * they are never instantiated as VisitSteps. Safe to call repeatedly.
+   */
+  async ensureBookends(flowId: string) {
+    const steps = await this.prisma.flowStepTemplate.findMany({
+      where: { flowId },
+      orderBy: { stepOrder: 'asc' },
+    });
+    const hasCheckIn = steps.find((s) => s.type === 'CHECK_IN');
+    const checkOut = steps.find((s) => s.type === 'CHECK_OUT');
+    const middleMax = steps
+      .filter((s) => s.type !== 'CHECK_IN' && s.type !== 'CHECK_OUT')
+      .reduce((m, s) => Math.max(m, s.stepOrder), 0);
+
+    if (!hasCheckIn) {
+      await this.prisma.flowStepTemplate.create({
+        data: {
+          flowId,
+          stepOrder: 0,
+          name: 'Check-in',
+          description: 'Customer books via the QR code and receives a ticket.',
+          type: 'CHECK_IN',
+          trigger: 'MANUAL_CUSTOMER',
+          isSystem: true,
+          requiresQrScan: false,
+          requiresStaffAction: false,
+          notifyCustomerOnActivation: false,
+        },
+      });
+    }
+    if (!checkOut) {
+      await this.prisma.flowStepTemplate.create({
+        data: {
+          flowId,
+          stepOrder: middleMax + 1,
+          name: 'Check-out',
+          description: 'Receptionist completes the visit — journey ended.',
+          type: 'CHECK_OUT',
+          trigger: 'MANUAL_STAFF',
+          isSystem: true,
+          requiresQrScan: false,
+          notifyCustomerOnActivation: false,
+        },
+      });
+    } else if (checkOut.stepOrder <= middleMax) {
+      await this.prisma.flowStepTemplate.update({
+        where: { id: checkOut.id },
+        data: { stepOrder: middleMax + 1 },
+      });
+    }
   }
 
   async getAllFlows(tenantId: string) {
@@ -94,6 +156,7 @@ export class ServiceFlowService {
     if (!flow || flow.tenantId !== tenantId)
       throw new NotFoundException('Flow not found');
     const { serviceId, ...rest } = dto; // serviceId is immutable after creation
+    await this.ensureBookends(flowId);
     return this.prisma.serviceFlow.update({
       where: { id: flowId },
       data: rest,
@@ -126,6 +189,10 @@ export class ServiceFlowService {
         description: flow.description,
         isActive: false,
         allowPartialCompletion: flow.allowPartialCompletion,
+        paymentTiming: flow.paymentTiming,
+        checkinPayMode: flow.checkinPayMode,
+        autoSendInvoice: flow.autoSendInvoice,
+        allowUnpaidCheckout: flow.allowUnpaidCheckout,
       },
     });
     // Duplicate steps
@@ -169,6 +236,9 @@ export class ServiceFlowService {
           stepPriceCurrency: step.stepPriceCurrency,
           isPriceVariable: step.isPriceVariable,
           outcomeOptions: step.outcomeOptions ?? undefined,
+          isSystem: step.isSystem,
+          category: step.category ?? undefined,
+          customerView: step.customerView ?? undefined,
         },
       });
       stepIdMap.set(step.id, newStep.id);
@@ -186,11 +256,23 @@ export class ServiceFlowService {
       throw new NotFoundException('Flow not found');
 
     const { transitions, ...stepData } = dto;
+    if (stepData.type === 'CHECK_IN' || stepData.type === 'CHECK_OUT') {
+      throw new BadRequestException(
+        'Check-in and Check-out are system stages and are added automatically.',
+      );
+    }
+    if (stepData.type === 'PAYMENT') {
+      throw new BadRequestException(
+        'Payment is configured at check-in or check-out on the flow, not as a separate stage.',
+      );
+    }
+    await this.ensureBookends(flowId);
 
     const step = await this.prisma.flowStepTemplate.create({
       data: {
         flowId,
         ...stepData,
+        customerView: (stepData.customerView ?? undefined) as any,
         type: (stepData.type as any) ?? 'SERVICE',
         trigger: (stepData.trigger as any) ?? 'MANUAL_STAFF',
       },
@@ -211,6 +293,7 @@ export class ServiceFlowService {
       });
     }
 
+    await this.ensureBookends(flowId);
     return this.prisma.flowStepTemplate.findUnique({
       where: { id: step.id },
       include: { transitions: true },
@@ -232,6 +315,15 @@ export class ServiceFlowService {
       serviceId: _sid,
       ...updateData
     } = dto as any;
+    if (step.isSystem) {
+      // System bookends: only wording / customer-facing view / notification can change.
+      const allowed = ['name', 'description', 'customerView', 'customerInstruction', 'notifyCustomerOnActivation', 'notificationTemplate'];
+      for (const k of Object.keys(updateData)) {
+        if (!allowed.includes(k)) delete updateData[k];
+      }
+    } else if (updateData.type === 'CHECK_IN' || updateData.type === 'CHECK_OUT') {
+      throw new BadRequestException('Cannot convert a stage into a system stage.');
+    }
 
     const updated = await this.prisma.flowStepTemplate.update({
       where: { id: stepId },
@@ -271,6 +363,9 @@ export class ServiceFlowService {
     });
     if (!step || step.flow.tenantId !== tenantId)
       throw new NotFoundException('Step not found');
+    if (step.isSystem) {
+      throw new BadRequestException('Check-in and Check-out cannot be deleted.');
+    }
     await this.prisma.flowStepTemplate.delete({ where: { id: stepId } });
   }
 
@@ -285,14 +380,19 @@ export class ServiceFlowService {
     if (!flow || flow.tenantId !== tenantId)
       throw new NotFoundException('Flow not found');
 
+    const all = await this.prisma.flowStepTemplate.findMany({ where: { flowId } });
+    const systemIds = new Set(all.filter((s) => s.isSystem).map((s) => s.id));
+    const middleIds = orderedStepIds.filter((id) => !systemIds.has(id));
+
     await this.prisma.$transaction(
-      orderedStepIds.map((stepId, index) =>
+      middleIds.map((stepId, index) =>
         this.prisma.flowStepTemplate.update({
           where: { id: stepId },
           data: { stepOrder: index + 1 },
         }),
       ),
     );
+    await this.ensureBookends(flowId);
 
     return this.getFlowWithSteps(tenantId, flowId);
   }
@@ -362,11 +462,34 @@ export class ServiceFlowService {
       },
     });
 
-    // Filter and Create steps
-    let orderIndex = 0;
-    for (const stepData of template.steps) {
-      if (includedStepNames && !includedStepNames.includes(stepData.name)) {
-        continue; // Skip this step if not included
+    // Filter and Create steps (middle stages start at 1; 0 is reserved for Check-in)
+    const chosen = template.steps.filter(
+      (s) => !includedStepNames || includedStepNames.includes(s.name),
+    );
+    const paymentIdx = chosen.findIndex((s) => s.type === 'PAYMENT');
+    // Payment is only ever collected at check-in or check-out — derive it from the
+    // template's old PAYMENT stage position (after real service work = checkout).
+    const paymentTiming =
+      paymentIdx === -1
+        ? 'CHECKIN'
+        : chosen
+              .slice(0, paymentIdx)
+              .some((s) => s.type === 'SERVICE' || s.type === 'COLLECTION')
+          ? 'CHECKOUT'
+          : 'CHECKIN';
+    await this.prisma.serviceFlow.update({
+      where: { id: flow.id },
+      data: { paymentTiming },
+    });
+
+    let orderIndex = 1;
+    for (const stepData of chosen) {
+      if (
+        stepData.type === 'PAYMENT' ||
+        (stepData.type as string) === 'CHECK_IN' ||
+        (stepData.type as string) === 'CHECK_OUT'
+      ) {
+        continue;
       }
 
       const { id, blueprintId, ...data } = stepData as any;
@@ -379,6 +502,7 @@ export class ServiceFlowService {
       });
     }
 
+    await this.ensureBookends(flow.id);
     return this.getFlowWithSteps(tenantId, flow.id);
   }
 

@@ -79,12 +79,22 @@ export class VisitController {
   }
 
   @Post(':id/complete')
-  completeService(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+  completeService(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { allowUnpaid?: boolean } = {},
+  ) {
     return this.visitService.completeService(
       id,
       req.user.tenantId,
       req.user.userId,
+      { allowUnpaid: !!body?.allowUnpaid },
     );
+  }
+
+  @Get(':id/bill')
+  getBill(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.visitService.getVisitBill(id, req.user.tenantId);
   }
 
   @Post(':id/cancel')

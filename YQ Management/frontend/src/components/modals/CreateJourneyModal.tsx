@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Workflow, ArrowRight } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Workflow, ArrowRight, LayoutTemplate } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 import { useRouter } from 'next/router';
@@ -15,9 +15,16 @@ export function CreateJourneyModal({ isOpen, onClose }: CreateJourneyModalProps)
   const router = useRouter();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [templateKey, setTemplateKey] = useState('');
+
+  const { data: templates = [], isLoading: templatesLoading } = useQuery({
+    queryKey: ['journey-templates'],
+    queryFn: () => fetchApi('/service-flows/templates/list'),
+    enabled: isOpen,
+  });
 
   const createMutation = useMutation({
-    mutationFn: async (data: { name: string; description?: string }) => {
+    mutationFn: async (data: { name: string; description?: string; templateKey: string }) => {
       // Create the underlying Service first
       const service = await fetchApi('/service', {
         method: 'POST',
@@ -28,16 +35,29 @@ export function CreateJourneyModal({ isOpen, onClose }: CreateJourneyModalProps)
         }),
       });
 
-      // Create the ServiceFlow linked to the new Service
-      const flow = await fetchApi('/service-flows', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: data.name,
-          description: data.description,
-          serviceId: service.id
-        }),
-      });
-      return flow;
+      if (data.templateKey) {
+        // Apply template
+        const flow = await fetchApi(`/service-flows/templates/${data.templateKey}/apply?serviceId=${service.id}`, { method: 'POST' });
+        
+        // Update the flow name and description to match user's input
+        await fetchApi(`/service-flows/${flow.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ name: data.name, description: data.description })
+        });
+        
+        return flow;
+      } else {
+        // Create an empty flow
+        const flow = await fetchApi('/service-flows', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: data.name,
+            description: data.description,
+            serviceId: service.id
+          }),
+        });
+        return flow;
+      }
     },
     onSuccess: (data) => {
       toast.success('Journey created successfully');
@@ -50,7 +70,21 @@ export function CreateJourneyModal({ isOpen, onClose }: CreateJourneyModalProps)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    createMutation.mutate({ name: name.trim(), description: description.trim() });
+    createMutation.mutate({ name: name.trim(), description: description.trim(), templateKey });
+  };
+
+  const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setTemplateKey(val);
+    
+    // Optional: auto-fill name and description if they are empty and a template is chosen
+    if (val) {
+      const t = templates.find((t: any) => t.key === val);
+      if (t) {
+        if (!name) setName(t.name);
+        if (!description) setDescription(t.description);
+      }
+    }
   };
 
   if (!isOpen) return null;
@@ -100,6 +134,33 @@ export function CreateJourneyModal({ isOpen, onClose }: CreateJourneyModalProps)
                 placeholder="Briefly describe what this journey is for..."
                 className="w-full px-4 py-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 text-on-surface dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all resize-none h-24"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-on-surface dark:text-zinc-300 mb-1 flex items-center justify-between">
+                <span>Start from a Template</span>
+                {templatesLoading && <span className="text-xs text-zinc-500">Loading...</span>}
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-zinc-400">
+                  <LayoutTemplate className="w-5 h-5" />
+                </div>
+                <select
+                  value={templateKey}
+                  onChange={handleTemplateChange}
+                  className="w-full pl-11 pr-4 py-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 text-on-surface dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="">Start from scratch</option>
+                  {templates?.map((t: any) => (
+                    <option key={t.key} value={t.key}>
+                      {t.name} ({t.stepCount} steps)
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-zinc-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4">

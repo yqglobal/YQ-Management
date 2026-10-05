@@ -85,14 +85,15 @@ export class TenantPaymentsController {
   @Post('manual')
   recordManualPayment(
     @Req() req: any,
-    @Body() body: { visitId: string, amount: number, method: string, description?: string }
+    @Body() body: { visitId: string, amount: number, method: string, description?: string, source?: 'CHECKIN' | 'CHECKOUT', proofUrl?: string }
   ) {
     return this.tenantPaymentsService.recordManualPayment(
       req.user.tenantId,
       body.visitId,
       body.amount,
       body.method,
-      body.description
+      body.description,
+      { source: body.source, staffId: req.user.userId, proofUrl: body.proofUrl },
     );
   }
 

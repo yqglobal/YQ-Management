@@ -37,6 +37,13 @@ export class VisitStepService {
       },
     });
 
+    if (flow) {
+      // CHECK_IN / CHECK_OUT are system bookends (metadata) — never instantiated.
+      flow.steps = flow.steps.filter(
+        (s) => s.type !== 'CHECK_IN' && s.type !== 'CHECK_OUT',
+      );
+    }
+
     if (!flow || !flow.isActive || flow.steps.length === 0) {
       this.logger.debug(`No active flow found for service ${serviceId}.`);
       return;
@@ -592,6 +599,9 @@ export class VisitStepService {
         include: { steps: { orderBy: { stepOrder: 'asc' } } },
       });
       if (flow) {
+        flow.steps = flow.steps.filter(
+          (s) => s.type !== 'CHECK_IN' && s.type !== 'CHECK_OUT',
+        );
         const currentIndex = flow.steps.findIndex(
           (s) => s.id === completedStep.templateStepId,
         );
@@ -627,9 +637,11 @@ export class VisitStepService {
         }
       }
 
-      const nextTemplates = await tx.flowStepTemplate.findMany({
-        where: { id: { in: nextTemplateIds } },
-      });
+      const nextTemplates = (
+        await tx.flowStepTemplate.findMany({
+          where: { id: { in: nextTemplateIds } },
+        })
+      ).filter((t) => t.type !== 'CHECK_IN' && t.type !== 'CHECK_OUT');
 
       const stepsToCreate = nextTemplates.map((template) => {
         let status = 'PENDING';

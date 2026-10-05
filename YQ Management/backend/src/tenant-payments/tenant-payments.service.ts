@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { VisitStepService } from '../visit-step/visit-step.service';
+import { InvoiceService } from '../invoice/invoice.service';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class TenantPaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly visitStepService: VisitStepService,
+    private readonly invoiceService: InvoiceService,
   ) {
     const stripeSecret = process.env.STRIPE_SECRET_KEY;
     if (stripeSecret) {
@@ -327,7 +329,19 @@ export class TenantPaymentsService {
     return updated;
   }
 
-  async recordManualPayment(tenantId: string, visitId: string, amount: number, method: string, description?: string) {
+  async recordManualPayment(
+    tenantId: string,
+    visitId: string,
+    amount: number,
+    method: string,
+    description?: string,
+    extra: { source?: 'CHECKIN' | 'CHECKOUT'; staffId?: string; proofUrl?: string } = {},
+  ) {
+    const allowedMethods = ['CASH', 'CARD_TERMINAL', 'EFT', 'OTHER'];
+    const normalizedMethod = allowedMethods.includes((method || '').toUpperCase())
+      ? (method.toUpperCase() as any)
+      : 'OTHER';
+    if (!(amount > 0)) throw new BadRequestException('Amount must be greater than zero');
     const visit = await this.prisma.visit.findUnique({
       where: { id: visitId },
       include: { service: true }
@@ -343,12 +357,29 @@ export class TenantPaymentsService {
         amount,
         platformFeeAmount: 0,
         tenantNetAmount: amount,
-        currency: 'ZAR', // ✅ Fixed: was 'USD', consistent with Stripe payments
+        currency: visit.service.priceCurrency || 'ZAR',
         status: 'SUCCEEDED',
         stripePaymentMethodType: method,
+        method: normalizedMethod,
+        source: extra.source ?? (visit.currentState === 'PENDING_PAYMENT' ? 'CHECKIN' : 'CHECKOUT'),
+        recordedByStaffId: extra.staffId,
+        proofUrl: extra.proofUrl,
         description: description || 'Manual Payment at Counter',
       }
     });
+
+    // Generate Invoice and mark it PAID
+    const invoice = await this.invoiceService.generateVisitInvoice(visit.id);
+    if (invoice && invoice.status !== 'PAID') {
+      await this.prisma.visitInvoice.update({
+        where: { id: invoice.id },
+        data: { status: 'PAID', paidAt: new Date() }
+      });
+    }
+
+    if (visit.balanceDue) {
+      await this.prisma.visit.update({ where: { id: visit.id }, data: { balanceDue: null } });
+    }
 
     if (visit.currentState === 'PENDING_PAYMENT') {
       let newState = 'WAITING';

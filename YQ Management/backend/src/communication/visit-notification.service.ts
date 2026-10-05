@@ -143,6 +143,7 @@ export class VisitNotificationService {
         location: { select: { name: true, googlePlaceId: true } },
         tenant: {
           select: {
+            name: true,
             whatsappConnected: true,
             whatsappInstanceId: true,
             smsConnected: true,
@@ -531,15 +532,31 @@ export class VisitNotificationService {
     const visit = await this.fetchVisitBase(step.visitId);
     if (!this.canSendMessage(visit, 'STEP_ACTIVATED' as any)) return;
 
-    let message = step.templateStep.customerInstruction;
-    if (!message) {
+    // Resolve the message — priority: notificationTemplate > customerInstruction > FORM URL > generic
+    let rawTemplate = step.templateStep.notificationTemplate || step.templateStep.customerInstruction || '';
+
+    if (!rawTemplate) {
       if (step.templateStep.type === 'FORM') {
-        message = `Hi ${visit.customer.name}, please complete the following form to proceed: ${process.env.NEXT_PUBLIC_APP_URL}/form/${visit.accessToken}/${step.id}`;
+        rawTemplate = `Hi {{customer_name}}, please complete the following form to proceed: ${process.env.NEXT_PUBLIC_APP_URL}/form/${visit.accessToken}/${step.id}`;
       } else {
-        message = `Hi ${visit.customer.name}, your visit has advanced to: ${step.name}`;
+        rawTemplate = `Hi {{customer_name}}, your visit has advanced to *{{step_name}}* at {{business_name}}.`;
       }
     }
 
-    await this.sendMessage(visit, message, 'step_activated');
+    // Substitute template variables
+    const locationHint = (step.templateStep as any).customerView?.locationHint
+      || step.templateStep.locationDescription
+      || visit.location?.name
+      || '';
+
+    const message = rawTemplate
+      .replace(/\{\{customer_name\}\}/g, visit.customer.name || 'Customer')
+      .replace(/\{\{step_name\}\}/g, step.name)
+      .replace(/\{\{business_name\}\}/g, visit.tenant?.name || 'Us')
+      .replace(/\{\{ticket_number\}\}/g, visit.displayId || visit.id.slice(-6).toUpperCase())
+      .replace(/\{\{location\}\}/g, locationHint)
+      .replace(/\{\{eta_minutes\}\}/g, ''); // ETA is dynamic — strip if not resolved
+
+    await this.sendMessage(visit, message.trim(), 'step_activated');
   }
 }

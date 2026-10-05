@@ -51,4 +51,14 @@ export class UpdateTenantDto {
   @IsOptional()
   @IsBoolean()
   selfServeOtpEnabled?: boolean;
+
+  @IsOptional()
+  taxConfig?: any;
+
+  @IsOptional()
+  @IsString()
+  invoicePrefix?: string;
+
+  @IsOptional()
+  invoiceCounter?: number;
 }

@@ -17,6 +17,8 @@ export enum StepTypeDto {
   NOTIFICATION = 'NOTIFICATION',
   PAYMENT = 'PAYMENT',
   FORM = 'FORM',
+  CHECK_IN = 'CHECK_IN',
+  CHECK_OUT = 'CHECK_OUT',
 }
 
 export enum StepTriggerDto {
@@ -72,6 +74,14 @@ export class CreateStepDto {
 
   @IsOptional()
   prerequisites?: any;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  /** What appears on the customer's phone for this stage. null/omitted = nothing shown. */
+  @IsOptional()
+  customerView?: { title?: string; message?: string; showEta?: boolean; icon?: string } | null;
 
   @IsOptional()
   @IsInt()

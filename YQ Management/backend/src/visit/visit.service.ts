@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  HttpException,
   Logger,
   Inject,
   forwardRef,
@@ -719,12 +720,21 @@ export class VisitService {
           currentState = service.requireManualCheckIn ? 'CREATED' : 'SCHEDULED';
         }
         
-        if (
-          (service.paymentMode === 'PREPAY' || 
-           service.paymentMode === 'OPTIONAL_PREPAY' || 
-           service.paymentMode === 'PAY_AT_SERVICE') && 
-          !(data as any).paymentId
-        ) {
+        // Flow-level payment timing (CHECKIN | CHECKOUT | NONE) overrides the
+        // legacy service-level payment mode when an active flow exists.
+        const bookingFlow = await tx.serviceFlow.findUnique({
+          where: { serviceId: service.id },
+          select: { isActive: true, paymentTiming: true },
+        });
+        const holdForCheckinPayment = bookingFlow?.isActive
+          ? bookingFlow.paymentTiming === 'CHECKIN' &&
+            service.paymentMode !== 'NONE' &&
+            (service.basePrice ?? 0) > 0
+          : service.paymentMode === 'PREPAY' ||
+            service.paymentMode === 'OPTIONAL_PREPAY' ||
+            service.paymentMode === 'PAY_AT_SERVICE';
+
+        if (holdForCheckinPayment && !(data as any).paymentId) {
           currentState = 'PENDING_PAYMENT';
         }
 
@@ -1053,7 +1063,59 @@ export class VisitService {
     });
   }
 
-  async completeService(id: string, tenantId?: string, operatorId?: string) {
+  /**
+   * Builds the bill for a visit: line items (snapshot taken at booking, falling
+   * back to the service base price), amount paid so far and balance due.
+   */
+  async getVisitBill(id: string, tenantId?: string) {
+    const visit = await this.prisma.visit.findUnique({
+      where: { id },
+      include: {
+        service: true,
+        flow: { select: { paymentTiming: true, autoSendInvoice: true, allowUnpaidCheckout: true } },
+      },
+    });
+    if (!visit || (tenantId && visit.tenantId !== tenantId)) {
+      throw new NotFoundException('Visit not found');
+    }
+
+    const snapshot = Array.isArray(visit.lineItems) ? (visit.lineItems as any[]) : [];
+    const items = snapshot.length
+      ? snapshot.map((i) => ({
+          name: String(i.name),
+          quantity: Number(i.quantity ?? 1),
+          unitPrice: Number(i.unitPrice ?? 0),
+        }))
+      : (visit.service.basePrice ?? 0) > 0
+        ? [{ name: visit.service.name, quantity: 1, unitPrice: visit.service.basePrice as number }]
+        : [];
+
+    const total = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+    const payments = await this.prisma.bookingPayment.findMany({
+      where: { visitId: id, status: 'SUCCEEDED' },
+      select: { amount: true, refundedAmount: true },
+    });
+    const paid = payments.reduce((s, p) => s + p.amount - (p.refundedAmount || 0), 0);
+
+    return {
+      visitId: id,
+      currency: visit.service.priceCurrency || 'ZAR',
+      items,
+      total,
+      paid,
+      balanceDue: Math.max(0, total - paid),
+      paymentTiming: visit.flow?.paymentTiming ?? null,
+      autoSendInvoice: visit.flow?.autoSendInvoice ?? false,
+      allowUnpaidCheckout: visit.flow?.allowUnpaidCheckout ?? false,
+    };
+  }
+
+  async completeService(
+    id: string,
+    tenantId?: string,
+    operatorId?: string,
+    opts: { allowUnpaid?: boolean } = {},
+  ) {
     // 1. Pre-flight check: Is this a SEF (Service Execution Flow) visit?
     const visitPreCheck = await this.prisma.visit.findUnique({
       where: { id },
@@ -1061,7 +1123,8 @@ export class VisitService {
         visitSteps: { 
           where: { status: { in: ['ACTIVE', 'PENDING', 'DEFERRED'] } },
           orderBy: { stepOrder: 'asc' } 
-        } 
+        },
+        flow: { select: { paymentTiming: true, allowUnpaidCheckout: true } },
       }
     });
 
@@ -1076,6 +1139,28 @@ export class VisitService {
       visitPreCheck.currentState === 'CANCELLED'
     ) {
       throw new BadRequestException(`Visit is already ${visitPreCheck.currentState.toLowerCase()}`);
+    }
+
+    // 1b. Checkout payment gate: only on the final step of a CHECKOUT-payment flow.
+    if (visitPreCheck.flow?.paymentTiming === 'CHECKOUT') {
+      const isFinal = visitPreCheck.visitSteps.length <= 1;
+      if (isFinal) {
+        const bill = await this.getVisitBill(id, tenantId);
+        if (bill.balanceDue > 0) {
+          const unpaidAllowed =
+            opts.allowUnpaid && visitPreCheck.flow.allowUnpaidCheckout;
+          if (!unpaidAllowed) {
+            throw new HttpException(
+              { statusCode: 402, code: 'PAYMENT_REQUIRED', message: 'Payment pending', bill },
+              402,
+            );
+          }
+          await this.prisma.visit.update({
+            where: { id },
+            data: { balanceDue: bill.balanceDue },
+          });
+        }
+      }
     }
 
     // 2. If it is a SEF visit, delegate completely to visitStepService

@@ -36,14 +36,51 @@ async function main() {
         where: { blueprintId: f.id },
       });
 
+      const hasPaymentAtCheckout = tpl.steps.some(s => s.type === 'PAYMENT' && s.stepOrder > tpl.steps.length / 2);
+      const hasPaymentAtCheckin = tpl.steps.some(s => s.type === 'PAYMENT' && s.stepOrder <= tpl.steps.length / 2);
+      const paymentTiming = hasPaymentAtCheckout ? 'CHECKOUT' : hasPaymentAtCheckin ? 'CHECKIN' : 'NONE';
+
+      await tx.blueprintFlow.update({
+        where: { id: f.id },
+        data: { paymentTiming, checkinPayMode: paymentTiming === 'CHECKIN' ? 'ONLINE_OR_COUNTER' : null }
+      });
+
+      // Filter out PAYMENT
+      let newSteps = tpl.steps.filter(s => s.type !== 'PAYMENT');
+      
+      newSteps.unshift({
+        stepOrder: 0,
+        name: 'Check-in (Booking)',
+        description: 'Customer books online or at kiosk and gets a ticket.',
+        type: 'CHECK_IN',
+        trigger: 'AUTOMATIC',
+        isSystem: true,
+        category: 'bookend',
+      } as any);
+
+      newSteps.push({
+        stepOrder: 99,
+        name: 'Check-out (Completion)',
+        description: 'Staff completes the visit at the counter.',
+        type: 'CHECK_OUT',
+        trigger: 'MANUAL_STAFF',
+        isSystem: true,
+        category: 'bookend',
+      } as any);
+
+      newSteps = newSteps.map((s, idx) => ({ ...s, stepOrder: idx }));
+
       await tx.blueprintStep.createMany({
-        data: tpl.steps.map((step) => ({
+        data: newSteps.map((step: any) => ({
           blueprintId: f.id,
           stepOrder: step.stepOrder,
           name: step.name,
           description: step.description,
           type: (step.type as StepType) || 'SERVICE',
           trigger: (step.trigger as StepTrigger) || 'MANUAL_STAFF',
+          isSystem: step.isSystem || false,
+          category: step.category || null,
+          customerView: step.customerView || null,
           isOptional: step.isOptional || false,
           requiresQrScan: step.requiresQrScan ?? true,
           requiresStaffAction: step.requiresStaffAction ?? true,

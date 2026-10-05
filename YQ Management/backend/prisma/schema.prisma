@@ -111,6 +111,29 @@ enum StepType {
   NOTIFICATION // System sends message, no physical action
   PAYMENT // Triggers a payment flow at this step
   FORM // Customer fills a form before proceeding
+  CHECK_IN // System bookend: booking via QR, ticket issued
+  CHECK_OUT // System bookend: receptionist completes the journey
+}
+
+enum PaymentTiming {
+  CHECKIN
+  CHECKOUT
+  NONE
+}
+
+enum PaymentMethod {
+  STRIPE_ONLINE
+  STRIPE_QR
+  STRIPE_LINK
+  CASH
+  CARD_TERMINAL
+  EFT
+  OTHER
+}
+
+enum PaymentSource {
+  CHECKIN
+  CHECKOUT
 }
 
 enum StepTrigger {
@@ -168,20 +191,20 @@ enum OperatingMode {
 }
 
 model Tenant {
-  id                 String  @id @default(uuid())
+  id                 String        @id @default(uuid())
   name               String
-  subdomain          String  @unique // e.g., 'hospitalname'
+  subdomain          String        @unique // e.g., 'hospitalname'
   branding           Json? // Stores colors, logo URLs
   whatsappInstanceId String? // Optional Evolution API instance name
-  whatsappConnected  Boolean @default(false)
+  whatsappConnected  Boolean       @default(false)
   whatsappPhone      String?
-  smsConnected       Boolean @default(false)
+  smsConnected       Boolean       @default(false)
   smsProvider        String? // e.g., "TWILIO", "AFRICASTALKING"
-  chatbotEnabled     Boolean @default(false)
+  chatbotEnabled     Boolean       @default(false)
   chatbotConfig      Json? // Stores custom button menus and automated replies
   aiConfig           Json? // Stores LLM provider keys (Gemini, Groq) and prompts
   customerExperience Json? // Global settings for forms, feedback, and portal experience
-  setupComplete      Boolean @default(false) // Tracks if onboarding is finished
+  setupComplete      Boolean       @default(false) // Tracks if onboarding is finished
   operatingMode      OperatingMode @default(QUEUE_ONLY) // QUEUE_ONLY, APPOINTMENTS, JOURNEY
 
   // Customer Support Integration
@@ -239,6 +262,12 @@ model Tenant {
   paymentAccount  TenantPaymentAccount?
   bookingPayments BookingPayment[]
   blueprintFlows  BlueprintFlow[]
+
+  // Tax & Invoicing
+  taxConfig      Json? // { country:"IN", taxRegime:"GST", gstNumber:"", vatNumber:"", businessLegalName:"", defaultTaxRatePercent:18, taxInclusive:false }
+  invoicePrefix  String         @default("INV")
+  invoiceCounter Int            @default(0)
+  visitInvoices  VisitInvoice[]
 }
 
 // OTP sessions for self-serve check-in (no receptionist mode)
@@ -496,6 +525,47 @@ model PaymentProvider {
   updatedAt      DateTime            @updatedAt
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// VISIT INVOICE (Taxation-aware per-visit invoice)
+// ───────────────────────────────────────────────────────────────────────────
+model VisitInvoice {
+  id            String  @id @default(uuid())
+  invoiceNumber String // e.g. "INV-2026-0001"
+  tenantId      String
+  visitId       String? @unique
+  customerId    String?
+  currency      String  @default("ZAR")
+
+  // Amounts
+  subtotal Float @default(0) // pre-tax total
+  taxLines Json  @default("[]") // [{label:"GST 18%", rate:18, amount:X, taxType:"CGST"}]
+  totalTax Float @default(0)
+  total    Float @default(0) // subtotal + totalTax
+
+  // Status: DRAFT | SENT | PAID | VOID
+  status String @default("DRAFT")
+
+  // Line items snapshot — prevents price drift if service changes after booking
+  lineItemsSnap Json @default("[]") // [{name, qty, unitPrice, taxable}]
+
+  notes    String?
+  dueDate  DateTime?
+  issuedAt DateTime?
+  paidAt   DateTime?
+  autoSent Boolean   @default(false) // whether it was auto-sent via WhatsApp/email
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  visit    Visit?    @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  customer Customer? @relation("CustomerInvoices", fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([customerId])
+}
+
+// Legacy Invoice model kept for billing subscriptions (platform-level invoices, not per-visit)
 model Invoice {
   id        String    @id @default(uuid())
   tenantId  String
@@ -642,8 +712,9 @@ model Customer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  visits       Visit[]
-  appointments Appointment[]
+  visits        Visit[]
+  appointments  Appointment[]
+  visitInvoices VisitInvoice[] @relation("CustomerInvoices")
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -884,6 +955,8 @@ model Visit {
   notes              String?
   tags               String[]    @default([])
   metadata           Json?
+  lineItems          Json? // snapshot of booked selections + prices for billing
+  balanceDue         Float?
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
@@ -913,6 +986,7 @@ model Visit {
 
   visitSteps      VisitStep[]
   bookingPayments BookingPayment[]
+  visitInvoice    VisitInvoice?
 
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -1104,6 +1178,12 @@ model ServiceFlow {
   isActive               Boolean @default(true)
   allowPartialCompletion Boolean @default(false)
 
+  // ── Payment configuration (only at check-in or check-out) ──────────────
+  paymentTiming       PaymentTiming @default(CHECKIN)
+  checkinPayMode      String        @default("ONLINE_OR_COUNTER") // ONLINE_ONLY | ONLINE_OR_COUNTER
+  autoSendInvoice     Boolean       @default(false)
+  allowUnpaidCheckout Boolean       @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1134,6 +1214,11 @@ model FlowStepTemplate {
   requiresQrScan      Boolean @default(true)
   requiresStaffAction Boolean @default(true)
   prerequisites       Json? // [{stepOrder: 2, status: "DONE"}]
+
+  // ── Standard-stage metadata ──────────────────────────────────────────────
+  isSystem     Boolean @default(false) // locked bookend (CHECK_IN / CHECK_OUT)
+  category     String? // e.g. vitals, sample, report, collection, custom
+  customerView Json? // {title,message,showEta,icon} — null = nothing shown on phone
 
   // ── Timing & Deferral ────────────────────────────────────────────────────
   deferredByDays    Int?
@@ -1226,7 +1311,7 @@ model VisitStep {
   skippedAt     DateTime?
 
   // ── Form Data ────────────────────────────────────────────────────────────
-  formData          Json?
+  formData Json?
 
   // ── Entitlement Tracking ─────────────────────────────────────────────────
   quantityAllocated Int? // e.g. 4 plates (resolved from formula at instantiation)
@@ -1315,7 +1400,7 @@ model TenantPaymentAccount {
   platformFeeFixed   Float? // Flat fee per transaction (additional)
   feeMode            String @default("PERCENT") // PERCENT | FIXED | PERCENT_PLUS_FIXED
 
-  currency           String @default("ZAR") // Tenant's preferred operating currency
+  currency String @default("ZAR") // Tenant's preferred operating currency
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1348,6 +1433,12 @@ model BookingPayment {
   stripePaymentIntentId   String? @unique
   stripeChargeId          String?
   stripePaymentMethodType String?
+
+  // Counter / reporting data
+  method            PaymentMethod?
+  source            PaymentSource?
+  recordedByStaffId String?
+  proofUrl          String?
 
   // Metadata
   description String?
@@ -1383,6 +1474,9 @@ model BlueprintFlow {
   description   String?
   businessTypes String[] @default([]) // Array of strings like ['hospital', 'clinic']
   tenantId      String? // If null, it's a global platform template. If set, it's a private tenant template.
+  paymentTiming  PaymentTiming @default(NONE)
+  checkinPayMode String?
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -1421,6 +1515,11 @@ model BlueprintStep {
   customerInstruction String?
   staffInstruction    String?
   locationDescription String?
+  
+  // Standard-stage metadata
+  isSystem     Boolean @default(false)
+  category     String?
+  customerView Json?
 
   // Notifications & Outcomes
   notifyCustomerOnActivation Boolean  @default(true)

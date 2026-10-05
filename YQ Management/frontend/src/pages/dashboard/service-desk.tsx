@@ -16,6 +16,7 @@ import { useLocation } from '../../components/LocationContext';
 import { useIndustry } from '../../hooks/useIndustry';
 import { DYNAMIC_CHIP_SENTINEL } from '../../lib/industryConfig';
 import { toast } from 'sonner';
+import { CheckoutBillModal, VisitBill } from '../../components/modals/CheckoutBillModal';
 
 // ── Inline Notes Component ───────────────────────────────────────────────────
 function InlineNotes({ visitId, initialNotes, placeholder }: { visitId: string; initialNotes: string | null; placeholder?: string }) {
@@ -138,6 +139,8 @@ export default function ServiceDeskToday() {
   const [mobileTab, setMobileTab] = useState<'pool' | 'pipeline'>('pool');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentLink, setPaymentLink] = useState<string | null>(null);
+  const [checkoutBill, setCheckoutBill] = useState<VisitBill | null>(null);
+  const [checkoutVisit, setCheckoutVisit] = useState<{ id: string; isToken?: boolean; name?: string; phone?: string } | null>(null);
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [queueFilter, setQueueFilter] = useState<'all' | 'walkin' | 'appointment'>('all');
@@ -419,21 +422,40 @@ export default function ServiceDeskToday() {
     }
   };
 
+  const finalizeComplete = async (id: string, isToken?: boolean, allowUnpaid = false) => {
+    if (isToken) {
+      await fetchApi(`/queue/tokens/${id}/complete`, { method: 'POST' });
+    } else {
+      await fetchApi(`/visits/${id}/complete`, {
+        method: 'POST',
+        body: JSON.stringify({ allowUnpaid }),
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ['visits'] });
+    queryClient.invalidateQueries({ queryKey: ['queues'] });
+    queryClient.invalidateQueries({ queryKey: ['service-desk-visits'] });
+    if (selectedVisit?.id === id) setSelectedVisit(null);
+    setPaymentAmount('');
+    setPaymentLink(null);
+  };
+
   const handleComplete = async (id: string, e: React.MouseEvent, isToken?: boolean) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to mark this as completed?')) return;
+    const v: AnyFixMe = selectedVisit?.id === id ? selectedVisit : null;
     try {
-      if (isToken) {
-        await fetchApi(`/queue/tokens/${id}/complete`, { method: 'POST' });
-      } else {
-        await fetchApi(`/visits/${id}/complete`, { method: 'POST' });
+      // Backend returns 402 + bill only on the final step of a check-out-payment flow.
+      if (!window.confirm('Are you sure you want to mark this as completed?')) return;
+      await finalizeComplete(id, isToken);
+    } catch (err: any) {
+      if (err?.status === 402) {
+        // Backend enforced the payment gate — fetch the bill and show the modal.
+        try {
+          const bill = (await fetchApi(`/visits/${id}/bill`)) as VisitBill;
+          setCheckoutBill(bill);
+          setCheckoutVisit({ id, isToken, name: v?.customer?.name, phone: v?.customer?.phone });
+          return;
+        } catch { /* fall through */ }
       }
-      queryClient.invalidateQueries({ queryKey: ['visits'] });
-      queryClient.invalidateQueries({ queryKey: ['queues'] });
-      if (selectedVisit?.id === id) setSelectedVisit(null);
-      setPaymentAmount('');
-      setPaymentLink(null);
-    } catch (err) {
       console.error('Failed to complete visit/token', err);
       alert('Failed to complete. Please try again.');
     }
@@ -1373,6 +1395,28 @@ export default function ServiceDeskToday() {
               currentState: data.status,
               ticketNumber: data.tokenId ? `#TKT-${data.tokenId.substring(0,4)}` : ''
             });
+          }
+        }}
+      />
+      <CheckoutBillModal
+        isOpen={!!checkoutBill && !!checkoutVisit}
+        bill={checkoutBill}
+        customerName={checkoutVisit?.name}
+        customerPhone={checkoutVisit?.phone}
+        tenantId={tenant?.id}
+        tenantSubdomain={tenant?.subdomain}
+        onBillChange={setCheckoutBill}
+        onClose={() => { setCheckoutBill(null); setCheckoutVisit(null); }}
+        onSettled={async ({ allowUnpaid }) => {
+          if (!checkoutVisit) return;
+          try {
+            await finalizeComplete(checkoutVisit.id, checkoutVisit.isToken, allowUnpaid);
+            toast.success('Service completed');
+          } catch (err: any) {
+            toast.error(err?.message || 'Failed to complete');
+          } finally {
+            setCheckoutBill(null);
+            setCheckoutVisit(null);
           }
         }}
       />

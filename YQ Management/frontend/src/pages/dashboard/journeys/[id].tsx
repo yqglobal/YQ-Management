@@ -25,6 +25,7 @@ import {
   BellRing,
   Sparkles,
   Star,
+  BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -117,7 +118,29 @@ const defaultForm = {
   notificationTemplate: "",
   notifyStaffOnActivation: false,
   formConfig: "",
+  // ── Customer Phone View ────────────────────────────────────────────────────
+  cvTitle: "",
+  cvMessage: "",
+  cvShowEta: true,
+  cvShowQueuePosition: true,
+  cvShowLocationHint: false,
+  cvLocationHint: "",
+  cvShowStaffName: false,
+  cvCtaLabel: "",
+  cvCtaUrl: "",
+  cvIcon: "",
 };
+
+// ─── WhatsApp message presets ─────────────────────────────────────────────────
+const WA_PRESETS: { label: string; value: string }[] = [
+  { label: "Stage activated", value: "Hi {{customer_name}}, you have been moved to *{{step_name}}* at {{business_name}}. Please proceed." },
+  { label: "Reminder", value: "Hi {{customer_name}}, this is a reminder that your *{{step_name}}* at {{business_name}} is coming up soon. Ticket: #{{ticket_number}}." },
+  { label: "Stage complete", value: "Hi {{customer_name}}, you have completed *{{step_name}}*. Please proceed to the next step." },
+  { label: "Awaiting payment", value: "Hi {{customer_name}}, please proceed to the payment counter to complete your *{{step_name}}* at {{business_name}}." },
+  { label: "Custom (blank)", value: "" },
+];
+
+const WA_VARS = ["{{customer_name}}", "{{step_name}}", "{{business_name}}", "{{ticket_number}}", "{{eta_minutes}}", "{{location}}"];
 
 // ─── Stage type labels (plain English) ───────────────────────────────────────
 
@@ -202,6 +225,9 @@ export default function JourneyBuilder() {
   const [outcomeInput, setOutcomeInput] = useState("");
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [detailsForm, setDetailsForm] = useState({ name: "", description: "", serviceId: "" });
+  const [showPaySettings, setShowPaySettings] = useState(true);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
@@ -256,7 +282,24 @@ export default function JourneyBuilder() {
 
   // ── Mutations ────────────────────────────────────────────────────────────
 
-  // Blueprint application is disabled in the individual flow editor for now.
+  const applyBlueprintMutation = useMutation({
+    mutationFn: (templateKey: string) =>
+      fetchApi(`/service-flows/templates/${templateKey}/apply?serviceId=${flow?.serviceId}`, { method: "POST" }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: ["service-flow", flowId],
+      });
+      setShowTemplateModal(false);
+      toast.success("Template applied successfully!");
+      if (data.id !== flowId) {
+        // ID changed, navigate to new flow
+        router.push(`/dashboard/journeys/${data.id}`);
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to apply template");
+    }
+  });
 
   const deleteFlowMutation = useMutation({
     mutationFn: (flowId: string) =>
@@ -318,6 +361,21 @@ export default function JourneyBuilder() {
       formConfig: form.type === 'FORM' && form.formConfig
         ? JSON.parse(form.formConfig)
         : undefined,
+      // Build customerView JSON only when at least one field is set
+      customerView: (() => {
+        const cv: any = {};
+        if (form.cvTitle) cv.title = form.cvTitle;
+        if (form.cvMessage) cv.message = form.cvMessage;
+        cv.showEta = form.cvShowEta;
+        cv.showQueuePosition = form.cvShowQueuePosition;
+        cv.showLocationHint = form.cvShowLocationHint;
+        if (form.cvLocationHint) cv.locationHint = form.cvLocationHint;
+        cv.showStaffName = form.cvShowStaffName;
+        if (form.cvCtaLabel) cv.ctaLabel = form.cvCtaLabel;
+        if (form.cvCtaUrl) cv.ctaUrl = form.cvCtaUrl;
+        if (form.cvIcon) cv.icon = form.cvIcon;
+        return Object.keys(cv).length > 0 ? cv : undefined;
+      })(),
     };
     if (stepOrder !== undefined) dto.stepOrder = stepOrder;
     // Remove undefined keys to keep payload clean
@@ -453,6 +511,17 @@ export default function JourneyBuilder() {
       notificationTemplate: step.notificationTemplate || "",
       notifyStaffOnActivation: step.notifyStaffOnActivation || false,
       formConfig: step.formConfig ? JSON.stringify(step.formConfig, null, 2) : "",
+      // Customer Phone View
+      cvTitle: step.customerView?.title || "",
+      cvMessage: step.customerView?.message || "",
+      cvShowEta: step.customerView?.showEta ?? true,
+      cvShowQueuePosition: step.customerView?.showQueuePosition ?? true,
+      cvShowLocationHint: step.customerView?.showLocationHint ?? false,
+      cvLocationHint: step.customerView?.locationHint || step.locationDescription || "",
+      cvShowStaffName: step.customerView?.showStaffName ?? false,
+      cvCtaLabel: step.customerView?.ctaLabel || "",
+      cvCtaUrl: step.customerView?.ctaUrl || "",
+      cvIcon: step.customerView?.icon || "",
     });
   };
 
@@ -624,6 +693,12 @@ export default function JourneyBuilder() {
                     {localSteps.length !== 1 ? "s" : ""}
                   </span>
                   <button
+                    onClick={() => setShowTemplateModal(true)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-on-surface dark:text-white font-semibold text-xs transition-colors shadow-sm"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" /> Templates
+                  </button>
+                  <button
                     onClick={openAdd}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors shadow-sm"
                   >
@@ -641,6 +716,7 @@ export default function JourneyBuilder() {
                     </p>
                     <p className="text-xs text-indigo-800 dark:text-indigo-200 leading-relaxed">
                       {localSteps
+                        .filter((s) => !s.isSystem)
                         .sort((a, b) => a.stepOrder - b.stepOrder)
                         .map((step, i) => {
                           const typeIcon =
@@ -687,15 +763,96 @@ export default function JourneyBuilder() {
                   </div>
                 </div>
               )}
+
+              {/* Standard stages & payment */}
+              <div className="px-5 pb-3">
+                <button
+                  onClick={() => setShowPaySettings((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2"
+                >
+                  💳 Payment &amp; standard stages
+                  {showPaySettings ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+                {showPaySettings && (
+                  <div id="flow-payment-settings" className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/20 p-3 space-y-3">
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300">
+                      <span className="px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+                        🎟 Check-in {flow.paymentTiming === "CHECKIN" && "· 💳 payment"} <span className="opacity-60">(locked)</span>
+                      </span>
+                      <span>→ {localSteps.filter((s) => !s.isSystem).length} custom stage(s) →</span>
+                      <span className="px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                        ✅ Check-out {flow.paymentTiming === "CHECKOUT" && "· 💳 payment"} <span className="opacity-60">(locked)</span>
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">Customer pays:</span>
+                      {[
+                        { v: "CHECKIN", l: "At check-in (booking)" },
+                        { v: "CHECKOUT", l: "At check-out (counter)" },
+                        { v: "NONE", l: "No payment" },
+                      ].map((o) => (
+                        <button
+                          key={o.v}
+                          onClick={() => updateFlowMutation.mutate({ paymentTiming: o.v })}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                            (flow.paymentTiming || "CHECKIN") === o.v
+                              ? "bg-amber-500 text-white border-amber-500"
+                              : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50"
+                          }`}
+                        >
+                          {o.l}
+                        </button>
+                      ))}
+                    </div>
+                    {(flow.paymentTiming || "CHECKIN") === "CHECKIN" && (
+                      <label className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                        <input
+                          type="checkbox"
+                          checked={flow.checkinPayMode !== "ONLINE_ONLY"}
+                          onChange={(e) =>
+                            updateFlowMutation.mutate({
+                              checkinPayMode: e.target.checked ? "ONLINE_OR_COUNTER" : "ONLINE_ONLY",
+                            })
+                          }
+                        />
+                        Also allow “pay at counter” at check-in (ticket stays on hold until staff collect payment)
+                      </label>
+                    )}
+                    {flow.paymentTiming === "CHECKOUT" && (
+                      <label className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                        <input
+                          type="checkbox"
+                          checked={!!flow.allowUnpaidCheckout}
+                          onChange={(e) => updateFlowMutation.mutate({ allowUnpaidCheckout: e.target.checked })}
+                        />
+                        Let receptionist complete without payment (balance stays due)
+                      </label>
+                    )}
+                    {flow.paymentTiming !== "NONE" && (
+                      <label className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                        <input
+                          type="checkbox"
+                          checked={!!flow.autoSendInvoice}
+                          onChange={(e) => updateFlowMutation.mutate({ autoSendInvoice: e.target.checked })}
+                        />
+                        Automatically send invoice after payment
+                      </label>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Canvas area */}
             <div
-              className={`absolute inset-0 ${showSummary && flowSummary ? "pt-[120px]" : "pt-[52px]"}`}
+              className={`absolute inset-0 ${showSummary && flowSummary ? "pt-[120px]" : "pt-[52px]"} ${showPaySettings ? "!pt-[260px]" : ""}`}
               style={{ transition: "padding-top 0.2s" }}
             >
               <FlowBuilder
-                flow={flow}
+                flow={{
+                  ...flow,
+                  steps: (flow.steps || []).filter((s: any) => !s.isSystem),
+                }}
                 onEditStep={openEdit}
                 onSaveTransitions={handleSaveTransitions}
                 onEditEdge={openEditEdge}
@@ -883,7 +1040,9 @@ export default function JourneyBuilder() {
                           }
                           className="w-full h-11 px-3 bg-surface-container-lowest dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                         >
-                          {STAGE_TYPES.map((t) => (
+                          {STAGE_TYPES.filter(
+                            (t) => t.value !== "PAYMENT" || stepForm.type === "PAYMENT",
+                          ).map((t) => (
                             <option key={t.value} value={t.value}>
                               {t.label}
                             </option>
@@ -1078,16 +1237,46 @@ export default function JourneyBuilder() {
                             Notify customer on WhatsApp
                           </div>
                           <div className="text-xs text-zinc-500">
-                            Sends a WhatsApp message when customer reaches this
-                            stage
+                            Sends a WhatsApp message when customer reaches this stage
                           </div>
                         </div>
                       </label>
                       {stepForm.notifyCustomerOnActivation && (
-                        <div>
+                        <div className="space-y-2">
+                          {/* Preset picker */}
                           <FieldLabel
-                            label="WhatsApp Message Template"
-                            info="The message sent to the customer. Leave blank to use the default system message."
+                            label="Message Type Preset"
+                            info="Choose a template to pre-fill the message, then customise it below."
+                          />
+                          <select
+                            onChange={(e) => {
+                              if (e.target.value !== "__NONE__")
+                                setStepForm({ ...stepForm, notificationTemplate: e.target.value });
+                            }}
+                            defaultValue="__NONE__"
+                            className="w-full h-10 px-3 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-green-500 outline-none"
+                          >
+                            <option value="__NONE__">— Pick a preset to populate —</option>
+                            {WA_PRESETS.map((p) => (
+                              <option key={p.label} value={p.value}>{p.label}</option>
+                            ))}
+                          </select>
+                          {/* Variable chips */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {WA_VARS.map((v) => (
+                              <button
+                                key={v}
+                                type="button"
+                                onClick={() => setStepForm({ ...stepForm, notificationTemplate: (stepForm.notificationTemplate || "") + v })}
+                                className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[11px] font-mono hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors border border-green-200 dark:border-green-800"
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                          <FieldLabel
+                            label="WhatsApp Message"
+                            info="The message sent to the customer. Click a variable above to insert it."
                           />
                           <textarea
                             value={stepForm.notificationTemplate}
@@ -1097,12 +1286,26 @@ export default function JourneyBuilder() {
                                 notificationTemplate: e.target.value,
                               })
                             }
-                            className="w-full px-4 py-3 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white min-h-[72px] focus:ring-2 focus:ring-green-500 outline-none resize-none"
-                            placeholder="e.g. Hi {name}, you are now at the Payment stage. Please pay R{amount} at the counter."
+                            className="w-full px-4 py-3 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white min-h-[80px] focus:ring-2 focus:ring-green-500 outline-none resize-none font-mono"
+                            placeholder="Hi {{customer_name}}, you have been moved to {{step_name}} at {{business_name}}."
                           />
-                          <p className="text-[11px] text-zinc-500 mt-1">
-                            Use {"{name}"} for customer name
-                          </p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-[11px] text-zinc-500">
+                              {stepForm.notificationTemplate?.length ?? 0} chars
+                            </p>
+                            {/* Live preview */}
+                            {stepForm.notificationTemplate && (
+                              <div className="text-[11px] text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-2 py-1 max-w-[200px] truncate" title="Preview">
+                                Preview: {stepForm.notificationTemplate
+                                  .replace(/{{customer_name}}/g, "Jane")
+                                  .replace(/{{step_name}}/g, stepForm.name || "Stage")
+                                  .replace(/{{business_name}}/g, "Your Business")
+                                  .replace(/{{ticket_number}}/g, "A042")
+                                  .replace(/{{eta_minutes}}/g, "5")
+                                  .replace(/{{location}}/g, stepForm.cvLocationHint || "Reception")}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                       <label className="flex items-center gap-3 cursor-pointer p-3 bg-white dark:bg-zinc-800 rounded-xl border border-border dark:border-zinc-700">
@@ -1122,11 +1325,128 @@ export default function JourneyBuilder() {
                             Notify staff when customer arrives
                           </div>
                           <div className="text-xs text-zinc-500">
-                            Staff get an alert when a customer reaches this
-                            stage
+                            Staff get an alert when a customer reaches this stage
                           </div>
                         </div>
                       </label>
+                    </section>
+
+                    {/* 📱 Customer Phone View */}
+                    <section className="space-y-3 p-4 rounded-xl border border-violet-200 dark:border-violet-900/40 bg-violet-50 dark:bg-violet-900/10">
+                      <h4 className="text-[10px] font-bold text-violet-700 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
+                        📱 Customer Phone View
+                      </h4>
+                      <p className="text-[11px] text-violet-700 dark:text-violet-300 leading-relaxed">
+                        Configure what the customer sees on their phone ticket screen at this stage.
+                      </p>
+
+                      {/* Phone preview mockup */}
+                      <div className="flex justify-center py-2">
+                        <div className="w-48 bg-white dark:bg-zinc-900 rounded-2xl shadow-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+                          <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-2 flex items-center gap-1.5">
+                            <div className="text-[9px] font-bold text-white truncate">{stepForm.cvTitle || stepForm.name || "Stage Name"}</div>
+                          </div>
+                          <div className="px-3 py-2 space-y-1.5">
+                            <p className="text-[9px] text-zinc-600 dark:text-zinc-400 leading-relaxed">{stepForm.cvMessage || stepForm.customerInstruction || "Customer message will appear here"}</p>
+                            {stepForm.cvShowQueuePosition && <div className="text-[9px] font-bold text-indigo-600">Queue: #3</div>}
+                            {stepForm.cvShowEta && <div className="text-[9px] text-zinc-500">ETA: ~5 min</div>}
+                            {stepForm.cvShowLocationHint && stepForm.cvLocationHint && <div className="text-[9px] text-zinc-500">📍 {stepForm.cvLocationHint}</div>}
+                            {stepForm.cvCtaLabel && (
+                              <div className="mt-1 px-2 py-0.5 bg-indigo-600 rounded-md text-center">
+                                <span className="text-[8px] font-bold text-white">{stepForm.cvCtaLabel}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Title & Message */}
+                      <div className="grid grid-cols-1 gap-2">
+                        <div>
+                          <FieldLabel label="Stage Title (on phone)" info="Override the stage name shown to the customer on their phone. Leave blank to use the stage name." />
+                          <input
+                            type="text"
+                            value={stepForm.cvTitle}
+                            onChange={(e) => setStepForm({ ...stepForm, cvTitle: e.target.value })}
+                            className="w-full h-10 px-4 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                            placeholder={stepForm.name || "e.g. Triage & Vitals"}
+                          />
+                        </div>
+                        <div>
+                          <FieldLabel label="Customer Message (on phone)" info="Shown on the customer's ticket screen. Defaults to the instruction above if left blank." />
+                          <textarea
+                            value={stepForm.cvMessage}
+                            onChange={(e) => setStepForm({ ...stepForm, cvMessage: e.target.value })}
+                            className="w-full px-4 py-2 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white min-h-[60px] focus:ring-2 focus:ring-violet-500 outline-none resize-none"
+                            placeholder={stepForm.customerInstruction || "e.g. A nurse will call you shortly. Please remain seated."}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Toggles */}
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wider">Show on ticket</p>
+                        {[
+                          { key: "cvShowEta" as const, label: "Estimated wait time (ETA)", desc: "Show ETA countdown on their ticket" },
+                          { key: "cvShowQueuePosition" as const, label: "Queue position", desc: "Show their position in the queue" },
+                          { key: "cvShowLocationHint" as const, label: "Location / directions", desc: "Show where they should go" },
+                          { key: "cvShowStaffName" as const, label: "Assigned staff name", desc: "Show the name of the staff member serving them" },
+                        ].map(({ key, label, desc }) => (
+                          <label key={key} className="flex items-center gap-3 cursor-pointer p-2.5 bg-white dark:bg-zinc-800 rounded-xl border border-border dark:border-zinc-700">
+                            <input
+                              type="checkbox"
+                              checked={stepForm[key] as boolean}
+                              onChange={(e) => setStepForm({ ...stepForm, [key]: e.target.checked })}
+                              className="w-4 h-4 rounded text-violet-600"
+                            />
+                            <div>
+                              <div className="text-xs font-semibold text-on-surface dark:text-white">{label}</div>
+                              <div className="text-[11px] text-zinc-500">{desc}</div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+
+                      {/* Location hint (only shown when toggle is on) */}
+                      {stepForm.cvShowLocationHint && (
+                        <div>
+                          <FieldLabel label="Location hint text" info="Short directions shown to the customer. e.g. 'Ground Floor, Counter B'" />
+                          <input
+                            type="text"
+                            value={stepForm.cvLocationHint}
+                            onChange={(e) => setStepForm({ ...stepForm, cvLocationHint: e.target.value })}
+                            className="w-full h-10 px-4 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                            placeholder={stepForm.roomNumber ? `Room ${stepForm.roomNumber}` : "e.g. Ground Floor, Counter B"}
+                          />
+                        </div>
+                      )}
+
+                      {/* CTA Button */}
+                      <div>
+                        <p className="text-[10px] font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-1.5">Action Button (optional)</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <FieldLabel label="Button label" />
+                            <input
+                              type="text"
+                              value={stepForm.cvCtaLabel}
+                              onChange={(e) => setStepForm({ ...stepForm, cvCtaLabel: e.target.value })}
+                              className="w-full h-10 px-3 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                              placeholder="e.g. Fill Pre-form"
+                            />
+                          </div>
+                          <div>
+                            <FieldLabel label="Button URL" />
+                            <input
+                              type="url"
+                              value={stepForm.cvCtaUrl}
+                              onChange={(e) => setStepForm({ ...stepForm, cvCtaUrl: e.target.value })}
+                              className="w-full h-10 px-3 bg-white dark:bg-zinc-800 border border-border dark:border-zinc-700 rounded-xl text-sm text-on-surface dark:text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                              placeholder="https://..."
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </section>
 
                     {/* Location */}
@@ -1613,6 +1933,86 @@ export default function JourneyBuilder() {
                   ) : (
                     "Save Changes"
                   )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+        {/* Template Modal */}
+        {showTemplateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-2xl bg-surface dark:bg-dark-card rounded-3xl shadow-xl overflow-hidden border border-border dark:border-dark-border flex flex-col max-h-[85vh]"
+            >
+              <div className="px-6 py-4 border-b border-border dark:border-dark-border flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-lg text-on-surface dark:text-white">
+                    Apply Industry Template
+                  </h3>
+                  <p className="text-sm text-on-surface-variant dark:text-zinc-400">
+                    Warning: Applying a template will overwrite your current journey steps.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowTemplateModal(false)}
+                  className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-500"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-4 flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {templates.map((tpl: any) => (
+                    <label
+                      key={tpl.key}
+                      className={`flex flex-col gap-2 p-4 border rounded-xl cursor-pointer transition-all ${
+                        selectedTemplateKey === tpl.key
+                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+                          : "border-border dark:border-zinc-700 hover:border-indigo-300 dark:hover:border-indigo-700"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <span className="font-bold text-sm text-on-surface dark:text-white">
+                          {tpl.name}
+                        </span>
+                        <input
+                          type="radio"
+                          name="template"
+                          value={tpl.key}
+                          checked={selectedTemplateKey === tpl.key}
+                          onChange={(e) => setSelectedTemplateKey(e.target.value)}
+                          className="mt-0.5 text-indigo-600"
+                        />
+                      </div>
+                      <p className="text-xs text-on-surface-variant dark:text-zinc-400 line-clamp-2">
+                        {tpl.description}
+                      </p>
+                      <div className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mt-auto pt-2">
+                        {tpl.stepCount} Stages
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="p-6 border-t border-border dark:border-dark-border flex justify-end gap-3 bg-zinc-50 dark:bg-zinc-900/50">
+                <button
+                  onClick={() => setShowTemplateModal(false)}
+                  className="px-6 h-11 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-border dark:border-zinc-700 text-on-surface dark:text-white rounded-xl font-bold text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => applyBlueprintMutation.mutate(selectedTemplateKey)}
+                  disabled={!selectedTemplateKey || applyBlueprintMutation.isPending}
+                  className="px-6 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {applyBlueprintMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : null}
+                  {applyBlueprintMutation.isPending ? "Applying..." : "Apply Template"}
                 </button>
               </div>
             </motion.div>
