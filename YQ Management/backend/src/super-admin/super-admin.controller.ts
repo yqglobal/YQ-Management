@@ -233,7 +233,7 @@ export class SuperAdminController {
         provider: 'Brevo (SMTP / RELAY)',
         connected: emailConnected,
         configured: !!process.env.BREVO_API_KEY,
-        sender: process.env.BREVO_SENDER_EMAIL || 'yqbuddysa@gmail.com',
+        sender: process.env.BREVO_SENDER_EMAIL || 'support@qmova.com',
       },
       whatsapp: {
         provider: 'Evolution API',
@@ -568,7 +568,7 @@ export class SuperAdminController {
     @Body()
     dto: {
       maxVisits?: number;
-      maxQueues?: number;
+      maxServices?: number;
       maxLocations?: number;
       maxStaff?: number;
       customFeatures?: Record<string, boolean | string | number>;

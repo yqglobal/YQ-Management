@@ -102,7 +102,7 @@ export default function CustomerExperienceSettings() {
     },
     onSuccess: (data) => {
       if (data && data.logoUrl) {
-        setBrandingConfig(prev => ({ ...prev, logoUrl: data.logoUrl }));
+        setBrandingConfig((prev: any) => ({ ...prev, logoUrl: data.logoUrl }));
         toast.success('Logo uploaded successfully');
       }
     },
@@ -271,13 +271,10 @@ export default function CustomerExperienceSettings() {
 
   return (
     <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
-      {/* Decorative left edge accent */}
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#D97706]"></div>
-      
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <span className="material-symbols-outlined text-[#D97706]" style={{ fontVariationSettings: "'FILL' 1" }}>supervised_user_circle</span>
+            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>supervised_user_circle</span>
             <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white tracking-tight font-semibold">Customer Experience</h2>
           </div>
           <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline">Customize what your customers see when booking and checking in.</p>
@@ -285,7 +282,7 @@ export default function CustomerExperienceSettings() {
         <button 
           onClick={handleSave}
           disabled={saveSettingsMutation.isPending}
-          className="h-[44px] px-6 bg-[#D97706] hover:bg-[#B45309] text-white font-semibold rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+          className="h-[44px] px-6 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {saveSettingsMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save strokeWidth={1.5} className="w-5 h-5" />}
           Save Changes
@@ -306,21 +303,21 @@ export default function CustomerExperienceSettings() {
       <div className="flex items-center gap-2 mb-6 border-b border-border dark:border-dark-border pb-2">
         <button 
           onClick={() => setActiveTab('portal')}
-          className={`px-4 h-[44px] rounded-t-lg font-body-sm font-semibold transition-colors flex items-center gap-2 border-b-2 ${activeTab === 'portal' ? 'border-[#D97706] text-[#D97706]' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+          className={`px-4 h-[44px] rounded-t-lg font-body-sm font-semibold transition-colors flex items-center gap-2 border-b-2 ${activeTab === 'portal' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
         >
           <PhoneCall strokeWidth={1.5} className="w-4 h-4" />
           Portal Branding
         </button>
         <button 
           onClick={() => setActiveTab('intake')}
-          className={`px-4 h-[44px] rounded-t-lg font-body-sm font-semibold transition-colors flex items-center gap-2 border-b-2 ${activeTab === 'intake' ? 'border-[#D97706] text-[#D97706]' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+          className={`px-4 h-[44px] rounded-t-lg font-body-sm font-semibold transition-colors flex items-center gap-2 border-b-2 ${activeTab === 'intake' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
         >
           <FormInput strokeWidth={1.5} className="w-4 h-4" />
           Global Intake Form
         </button>
         <button 
           onClick={() => setActiveTab('feedback')}
-          className={`px-4 h-[44px] rounded-t-lg font-body-sm font-semibold transition-colors flex items-center gap-2 border-b-2 ${activeTab === 'feedback' ? 'border-[#D97706] text-[#D97706]' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+          className={`px-4 h-[44px] rounded-t-lg font-body-sm font-semibold transition-colors flex items-center gap-2 border-b-2 ${activeTab === 'feedback' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
         >
           <MessagesSquare strokeWidth={1.5} className="w-4 h-4" />
           Feedback Survey
@@ -352,7 +349,7 @@ export default function CustomerExperienceSettings() {
                       onChange={e => setBrandingConfig({ ...brandingConfig, enabled: e.target.checked })} 
                       className="sr-only peer" 
                     />
-                    <div className={`w-11 h-6 bg-surface-variant rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D97706] ${tenant?.planFeatures?.customBranding === false ? 'opacity-50' : ''}`}></div>
+                    <div className={`w-11 h-6 bg-surface-variant rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary ${tenant?.planFeatures?.customBranding === false ? 'opacity-50' : ''}`}></div>
                   </div>
                 </label>
 
@@ -389,7 +386,7 @@ export default function CustomerExperienceSettings() {
                         setBrandingConfig({ ...brandingConfig, logoUrl: url });
                       }}
                       disabled={!brandingConfig.enabled}
-                      className="w-full h-[44px] bg-white dark:bg-zinc-800 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-[#D97706] focus:border-[#D97706] outline-none transition-shadow text-on-surface dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full h-[44px] bg-white dark:bg-zinc-800 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow text-on-surface dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="https://example.com/logo.png"
                     />
                   </div>
@@ -462,7 +459,7 @@ export default function CustomerExperienceSettings() {
               </div>
               <div className="relative inline-flex items-center">
                 <input type="checkbox" checked={config.feedback.enabled} onChange={e => setConfig({ ...config, feedback: { ...config.feedback, enabled: e.target.checked } })} className="sr-only peer" />
-                <div className="w-11 h-6 bg-surface-variant rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D97706]"></div>
+                <div className="w-11 h-6 bg-surface-variant rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </div>
             </label>
 

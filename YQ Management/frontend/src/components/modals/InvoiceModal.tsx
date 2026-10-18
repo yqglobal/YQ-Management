@@ -36,7 +36,7 @@ export function InvoiceModal({ isOpen, visitId, onClose }: InvoiceModalProps) {
   if (!isOpen) return null;
 
   const money = (n: number) =>
-    new Intl.NumberFormat(undefined, { style: 'currency', currency: invoice?.currency || 'ZAR' }).format(n);
+    new Intl.NumberFormat(undefined, { style: 'currency', currency: invoice?.currency || 'ZAR' }).format(n / 100);
 
   return (
     <AnimatePresence>

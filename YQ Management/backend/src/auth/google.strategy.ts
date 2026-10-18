@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
 
 @Injectable()
-export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+export class GoogleStrategy extends PassportStrategy(Strategy, 'google', 6) {
   constructor(
     private authService: AuthService,
     private configService: ConfigService,
@@ -16,7 +16,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const clientID = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const rawBackendUrl =
-      process.env.BACKEND_URL || `${process.env.BACKEND_URL || "https://api.qmova.yqbuddy.com"}`;
+      process.env.BACKEND_URL ||
+      `${process.env.BACKEND_URL || 'https://api.qmova.yqbuddy.com'}`;
     const backendUrl = rawBackendUrl.replace(/\/+$/, '');
     const callbackURL = `${backendUrl}/auth/google/callback`;
 
@@ -52,23 +53,27 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     req: any,
     accessToken: string,
     refreshToken: string,
+    params: any,
     profile: any,
     done: VerifyCallback,
   ): Promise<any> {
-    const email = profile.emails?.[0]?.value;
-    const googleId = profile.sub || profile.id;
+    const email = profile?.emails?.[0]?.value;
+    const googleId = profile?.sub || profile?.id;
     const fullName =
-      profile.displayName ||
-      `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim() ||
+      profile?.displayName ||
+      `${profile?.name?.givenName || ''} ${profile?.name?.familyName || ''}`.trim() ||
       undefined;
 
     if (!email) {
       return done(new Error('No email found in Google profile'));
     }
 
+    const expiresInSeconds = params?.expires_in ? Number(params.expires_in) : 3600;
+    const tokenExpiry = new Date(Date.now() + expiresInSeconds * 1000);
+
     const intent = req.query.state || 'login';
 
-    if (intent === 'link_tenant') {
+    if (intent === 'link_tenant' || intent === 'link_tenant_onboarding') {
       const token = req.cookies?.token;
       if (!token) {
         return done(new Error('Not logged in to link account'));
@@ -82,6 +87,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
           email,
           accessToken,
           refreshToken,
+          tokenExpiry,
         );
         return done(null, user);
       } catch (error) {
@@ -89,7 +95,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       }
     }
 
-    // Passing accessToken and refreshToken to be handled in validateOAuthLogin
+    // Passing accessToken, refreshToken and tokenExpiry to be handled in validateOAuthLogin
     const user = await this.authService.validateOAuthLogin(
       email,
       googleId,
@@ -97,6 +103,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       intent,
       accessToken,
       refreshToken,
+      tokenExpiry,
     );
     done(null, user);
   }

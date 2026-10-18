@@ -62,14 +62,11 @@ export default function WebhooksSettingsPage() {
       featureName="Webhook Integrations"
       description="Connect external systems and automate workflows using secure webhook events."
     >
-    <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8 hover:border-primary/50 hover:shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)] transition-all duration-300 group">
-      {/* Decorative left edge accent */}
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#d946ef]"></div>
-
+    <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8 hover:border-primary/50 transition-all duration-300 group">
       <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <span className="material-symbols-outlined text-[#d946ef]" style={{ fontVariationSettings: "'FILL' 1" }}>webhook</span>
+            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>webhook</span>
             <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white tracking-tight font-semibold">Developer Webhooks</h2>
           </div>
           <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline">Receive real-time HTTP POST notifications for queue events.</p>
@@ -94,7 +91,7 @@ export default function WebhooksSettingsPage() {
                     className={`w-full h-[44px] px-4 border rounded-lg bg-white dark:bg-black/50 text-on-surface dark:text-white font-data-mono text-[13px] outline-none shadow-sm transition-shadow ${
                       webhookError 
                         ? 'border-error focus:ring-1 focus:ring-error focus:border-error' 
-                        : 'border-border dark:border-dark-border focus:ring-1 focus:ring-[#d946ef] focus:border-[#d946ef]'
+                        : 'border-border dark:border-dark-border focus:ring-1 focus:ring-primary focus:border-primary'
                     }`}
                   />
                   {webhookError && (
@@ -106,7 +103,7 @@ export default function WebhooksSettingsPage() {
                 <button
                   type="submit"
                   disabled={!webhookUrl || addWebhookMutation.isPending}
-                  className="h-[44px] px-6 bg-[#d946ef] hover:bg-[#c026d3] text-white font-body-md font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 shadow-sm"
+                  className="h-[44px] px-6 bg-primary hover:bg-primary/90 text-white font-body-md font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 shadow-sm"
                 >
                   {addWebhookMutation.isPending ? <Loader2 strokeWidth={1.5} className="w-4 h-4 animate-spin" /> : <Plus strokeWidth={1.5} className="w-4 h-4" />}
                   Add Webhook

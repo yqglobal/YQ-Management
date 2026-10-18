@@ -222,20 +222,29 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
                   <p className="text-xs text-zinc-500 mt-1">No credit card required</p>
                 </div>
 
-                <ul className="space-y-2.5 mb-6 flex-1">
-                  <li className="flex items-center gap-2.5 text-zinc-300 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
-                    Up to {freePlan.limits?.maxQueues ?? 1} queues
-                  </li>
-                  <li className="flex items-center gap-2.5 text-zinc-300 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
-                    {freePlan.limits?.maxTokens ?? 100} tokens/day
-                  </li>
-                  <li className="flex items-center gap-2.5 text-zinc-300 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
-                    Full feature access during trial
-                  </li>
-                </ul>
+                {(() => {
+                  const freeLimits: any = typeof freePlan.limits === 'string' ? JSON.parse(freePlan.limits) : (freePlan.limits || {});
+                  return (
+                    <ul className="space-y-2.5 mb-6 flex-1">
+                      <li className="flex items-center gap-2.5 text-zinc-300 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
+                        Up to {freeLimits?.maxLocations ?? 1} location{freeLimits?.maxLocations === 1 ? '' : 's'}
+                      </li>
+                      <li className="flex items-center gap-2.5 text-zinc-300 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
+                        Up to {freeLimits?.maxServices ?? 5} services
+                      </li>
+                      <li className="flex items-center gap-2.5 text-zinc-300 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
+                        {freeLimits?.maxTokens ?? 10000} tokens/day
+                      </li>
+                      <li className="flex items-center gap-2.5 text-zinc-300 text-sm">
+                        <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
+                        Up to {freeLimits?.maxStaff ?? freeLimits?.maxMembers ?? 3} staff members
+                      </li>
+                    </ul>
+                  );
+                })()}
 
                 <label className="flex items-start gap-3 mb-4 cursor-pointer p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition-colors">
                   <input
@@ -269,6 +278,7 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
                 ? Math.floor(plan.price * 12 * 0.9)
                 : plan.price;
               const isPurchasing = subscribeMutation.isPending && (subscribeMutation.variables as AnyFixMe)?.planId === plan.id;
+              const pLimits: any = typeof plan.limits === 'string' ? JSON.parse(plan.limits) : (plan.limits || {});
 
               return (
                 <div
@@ -310,11 +320,19 @@ export function PlanGateModal({ mode = 'no-plan' }: PlanGateModalProps) {
                   <ul className="space-y-2.5 mb-6 flex-1">
                     <li className="flex items-center gap-2.5 text-zinc-300 text-sm">
                       <CheckCircle2 className={`w-4 h-4 shrink-0 ${isPopular ? 'text-indigo-400' : 'text-zinc-500'}`} />
-                      Up to {plan.limits?.maxQueues ?? 1} queues
+                      Up to {pLimits?.maxLocations ?? 1} location{pLimits?.maxLocations === 1 ? '' : 's'}
                     </li>
                     <li className="flex items-center gap-2.5 text-zinc-300 text-sm">
                       <CheckCircle2 className={`w-4 h-4 shrink-0 ${isPopular ? 'text-indigo-400' : 'text-zinc-500'}`} />
-                      {plan.limits?.maxTokens ?? 100} tokens/day
+                      Up to {pLimits?.maxServices ?? 1} services
+                    </li>
+                    <li className="flex items-center gap-2.5 text-zinc-300 text-sm">
+                      <CheckCircle2 className={`w-4 h-4 shrink-0 ${isPopular ? 'text-indigo-400' : 'text-zinc-500'}`} />
+                      {pLimits?.maxTokens ?? 100} tokens/day
+                    </li>
+                    <li className="flex items-center gap-2.5 text-zinc-300 text-sm">
+                      <CheckCircle2 className={`w-4 h-4 shrink-0 ${isPopular ? 'text-indigo-400' : 'text-zinc-500'}`} />
+                      Up to {pLimits?.maxStaff ?? pLimits?.maxMembers ?? 2} staff members
                     </li>
                     {plan.features?.whatsappNotifications && (
                       <li className="flex items-center gap-2.5 text-zinc-300 text-sm">

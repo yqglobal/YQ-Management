@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { MapPin, Clock, XCircle, Search, AlertCircle, Phone, ArrowRight } from 'lucide-react';
 import Head from 'next/head';
@@ -53,7 +54,7 @@ export default function CustomerLookup() {
       // Refresh the list
       handleSearch();
     } catch (err: AnyFixMe) {
-      alert(err.message || 'Failed to cancel ticket');
+      toast.error(err.message || 'Failed to cancel ticket');
     }
   };
 

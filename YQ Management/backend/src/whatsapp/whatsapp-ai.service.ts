@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { calculateAdvancedEWT } from '../utils/ewt.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
@@ -12,7 +12,9 @@ export class WhatsappAiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
+    @Inject(forwardRef(() => ServiceService))
     private readonly serviceService: ServiceService,
+    @Inject(forwardRef(() => AppointmentService))
     private readonly appointmentService: AppointmentService,
   ) {}
 

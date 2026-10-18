@@ -15,7 +15,7 @@ interface InviteMemberModalProps {
 
 const ROLE_OPTIONS = [
   {
-    id: 'OPERATOR',
+    id: 'STAFF',
     label: 'Staff',
     description: 'Frontline team member. Access only what you assign to them.',
     icon: UserIcon,
@@ -31,7 +31,7 @@ const ROLE_OPTIONS = [
     bg: '#7C3AED/10',
   },
   {
-    id: 'TENANT_ADMIN',
+    id: 'ADMIN',
     label: 'Admin',
     description: 'Full access. Can invite members, manage billing, and change all settings.',
     icon: Shield,
@@ -43,12 +43,11 @@ const ROLE_OPTIONS = [
 const DASHBOARD_PAGES = [
   { id: 'queues', label: 'Queues', icon: '🔢' },
   { id: 'service-desk', label: 'Service Desk', icon: '🎫' },
-  { id: 'check-in', label: 'Check-In', icon: '✅' },
   { id: 'appointments', label: 'Appointments', icon: '📅' },
-  { id: 'history', label: 'History', icon: '🕐' },
-  { id: 'analytics', label: 'Analytics', icon: '📊' },
+  { id: 'journeys', label: 'Journeys', icon: '🗺️' },
   { id: 'inbox', label: 'Inbox', icon: '💬' },
   { id: 'people', label: 'People', icon: '👥' },
+  { id: 'analytics', label: 'Analytics', icon: '📊' },
 ];
 
 export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
@@ -58,10 +57,11 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
   // State
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Role, 2: Email+Scope, 3: Result
   const [email, setEmail] = useState('');
-  const [selectedRole, setSelectedRole] = useState('OPERATOR');
+  const [selectedRole, setSelectedRole] = useState('STAFF');
   const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
   const [selectedServiceIds] = useState<string[]>([]);
   const [selectedPages, setSelectedPages] = useState<string[]>(['queues', 'service-desk', 'check-in']);
+  const [makeBookable, setMakeBookable] = useState(false);
   const [inviteResult, setInviteResult] = useState<AnyFixMe>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -72,8 +72,6 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
     enabled: isOpen,
   });
 
-  
-
   const inviteMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => fetchApi('/users', {
       method: 'POST',
@@ -81,6 +79,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
     }),
     onSuccess: (res: unknown) => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['providers'] });
       setInviteResult(res);
       setStep(3);
     },
@@ -93,9 +92,10 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
     inviteMutation.mutate({
       email: email.trim(),
       role: selectedRole,
-      allowedLocationIds: selectedRole === 'TENANT_ADMIN' ? [] : selectedLocationIds,
-      allowedServiceIds: selectedRole === 'TENANT_ADMIN' ? [] : selectedServiceIds,
-      allowedPages: selectedRole === 'TENANT_ADMIN' ? [] : selectedPages,
+      allowedLocationIds: selectedRole === 'ADMIN' ? [] : selectedLocationIds,
+      allowedServiceIds: selectedRole === 'ADMIN' ? [] : selectedServiceIds,
+      allowedPages: selectedRole === 'ADMIN' ? [] : selectedPages,
+      makeBookable: makeBookable,
     });
   };
 
@@ -108,8 +108,8 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
         body: JSON.stringify({ email, code: inviteResult.inviteCode, role: selectedRole }),
       });
       toast.success('Invitation email sent!');
-    } catch (e: Error | unknown) {
-      toast.error(e.message || 'Failed to send email');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to send email');
     } finally {
       setSendingEmail(false);
     }
@@ -125,8 +125,9 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
 
   const handleWhatsApp = () => {
     if (!inviteResult?.inviteUrl) return;
+    const roleLabel = ROLE_OPTIONS.find(r => r.id === selectedRole)?.label || selectedRole;
     const text = encodeURIComponent(
-      `You've been invited to join our team on Qmova as ${selectedRole === 'TENANT_ADMIN' ? 'an Admin' : `a ${ROLE_OPTIONS.find(r => r.id === selectedRole)?.label}`}.\n\nClick here to accept: ${inviteResult.inviteUrl}`
+      `You've been invited to join our team on Qmova as ${selectedRole === 'ADMIN' ? 'an Admin' : `a ${roleLabel}`}.\n\nClick here to accept: ${inviteResult.inviteUrl}`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
@@ -177,6 +178,12 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
         </div>
 
         <div className="px-6 pb-6">
+          {plan.isAtMemberLimit && (
+            <div className="mb-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2">
+              <span>Staff limit reached ({plan.limits.maxMembers} members on current plan).</span>
+              <a href="/dashboard/settings/billing" className="font-semibold underline hover:text-amber-900 shrink-0">Upgrade Plan</a>
+            </div>
+          )}
 
           {/* STEP 1: Choose Role */}
           {step === 1 && (
@@ -208,7 +215,8 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
               ))}
               <button
                 onClick={() => setStep(2)}
-                className="w-full mt-2 h-11 bg-[#0284C7] hover:bg-[#0369A1] text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                disabled={plan.isAtMemberLimit}
+                className="w-full mt-2 h-11 bg-[#0284C7] hover:bg-[#0369A1] text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue as {currentRole?.label}
                 <ChevronRight className="w-4 h-4" />
@@ -235,7 +243,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
               </div>
 
               {/* Location scope — only for Staff/Manager */}
-              {selectedRole !== 'TENANT_ADMIN' && locations.length > 0 && (
+              {selectedRole !== 'ADMIN' && locations.length > 0 && (
                 <div>
                   <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                     <MapPin className="w-3 h-3" /> Location Access
@@ -260,8 +268,8 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                 </div>
               )}
 
-              {/* Page access — only for Staff role */}
-              {selectedRole === 'OPERATOR' && (
+              {/* Page access — for Staff and Manager */}
+              {(selectedRole === 'STAFF' || selectedRole === 'MANAGER') && (
                 <div>
                   <label className="block text-xs font-semibold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                     <LayoutDashboard className="w-3 h-3" /> Dashboard Access
@@ -286,11 +294,31 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                 </div>
               )}
 
-              {selectedRole === 'TENANT_ADMIN' && (
+              {selectedRole === 'ADMIN' && (
                 <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 text-xs text-amber-700 dark:text-amber-400">
                   ⚠️ Admin role grants <strong>full access</strong> to all settings, billing, and team management. Use sparingly.
                 </div>
               )}
+
+              <div className="flex items-start gap-3 p-3 rounded-xl border border-border dark:border-dark-border bg-surface-container-lowest dark:bg-zinc-800/50">
+                <div className="flex h-5 items-center">
+                  <input
+                    id="makeBookable"
+                    type="checkbox"
+                    checked={makeBookable}
+                    onChange={(e) => setMakeBookable(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-[#0284C7] focus:ring-[#0284C7] dark:border-zinc-600 dark:bg-zinc-700 dark:ring-offset-zinc-800"
+                  />
+                </div>
+                <div className="text-sm">
+                  <label htmlFor="makeBookable" className="font-medium text-on-surface dark:text-white">
+                    Make this person a Bookable Provider
+                  </label>
+                  <p className="text-xs text-on-surface-variant dark:text-zinc-400">
+                    Customers will be able to book appointments or join queues for this person.
+                  </p>
+                </div>
+              </div>
 
               <div className="flex gap-2 pt-1">
                 <button
@@ -386,7 +414,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                   setStep(1);
                   setEmail('');
                   setInviteResult(null);
-                  setSelectedRole('OPERATOR');
+                  setSelectedRole('MANAGER');
                 }}
                 className="w-full h-10 rounded-xl border border-border dark:border-dark-border text-sm font-semibold text-on-surface dark:text-white hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors"
               >

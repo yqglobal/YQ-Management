@@ -36,14 +36,14 @@ export class StaffController {
 
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER)
+  @Roles(Role.OWNER, Role.ADMIN, Role.MANAGER)
   create(@Req() req: AuthenticatedRequest, @Body() body: any) {
     return this.staffService.create(req.user.tenantId, body);
   }
 
   @Get()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.ADMIN, Role.MANAGER, Role.MANAGER)
   findAll(
     @Req() req: AuthenticatedRequest,
     @Query('locationId') locationId?: string,
@@ -53,14 +53,14 @@ export class StaffController {
 
   @Get(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.ADMIN, Role.MANAGER, Role.MANAGER)
   findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.staffService.findOne(id, req.user.tenantId);
   }
 
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER)
+  @Roles(Role.OWNER, Role.ADMIN, Role.MANAGER)
   update(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -71,7 +71,7 @@ export class StaffController {
 
   @Patch(':id/schedule')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER)
+  @Roles(Role.OWNER, Role.ADMIN, Role.MANAGER)
   updateSchedule(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -87,7 +87,7 @@ export class StaffController {
 
   @Patch(':id/services')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER)
+  @Roles(Role.OWNER, Role.ADMIN, Role.MANAGER)
   updateServices(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -102,7 +102,7 @@ export class StaffController {
 
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.ADMIN)
+  @Roles(Role.OWNER, Role.ADMIN)
   remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.staffService.remove(id, req.user.tenantId);
   }

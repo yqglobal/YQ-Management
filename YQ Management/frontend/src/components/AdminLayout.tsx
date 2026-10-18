@@ -8,8 +8,9 @@ import { DashboardTour } from './DashboardTour';
 import { WhatsAppStatusIndicator } from './WhatsAppStatusIndicator';
 import { useAuth } from './AuthContext';
 import { useLocation } from './LocationContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
+import { useUI } from "./UIContext";
 import { usePlan } from '../hooks/usePlan';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -20,6 +21,8 @@ const QueueMigrationModal = dynamic(() => import('./modals/QueueMigrationModal')
 const ServiceModal = dynamic(() => import('./modals/ServiceModal').then(mod => mod.ServiceModal), { ssr: false });
 const PlanGateModal = dynamic(() => import('./PlanGateModal').then(mod => mod.PlanGateModal), { ssr: false });
 const PlanWelcomeModal = dynamic(() => import('./PlanWelcomeModal').then(mod => mod.PlanWelcomeModal), { ssr: false });
+const StaffWelcomeModal = dynamic(() => import('./StaffWelcomeModal').then(mod => mod.StaffWelcomeModal), { ssr: false });
+const WelcomeModal = dynamic(() => import('./modals/WelcomeModal').then(mod => mod.WelcomeModal), { ssr: false });
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -38,20 +41,8 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const { activeLocationId, setActiveLocationId, allowedLocations: locations } = useLocation();
   const { socket } = useSocket();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('qmova_sidebar_collapsed');
-    if (saved) setIsSidebarCollapsed(saved === 'true');
-  }, []);
-
-  const toggleSidebar = () => {
-    setIsSidebarCollapsed(prev => {
-      const newState = !prev;
-      localStorage.setItem('qmova_sidebar_collapsed', String(newState));
-      return newState;
-    });
-  };
+  const { isSidebarCollapsed, toggleSidebar } = useUI();
+  const plan = usePlan();
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
@@ -107,14 +98,96 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     queryFn: () => fetchApi('/tenant/me').catch(() => null),
   });
 
-  const { data: acceptedPolicies = [], isLoading: isLoadingPolicies } = useQuery({
-    queryKey: ['policies', 'accepted'],
-    queryFn: () => fetchApi('/policies/accepted').catch(() => []),
-    enabled: !!user,
+  // Check if policies are already accepted in localStorage or in the user's profile
+  const userHasAcceptedFromProfile = Boolean(
+    user?.policyAcceptances?.some((p: AnyFixMe) => p.policy?.type === 'TERMS_OF_SERVICE') &&
+    user?.policyAcceptances?.some((p: AnyFixMe) => p.policy?.type === 'PRIVACY_POLICY')
+  );
+
+  const [isLocallyAccepted, setIsLocallyAccepted] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    if (userHasAcceptedFromProfile) return true;
+    const userId = user?.id;
+    if (userId && localStorage.getItem(`qmova_policies_accepted_${userId}`) === 'true') {
+      return true;
+    }
+    return localStorage.getItem('qmova_policies_accepted_v1') === 'true';
   });
 
-  const hasAcceptedPolicies = isLoadingPolicies || !user || ((acceptedPolicies || []).some((p: AnyFixMe) => p.policy.type === 'TERMS_OF_SERVICE') && (acceptedPolicies || []).some((p: AnyFixMe) => p.policy.type === 'PRIVACY_POLICY'));
+  // Sync profile acceptance to localStorage & local state
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const userId = user?.id;
+    if (userHasAcceptedFromProfile && userId) {
+      localStorage.setItem(`qmova_policies_accepted_${userId}`, 'true');
+      localStorage.setItem('qmova_policies_accepted_v1', 'true');
+      setIsLocallyAccepted(true);
+    } else if (userId && (localStorage.getItem(`qmova_policies_accepted_${userId}`) === 'true' || localStorage.getItem('qmova_policies_accepted_v1') === 'true')) {
+      setIsLocallyAccepted(true);
+    }
+  }, [user?.id, userHasAcceptedFromProfile]);
+
+  const { data: acceptedPolicies, isLoading: isLoadingPolicies, isError: isPoliciesError } = useQuery({
+    queryKey: ['policies', 'accepted', user?.id],
+    queryFn: () => fetchApi('/policies/accepted'),
+    enabled: !!user?.id && !isLocallyAccepted && !userHasAcceptedFromProfile,
+    staleTime: Infinity,
+    retry: 1,
+  });
+
+  // If server confirms policies are accepted, cache in localStorage
+  useEffect(() => {
+    if (Array.isArray(acceptedPolicies) && user?.id) {
+      const hasTos = acceptedPolicies.some((p: AnyFixMe) => p.policy?.type === 'TERMS_OF_SERVICE');
+      const hasPrivacy = acceptedPolicies.some((p: AnyFixMe) => p.policy?.type === 'PRIVACY_POLICY');
+      if (hasTos && hasPrivacy) {
+        localStorage.setItem(`qmova_policies_accepted_${user.id}`, 'true');
+        localStorage.setItem('qmova_policies_accepted_v1', 'true');
+        setIsLocallyAccepted(true);
+      }
+    }
+  }, [acceptedPolicies, user?.id]);
+
+  const hasAcceptedPolicies =
+    isLocallyAccepted ||
+    userHasAcceptedFromProfile ||
+    isLoadingPolicies ||
+    isPoliciesError || // CRITICAL: NEVER show policy modal when backend is disconnected/offline!
+    !user ||
+    (Array.isArray(acceptedPolicies) &&
+      acceptedPolicies.some((p: AnyFixMe) => p.policy?.type === 'TERMS_OF_SERVICE') &&
+      acceptedPolicies.some((p: AnyFixMe) => p.policy?.type === 'PRIVACY_POLICY'));
+  // Sequential Post-Onboarding Modal Flow: Welcome -> Plan -> Policies -> Dashboard
+  const isTenantAdmin = Boolean(
+    user?.tenantId && ['SUPER_ADMIN', 'OWNER', 'ADMIN'].includes(user?.role || '')
+  );
+
+  const [hasSeenWelcome, setHasSeenWelcome] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('hasSeenIntro') === 'true' || localStorage.getItem('qmova_welcome_seen') === 'true';
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const seen = localStorage.getItem('hasSeenIntro') === 'true' || localStorage.getItem('qmova_welcome_seen') === 'true';
+    if (seen !== hasSeenWelcome) {
+      setHasSeenWelcome(seen);
+    }
+  }, []);
+
   const [planWelcomeDismissed, setPlanWelcomeDismissed] = useState(false);
+
+  // Modal 1: Welcome to Qmova
+  const showWelcomeModal = !hasSeenWelcome && isTenantAdmin && user?.personalSettings?.onboardingCompleted !== false;
+
+  // Modal 2: Plan Welcome ("You're on this Plan") - only after WelcomeModal is completed
+  const showPlanModal = !showWelcomeModal && !planWelcomeDismissed && !plan.isLoading && plan.canAccess && isTenantAdmin;
+
+  // Modal 3: Accept Policies - only after WelcomeModal AND PlanModal are completed
+  const showPoliciesModal = !showWelcomeModal && planWelcomeDismissed && !hasAcceptedPolicies && !!user?.tenantId && user?.personalSettings?.onboardingCompleted !== false;
+
+  // Step 4: Dashboard Tour / access - only when all modals have been cleared and policies accepted
+  const canStartTour = !showWelcomeModal && planWelcomeDismissed && hasAcceptedPolicies;
 
   const handleLocationSelect = (id: string) => {
     setActiveLocationId(id);
@@ -134,11 +207,11 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     { label: 'Schedule', href: '/dashboard/appointments', icon: 'calendar_today', pageId: 'appointments' },
     { label: 'Journeys', href: '/dashboard/journeys', icon: 'route', pageId: 'journeys', id: 'tour-journeys-nav' },
     { label: 'Queues', href: '/dashboard/queues', icon: 'list_alt', pageId: 'queues', id: 'tour-queues-nav' },
+    { label: 'People', href: '/dashboard/people', icon: 'people', pageId: 'people' },
     { label: 'Analytics', href: '/dashboard/analytics', icon: 'analytics', pageId: 'analytics' },
   ];
 
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.email?.toLowerCase() === 'yqbuddysa@gmail.com';
-  const plan = usePlan();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN' || (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL && user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL.toLowerCase());
 
   const bottomItems = [
     ...(isSuperAdmin ? [{ label: 'Super Admin', href: '/super-admin', icon: 'shield', adminOnly: true, pageId: 'super-admin' }] : []),
@@ -147,7 +220,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   const hasPageAccess = (pageId?: string) => {
     if (!pageId) return true;
-    if (user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN') return true;
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'OWNER' || user?.role === 'ADMIN') return true;
     
     if (pageId === 'settings') {
       return user?.allowedPages?.some((p: string) => p.startsWith('settings-')) || false;
@@ -158,25 +231,31 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   const checkCurrentRouteAccess = () => {
     if (!user) return true; // Auth Context handles unauthenticated
-    if (user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN') return true;
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'OWNER' || user?.role === 'ADMIN') return true;
 
     const path = router.pathname;
     
+    if (user?.role === 'STAFF') {
+      return path.startsWith('/dashboard/my-desk');
+    }
+
     if (path === '/dashboard') return true; // Base dashboard always accessible
     
     if (path.startsWith('/dashboard/inbox')) return user?.allowedPages?.includes('inbox');
     if (path.startsWith('/dashboard/service-desk')) return user?.allowedPages?.includes('service-desk');
+    if (path.startsWith('/dashboard/scan')) return user?.allowedPages?.includes('service-desk');
     if (path.startsWith('/dashboard/appointments')) return user?.allowedPages?.includes('appointments');
-    if (path.startsWith('/dashboard/customers')) return user?.allowedPages?.includes('customers');
+    if (path.startsWith('/dashboard/journeys')) return user?.allowedPages?.includes('journeys');
+    if (path.startsWith('/dashboard/people')) return user?.allowedPages?.includes('people');
     if (path.startsWith('/dashboard/analytics')) return user?.allowedPages?.includes('analytics');
     if (path.startsWith('/dashboard/queues')) return user?.allowedPages?.includes('queues');
     
     if (path.startsWith('/dashboard/settings')) {
-      if (path === '/dashboard/settings/workspace') return true;
       if (path.startsWith('/dashboard/settings/workspace')) return user?.allowedPages?.includes('settings-workspace');
       if (path.startsWith('/dashboard/settings/team')) return user?.allowedPages?.includes('settings-team');
       if (path.startsWith('/dashboard/settings/operations')) return user?.allowedPages?.includes('settings-operations');
       if (path.startsWith('/dashboard/settings/integrations')) return user?.allowedPages?.includes('settings-integrations');
+      if (path.startsWith('/dashboard/settings/templates')) return user?.allowedPages?.includes('settings-templates');
       if (path.startsWith('/dashboard/settings/billing')) return user?.allowedPages?.includes('settings-billing');
       if (path === '/dashboard/settings') {
          return user?.allowedPages?.some((p: string) => p.startsWith('settings-')) || false;
@@ -190,14 +269,22 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
   useEffect(() => {
     if (isAccessDenied && router.isReady) {
-      router.replace('/dashboard');
+      if (user?.role === 'STAFF') {
+        router.replace('/dashboard/my-desk');
+      } else {
+        router.replace('/dashboard');
+      }
       const toastEvent = new CustomEvent('admin-toast', { detail: { message: 'Access Denied: You do not have permission to view this page.', type: 'error' } });
       window.dispatchEvent(toastEvent);
     }
-  }, [isAccessDenied, router.isReady, router.asPath]);
+  }, [isAccessDenied, router.isReady, router.asPath, user?.role]);
 
-  const filteredNavItems = navItems.filter(item => hasPageAccess(item.pageId));
-  const filteredBottomItems = bottomItems.filter(item => hasPageAccess(item.pageId));
+  const actualNavItems = user?.role === 'STAFF' 
+    ? [{ label: 'My Desk', href: '/dashboard/my-desk', icon: 'desk', pageId: 'my-desk' }] 
+    : navItems;
+    
+  const filteredNavItems = actualNavItems.filter(item => user?.role === 'STAFF' || hasPageAccess(item.pageId));
+  const filteredBottomItems = user?.role === 'STAFF' ? [] : bottomItems.filter(item => hasPageAccess(item.pageId));
 
   const isActive = (path: string) => {
     if (path === '/dashboard') {
@@ -225,7 +312,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   const [showQueueMigration, setShowQueueMigration] = useState(true);
 
   // Derive unlinked queues for the transition modal
-  const hasQueuePermissions = user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN';
+  const hasQueuePermissions = user?.role === 'SUPER_ADMIN' || user?.role === 'OWNER' || user?.role === 'ADMIN';
   const unlinkedQueues = tenant?.queues?.filter((q: AnyFixMe) => !q.services || q.services.length === 0) || [];
   const services = tenant?.services || [];
 
@@ -239,10 +326,34 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
       {!plan.isLoading && !plan.hasNoPlan && !plan.canAccess && !!user?.tenantId && !router.pathname.startsWith('/dashboard/settings') && (
         <PlanGateModal mode="expired" />
       )}
-      {!hasAcceptedPolicies && !!user?.tenantId && user?.personalSettings?.onboardingCompleted !== false && <AdvancedPoliciesModal />}
-      {/* Plan welcome: shown once per plan activation/change */}
-      {hasAcceptedPolicies && !plan.isLoading && plan.canAccess && !!user?.tenantId && <PlanWelcomeModal onDismiss={() => setPlanWelcomeDismissed(true)} />}
-      {hasAcceptedPolicies && planWelcomeDismissed && <DashboardTour canStart={true} />}
+      {/* --- SEQUENTIAL POST-ONBOARDING MODAL FLOW --- */}
+      {/* 1. Welcome to Qmova Modal */}
+      {showWelcomeModal && (
+        <WelcomeModal
+          isOpen={true}
+          onClose={() => {
+            localStorage.setItem('hasSeenIntro', 'true');
+            localStorage.setItem('qmova_welcome_seen', 'true');
+            setHasSeenWelcome(true);
+          }}
+        />
+      )}
+
+      {/* 2. You Are On This Plan Modal (PlanWelcomeModal) */}
+      {showPlanModal && (
+        <PlanWelcomeModal onDismiss={() => setPlanWelcomeDismissed(true)} />
+      )}
+
+      {/* 3. Accept Policies Modal (AdvancedPoliciesModal) */}
+      {showPoliciesModal && (
+        <AdvancedPoliciesModal onAccepted={() => setIsLocallyAccepted(true)} userId={user?.id} />
+      )}
+
+      {/* Staff Welcome for non-admin staff users */}
+      {hasAcceptedPolicies && !isTenantAdmin && !!user?.tenantId && <StaffWelcomeModal />}
+
+      {/* 4. Dashboard Tour (only after all modals are dismissed & policies accepted) */}
+      {canStartTour && <DashboardTour canStart={true} />}
 
       {/* Mobile overlay */}
       {mobileOpen && (
@@ -419,7 +530,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                     <div className="px-4 py-2 border-b border-border">
                       <p className="font-label-caps text-[10px] uppercase tracking-widest text-outline font-bold">Select Location</p>
                     </div>
-                    {(user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN') && (
+                    {(user?.role === 'SUPER_ADMIN' || user?.role === 'OWNER' || user?.role === 'ADMIN') && (
                       <button 
                         onClick={() => handleLocationSelect('all')} 
                         className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-surface-container-low transition-colors flex items-center justify-between ${activeLocationId === 'all' ? 'text-primary' : 'text-on-surface-variant'}`}
@@ -463,19 +574,21 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
       {/* SideNavBar */}
       <nav 
         aria-label="Main Navigation" 
-        className={`fixed left-0 top-0 h-full bg-surface dark:bg-dark-canvas border-r border-border dark:border-dark-border flex flex-col py-gutter z-[70] transition-all duration-300 ease-in-out md:translate-x-0 overflow-x-hidden ${mobileOpen ? 'translate-x-0 w-sidebar-w' : '-translate-x-full'} ${isSidebarCollapsed ? 'md:w-20 px-2' : 'md:w-sidebar-w px-4'}`}
+        className={`fixed left-0 top-0 h-full bg-surface dark:bg-dark-canvas border-r border-border dark:border-dark-border flex flex-col py-gutter z-[70] transition-all duration-300 ease-in-out md:translate-x-0 overflow-x-hidden ${mobileOpen ? 'translate-x-0 w-sidebar-w' : '-translate-x-full'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-sidebar-w'} px-4`}
       >
-        <div className={`mb-8 flex flex-col mt-2 ${isSidebarCollapsed ? 'px-0' : 'px-4'}`}>
-          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
-            <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 h-0 opacity-0 hidden' : 'w-auto opacity-100 flex-1'}`}>
+        <div className={`mb-8 flex flex-col mt-2 pl-3`}>
+          <div className={`flex items-center transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+            <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-4 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 flex-1'}`}>
               <Logo width={140} height={22} />
-              {!plan.isLoading && (plan.planName || plan.isTrialActive) && (
-                <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-primary dark:text-primary mt-1 ml-1 opacity-80 whitespace-nowrap">
-                  {plan.isTrialActive ? 'Trial' : plan.planName?.replace(' Plan', '')}
+              {!plan.isLoading && (
+                <span className={`text-[9px] font-bold tracking-[0.2em] uppercase mt-1 ml-1 opacity-80 whitespace-nowrap ${
+                  plan.status === 'EXPIRED' ? 'text-red-500 dark:text-red-400' : 'text-primary dark:text-primary'
+                }`}>
+                  {plan.status === 'EXPIRED' ? 'Trial Expired' : plan.isTrialActive ? 'Trial' : plan.planName?.replace(' Plan', '')}
                 </span>
               )}
             </div>
-            <button onClick={toggleSidebar} className={`hidden md:flex rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'w-12 h-12 items-center justify-center' : 'p-2'}`}>
+            <button onClick={toggleSidebar} className={`hidden md:flex rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0 transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-10 h-10 items-center justify-center' : 'p-2'}`}>
               <span className="material-symbols-outlined">{isSidebarCollapsed ? 'menu' : 'menu_open'}</span>
             </button>
             <button onClick={() => setMobileOpen(false)} className={`md:hidden p-2 rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0 ${isSidebarCollapsed ? 'hidden' : 'ml-auto'}`}>
@@ -493,7 +606,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 href={item.href}
                 id={(item as any).id}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md relative group ${isSidebarCollapsed ? 'w-12 h-12 mx-auto justify-center px-0 gap-0' : 'w-full px-4 justify-start gap-3'} ${
+                className={`flex items-center py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md relative group w-full px-3 justify-start gap-3 ${
                   active 
                     ? 'text-primary dark:text-white font-semibold bg-surface-container-low dark:bg-white/10' 
                     : 'text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-white/5'
@@ -509,7 +622,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
           })}
           {/* Setup CTA (replaces ghost heuristic) */}
           <div className={`transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'opacity-0 h-0 scale-95' : 'opacity-100 h-auto scale-100'}`}>
-          {tenant && !tenant.setupComplete && (
+          {tenant && !tenant.setupComplete && (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'OWNER') && (
             <div className="px-2 pb-2 mt-4">
               <Link href="/dashboard/setup-guide" className="block bg-surface-container-low hover:bg-surface-container-high dark:bg-zinc-900 border border-primary/20 dark:border-sky-900 rounded-2xl p-4 transition-colors">
                 <div className="flex items-center gap-2 mb-1">
@@ -524,6 +637,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
           {/* Upgrade / Trial Card */}
           {(() => {
             if (plan.isLoading) return null;
+            if (user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN' && user?.role !== 'OWNER') return null;
 
             // Trial card: always show regardless of setup progress
             if (plan.status === 'TRIAL') {
@@ -547,8 +661,29 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
               );
             }
 
+            // Expired or Cancelled: always show regardless of setup progress
+            if (plan.status === 'EXPIRED' || plan.status === 'CANCELLED') {
+              return (
+                <div className="px-2 pb-2 mt-4">
+                  <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5">
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="material-symbols-outlined text-[20px] text-red-600 dark:text-red-400">warning</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">{plan.status === 'CANCELLED' ? 'Cancelled' : 'Expired'}</span>
+                      </div>
+                      <h4 className="font-bold text-sm text-red-900 dark:text-red-300 mb-1">{plan.status === 'CANCELLED' ? 'Subscription Cancelled' : 'Trial Expired'}</h4>
+                      <p className="text-xs text-red-700 dark:text-red-400/80 mb-3">Please choose a plan to restore access.</p>
+                      <Link href="/dashboard/settings/billing" className="block w-full text-center bg-red-600 text-white font-bold text-xs py-2 rounded-lg hover:bg-red-700 transition-colors">
+                        View Plans
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
             // All other cards only show after setup is complete
-            if (!allDone) return null;
+            if (!tenant?.setupComplete) return null;
 
             return (
               <div className="px-2 pb-2 mt-4">
@@ -612,21 +747,6 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                     </div>
                   </div>
                 )}
-                {(plan.status === 'EXPIRED' || plan.status === 'CANCELLED') && (
-                  <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 p-4 rounded-2xl shadow-sm relative overflow-hidden group cursor-pointer transition-transform hover:-translate-y-0.5">
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="material-symbols-outlined text-[20px] text-red-600 dark:text-red-400">warning</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">{plan.status === 'CANCELLED' ? 'Cancelled' : 'Expired'}</span>
-                      </div>
-                      <h4 className="font-bold text-sm text-red-900 dark:text-red-300 mb-1">Action Required</h4>
-                      <p className="text-xs text-red-700 dark:text-red-400/80 mb-3">Please renew your subscription.</p>
-                      <Link href="/dashboard/settings/billing" className="block w-full text-center bg-red-600 text-white font-bold text-xs py-2 rounded-lg hover:bg-red-700 transition-colors">
-                        Renew Now
-                      </Link>
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })()}
@@ -635,7 +755,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
 
         <div className="flex flex-col gap-2 pt-4 border-t border-border dark:border-dark-border">
           {filteredBottomItems.map((item) => {
-            if (item.adminOnly && (!user || !['TENANT_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(user.role))) return null;
+            if (item.adminOnly && (!user || !['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(user.role))) return null;
             const active = isActive(item.href);
             return (
               <Link
@@ -643,7 +763,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 href={item.href}
                 id={item.id}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md relative group ${isSidebarCollapsed ? 'w-12 h-12 mx-auto justify-center px-0 gap-0' : 'w-full px-4 justify-start gap-3'} ${
+                className={`flex items-center py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md relative group w-full px-3 justify-start gap-3 ${
                   active 
                     ? 'text-primary dark:text-white font-semibold bg-surface-container-low dark:bg-white/10' 
                     : 'text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-white/5'
@@ -761,7 +881,10 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
           services={services}
           tenantId={tenant?.id}
           onComplete={() => setShowQueueMigration(false)}
-          onCreateService={() => setIsServiceModalOpen(true)}
+          onCreateService={() => {
+            setShowQueueMigration(false);
+            setIsServiceModalOpen(true);
+          }}
         />
       )}
 
@@ -835,11 +958,12 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
   );
 }
 
-function AdvancedPoliciesModal() {
+function AdvancedPoliciesModal({ onAccepted, userId }: { onAccepted: () => void; userId?: string }) {
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   // Check if content doesn't overflow on mount
   useEffect(() => {
@@ -865,10 +989,15 @@ function AdvancedPoliciesModal() {
     try {
       await fetchApi('/policies/accept', { method: 'POST', body: JSON.stringify({ type: 'TERMS_OF_SERVICE', version: '1.0' }) });
       await fetchApi('/policies/accept', { method: 'POST', body: JSON.stringify({ type: 'PRIVACY_POLICY', version: '1.0' }) });
+      if (userId) {
+        localStorage.setItem(`qmova_policies_accepted_${userId}`, 'true');
+      }
+      localStorage.setItem('qmova_policies_accepted_v1', 'true');
       toast.success('Policies accepted');
-      window.location.reload();
+      onAccepted();
+      queryClient.invalidateQueries({ queryKey: ['policies', 'accepted'] });
     } catch (e) {
-      toast.error('Failed to accept policies');
+      toast.error('Failed to accept policies. Please check your connection.');
       setIsSubmitting(false);
     }
   };

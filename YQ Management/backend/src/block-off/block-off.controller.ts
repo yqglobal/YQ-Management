@@ -23,13 +23,13 @@ export class BlockOffController {
   constructor(private readonly blockOffService: BlockOffService) {}
 
   @Post()
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
   async createBlockOff(@Req() req: AuthenticatedRequest, @Body() body: any) {
     return this.blockOffService.createBlockOff(req.user.tenantId, body);
   }
 
   @Get()
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
   async getBlockOffs(
     @Req() req: AuthenticatedRequest,
     @Query('locationId') locationId?: string,
@@ -43,7 +43,7 @@ export class BlockOffController {
   }
 
   @Delete(':id')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
   async deleteBlockOff(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,

@@ -1,7 +1,6 @@
 import React from 'react';
 import MarketingLayout from '../../components/MarketingLayout';
 import { Mail, Search, BookOpen, Settings, CreditCard, HelpCircle, MessageSquare } from 'lucide-react';
-import Link from 'next/link';
 
 export default function SupportHelpCenterPage() {
   const categories = [
@@ -118,13 +117,13 @@ export default function SupportHelpCenterPage() {
               Our support team is always ready to help you with any technical questions or account issues.
             </p>
             <a 
-              href="mailto:yqbuddysa@gmail.com" 
+              href="mailto:support@qmova.com" 
               className="inline-flex items-center justify-center gap-3 bg-white text-black hover:bg-zinc-200 font-semibold py-4 px-8 rounded-full transition-colors text-lg"
             >
               <Mail className="w-5 h-5" />
               Email Support
             </a>
-            <p className="text-sm text-zinc-500 mt-6">yqbuddysa@gmail.com</p>
+            <p className="text-sm text-zinc-500 mt-6">support@qmova.com</p>
           </div>
 
         </div>

@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, Role } from '@prisma/client';
@@ -9,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { RedisService } from '../redis/redis.service';
 import { EmailService } from '../email/email.service';
 import { randomBytes } from 'crypto';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class UsersService {
@@ -16,6 +19,8 @@ export class UsersService {
     private prisma: PrismaService,
     private redisService: RedisService,
     private emailService: EmailService,
+    @Inject(forwardRef(() => SubscriptionService))
+    private subscriptionService: SubscriptionService,
   ) {}
 
   async findOneByEmail(email: string) {
@@ -49,23 +54,39 @@ export class UsersService {
 
     const activeUsers = await this.prisma.user.findMany({
       where: { tenantId },
-      select: { id: true, email: true, role: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        name: true,
+        phone: true,
+        description: true,
+        allowedLocationIds: true,
+        allowedPages: true,
+        allowedServiceIds: true,
+      },
     });
 
-    // If ownerId not set on Tenant, fall back to first TENANT_ADMIN
+    // If ownerId not set on Tenant, fall back to first OWNER
     const resolvedOwnerId =
       ownerId ??
-      (activeUsers.find((u) => u.role === 'TENANT_ADMIN') || activeUsers[0])
+      (activeUsers.find((u) => u.role === 'OWNER') || activeUsers[0])
         ?.id ??
       null;
 
     const staffList: any[] = activeUsers.map((u) => ({
       id: u.id,
       email: u.email,
+      name: u.name,
+      phone: u.phone,
+      description: u.description,
       role: u.role,
       status: 'ACTIVE',
       isInvite: false,
       isOwner: u.id === resolvedOwnerId,
+      allowedLocationIds: u.allowedLocationIds || [],
+      allowedPages: u.allowedPages || [],
+      allowedServiceIds: u.allowedServiceIds || [],
     }));
 
     const invites = await this.prisma.invitation.findMany({
@@ -76,7 +97,7 @@ export class UsersService {
     const now = new Date();
     const tenantAdmin =
       activeUsers.find(
-        (u) => u.role === 'TENANT_ADMIN' || u.role === 'SUPER_ADMIN',
+        (u) => u.role === 'OWNER' || u.role === 'SUPER_ADMIN',
       ) || activeUsers[0];
 
     for (const inv of invites) {
@@ -112,6 +133,9 @@ export class UsersService {
           code: inv.code,
           expiresAt: inv.expiresAt,
           isInvite: true,
+          allowedLocationIds: inv.allowedLocationIds || [],
+          allowedPages: inv.allowedPages || [],
+          allowedServiceIds: inv.allowedServiceIds || [],
         });
       } else if (isExpired || inv.used) {
         staffList.push({
@@ -122,6 +146,9 @@ export class UsersService {
           code: inv.code,
           expiresAt: inv.expiresAt,
           isInvite: true,
+          allowedLocationIds: inv.allowedLocationIds || [],
+          allowedPages: inv.allowedPages || [],
+          allowedServiceIds: inv.allowedServiceIds || [],
         });
       } else {
         staffList.push({
@@ -132,6 +159,9 @@ export class UsersService {
           code: inv.code,
           expiresAt: inv.expiresAt,
           isInvite: true,
+          allowedLocationIds: inv.allowedLocationIds || [],
+          allowedPages: inv.allowedPages || [],
+          allowedServiceIds: inv.allowedServiceIds || [],
         });
       }
     }
@@ -148,19 +178,52 @@ export class UsersService {
       allowedLocationIds?: string[];
       allowedServiceIds?: string[];
       allowedPages?: string[];
+      makeBookable?: boolean;
     },
   ) {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
 
-    // Get tenant info for display name in invite
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { name: true },
     });
 
     const tenantName = tenant?.name || 'Your Team';
+
+    // Enforce workspace staff / team member quota limit
+    const [currentUsersCount, pendingInvitesCount] = await Promise.all([
+      this.prisma.user.count({ where: { tenantId } }),
+      this.prisma.invitation.count({
+        where: { tenantId, used: false, email: { not: data.email } },
+      }),
+    ]);
+    const totalStaffCount = currentUsersCount + pendingInvitesCount;
+    await this.subscriptionService.checkLimit(tenantId, 'staff', totalStaffCount);
+
+    const handleMakeBookable = async (userId?: string) => {
+      if (!data.makeBookable) return;
+      const existingStaff = await this.prisma.staff.findFirst({
+        where: { tenantId, email: data.email },
+      });
+      if (!existingStaff) {
+        await this.prisma.staff.create({
+          data: {
+            tenantId,
+            name: data.email.split('@')[0],
+            email: data.email,
+            userId,
+            status: 'ACTIVE',
+          },
+        });
+      } else if (userId && !existingStaff.userId) {
+        await this.prisma.staff.update({
+          where: { id: existingStaff.id },
+          data: { userId },
+        });
+      }
+    };
 
     if (!existingUser) {
       const code = randomBytes(6).toString('hex').toUpperCase().substring(0, 8);
@@ -198,6 +261,8 @@ export class UsersService {
             },
           });
 
+      await handleMakeBookable();
+
       return {
         status: 'USER_NOT_FOUND_INVITED',
         inviteId: invite.id,
@@ -205,7 +270,7 @@ export class UsersService {
         email: data.email,
         role: data.role,
         tenantName,
-        inviteUrl: `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/register?inviteCode=${invite.code}`,
+        inviteUrl: `${process.env.FRONTEND_URL || 'https://qmova.yqbuddy.com'}/register?inviteCode=${invite.code}`,
         message:
           'No Qmova account found for this email. An invitation join code has been generated.',
       };
@@ -234,6 +299,8 @@ export class UsersService {
       data: { used: true, usedAt: new Date() },
     });
 
+    await handleMakeBookable(updatedUser.id);
+
     return {
       status: 'USER_ADDED',
       user: { ...updatedUser, status: 'ACTIVE', isInvite: false },
@@ -250,7 +317,7 @@ export class UsersService {
       select: { name: true },
     });
     const tenantName = tenant?.name || 'Your Team';
-    const inviteUrl = `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/register?inviteCode=${data.code}`;
+    const inviteUrl = `${process.env.FRONTEND_URL || 'https://qmova.yqbuddy.com'}/register?inviteCode=${data.code}`;
     const res = await this.emailService.sendStaffInvitation(
       data.email,
       tenantName,
@@ -294,7 +361,7 @@ export class UsersService {
       email: updated.email || '',
       role: updated.role,
       tenantName: invite.tenant?.name || 'Your Team',
-      inviteUrl: `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}/register?inviteCode=${updated.code}`,
+      inviteUrl: `${process.env.FRONTEND_URL || 'https://qmova.yqbuddy.com'}/register?inviteCode=${updated.code}`,
     };
   }
 
@@ -325,9 +392,9 @@ export class UsersService {
       );
     }
 
-    if (targetUser.role === 'TENANT_ADMIN') {
+    if (targetUser.role === 'OWNER') {
       const adminCount = await this.prisma.user.count({
-        where: { tenantId, role: 'TENANT_ADMIN' },
+        where: { tenantId, role: 'OWNER' },
       });
 
       if (adminCount <= 1) {
@@ -359,6 +426,9 @@ export class UsersService {
       allowedLocationIds?: string[];
       allowedServiceIds?: string[];
       allowedPages?: string[];
+      name?: string;
+      phone?: string;
+      description?: string;
     },
     currentUserId: string,
     currentUserEmail: string,
@@ -377,10 +447,10 @@ export class UsersService {
       throw new BadRequestException('User does not belong to this tenant.');
     }
 
-    // Protect TENANT_ADMIN demotion
-    if (targetUser.role === 'TENANT_ADMIN' && newRole !== 'TENANT_ADMIN') {
+    // Protect OWNER demotion
+    if (targetUser.role === 'OWNER' && newRole !== 'OWNER') {
       const adminCount = await this.prisma.user.count({
-        where: { tenantId, role: 'TENANT_ADMIN' },
+        where: { tenantId, role: 'OWNER' },
       });
       if (adminCount <= 1) {
         throw new BadRequestException(
@@ -396,8 +466,21 @@ export class UsersService {
         allowedLocationIds: data.allowedLocationIds || [],
         allowedServiceIds: data.allowedServiceIds || [],
         allowedPages: data.allowedPages || [],
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.phone !== undefined && { phone: data.phone }),
+        ...(data.description !== undefined && { description: data.description }),
       },
-      select: { id: true, email: true, role: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        name: true,
+        phone: true,
+        description: true,
+        allowedLocationIds: true,
+        allowedPages: true,
+        allowedServiceIds: true,
+      },
     });
 
     const tenant = await this.prisma.tenant.findUnique({
@@ -406,7 +489,7 @@ export class UsersService {
     });
     const tenantName = tenant?.name || 'Your Team';
 
-    if (newRole === 'TENANT_ADMIN') {
+    if (newRole === 'OWNER') {
       await this.emailService.sendAdminTransferEmail(
         currentUserEmail,
         updatedUser.email,
@@ -419,6 +502,68 @@ export class UsersService {
         newRole,
       );
     }
+
+    return { success: true, user: updatedUser };
+  }
+
+  async updateRole(
+    tenantId: string,
+    id: string,
+    newRole: Role,
+    currentUserId: string,
+  ) {
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, email: true, tenantId: true },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found.');
+    }
+
+    if (targetUser.tenantId !== tenantId) {
+      throw new BadRequestException('User does not belong to this tenant.');
+    }
+
+    // Protect OWNER demotion
+    if (targetUser.role === 'OWNER' && newRole !== 'OWNER') {
+      const ownerCount = await this.prisma.user.count({
+        where: { tenantId, role: 'OWNER' },
+      });
+      if (ownerCount <= 1) {
+        throw new BadRequestException(
+          'Cannot demote the last owner. Transfer ownership to another user first.',
+        );
+      }
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id },
+      data: { role: newRole },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        name: true,
+        phone: true,
+        description: true,
+        allowedLocationIds: true,
+        allowedPages: true,
+        allowedServiceIds: true,
+      },
+    });
+
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true },
+    });
+    const tenantName = tenant?.name || 'Your Team';
+
+    await this.emailService.sendRoleUpdatedEmail(
+      updatedUser.email,
+      tenantName,
+      newRole,
+    );
 
     return { success: true, user: updatedUser };
   }
@@ -438,12 +583,12 @@ export class UsersService {
       throw new NotFoundException('Tenant not found.');
     }
 
-    // Fall back: if ownerId not set, resolve owner as first TENANT_ADMIN
+    // Fall back: if ownerId not set, resolve owner as first OWNER
     const resolvedOwnerId =
       tenant.ownerId ??
       (
         await this.prisma.user.findFirst({
-          where: { tenantId, role: 'TENANT_ADMIN' },
+          where: { tenantId, role: 'OWNER' },
           orderBy: { id: 'asc' },
           select: { id: true },
         })
@@ -467,7 +612,7 @@ export class UsersService {
       throw new BadRequestException('You are already the owner.');
     }
 
-    // Transfer: update Tenant.ownerId and ensure target becomes TENANT_ADMIN
+    // Transfer: update Tenant.ownerId and ensure target becomes OWNER
     const [updatedTenant, updatedUser] = await this.prisma.$transaction([
       this.prisma.tenant.update({
         where: { id: tenant.id },
@@ -475,7 +620,7 @@ export class UsersService {
       }),
       this.prisma.user.update({
         where: { id: targetUser.id },
-        data: { role: 'TENANT_ADMIN' },
+        data: { role: 'OWNER' },
       }),
     ]);
 
@@ -542,5 +687,28 @@ export class UsersService {
       });
       return { success: true, message: 'Account deleted.' };
     }
+  }
+
+  async updateMe(
+    userId: string,
+    data: { name?: string; phone?: string; description?: string; password?: string }
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const bcrypt = require('bcrypt');
+    let hashedPassword;
+    if (data.password) {
+      hashedPassword = await bcrypt.hash(data.password, 10);
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.phone !== undefined && { phone: data.phone }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(hashedPassword !== undefined && { password: hashedPassword }),
+      },
+      select: { id: true, name: true, email: true, phone: true, description: true }
+    });
   }
 }

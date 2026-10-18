@@ -16,7 +16,7 @@ export function FeatureGuard({ featureKey, featureName, description, children }:
   const plan = usePlan();
 
   // Super admins bypass feature flags
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.email?.toLowerCase() === 'yqbuddysa@gmail.com';
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN' || (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL && user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL.toLowerCase());
   
   if (isSuperAdmin || plan.isFeatureEnabled(featureKey)) {
     return <>{children}</>;
@@ -33,7 +33,7 @@ export function FeatureGuard({ featureKey, featureName, description, children }:
       <p className="text-gray-500 dark:text-zinc-400 max-w-md mb-8">
         {description || `This feature is not included in your current plan. Upgrade your subscription to unlock ${featureName} and other premium features.`}
       </p>
-      {user?.role === 'ADMIN' || user?.role === 'TENANT_ADMIN' ? (
+      {user?.role === 'ADMIN' || user?.role === 'OWNER' ? (
         <Link 
           href="/dashboard/settings?tab=billing" 
           className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors shadow-sm"

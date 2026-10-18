@@ -109,7 +109,7 @@ export function OnboardingChecklist() {
   // Fetch live onboarding state
   const { data: onboardingData } = useQuery<OnboardingData>({
     queryKey: ['onboarding-state'],
-    queryFn: () => fetchApi('/tenant/onboarding-state'),
+    queryFn: () => fetchApi('/tenant/onboarding-state') as Promise<OnboardingData>,
     staleTime: 30_000,
     retry: false,
   });

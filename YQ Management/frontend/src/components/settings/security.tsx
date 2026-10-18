@@ -32,20 +32,17 @@ export default function SecuritySettings() {
       .catch(console.warn)
       .finally(() => {
         setIsDeleting(false);
-        alert('Account deletion request submitted.');
+        toast.success('Account deletion request submitted.');
         setShowDeleteConfirm(false);
       });
   };
 
   return (
     <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
-      {/* Decorative left edge accent */}
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#10b981]"></div>
-      
       <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <span className="material-symbols-outlined text-[#10b981]" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
+            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
             <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white tracking-tight font-semibold">Account Security</h2>
           </div>
           <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline">Manage active sessions, connected accounts, and data deletion.</p>
@@ -142,8 +139,6 @@ export default function SecuritySettings() {
             </h3>
           </div>
           <div className="bg-error-container/50 dark:bg-error-container/20 rounded-2xl p-6 border border-error/20 relative overflow-hidden">
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-error"></div>
-            
             <h4 className="font-body-md font-bold text-on-error-container dark:text-error mb-2">Delete Account</h4>
             <p className="font-body-sm text-on-error-container/80 dark:text-error/80 mb-6 max-w-xl">
               Once you delete your account, there is no going back. Please be certain. 

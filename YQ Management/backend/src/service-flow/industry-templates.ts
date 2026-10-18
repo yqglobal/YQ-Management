@@ -35,6 +35,9 @@ export interface StepTemplateData {
   outcomeOptions?: string[];
   stepPrice?: number;
   isPriceVariable?: boolean;
+  expectedDuration?: number; // In minutes
+  bufferDuration?: number; // In minutes
+  concurrentSlots?: number;
 }
 
 export interface FlowTemplate {
@@ -86,6 +89,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
           'Verify patient identity, confirm appointment or walk-in, and capture basic details.',
         locationDescription: 'Reception / Front Desk',
         notifyCustomerOnActivation: true,
+        expectedDuration: 5,
+        concurrentSlots: 2,
       },
       {
         stepOrder: 2,
@@ -108,6 +113,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
           'Claim Pending',
         ],
         notifyCustomerOnActivation: false,
+        expectedDuration: 10,
+        concurrentSlots: 1,
       },
       {
         stepOrder: 3,
@@ -130,6 +137,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
           'Priority 3 – Routine',
         ],
         notifyCustomerOnActivation: true,
+        expectedDuration: 10,
+        concurrentSlots: 2,
       },
       {
         stepOrder: 4,
@@ -152,6 +161,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
           'All Clear – Discharge',
         ],
         notifyCustomerOnActivation: true,
+        expectedDuration: 20,
+        concurrentSlots: 1,
       },
       {
         stepOrder: 5,
@@ -189,6 +200,8 @@ export const INDUSTRY_TEMPLATES: FlowTemplate[] = [
         customerInstruction:
           'Your results will be ready within 24 hours. You will be notified via WhatsApp. You may leave and come back.',
         notifyCustomerOnActivation: false,
+        expectedDuration: 1440,
+        concurrentSlots: 10,
       },
       {
         stepOrder: 7,

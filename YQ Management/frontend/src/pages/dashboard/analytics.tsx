@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -6,12 +7,12 @@ import dynamic from 'next/dynamic';
 const VisitsAreaChart = dynamic(() => import('../../components/charts/VisitsAreaChart').then(mod => mod.VisitsAreaChart), { ssr: false });
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { fetchApi } from '../../lib/api';
+import { fetchApi, getBackendUrl, AuthStorage } from '../../lib/api';
 import { FeatureGuard } from '../../components/guards/FeatureGuard';
 import { Search, Users, Phone, Mail, Clock, BarChart2 } from 'lucide-react';
 import { useLocation } from '../../components/LocationContext';
 import { useAuth } from '../../components/AuthContext';
-import type { AnalyticsResponse, Customer, Visit, Service } from '@yq/shared';
+import type { AnalyticsResponse, Visit, Service } from '@yq/shared';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Download, Medal, Star } from 'lucide-react';
@@ -79,24 +80,17 @@ export default function Analytics() {
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [startDate, endDate] = dateRange;
 
-  const [activeTab, setActiveTab] = useState<'insights' | 'customers'>('insights');
-  const [selectedServiceId, setSelectedServiceId] = useState<string>('');
-  const [customerSearch, setCustomerSearch] = useState('');
-  const [customerSort, setCustomerSort] = useState<'visits' | 'recent' | 'name'>('visits');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   const router = useRouter();
 
   useEffect(() => {
     if (router.isReady) {
-      if (router.query.tab === 'customers') {
-        setActiveTab('customers');
-      }
       if (router.query.customerId) {
         setSelectedCustomerId(router.query.customerId as string);
       }
     }
-  }, [router.isReady, router.query.tab, router.query.customerId]);
+  }, [router.isReady, router.query.customerId]);
 
   const timeParam = timeRange === 'Day' ? 'today' : timeRange === 'Week' ? '7d' : timeRange === 'Month' ? '30d' : timeRange === 'All' ? 'all' : 'custom';
   const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
@@ -114,97 +108,67 @@ export default function Analytics() {
     enabled: timeRange !== 'Custom' || (!!startDate && !!endDate),
   });
 
-  const { data: visitsRaw, isLoading: isVisitsLoading } = useQuery({
-    queryKey: ['visits', 'analytics', timeParam, customRangeParam, activeLocationId, selectedServiceId, tz],
-    queryFn: (): Promise<Visit[] | null> => 
-      fetchApi<Visit[]>(`/visits?scope=analytics&timeframe=${timeParam}${locParam}${customRangeParam}${selectedServiceId ? `&serviceId=${selectedServiceId}` : ''}&tz=${encodeURIComponent(tz)}`).catch(() => null),
-    enabled: timeRange !== 'Custom' || (!!startDate && !!endDate),
-  });
-  const visits: Visit[] = visitsRaw ?? [];
-
-  const { kpis, chartData: rawChartData, servicePerformance, heatmapData, staffPerformance } = analytics || {
-    kpis: { totalVisits: 0, averageWaitTimeMins: 0, slaViolations: 0, dropOffRate: 0, csatScore: 0 },
+  const { kpis, chartData: rawChartData, servicePerformance, heatmapData, staffPerformance } = (analytics as any) || {
+    kpis: { totalVisits: 0, averageWaitTimeMins: 0, slaViolations: 0, dropOffRate: 0, csatScore: 0, totalCancelled: 0, totalNoShow: 0 },
     chartData: [],
     servicePerformance: [],
     heatmapData: null,
     staffPerformance: []
   };
 
+  const [isExporting, setIsExporting] = useState(false);
+
   const handleExportCSV = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const baseUrl = getBackendUrl();
       const url = `${baseUrl}/analytics/export?timeframe=${timeParam}${locParam}${customRangeParam}&tz=${encodeURIComponent(tz)}`;
-      const tokenStr = document.cookie.split('; ').find(row => row.startsWith('qmova_token='))?.split('=')[1];
-      
+      const token = AuthStorage.get();
+
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const res = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${tokenStr}`
-        }
+        headers,
+        credentials: 'include',
       });
-      if (!res.ok) throw new Error('Export failed');
+
+      if (!res.ok) {
+        let errorMsg = 'Failed to export CSV';
+        try {
+          const errJson = await res.json();
+          if (errJson?.message) errorMsg = errJson.message;
+        } catch {
+          // not json
+        }
+        throw new Error(errorMsg);
+      }
+
       const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
+      link.href = downloadUrl;
       link.download = `qmova-analytics-${timeParam}.csv`;
+      document.body.appendChild(link);
       link.click();
-    } catch (e) {
-      console.error(e);
-      alert('Failed to export CSV. Please try again.');
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      toast.success('Analytics CSV exported successfully.');
+    } catch (e: any) {
+      console.error('Export error:', e);
+      toast.error(e?.message || 'Failed to export CSV. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  const { data: services } = useQuery({
-    queryKey: ['services', activeLocationId],
-    queryFn: (): Promise<Service[]> => fetchApi<Service[]>(`/service${locParam ? `?locationId=${activeLocationId}` : ''}`).catch(() => []),
-  });
 
   const chartData = useMemo(() => {
-    return (rawChartData || []).map((d) => ({ time: d.timeLabel, visits: d.volume }));
+    return (rawChartData || []).map((d: any) => ({ time: d.timeLabel, visits: d.volume }));
   }, [rawChartData]);
-
-  // ── Visits list ──────────────────────────────
-  const computeWaitMins = (record: any) => {
-    if (!record.serviceStart) return 0;
-    const start = new Date(record.waitingStart || record.createdAt).getTime();
-    const end = new Date(record.serviceStart).getTime();
-    const diff = end - start;
-    return diff > 0 ? Math.round(diff / 60000) : 0;
-  };
-  const computeServiceMins = (record: any) => {
-    if (!record.serviceStart || !record.completedAt) return 0;
-    const start = new Date(record.serviceStart).getTime();
-    const end = new Date(record.completedAt).getTime();
-    const diff = end - start;
-    return diff > 0 ? Math.round(diff / 60000) : 0;
-  };
-
-  const { filteredVisits, uniqueCustomersCount, totalVisitsCount, avgWaitTime } = useMemo(() => {
-    let list = [...visits];
-    
-    if (customerSearch) {
-      const q = customerSearch.toLowerCase();
-      list = list.filter(v =>
-        v.customer?.name?.toLowerCase().includes(q) ||
-        v.customer?.phone?.includes(q) ||
-        v.customer?.email?.toLowerCase().includes(q)
-      );
-    }
-
-    if (customerSort === 'visits') {
-      // sort by wait time desc
-      list.sort((a, b) => computeWaitMins(b) - computeWaitMins(a));
-    } else if (customerSort === 'recent') {
-      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    } else {
-      list.sort((a, b) => (a.customer?.name || '').localeCompare(b.customer?.name || ''));
-    }
-
-    const uniqueSet = new Set(list.map(v => v.customerId).filter(Boolean));
-    const totalWaitMins = list.reduce((sum, v) => sum + computeWaitMins(v), 0);
-    const avgWait = list.length ? (totalWaitMins / list.length).toFixed(1) : '0';
-
-    return { filteredVisits: list, uniqueCustomersCount: uniqueSet.size, totalVisitsCount: list.length, avgWaitTime: avgWait };
-  }, [visits, customerSearch, customerSort]);
 
   const kpiVariants = {
     hidden: { opacity: 0, y: 15 },
@@ -221,27 +185,8 @@ export default function Analytics() {
         featureKey="advancedAnalytics"
         featureName="Advanced Analytics"
       >
-        <div className="w-full mx-auto space-y-6">
+        <div className="w-full mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
 
-          {/* Tab Bar */}
-          <div className="flex gap-1 bg-surface-container-low dark:bg-zinc-900 p-1 rounded-xl w-fit border border-border dark:border-dark-border">
-            {(['insights', 'customers'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${activeTab === tab
-                    ? 'bg-white dark:bg-zinc-800 text-on-surface dark:text-white shadow-sm'
-                    : 'text-on-surface-variant hover:text-on-surface dark:hover:text-white'
-                  }`}
-              >
-                {tab === 'insights' ? '📊 Insights' : '👥 Customers'}
-              </button>
-            ))}
-          </div>
-
-          {/* ── INSIGHTS TAB ── */}
-          {activeTab === 'insights' && (
-            <>
               {/* KPI Ribbon */}
               <motion.div
                 initial="hidden" animate="visible"
@@ -282,7 +227,11 @@ export default function Analytics() {
                 <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
                   <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Walkaway Rate</p>
                   <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">{kpis.dropOffRate}%</p>
-                  <p className="text-xs text-outline mt-1">No-shows & cancels</p>
+                  <p className="text-xs text-outline mt-1">
+                    {(kpis.totalCancelled !== undefined || kpis.totalNoShow !== undefined)
+                      ? `${kpis.totalCancelled || 0} cancelled · ${kpis.totalNoShow || 0} no-shows`
+                      : 'No-shows & cancels'}
+                  </p>
                 </motion.div>
               </motion.div>
 
@@ -297,9 +246,10 @@ export default function Analytics() {
                     <div className="flex flex-wrap gap-1.5 justify-end">
                       <button 
                         onClick={handleExportCSV}
-                        className="px-3 py-1 rounded-lg text-xs font-semibold bg-surface-container-low dark:bg-zinc-800 text-on-surface hover:bg-surface-container-high border border-border flex items-center gap-1 transition-colors mr-2"
+                        disabled={isExporting}
+                        className="px-3 py-1 rounded-lg text-xs font-semibold bg-surface-container-low dark:bg-zinc-800 text-on-surface hover:bg-surface-container-high border border-border flex items-center gap-1 transition-colors mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Download className="w-3.5 h-3.5" /> Export CSV
+                        <Download className={`w-3.5 h-3.5 ${isExporting ? 'animate-spin' : ''}`} /> {isExporting ? 'Exporting...' : 'Export CSV'}
                       </button>
 
                       {(['Day', 'Week', 'Month', 'All', 'Custom'] as const).map((r) => (
@@ -404,7 +354,7 @@ export default function Analytics() {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {servicePerformance.map((svc, i) => (
+                    {servicePerformance.map((svc: any, i: number) => (
                       <div key={svc.id} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
                         <div className="flex justify-between items-center mb-4 border-b border-border dark:border-dark-border pb-4">
                           <div>
@@ -422,7 +372,7 @@ export default function Analytics() {
                           <p className="text-sm text-on-surface-variant">No queue data for this service yet.</p>
                         ) : (
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {svc.queues.map((q, j) => {
+                            {svc.queues.map((q: any, j: number) => {
                               const isViolating = q.avgMins !== null && q.avgMins > SLA_THRESHOLD_MINS;
                               const hasData = q.avgMins !== null;
                               return (
@@ -455,160 +405,7 @@ export default function Analytics() {
                   </div>
                 )}
               </motion.div>
-            </>
-          )}
 
-          {/* ── CUSTOMERS TAB (absorbs Records page) ── */}
-          {activeTab === 'customers' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-              {/* Summary stats */}
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  { label: 'Total Customers', value: uniqueCustomersCount, icon: Users },
-                  { label: 'Total Visits', value: totalVisitsCount, icon: BarChart2 },
-                  { label: 'Avg Wait (Mins)', value: avgWaitTime, icon: Clock },
-                ].map(({ label, value, icon: Icon }) => (
-                  <div key={label} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 shadow-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Icon strokeWidth={1.5} className="w-4 h-4 text-primary" />
-                      <p className="text-xs font-medium text-on-surface-variant uppercase tracking-wider">{label}</p>
-                    </div>
-                    <p className="text-2xl font-bold text-on-surface dark:text-white">{value}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Toolbar */}
-              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                <div className="relative w-full max-w-sm">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" strokeWidth={1.5} />
-                  <input
-                    type="text"
-                    placeholder="Search name, phone or email..."
-                    value={customerSearch}
-                    onChange={(e) => setCustomerSearch(e.target.value)}
-                    className="pl-9 pr-4 py-2 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all text-on-surface dark:text-white placeholder:text-on-surface-variant w-full"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <select 
-                    value={selectedServiceId}
-                    onChange={e => setSelectedServiceId(e.target.value)}
-                    className="bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl text-sm px-3 py-2 text-on-surface dark:text-white outline-none focus:ring-2 focus:ring-primary transition-all cursor-pointer"
-                  >
-                    <option value="">All Services</option>
-                    {services?.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                  <span className="text-sm text-on-surface-variant ml-2">Sort:</span>
-                  {(['visits', 'recent', 'name'] as const).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setCustomerSort(s)}
-                      className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-all capitalize ${customerSort === s
-                          ? 'bg-primary text-white'
-                          : 'bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border text-on-surface-variant hover:text-on-surface dark:hover:text-white'
-                        }`}
-                    >
-                      {s === 'visits' ? 'Wait' : s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Customer Table */}
-              <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl shadow-sm overflow-hidden">
-                {isVisitsLoading ? (
-                  <div className="p-6 space-y-3">
-                    {[1, 2, 3, 4].map(i => (
-                      <div key={i} className="h-14 bg-surface-container-low dark:bg-white/5 animate-pulse rounded-xl" />
-                    ))}
-                  </div>
-                ) : filteredVisits.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-border dark:border-dark-border bg-surface-container-low dark:bg-white/[0.02] text-xs uppercase tracking-wider text-on-surface-variant font-semibold">
-                          <th className="p-4">Customer</th>
-                          <th className="p-4">Contact</th>
-                          <th className="p-4">Service</th>
-                          <th className="p-4">Location</th>
-                          <th className="p-4 text-center">Wait</th>
-                          <th className="p-4">Status</th>
-                          <th className="p-4">Visit Date / Time</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border dark:divide-dark-border">
-                        {filteredVisits.map((visit: any) => {
-                          const wMins = computeWaitMins(visit);
-                          const sMins = computeServiceMins(visit);
-                          return (
-                          <tr key={visit.id} onClick={() => visit.customerId ? setSelectedCustomerId(visit.customerId) : null} className="hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors cursor-pointer">
-                            <td className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center font-bold text-primary text-sm shrink-0">
-                                  {(visit.customer?.name || '?').charAt(0).toUpperCase()}
-                                </div>
-                                <p className="font-semibold text-on-surface dark:text-white text-sm">{visit.customer?.name || 'Walk-in'}</p>
-                              </div>
-                            </td>
-                            <td className="p-4">
-                              <div className="space-y-0.5">
-                                {visit.customer?.phone && (
-                                  <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-                                    <Phone className="w-3.5 h-3.5" strokeWidth={1.5} />{visit.customer.phone}
-                                  </div>
-                                )}
-                                {visit.customer?.email && (
-                                  <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-                                    <Mail className="w-3.5 h-3.5" strokeWidth={1.5} />{visit.customer.email}
-                                  </div>
-                                )}
-                                {!visit.customer?.phone && !visit.customer?.email && <span className="text-xs text-on-surface-variant">—</span>}
-                              </div>
-                            </td>
-                            <td className="p-4">
-                              <span className="text-sm font-medium text-on-surface dark:text-white">{visit.service?.name || '—'}</span>
-                            </td>
-                            <td className="p-4">
-                              <span className="text-sm text-on-surface-variant">{visit.location?.name || '—'}</span>
-                            </td>
-                            <td className="p-4 text-center">
-                              <span className="text-sm text-on-surface-variant font-medium">{wMins > 0 ? `${wMins}m` : '—'}</span>
-                            </td>
-                            <td className="p-4">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider
-                                ${visit.currentState === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' :
-                                  ['NO_SHOW', 'CANCELLED'].includes(visit.currentState) ? 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400' :
-                                  'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
-                                }`}>
-                                {visit.currentState.replace('_', ' ')}
-                              </span>
-                            </td>
-                            <td className="p-4">
-                              <div className="flex flex-col">
-                                <span className="text-sm text-on-surface dark:text-white">{new Date(visit.createdAt).toLocaleDateString(undefined, { timeZone: user?.tenant?.timezone || 'UTC' })}</span>
-                                <span className="text-xs text-on-surface-variant">{new Date(visit.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute:'2-digit', timeZone: user?.tenant?.timezone || 'UTC' })}</span>
-                              </div>
-                            </td>
-                          </tr>
-                        )})}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="p-16 flex flex-col items-center justify-center text-center">
-                    <div className="w-16 h-16 bg-surface-container-low dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
-                      <Users className="w-8 h-8 text-on-surface-variant opacity-40" strokeWidth={1.5} />
-                    </div>
-                    <p className="text-lg font-semibold text-on-surface dark:text-white mb-1">No customer data yet</p>
-                    <p className="text-sm text-on-surface-variant max-w-sm">
-                      {customerSearch ? 'No customers match your search.' : 'Customers appear here after their first visit.'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
         </div>
       </FeatureGuard>
       <CustomerDrawer isOpen={!!selectedCustomerId} onClose={() => setSelectedCustomerId(null)} customerId={selectedCustomerId} />

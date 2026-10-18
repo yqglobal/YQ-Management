@@ -44,14 +44,14 @@ export class PlansController {
 
   @Post()
   @UseGuards(RolesGuard, WorkspaceGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   async createPlan(@Body() dto: CreatePlanDto) {
     return this.plansService.createPlan(dto);
   }
 
   @Put(':id')
   @UseGuards(RolesGuard, WorkspaceGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   async updatePlan(
     @Param('id', UuidPipe) id: string,
     @Body() dto: UpdatePlanDto,
@@ -61,7 +61,7 @@ export class PlansController {
 
   @Patch(':id/status')
   @UseGuards(RolesGuard, WorkspaceGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   async changePlanStatus(
     @Param('id', UuidPipe) id: string,
     @Body() dto: ChangePlanStatusDto,
@@ -71,7 +71,7 @@ export class PlansController {
 
   @Post(':id/duplicate')
   @UseGuards(RolesGuard, WorkspaceGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   async duplicatePlan(
     @Param('id', UuidPipe) id: string,
     @Body() dto: DuplicatePlanDto,
@@ -81,7 +81,7 @@ export class PlansController {
 
   @Delete(':id')
   @UseGuards(RolesGuard, WorkspaceGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   deletePlan(@Param('id') id: string) {
     return this.plansService.deletePlan(id);
   }

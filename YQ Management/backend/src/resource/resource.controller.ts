@@ -22,7 +22,7 @@ import type { AuthenticatedRequest } from '../auth/types/auth.types';
 
 @Controller('resource')
 @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-@Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+@Roles(Role.OWNER, Role.ADMIN, Role.MANAGER, Role.MANAGER)
 export class ResourceController {
   constructor(private readonly resourceService: ResourceService) {}
 
@@ -61,7 +61,7 @@ export class ResourceController {
   }
 
   @Delete(':id')
-  @Roles(Role.TENANT_ADMIN, Role.ADMIN) // Restrict delete to admins
+  @Roles(Role.OWNER, Role.ADMIN) // Restrict delete to admins
   remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.resourceService.remove(id, req.user.tenantId);
   }

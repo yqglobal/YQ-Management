@@ -183,7 +183,118 @@ export class TemplateService {
     },
   };
 
-  private readonly whatsappTemplates: Record<string, string> = {
+  private readonly whatsappTemplates: Record<string, Record<string, string>> = {
+    en: {
+      otp: 'Your Qmova verification code is {{otp}}. It expires in 5 minutes.',
+      queue_joined:
+        'Hello {{name}}! You have successfully joined the queue. You are #{{position}} in line. Track your status here: {{link}}',
+      position_update:
+        'Hello {{name}}, you are now #{{position}} in the queue for {{queue_name}}. Estimated wait: {{wait_time}} mins.',
+      near_turn: 'Hi {{name}}, you are next in line! Get ready. {{queue_name}}',
+      now_serving:
+        'Hi {{name}}, it is your turn now! Please proceed to the counter. {{queue_name}}',
+      delay:
+        'Hi {{name}}, there is a slight delay in {{queue_name}}. We will notify you when it is your turn. Estimated wait: {{wait_time}} mins.',
+      queue_closed:
+        'Hello {{name}}, the queue {{queue_name}} is now closed. Thank you for your patience.',
+      queue_cancelled:
+        'Hello {{name}}, your position in {{queue_name}} has been cancelled. You can rejoin the queue if needed.',
+      feedback:
+        'Thanks for visiting {{queue_name}}! Please reply with a number from 1 to 5 to rate your experience (5 being excellent).',
+      thank_you:
+        'Thank you for visiting {{queue_name}}, {{name}}! We hope to see you again soon.',
+      appointment_created:
+        'Hello {{name}}! Your appointment is scheduled for {{date}}. Your token is {{token}}. Track your status here: {{link}}',
+      appointment_reminder:
+        'Reminder: Hi {{name}}, your appointment is scheduled for tomorrow at {{date}}. Track your status here: {{link}}',
+      checked_in:
+        'Hello {{name}}! You have been checked in and are now waiting in the live line. Track your status here: {{link}}',
+      transferred:
+        'You have been transferred to {{queue_name}}. You are now waiting in the new queue.',
+      visit_called:
+        "🔔 *It's Your Turn!*\n\nHello {{name}}, ticket *{{token}}* for *{{service_name}}* is now being called.\n\nPlease proceed to the counter immediately.",
+      visit_cancelled:
+        '❌ *Booking Cancelled*\n\nHello {{name}}, your booking for *{{service_name}}* (Ticket: {{token}}) has been cancelled.',
+      visit_missed:
+        '⚠️ *Missed Turn*\n\nHello {{name}}, we called your ticket *{{token}}* for *{{service_name}}* but you were not present. Please speak to the receptionist.',
+      visit_completed:
+        'Hi {{name}}, your service is now complete. We hope you had a great experience!',
+    },
+    es: {
+      otp: 'Tu código de verificación de Qmova es {{otp}}. Expira en 5 minutos.',
+      queue_joined:
+        '¡Hola {{name}}! Te has unido a la fila. Eres el #{{position}}. Sigue tu estado aquí: {{link}}',
+      position_update:
+        'Hola {{name}}, ahora eres el #{{position}} en {{queue_name}}. Espera estimada: {{wait_time}} mins.',
+      near_turn: '¡Hola {{name}}, eres el siguiente! Prepárate. {{queue_name}}',
+      now_serving:
+        '¡Hola {{name}}, es tu turno! Por favor, ve al mostrador. {{queue_name}}',
+      delay:
+        'Hola {{name}}, hay un ligero retraso en {{queue_name}}. Te notificaremos. Espera estimada: {{wait_time}} mins.',
+      queue_closed:
+        'Hola {{name}}, la fila {{queue_name}} está cerrada. Gracias por tu paciencia.',
+      queue_cancelled:
+        'Hola {{name}}, tu posición en {{queue_name}} ha sido cancelada.',
+      feedback:
+        '¡Gracias por visitar {{queue_name}}! Responde con un número del 1 al 5 para calificar (5 es excelente).',
+      thank_you:
+        '¡Gracias por visitar {{queue_name}}, {{name}}! Esperamos verte pronto.',
+      appointment_created:
+        '¡Hola {{name}}! Tu cita está programada para {{date}}. Tu token es {{token}}. Sigue tu estado: {{link}}',
+      appointment_reminder:
+        'Recordatorio: Hola {{name}}, tu cita es mañana a las {{date}}. Sigue tu estado: {{link}}',
+      checked_in:
+        '¡Hola {{name}}! Has hecho check-in y estás en la fila en vivo. Sigue tu estado: {{link}}',
+      transferred:
+        'Has sido transferido a {{queue_name}}. Ahora estás esperando en la nueva fila.',
+      visit_called:
+        '🔔 *¡Es tu turno!*\n\nHola {{name}}, tu ticket *{{token}}* para *{{service_name}}* está siendo llamado.\n\nVe al mostrador de inmediato.',
+      visit_cancelled:
+        '❌ *Reserva Cancelada*\n\nHola {{name}}, tu reserva para *{{service_name}}* ha sido cancelada.',
+      visit_missed:
+        '⚠️ *Turno Perdido*\n\nHola {{name}}, llamamos a tu ticket *{{token}}* pero no estabas presente. Habla con recepción.',
+      visit_completed:
+        'Hola {{name}}, tu servicio ha finalizado. ¡Esperamos que hayas tenido una gran experiencia!',
+    },
+    pt: {
+      otp: 'Seu código de verificação Qmova é {{otp}}. Expira em 5 minutos.',
+      queue_joined:
+        'Olá {{name}}! Você entrou na fila. Você é o #{{position}}. Acompanhe aqui: {{link}}',
+      position_update:
+        'Olá {{name}}, você é o #{{position}} em {{queue_name}}. Tempo estimado: {{wait_time}} mins.',
+      near_turn: 'Olá {{name}}, você é o próximo! Prepare-se. {{queue_name}}',
+      now_serving:
+        'Olá {{name}}, é a sua vez! Por favor, vá ao balcão. {{queue_name}}',
+      delay:
+        'Olá {{name}}, há um pequeno atraso em {{queue_name}}. Notificaremos você. Tempo estimado: {{wait_time}} mins.',
+      queue_closed:
+        'Olá {{name}}, a fila {{queue_name}} está fechada. Obrigado pela paciência.',
+      queue_cancelled:
+        'Olá {{name}}, sua posição em {{queue_name}} foi cancelada.',
+      feedback:
+        'Obrigado por visitar {{queue_name}}! Responda com um número de 1 a 5 para avaliar (5 é excelente).',
+      thank_you:
+        'Obrigado por visitar {{queue_name}}, {{name}}! Esperamos ver você em breve.',
+      appointment_created:
+        'Olá {{name}}! Sua consulta está agendada para {{date}}. Seu token é {{token}}. Acompanhe aqui: {{link}}',
+      appointment_reminder:
+        'Lembrete: Olá {{name}}, sua consulta é amanhã às {{date}}. Acompanhe aqui: {{link}}',
+      checked_in:
+        'Olá {{name}}! Você fez o check-in e está na fila. Acompanhe aqui: {{link}}',
+      transferred:
+        'Você foi transferido para {{queue_name}}. Agora você está aguardando na nova fila.',
+      visit_called:
+        '🔔 *É a sua vez!*\n\nOlá {{name}}, seu ticket *{{token}}* para *{{service_name}}* foi chamado.\n\nPor favor, dirija-se ao balcão imediatamente.',
+      visit_cancelled:
+        '❌ *Reserva Cancelada*\n\nOlá {{name}}, sua reserva para *{{service_name}}* foi cancelada.',
+      visit_missed:
+        '⚠️ *Turno Perdido*\n\nOlá {{name}}, chamamos seu ticket *{{token}}* mas você não estava. Fale com a recepção.',
+      visit_completed:
+        'Olá {{name}}, seu serviço foi concluído. Esperamos que tenha tido uma ótima experiência!',
+    },
+  };
+
+  private oldWhatsappTemplatesDummy = {
     otp: 'Your Qmova verification code is {{otp}}. It expires in 5 minutes.',
     queue_joined:
       'Hello {{name}}! You have successfully joined the queue. You are #{{position}} in line. Track your status here: {{link}}',
@@ -210,6 +321,14 @@ export class TemplateService {
       'Hello {{name}}! You have been checked in and are now waiting in the live line. Track your status here: {{link}}',
     transferred:
       'You have been transferred to {{queue_name}}. You are now waiting in the new queue.',
+    visit_called:
+      "🔔 *It's Your Turn!*\n\nHello {{name}}, ticket *{{token}}* for *{{service_name}}* is now being called.\n\nPlease proceed to the counter immediately.",
+    visit_cancelled:
+      '❌ *Booking Cancelled*\n\nHello {{name}}, your booking for *{{service_name}}* (Ticket: {{token}}) has been cancelled.',
+    visit_missed:
+      '⚠️ *Missed Turn*\n\nHello {{name}}, we called your ticket *{{token}}* for *{{service_name}}* but you were not present. Please speak to the receptionist.',
+    visit_completed:
+      'Hi {{name}}, your service is now complete. We hope you had a great experience!',
   };
 
   renderEmail(templateKey: string, variables: TemplateVariables): Template {
@@ -239,8 +358,15 @@ export class TemplateService {
     return { subject, html, text };
   }
 
-  renderWhatsApp(templateKey: string, variables: TemplateVariables): string {
-    const template = this.whatsappTemplates[templateKey];
+  renderWhatsApp(
+    templateKey: string,
+    variables: TemplateVariables,
+    language: string = 'en',
+  ): string {
+    const dict =
+      this.whatsappTemplates[language] || this.whatsappTemplates['en'];
+    const template =
+      dict[templateKey] || this.whatsappTemplates['en'][templateKey];
     if (!template) {
       this.logger.warn(`WhatsApp template "${templateKey}" not found`);
       return '';
@@ -258,8 +384,12 @@ export class TemplateService {
     tenantId: string | null,
     templateKey: string,
     variables: TemplateVariables,
+    language: string = 'en',
   ): Promise<string> {
-    let templateContent = this.whatsappTemplates[templateKey];
+    const dict =
+      this.whatsappTemplates[language] || this.whatsappTemplates['en'];
+    let templateContent =
+      dict[templateKey] || this.whatsappTemplates['en'][templateKey];
     if (!templateContent) {
       this.logger.warn(`WhatsApp template "${templateKey}" not found`);
       return '';
@@ -287,6 +417,6 @@ export class TemplateService {
   }
 
   getWhatsAppTemplateKeys(): string[] {
-    return Object.keys(this.whatsappTemplates);
+    return Object.keys(this.whatsappTemplates['en'] || {});
   }
 }

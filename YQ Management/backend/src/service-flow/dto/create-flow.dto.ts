@@ -1,8 +1,9 @@
 import { IsString, IsOptional, IsBoolean, IsIn } from 'class-validator';
 
 export class CreateFlowDto {
+  @IsOptional()
   @IsString()
-  serviceId: string;
+  serviceId?: string;
 
   @IsString()
   name: string;
@@ -25,8 +26,8 @@ export class CreateFlowDto {
   paymentTiming?: 'CHECKIN' | 'CHECKOUT' | 'NONE';
 
   @IsOptional()
-  @IsIn(['ONLINE_ONLY', 'ONLINE_OR_COUNTER'])
-  checkinPayMode?: 'ONLINE_ONLY' | 'ONLINE_OR_COUNTER';
+  @IsIn(['COUNTER_ONLY', 'STRIPE_ONLY', 'BOTH'])
+  checkinPayMode?: 'COUNTER_ONLY' | 'STRIPE_ONLY' | 'BOTH';
 
   @IsOptional()
   @IsBoolean()

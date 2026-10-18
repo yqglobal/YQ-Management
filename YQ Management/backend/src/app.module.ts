@@ -55,6 +55,7 @@ import { SlaPolicyModule } from './sla-policy/sla-policy.module';
 import { ServiceFlowModule } from './service-flow/service-flow.module';
 import { VisitStepModule } from './visit-step/visit-step.module';
 import { TenantPaymentsModule } from './tenant-payments/tenant-payments.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
 import { AiSetupModule } from './ai-setup/ai-setup.module';
 import { SmsModule } from './sms/sms.module';
 
@@ -151,6 +152,7 @@ import { SmsModule } from './sms/sms.module';
     VisitStepModule,
     TenantPaymentsModule,
     SmsModule,
+    OnboardingModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

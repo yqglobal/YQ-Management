@@ -97,6 +97,7 @@ describe('VisitController (e2e)', () => {
       .post('/visits')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
+        tenantId,
         customerId,
         locationId,
         serviceId,
@@ -118,9 +119,10 @@ describe('VisitController (e2e)', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .expect(200)
       .then((response) => {
-        expect(Array.isArray(response.body)).toBe(true);
-        expect(response.body.length).toBeGreaterThan(0);
-        expect(response.body[0].id).toBe(createdVisitId);
+        console.log('GET /visits response body:', response.body);
+        expect(Array.isArray(response.body.data)).toBe(true);
+        expect(response.body.data.length).toBeGreaterThan(0);
+        expect(response.body.data[0].id).toBe(createdVisitId);
       });
   });
 

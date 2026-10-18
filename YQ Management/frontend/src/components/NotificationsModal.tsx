@@ -134,12 +134,12 @@ export function useNotifications() {
       } else if (Array.isArray(queues) && queues.length === 0) {
         liveList.push({
           id: 'no-queues-alert',
-          title: 'No Active Queues Found',
-          message: 'Get started by creating your first queue to issue tokens and display live wait times.',
+          title: 'No Active Services Found',
+          message: 'Get started by creating your first service to issue tokens and display live wait times.',
           category: 'QUEUE',
           timestamp: 'Action Required',
-          actionUrl: '/dashboard/queues',
-          actionText: 'Create Queue',
+          actionUrl: '/dashboard/settings/operations?tab=services',
+          actionText: 'Create Service',
         });
       }
     } catch {
@@ -147,7 +147,7 @@ export function useNotifications() {
     }
 
     // 3. Billing & Subscription Health
-    if (user?.role === 'TENANT_ADMIN' || user?.role === 'SUPER_ADMIN') {
+    if (user?.role === 'OWNER' || user?.role === 'SUPER_ADMIN') {
       liveList.push({
         id: 'billing-tier-info',
         title: 'Subscription & Usage Limits',

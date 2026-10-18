@@ -64,9 +64,23 @@ export class OutboxProcessorService implements OnModuleInit {
 
     // Zero-Latency Event Streaming: wake up the processor immediately when a
     // new event is published to Redis instead of waiting for the next poll cycle.
-    this.redisService.subscriber.subscribe('outbox_events', (err) => {
-      if (err) this.logger.error('Failed to subscribe to outbox_events', err);
-    });
+    const subscribeToEvents = () => {
+      this.redisService.subscriber.subscribe('outbox_events', (err) => {
+        if (err) {
+          this.logger.warn(`Failed to subscribe to outbox_events: ${err.message}`);
+        } else {
+          this.logger.log('Successfully subscribed to outbox_events');
+        }
+      });
+    };
+
+    if (this.redisService.subscriber.status === 'ready') {
+      subscribeToEvents();
+    } else {
+      this.redisService.subscriber.once('ready', () => {
+        subscribeToEvents();
+      });
+    }
 
     this.redisService.subscriber.on('message', (channel, message) => {
       if (channel === 'outbox_events' && message === 'WAKE_UP') {
@@ -146,6 +160,7 @@ export class OutboxProcessorService implements OnModuleInit {
       'VISIT_CREATED',
       'VISIT_UPDATED',
       'VISIT_CALLED',
+      'VISIT_STARTED',
       'VISIT_COMPLETED',
       'VISIT_MISSED',
       'VISIT_CANCELLED',

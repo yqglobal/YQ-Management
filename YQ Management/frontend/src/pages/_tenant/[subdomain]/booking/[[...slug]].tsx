@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { GetServerSideProps } from 'next';
-import { QRCode } from "react-qrcode-logo";
+
 import { TenantSupportFooter } from '../../../../components/TenantSupportFooter';
 import { useRouter } from 'next/router';
 import { io } from 'socket.io-client';
@@ -20,6 +20,7 @@ import { ServiceStep } from '../../../../components/booking/ServiceStep';
 import { ContactStep } from '../../../../components/booking/ContactStep';
 import { PaymentStep } from '../../../../components/booking/PaymentStep';
 import { slugify } from '../../../../lib/utils';
+import { detectCountryCode, getInitialCountryIso } from '../../../../lib/country-codes';
 
 interface Service {
   id: string;
@@ -30,6 +31,9 @@ interface Service {
   dateSelectionType?: string;
   maxDaysInAdvance?: number;
   formConfig?: AnyFixMe[];
+  allowAppointments?: boolean;
+  allowProviderSelection?: boolean;
+  isOpenNow?: boolean;
   queues: Queue[];
 }
 
@@ -84,7 +88,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   const [phone, setPhone] = useState('');
   const [accompanyingGuests, setAccompanyingGuests] = useState(0);
   const [completedPaymentId, setCompletedPaymentId] = useState<string | null>(null);
-  const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>('US');
+  const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>(() => ipCountry || getInitialCountryIso());
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [regionBlocked, setRegionBlocked] = useState(false);
   const idempotencyKey = React.useMemo(() => {
@@ -105,6 +109,13 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
         const stored = JSON.parse(localStorage.getItem('qmova_active_tokens') || '[]');
         const updatedTokens = Array.from(new Set([...stored, ...accessTokens]));
         localStorage.setItem('qmova_active_tokens', JSON.stringify(updatedTokens));
+        const sub = router.query.subdomain as string;
+        if (sub) {
+          localStorage.setItem(`qmova_active_tokens_${sub}`, JSON.stringify(updatedTokens));
+        }
+        if (typeof document !== 'undefined') {
+          document.cookie = `qmova_session=${updatedTokens.join(',')}; path=/; max-age=604800; SameSite=Lax`;
+        }
         tokenStr = updatedTokens.join(',');
       } catch (e) {
         console.error('Failed to save tokens to local storage', e);
@@ -165,20 +176,18 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   }, [step, selectedLocationId, name, phone, accompanyingGuests, selectedServiceIds, tenant?.id]);
 
   useEffect(() => {
-    import('../../../../lib/country-codes').then(({ detectCountryCode }) => {
-      detectCountryCode().then((country) => {
-        if (country) {
-          const detected = ipCountry || country.country;
-          setDefaultCountry(detected);
-          
-          // Check operating countries
-          if (tenant?.operatingCountries && tenant.operatingCountries.length > 0) {
-            if (!tenant.operatingCountries.includes(detected)) {
-              setRegionBlocked(true);
-            }
+    detectCountryCode().then((country) => {
+      if (country) {
+        const detected = ipCountry || country.country;
+        setDefaultCountry(detected);
+        
+        // Check operating countries
+        if (tenant?.operatingCountries && tenant.operatingCountries.length > 0) {
+          if (!tenant.operatingCountries.includes(detected)) {
+            setRegionBlocked(true);
           }
         }
-      });
+      }
     });
   }, [ipCountry, tenant]);
 
@@ -251,8 +260,12 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
     } else if (!restored) {
       // Apply defaults only if no state was restored
       if (tenant?.locations && tenant.locations.length === 1 && !slug) {
-        // Redirect to the slug
-        router.replace(`/booking/${slugify(tenant.locations[0].name)}`, undefined, { shallow: true });
+        // Redirect to the slug while preserving /t/[subdomain] prefix if path-based
+        const slugPath = `/booking/${slugify(tenant.locations[0].name)}`;
+        const fullPath = router.asPath.startsWith('/t/')
+          ? `/t/${router.query.subdomain}${slugPath}`
+          : slugPath;
+        router.replace(fullPath, undefined, { shallow: true });
         return; // Wait for route change
       } else if (!tenant?.locations || tenant.locations.length === 0) {
         setStep(2); // Skip location step if none exist
@@ -658,7 +671,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               "@context": "https://schema.org",
               "@type": "LocalBusiness",
               "name": tenant.name,
-              "url": `${process.env.NEXT_PUBLIC_APP_URL ? process.env.NEXT_PUBLIC_APP_URL.replace('://', `://${tenant.id}.`) : `https://${tenant.id}.qmova.yqbuddy.com`}/booking`,
+              "url": `${process.env.NEXT_PUBLIC_APP_URL ? process.env.NEXT_PUBLIC_APP_URL.replace('://', `://${tenant.subdomain || tenant.id}.`) : `https://${tenant.subdomain || tenant.id}.${process.env.NEXT_PUBLIC_DOMAIN_BASE || 'qmova.com'}`}/booking`,
               "telephone": tenant.phone || tenant.customerCareNumber || undefined,
               "description": `Book an appointment or join the waitlist at ${tenant.name}. Services include ${services.map(s => s.name).join(', ')}.`
             })
@@ -914,11 +927,11 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                             ) : (
                               <div className="flex overflow-x-auto pb-4 gap-3 snap-x scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                 {sliderDates.map((date) => {
-                                  const m = date.getMonth() + 1;
                                   const y = date.getFullYear();
+                                  const m = date.getMonth() + 1;
+                                  const d = String(date.getDate()).padStart(2, '0');
+                                  const localISOTime = `${y}-${String(m).padStart(2, '0')}-${d}`;
                                   const key = `${currentServiceId}-${m}-${y}`;
-                                  const tzOffset = date.getTimezoneOffset() * 60000;
-                                  const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
                                   
                                   // Only show dates once we know they are available
                                   // If data loaded for this month and date is NOT in it → skip
@@ -947,11 +960,11 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                                   );
                                 })}
                                 {sliderDates.length > 0 && sliderDates.every(date => {
-                                  const m = date.getMonth() + 1;
                                   const y = date.getFullYear();
+                                  const m = date.getMonth() + 1;
+                                  const d = String(date.getDate()).padStart(2, '0');
+                                  const localISOTime = `${y}-${String(m).padStart(2, '0')}-${d}`;
                                   const key = `${currentServiceId}-${m}-${y}`;
-                                  const tzOffset = date.getTimezoneOffset() * 60000;
-                                  const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
                                   return availableDatesMap[key] && !availableDatesMap[key].includes(localISOTime);
                                 }) && (
                                   <p className="text-sm text-gray-500 w-full text-center py-4">No dates available in the next {currentService.maxDaysInAdvance || 30} days.</p>
@@ -993,13 +1006,13 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                                 const d = String(date.getDate()).padStart(2, '0');
                                 return availableDatesMap[key].includes(`${yr}-${mo}-${d}`);
                               }}
-                              minDate={React.useMemo(() => new Date(), [])}
-                              maxDate={React.useMemo(() => {
+                              minDate={new Date()}
+                              maxDate={(() => {
                                 const maxDays = currentService.maxDaysInAdvance ?? 30;
                                 const d = new Date();
                                 d.setDate(d.getDate() + maxDays);
                                 return d;
-                              }, [currentService.maxDaysInAdvance])}
+                              })()}
                               inline
                               calendarClassName="custom-calendar-container border border-gray-200 dark:border-zinc-800 rounded-xl w-full"
                             />
@@ -1011,6 +1024,9 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                               const slotTime = typeof slotData === 'string' ? slotData : slotData.time;
                               const isAvailable = typeof slotData === 'string' ? true : slotData.available;
                               const isSelected = currentDetails.selectedSlot === slotTime;
+                              const displayLabel = (typeof slotData === 'object' && slotData.displayTime) 
+                                ? slotData.displayTime 
+                                : new Date(slotTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                               
                               return (
                                 <button 
@@ -1020,7 +1036,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                                   onClick={() => isAvailable && updateCurrentDetails({ selectedSlot: slotTime })} 
                                   className={`p-2 rounded-lg text-sm font-bold transition-colors ${!isAvailable ? 'bg-gray-100 dark:bg-zinc-800/50 text-gray-400 dark:text-zinc-600 cursor-not-allowed border border-gray-200 dark:border-zinc-800/50' : isSelected ? 'text-white shadow-md border-transparent' : 'bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-gray-300'}`} 
                                   style={isSelected && isAvailable ? { backgroundColor: primaryColor } : {}}>
-                                  {new Date(slotTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  {displayLabel}
                                 </button>
                               );
                             })}
@@ -1123,10 +1139,14 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                 tenantId={tenant?.id}
                 amount={selectedServiceIds.reduce((total, sid) => {
                   const s = services.find(x => x.id === sid);
-                  const base = s && ((s as any).paymentMode === 'PREPAY' || (s as any).paymentMode === 'OPTIONAL_PREPAY') && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0;
+                  const flow = (s as any)?.serviceFlow;
+                  const isCheckinPay = flow?.isActive
+                    ? flow.paymentTiming === 'CHECKIN'
+                    : ((s as any)?.paymentMode === 'PREPAY' || (s as any)?.paymentMode === 'OPTIONAL_PREPAY' || (s as any)?.paymentMode === 'PAY_AT_SERVICE');
+                  const base = s && isCheckinPay && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0;
                   return total + (base * (1 + accompanyingGuests));
                 }, 0) * 100} // Stripe amount is in cents
-                currency={services.find(x => x.id === selectedServiceIds[0]) ? (services.find(x => x.id === selectedServiceIds[0]) as any).currency || 'usd' : 'usd'}
+                currency={services.find(x => x.id === selectedServiceIds[0]) ? (services.find(x => x.id === selectedServiceIds[0]) as any).priceCurrency || (services.find(x => x.id === selectedServiceIds[0]) as any).currency || 'usd' : 'usd'}
                 stripeAccountId={tenant?.paymentAccount?.connectedAccountId}
                 visitId={createdVisits.find(v => v.currentState === 'PENDING_PAYMENT')?.id}
                 onSuccess={(paymentId) => {
@@ -1135,13 +1155,17 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                 }}
                 onBack={() => setStep(4)}
                 onSkip={
-                  selectedServiceIds.some(sid => {
-                    const s = services.find(x => x.id === sid);
-                    return s && ((s as any).paymentMode === 'OPTIONAL_PREPAY' || (s as any).allowOfflinePayment);
-                  }) && !selectedServiceIds.some(sid => {
-                    const s = services.find(x => x.id === sid);
-                    return s && (s as any).paymentMode === 'PREPAY' && !(s as any).allowOfflinePayment;
-                  }) ? () => redirectToStatus(createdVisits) : undefined
+                  (() => {
+                    const pendingVisit = createdVisits.find((v: any) => v.currentState === 'PENDING_PAYMENT');
+                    const payMode =
+                      pendingVisit?.flow?.checkinPayMode ||
+                      (services.find((x: any) => x.id === pendingVisit?.serviceId) as any)?.serviceFlow?.checkinPayMode ||
+                      'BOTH';
+                    // STRIPE_ONLY requires payment online, so no skip button
+                    if (payMode === 'STRIPE_ONLY') return undefined;
+                    // BOTH or COUNTER_ONLY allow skip and pay later at counter
+                    return () => redirectToStatus(createdVisits);
+                  })()
                 }
                 primaryColor={primaryColor}
               />

@@ -6,6 +6,7 @@ import {
   UseGuards,
   Req,
   Query,
+  Body,
 } from '@nestjs/common';
 import { InvoiceService } from './invoice.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -20,7 +21,7 @@ export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}
 
   @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-  @Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.OPERATOR, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER, Role.MANAGER)
   @Get('visit/:visitId')
   async getVisitInvoice(
     @Req() req: AuthenticatedRequest,
@@ -31,7 +32,7 @@ export class InvoiceController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-  @Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER)
   @Get()
   async listInvoices(
     @Req() req: AuthenticatedRequest,
@@ -41,5 +42,16 @@ export class InvoiceController {
     const o = parseInt(offset || '0', 10);
     const l = parseInt(limit || '50', 10);
     return this.invoiceService.listInvoices(req.user.tenantId, o, l);
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER, Role.MANAGER)
+  @Post('visit/:visitId')
+  async updateVisitInvoice(
+    @Req() req: AuthenticatedRequest,
+    @Param('visitId') visitId: string,
+    @Body() body: { lineItems: any[] },
+  ) {
+    return this.invoiceService.updateVisitInvoice(visitId, body.lineItems);
   }
 }

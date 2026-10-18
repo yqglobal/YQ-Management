@@ -8,11 +8,13 @@ import ChatbotSettings from '../../../components/settings/chatbot';
 import WebhooksSettings from '../../../components/settings/webhooks';
 import AnnouncementsSettings from '../../../components/settings/announcements';
 import GoogleBusinessSettings from '../../../components/settings/google-business';
+import MessageTemplatesSettings from '../../../components/settings/message-templates';
 
-type TabId = 'whatsapp' | 'announcements' | 'webhooks' | 'google';
+type TabId = 'whatsapp' | 'templates' | 'announcements' | 'webhooks' | 'google';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'templates', label: 'Messaging Templates' },
   { id: 'announcements', label: 'AI Announcements' },
   { id: 'webhooks', label: 'Webhooks' },
   { id: 'google', label: 'Google' },
@@ -37,7 +39,7 @@ export default function IntegrationsSettingsPage() {
   }, [router.query]);
 
   return (
-    <SettingsLayout pageTitle="Integrations & Comms" pageSubtitle="Manage WhatsApp, webhooks, AI announcements, and Google integrations.">
+    <>
       <Head>
         <title>Integrations & Comms | Settings</title>
       </Head>
@@ -49,7 +51,7 @@ export default function IntegrationsSettingsPage() {
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab.id
-                ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
             }`}
           >
@@ -58,17 +60,27 @@ export default function IntegrationsSettingsPage() {
         ))}
       </div>
 
-      <div className={`flex flex-col gap-8 w-full ${activeTab === 'google' ? 'max-w-5xl' : 'max-w-4xl'} mx-auto`}>
+      <div className="flex flex-col gap-8 w-full mx-auto">
         {activeTab === 'whatsapp' && (
           <>
             <WhatsAppSettings />
             <ChatbotSettings />
           </>
         )}
+        {activeTab === 'templates' && <MessageTemplatesSettings />}
         {activeTab === 'announcements' && <AnnouncementsSettings />}
         {activeTab === 'webhooks' && <WebhooksSettings />}
         {activeTab === 'google' && <GoogleBusinessSettings />}
       </div>
-    </SettingsLayout>
+    </>
   );
 }
+
+
+IntegrationsSettingsPage.getLayout = function getLayout(page: React.ReactElement) {
+  return (
+    <SettingsLayout pageTitle="Integrations & Comms" pageSubtitle="Manage WhatsApp, webhooks, AI announcements, and Google integrations.">
+      {page}
+    </SettingsLayout>
+  );
+};

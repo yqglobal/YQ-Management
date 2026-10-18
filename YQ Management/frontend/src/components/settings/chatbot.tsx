@@ -59,14 +59,11 @@ export default function ChatbotSettings() {
   };
 
   return (
-    <div id="chatbot-settings" className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8 hover:border-primary/50 hover:shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)] transition-all duration-300 group">
-      {/* Decorative left edge accent */}
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#8b5cf6]"></div>
-
+    <div id="chatbot-settings" className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8 hover:border-primary/50 transition-all duration-300 group">
       <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <span className="material-symbols-outlined text-[#8b5cf6]" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
+            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
             <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white tracking-tight font-semibold">AI Assistant Chatbot</h2>
           </div>
           <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline">Configure automated responses and conversational flows.</p>
@@ -86,7 +83,7 @@ export default function ChatbotSettings() {
           <div className="space-y-8">
             <div className="flex items-center justify-between bg-surface-bright dark:bg-zinc-900 border border-border dark:border-dark-border p-6 rounded-2xl shadow-sm">
               <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors ${chatbotEnabled ? 'bg-[#8b5cf6]/10 text-[#8b5cf6]' : 'bg-surface-container-low dark:bg-black/50 text-outline'}`}>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors ${chatbotEnabled ? 'bg-primary/10 text-primary' : 'bg-surface-container-low dark:bg-black/50 text-outline'}`}>
                   <Bot strokeWidth={1.5} className="w-6 h-6" />
                 </div>
                 <div>
@@ -110,7 +107,7 @@ export default function ChatbotSettings() {
                   }}
                   className="sr-only peer" 
                 />
-                <div className="w-14 h-7 bg-surface-container-highest dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-[#8b5cf6]"></div>
+                <div className="w-14 h-7 bg-surface-container-highest dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
               </label>
             </div>
 
@@ -131,7 +128,7 @@ export default function ChatbotSettings() {
                           type="text"
                           value={config.botName}
                           onChange={(e) => setConfig({ ...config, botName: e.target.value })}
-                          className="w-full h-[44px] px-4 bg-white dark:bg-black/50 border border-border dark:border-dark-border rounded-lg font-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-[#8b5cf6] focus:border-[#8b5cf6] shadow-sm"
+                          className="w-full h-[44px] px-4 bg-white dark:bg-black/50 border border-border dark:border-dark-border rounded-lg font-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-sm"
                         />
                       </div>
                       <div className="space-y-2">
@@ -139,7 +136,7 @@ export default function ChatbotSettings() {
                         <select
                           value={config.agentName}
                           onChange={(e) => setConfig({ ...config, agentName: e.target.value })}
-                          className="w-full h-[44px] px-4 bg-white dark:bg-black/50 border border-border dark:border-dark-border rounded-lg font-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-[#8b5cf6] focus:border-[#8b5cf6] shadow-sm appearance-none"
+                          className="w-full h-[44px] px-4 bg-white dark:bg-black/50 border border-border dark:border-dark-border rounded-lg font-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-sm appearance-none"
                         >
                           <option value="Support Team">Support Team (Default)</option>
                           {staffList.map((staff: AnyFixMe) => (
@@ -157,7 +154,7 @@ export default function ChatbotSettings() {
                         value={config.welcomeMessage}
                         onChange={(e) => setConfig({ ...config, welcomeMessage: e.target.value })}
                         rows={3}
-                        className="w-full p-4 bg-white dark:bg-black/50 border border-border dark:border-dark-border rounded-lg font-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-[#8b5cf6] focus:border-[#8b5cf6] shadow-sm resize-none"
+                        className="w-full p-4 bg-white dark:bg-black/50 border border-border dark:border-dark-border rounded-lg font-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-sm resize-none"
                       />
                       <p className="font-body-sm text-outline mt-1">Sent when a customer initiates a new conversation without scanning a specific QR code.</p>
                     </div>
@@ -178,7 +175,7 @@ export default function ChatbotSettings() {
                           type="checkbox" 
                           checked={config.quickReplies.status} 
                           onChange={(e) => setConfig({ ...config, quickReplies: { ...config.quickReplies, status: e.target.checked } })}
-                          className="w-5 h-5 text-[#8b5cf6] rounded border-gray-300 focus:ring-[#8b5cf6]"
+                          className="w-5 h-5 text-primary rounded border-border focus:ring-primary"
                         />
                       </div>
                       <div>
@@ -193,7 +190,7 @@ export default function ChatbotSettings() {
                           type="checkbox" 
                           checked={config.quickReplies.cancel} 
                           onChange={(e) => setConfig({ ...config, quickReplies: { ...config.quickReplies, cancel: e.target.checked } })}
-                          className="w-5 h-5 text-[#8b5cf6] rounded border-gray-300 focus:ring-[#8b5cf6]"
+                          className="w-5 h-5 text-primary rounded border-border focus:ring-primary"
                         />
                       </div>
                       <div>
@@ -208,7 +205,7 @@ export default function ChatbotSettings() {
                           type="checkbox" 
                           checked={config.quickReplies.human} 
                           onChange={(e) => setConfig({ ...config, quickReplies: { ...config.quickReplies, human: e.target.checked } })}
-                          className="w-5 h-5 text-[#8b5cf6] rounded border-gray-300 focus:ring-[#8b5cf6]"
+                          className="w-5 h-5 text-primary rounded border-border focus:ring-primary"
                         />
                       </div>
                       <div>
@@ -225,7 +222,7 @@ export default function ChatbotSettings() {
               <Button 
                 onClick={handleSave} 
                 disabled={updateMutation.isPending}
-                className="bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-body-md font-semibold h-[44px] px-8 rounded-lg flex items-center justify-center gap-2 shadow-sm"
+                className="bg-primary hover:bg-primary/90 text-white font-body-md font-semibold h-[44px] px-8 rounded-lg flex items-center justify-center gap-2 shadow-sm"
               >
                 {updateMutation.isPending ? <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" /> : <Save strokeWidth={1.5} className="w-5 h-5" />}
                 Save Chatbot Settings

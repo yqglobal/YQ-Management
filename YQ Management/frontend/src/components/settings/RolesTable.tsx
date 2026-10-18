@@ -101,16 +101,20 @@ const FEATURE_MATRIX: FeatureRow[] = [
 ];
 
 const COLUMNS = [
-  { key: 'owner', label: 'Owner', color: '#D97706', bgClass: 'bg-amber-50 dark:bg-amber-500/10' },
-  { key: 'admin', label: 'Admin', color: '#7C3AED', bgClass: 'bg-violet-50 dark:bg-violet-500/10' },
-  { key: 'manager', label: 'Manager', color: '#0891B2', bgClass: 'bg-cyan-50 dark:bg-cyan-500/10' },
-  { key: 'staff', label: 'Staff', color: '#0284C7', bgClass: 'bg-sky-50 dark:bg-sky-500/10' },
+  { key: 'owner', label: 'Owner', badgeClass: 'bg-primary/10 text-primary border border-primary/20' },
+  { key: 'admin', label: 'Admin', badgeClass: 'bg-primary/5 text-primary border border-primary/15' },
+  { key: 'manager', label: 'Manager', badgeClass: 'bg-surface-container dark:bg-dark-surface text-on-surface dark:text-white border border-border dark:border-dark-border' },
+  { key: 'staff', label: 'Staff', badgeClass: 'bg-surface-container dark:bg-dark-surface text-on-surface dark:text-white border border-border dark:border-dark-border' },
 ] as const;
 
 function PermIcon({ value }: { value: Permission }) {
   if (value === true) return <Check className="w-4 h-4 text-emerald-500" />;
-  if (value === false) return <X className="w-4 h-4 text-red-400 opacity-50" />;
-  return <Minus className="w-4 h-4 text-amber-500" title="Limited — depends on scope" />;
+  if (value === false) return <X className="w-4 h-4 text-outline opacity-40" />;
+  return (
+    <span title="Limited — depends on scope">
+      <Minus className="w-4 h-4 text-amber-500" />
+    </span>
+  );
 }
 
 export function RolesTable() {
@@ -120,14 +124,14 @@ export function RolesTable() {
       <div className="flex items-center gap-4 text-xs text-on-surface-variant dark:text-zinc-400">
         <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Full access</span>
         <span className="flex items-center gap-1.5"><Minus className="w-3.5 h-3.5 text-amber-500" /> Limited / scope-dependent</span>
-        <span className="flex items-center gap-1.5"><X className="w-3.5 h-3.5 text-red-400" /> No access</span>
+        <span className="flex items-center gap-1.5"><X className="w-3.5 h-3.5 text-outline opacity-50" /> No access</span>
       </div>
 
       {/* Role header cards */}
       <div className="grid grid-cols-4 gap-3 mb-2">
         {COLUMNS.map(col => (
-          <div key={col.key} className={`rounded-xl p-3 text-center ${col.bgClass}`}>
-            <div className="font-bold text-sm" style={{ color: col.color }}>{col.label}</div>
+          <div key={col.key} className={`rounded-xl p-3 text-center ${col.badgeClass}`}>
+            <div className="font-bold text-sm">{col.label}</div>
             <div className="text-xs text-on-surface-variant dark:text-zinc-400 mt-0.5">
               {col.key === 'owner' && 'Primary account holder'}
               {col.key === 'admin' && 'Full operational control'}

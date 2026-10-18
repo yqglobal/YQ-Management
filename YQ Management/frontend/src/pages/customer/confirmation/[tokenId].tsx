@@ -30,9 +30,9 @@ export default function QueueConfirmation() {
     if (window.location.pathname.startsWith('/t/')) {
       const parts = window.location.pathname.split('/');
       const tenantId = parts[2];
-      trackingUrl = `${window.location.origin}/t/${tenantId}/status/${token.accessToken || token.id}`;
+      trackingUrl = `${window.location.origin}/t/${tenantId}/customer/status/${token.accessToken || token.id}`;
     } else {
-      trackingUrl = `${window.location.origin}/status/${token.accessToken || token.id}`;
+      trackingUrl = `${window.location.origin}/customer/status/${token.accessToken || token.id}`;
     }
   }
 
@@ -84,7 +84,7 @@ export default function QueueConfirmation() {
         </div>
 
         <Link 
-          href={trackingUrl.replace(typeof window !== 'undefined' ? window.location.origin : '', '') || `/status/${token.accessToken || token.id}`}
+          href={trackingUrl.replace(typeof window !== 'undefined' ? window.location.origin : '', '') || `/customer/status/${token.accessToken || token.id}`}
           className="w-full inline-flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-colors shadow-[0_0_20px_rgba(79,70,229,0.3)]"
         >
           Track Live Status <ArrowRight className="w-5 h-5" />

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { toZonedTime, fromZonedTime, format } from 'date-fns-tz';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AnalyticsService {
@@ -12,6 +13,7 @@ export class AnalyticsService {
     tz: string = 'UTC',
     startDateInput?: string,
     endDateInput?: string,
+    locationId?: string,
   ) {
     // 1. Calculate Date Range using timezone
     const zonedNow = toZonedTime(new Date(), tz);
@@ -33,18 +35,53 @@ export class AnalyticsService {
         zonedNow.setFullYear(2020); // Arbitrary old date for "All Time"
       }
       startDate = fromZonedTime(zonedNow, tz);
+      if (timeframe === 'today') {
+        const zonedEnd = toZonedTime(new Date(), tz);
+        zonedEnd.setHours(23, 59, 59, 999);
+        endDate = fromZonedTime(zonedEnd, tz);
+      }
     }
 
     const tokens = await this.prisma.visit.findMany({
       where: {
         tenantId,
-        createdAt: endDate
-          ? { gte: startDate, lte: endDate }
-          : { gte: startDate },
+        ...(locationId && locationId !== 'all' ? { locationId } : {}),
+        OR: [
+          {
+            scheduledTime: endDate
+              ? { gte: startDate, lte: endDate }
+              : { gte: startDate },
+          },
+          {
+            scheduledTime: null,
+            createdAt: endDate
+              ? { gte: startDate, lte: endDate }
+              : { gte: startDate },
+          },
+          {
+            checkInTime: endDate
+              ? { gte: startDate, lte: endDate }
+              : { gte: startDate },
+          },
+          {
+            actualArrival: endDate
+              ? { gte: startDate, lte: endDate }
+              : { gte: startDate },
+          },
+        ],
+        NOT: {
+          AND: [
+            { currentState: { in: ['SCHEDULED', 'CREATED'] } },
+            { scheduledTime: { gt: endDate || new Date() } },
+          ],
+        },
       },
       select: {
         currentState: true,
         createdAt: true,
+        scheduledTime: true,
+        checkInTime: true,
+        actualArrival: true,
         waitingStart: true,
         serviceStart: true,
         completedAt: true,
@@ -57,20 +94,58 @@ export class AnalyticsService {
       },
     });
 
-    let totalServed = 0;
-    let totalMissed = 0;
-    let totalCompleted = 0;
+    const kpiRaw = await this.prisma.$queryRaw<any[]>`
+      SELECT 
+        COUNT(id)::int as total_visits,
+        COUNT(CASE WHEN "currentState" = 'COMPLETED' THEN 1 END)::int as total_completed,
+        COUNT(CASE WHEN "currentState" IN ('NO_SHOW', 'CANCELLED', 'MISSED') THEN 1 END)::int as total_missed,
+        COUNT(CASE WHEN "currentState" = 'CANCELLED' THEN 1 END)::int as total_cancelled,
+        COUNT(CASE WHEN "currentState" = 'NO_SHOW' THEN 1 END)::int as total_no_show,
+        SUM(EXTRACT(EPOCH FROM ("serviceStart" - COALESCE("waitingStart", "checkInTime", "createdAt")))) as total_wait_time_secs,
+        SUM(CASE WHEN "serviceStart" IS NOT NULL AND ("currentState" NOT IN ('NO_SHOW', 'CANCELLED', 'MISSED')) THEN 1 ELSE 0 END)::int as wait_time_count,
+        COUNT(CASE WHEN "serviceStart" IS NOT NULL AND ("serviceStart" - COALESCE("waitingStart", "checkInTime", "createdAt")) > INTERVAL '15 minutes' THEN 1 END)::int as sla_violations,
+        SUM(EXTRACT(EPOCH FROM ("completedAt" - "serviceStart"))) as total_service_time_secs,
+        SUM(CASE WHEN "completedAt" IS NOT NULL THEN 1 ELSE 0 END)::int as service_time_count,
+        SUM(rating) as total_rating,
+        COUNT(rating)::int as rating_count
+      FROM "Visit"
+      WHERE "tenantId" = ${tenantId}
+        AND COALESCE("checkInTime", "actualArrival", "serviceStart", "scheduledTime", "createdAt") >= ${startDate}
+        ${endDate ? Prisma.sql`AND COALESCE("checkInTime", "actualArrival", "serviceStart", "scheduledTime", "createdAt") <= ${endDate}` : Prisma.empty}
+        AND NOT ("currentState" IN ('SCHEDULED', 'CREATED') AND "scheduledTime" > ${endDate || new Date()})
+    `;
 
-    let totalWaitTimeMs = 0;
-    let waitTimeCount = 0;
+    const rawStats = kpiRaw[0] || {};
+    const totalCompleted = rawStats.total_completed || 0;
+    const totalMissed = rawStats.total_missed || 0;
+    const totalCancelled = rawStats.total_cancelled || 0;
+    const totalNoShow = rawStats.total_no_show || 0;
+    const waitTimeCount = rawStats.wait_time_count || 0;
+    const serviceTimeCount = rawStats.service_time_count || 0;
+    const ratingCount = rawStats.rating_count || 0;
 
-    let totalServiceTimeMs = 0;
-    let serviceTimeCount = 0;
+    const totalVisitsCount = rawStats.total_visits || 0;
+    const totalServed = rawStats.wait_time_count || 0;
+    const averageWaitTimeMins =
+      waitTimeCount > 0
+        ? Math.floor((rawStats.total_wait_time_secs || 0) / waitTimeCount / 60)
+        : 0;
+    const averageServiceTimeMins =
+      serviceTimeCount > 0
+        ? Math.floor(
+            (rawStats.total_service_time_secs || 0) / serviceTimeCount / 60,
+          )
+        : 0;
+    const csatScore =
+      ratingCount > 0
+        ? Number(((rawStats.total_rating || 0) / ratingCount).toFixed(1))
+        : 0;
+    const slaViolations = rawStats.sla_violations || 0;
+    const dropOffRate =
+      totalCompleted + totalMissed > 0
+        ? Math.round((totalMissed / (totalCompleted + totalMissed)) * 100)
+        : 0;
 
-    let totalRating = 0;
-    let ratingCount = 0;
-
-    let slaViolations = 0;
     const SLA_THRESHOLD_MINS = 15;
 
     const svcMap = new Map<
@@ -150,9 +225,6 @@ export class AnalyticsService {
         t.currentState,
       );
 
-      if (t.currentState === 'COMPLETED') totalCompleted++;
-      if (isWalkaway) totalMissed++;
-
       let waitMs = 0;
       let hasWait = false;
       if (t.serviceStart && (t.waitingStart || t.createdAt)) {
@@ -168,24 +240,8 @@ export class AnalyticsService {
         t.currentState !== 'CANCELLED' &&
         t.currentState !== 'NO_SHOW'
       ) {
-        totalServed++;
-        totalWaitTimeMs += waitMs;
-        waitTimeCount++;
-
-        if (waitMs > SLA_THRESHOLD_MINS * 60000) {
-          slaViolations++;
-        }
-
         if (t.completedAt) {
-          totalServiceTimeMs +=
-            t.completedAt.getTime() - t.serviceStart.getTime();
-          serviceTimeCount++;
         }
-      }
-
-      if (t.rating) {
-        totalRating += t.rating;
-        ratingCount++;
       }
 
       // Populate Service and Queue metrics
@@ -265,13 +321,24 @@ export class AnalyticsService {
       }
     });
 
+    const getVisitOperationalTime = (t: any): Date => {
+      return (
+        t.checkInTime ||
+        t.actualArrival ||
+        t.serviceStart ||
+        t.scheduledTime ||
+        t.createdAt
+      );
+    };
+
     // Compute Heatmap (Day of Week vs Hour)
     // 0 = Sunday, 1 = Monday, ... 6 = Saturday
     const heatmapMatrix = Array(7)
       .fill(0)
       .map(() => Array(24).fill(0));
     tokens.forEach((t: any) => {
-      const d = toZonedTime(t.createdAt, tz);
+      const opTime = getVisitOperationalTime(t);
+      const d = toZonedTime(opTime, tz);
       const day = d.getDay();
       const hour = d.getHours();
       heatmapMatrix[day][hour]++;
@@ -281,22 +348,6 @@ export class AnalyticsService {
       matrix: heatmapMatrix,
       maxValue: Math.max(1, ...heatmapMatrix.flat()),
     };
-
-    const averageWaitTimeMins =
-      waitTimeCount > 0
-        ? Math.floor(totalWaitTimeMs / waitTimeCount / 60000)
-        : 0;
-    const averageServiceTimeMins =
-      serviceTimeCount > 0
-        ? Math.floor(totalServiceTimeMs / serviceTimeCount / 60000)
-        : 0;
-    const csatScore =
-      ratingCount > 0 ? Number((totalRating / ratingCount).toFixed(1)) : 0;
-
-    const dropOffRate =
-      totalCompleted + totalMissed > 0
-        ? Math.round((totalMissed / (totalCompleted + totalMissed)) * 100)
-        : 0;
 
     // 2. Chart Data - if timeframe is today, show hourly. If 7d or 30d, show daily.
     let chartData = [];
@@ -321,14 +372,15 @@ export class AnalyticsService {
       }
 
       tokens.forEach((t: any) => {
-        const h = parseInt(format(t.createdAt, 'H', { timeZone: tz }), 10);
+        const opTime = getVisitOperationalTime(t);
+        const h = parseInt(format(opTime, 'H', { timeZone: tz }), 10);
         if (hourlyDataMap.has(h)) {
           const entry = hourlyDataMap.get(h)!;
           entry.volume++;
           if (t.serviceStart) {
             entry.waitTimeSum +=
               (t.serviceStart.getTime() -
-                (t.waitingStart?.getTime() || t.createdAt.getTime())) /
+                (t.waitingStart?.getTime() || opTime.getTime())) /
               60000;
             entry.waitCount++;
           }
@@ -372,14 +424,15 @@ export class AnalyticsService {
       }
 
       tokens.forEach((t: any) => {
-        const key = format(t.createdAt, 'yyyy-MM-dd', { timeZone: tz });
+        const opTime = getVisitOperationalTime(t);
+        const key = format(opTime, 'yyyy-MM-dd', { timeZone: tz });
         if (dailyDataMap.has(key)) {
           const entry = dailyDataMap.get(key)!;
           entry.volume++;
           if (t.serviceStart) {
             entry.waitTimeSum +=
               (t.serviceStart.getTime() -
-                (t.waitingStart?.getTime() || t.createdAt.getTime())) /
+                (t.waitingStart?.getTime() || opTime.getTime())) /
               60000;
             entry.waitCount++;
           }
@@ -426,8 +479,11 @@ export class AnalyticsService {
 
     return {
       kpis: {
-        totalVisits: tokens.length,
+        totalVisits: totalVisitsCount,
         totalServed,
+        totalCompleted,
+        totalCancelled,
+        totalNoShow,
         averageWaitTimeMins,
         averageServiceTimeMins,
         dropOffRate,
@@ -447,6 +503,7 @@ export class AnalyticsService {
     tz: string,
     startDate?: string,
     endDate?: string,
+    locationId?: string,
   ) {
     const data = await this.getDashboardAnalytics(
       tenantId,
@@ -454,33 +511,51 @@ export class AnalyticsService {
       tz,
       startDate,
       endDate,
+      locationId,
     );
 
-    // Simple CSV generator
-    const lines = [];
+    // CSV generator
+    const lines: string[] = [];
     lines.push('Qmova Analytics Export');
     lines.push(`Timeframe: ${timeframe}`);
+    if (locationId && locationId !== 'all') {
+      lines.push(`Location ID: ${locationId}`);
+    }
     lines.push('');
 
     lines.push('--- Key Performance Indicators ---');
+    lines.push('Metric,Value');
     lines.push(`Total Visits,${data.kpis.totalVisits}`);
     lines.push(`Total Served,${data.kpis.totalServed}`);
+    lines.push(`Total Completed,${data.kpis.totalCompleted}`);
+    lines.push(`Total Cancelled,${data.kpis.totalCancelled}`);
+    lines.push(`Total No-Shows,${data.kpis.totalNoShow}`);
     lines.push(`Average Wait Time (mins),${data.kpis.averageWaitTimeMins}`);
     lines.push(
       `Average Service Time (mins),${data.kpis.averageServiceTimeMins}`,
     );
     lines.push(`Drop-off Rate (%),${data.kpis.dropOffRate}`);
     lines.push(`CSAT Score,${data.kpis.csatScore}`);
+    lines.push(`SLA Violations,${data.kpis.slaViolations}`);
     lines.push('');
 
     lines.push('--- Operator Performance ---');
     lines.push('Name,Served,No-Shows,CSAT,Avg Service Time (mins)');
     data.staffPerformance.forEach((op) => {
       lines.push(
-        `${op.name},${op.served},${op.noShows},${op.csat},${op.avgServiceTimeMins}`,
+        `"${(op.name || 'Unknown').replace(/"/g, '""')}",${op.served},${op.noShows},${op.csat},${op.avgServiceTimeMins}`,
+      );
+    });
+    lines.push('');
+
+    lines.push('--- Service Performance ---');
+    lines.push('Service,Visits,Avg Wait Time (mins)');
+    data.servicePerformance.forEach((s: any) => {
+      lines.push(
+        `"${(s.name || 'Service').replace(/"/g, '""')}",${s.count || 0},${s.avgMins ?? 0}`,
       );
     });
 
-    return lines.join('\\n');
+    return lines.join('\n');
   }
 }

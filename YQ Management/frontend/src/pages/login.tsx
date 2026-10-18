@@ -73,7 +73,7 @@ export default function Login() {
         if (data?.access_token) {
           AuthStorage.set(data.access_token);
         }
-        const isSuper = data?.user?.role === 'SUPER_ADMIN' || email.trim().toLowerCase() === 'yqbuddysa@gmail.com';
+        const isSuper = data?.user?.role === 'SUPER_ADMIN' || (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL && email.trim().toLowerCase() === process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL.toLowerCase());
         const pendingInvite = typeof window !== 'undefined' ? localStorage.getItem('qmova_invite_code') : null;
         if (!isSuper && (!data?.user?.tenantId || !data?.user?.personalSettings?.onboardingCompleted || pendingInvite)) {
           router.push('/onboarding');
@@ -120,7 +120,7 @@ export default function Login() {
       if (data?.access_token) {
         AuthStorage.set(data.access_token);
       }
-      const isSuper = data?.user?.role === 'SUPER_ADMIN' || email.trim().toLowerCase() === 'yqbuddysa@gmail.com';
+      const isSuper = data?.user?.role === 'SUPER_ADMIN' || (process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL && email.trim().toLowerCase() === process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL.toLowerCase());
       const pendingInvite = typeof window !== 'undefined' ? localStorage.getItem('qmova_invite_code') : null;
       if (!isSuper && (!data?.user?.tenantId || pendingInvite)) {
         router.push('/onboarding');
@@ -148,8 +148,8 @@ export default function Login() {
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-sky-600 rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob"></div>
         <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-indigo-600 rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob animation-delay-2000"></div>
 
-        <div className="relative z-10 max-w-md p-12">
-          <div className="mb-12">
+        <div className="relative z-10 max-w-md p-8 lg:p-12">
+          <div className="mb-8 lg:mb-12">
             <Logo width={150} height={24} href="/" forceTheme="dark" />
           </div>
           <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-6 leading-tight text-white glow-text">
@@ -163,9 +163,9 @@ export default function Login() {
       </div>
 
       {/* Right Panel - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 relative z-10">
-        <div className="w-full max-w-md glass-ui p-8 rounded-2xl relative">
-          <div className="lg:hidden mb-8 flex justify-center">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 relative z-10">
+        <div className="w-full max-w-md glass-ui p-6 sm:p-8 rounded-2xl relative">
+          <div className="lg:hidden mb-6 flex justify-center">
              <Logo width={150} height={24} href="/" forceTheme="dark" />
           </div>
           

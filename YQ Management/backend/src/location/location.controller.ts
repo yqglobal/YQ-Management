@@ -7,6 +7,8 @@ import {
   Param,
   Delete,
   Req,
+  Res,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { LocationService } from './location.service';
@@ -21,7 +23,7 @@ export class LocationController {
   constructor(private readonly locationService: LocationService) {}
 
   @Post()
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   create(
     @Req() req: AuthenticatedRequest,
     @Body()
@@ -30,6 +32,7 @@ export class LocationController {
       address?: string;
       city?: string;
       totalFloors?: number;
+      timezone?: string;
       businessHours?: any;
       exceptionDates?: string[];
     },
@@ -42,13 +45,40 @@ export class LocationController {
     return this.locationService.findAll(req.user.tenantId, req.user);
   }
 
+  @Get(':id/deletion-impact')
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
+  getDeletionImpact(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.locationService.getDeletionImpact(id, req.user.tenantId);
+  }
+
+  @Get(':id/export')
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
+  async exportLocationData(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Res() res: any,
+  ) {
+    const { filename, buffer } =
+      await this.locationService.exportLocationDataZip(id, req.user.tenantId);
+
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+    return res.end(buffer);
+  }
+
   @Get(':id')
   findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.locationService.findOne(id, req.user.tenantId, req.user);
   }
 
   @Patch(':id')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   update(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -58,6 +88,7 @@ export class LocationController {
       address?: string;
       city?: string;
       totalFloors?: number;
+      timezone?: string;
       businessHours?: any;
       exceptionDates?: string[];
     },
@@ -66,8 +97,16 @@ export class LocationController {
   }
 
   @Delete(':id')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
-  remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.locationService.remove(id, req.user.tenantId);
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
+  remove(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Query('deleteQueues') deleteQueues?: string,
+    @Query('archiveData') archiveData?: string,
+  ) {
+    return this.locationService.remove(id, req.user.tenantId, {
+      deleteQueues: deleteQueues !== 'false',
+      archiveData: archiveData !== 'false',
+    });
   }
 }

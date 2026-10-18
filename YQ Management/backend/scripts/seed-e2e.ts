@@ -36,7 +36,7 @@ async function seed() {
     data: {
       email: 'manager@example.com',
       password: hashedPassword,
-      role: 'TENANT_ADMIN',
+      role: 'OWNER',
       tenantId: tenant.id,
     },
   });

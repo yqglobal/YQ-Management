@@ -33,7 +33,7 @@ export class BrevoProvider implements EmailProvider {
         body: JSON.stringify({
           sender: message.from || {
             name: process.env.BREVO_SENDER_NAME || 'Qmova',
-            email: process.env.BREVO_SENDER_EMAIL || 'yqbuddysa@gmail.com',
+            email: process.env.BREVO_SENDER_EMAIL || 'support@qmova.com',
           },
           to: [{ email: message.to }],
           subject: message.subject,

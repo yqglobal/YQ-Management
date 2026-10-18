@@ -107,7 +107,7 @@ export default function PublicPaymentPage() {
             <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
               <div className="text-sm text-gray-500 font-medium mb-1">Total Due</div>
               <div className="text-4xl font-black text-gray-900 dark:text-white mb-2">
-                {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: payment.currency }).format(payment.amount)}
+                {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: payment.currency }).format(payment.amount / 100)}
               </div>
               {payment.description && (
                 <div className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-zinc-950 p-3 rounded-xl border border-gray-100 dark:border-zinc-800">

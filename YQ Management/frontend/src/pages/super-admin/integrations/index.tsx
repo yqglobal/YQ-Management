@@ -18,7 +18,7 @@ export default function SuperAdminIntegrations() {
         <title>Integrations Hub | Super Admin</title>
       </Head>
 
-      <div className="max-w-6xl mx-auto space-y-8 pb-12">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8 pb-12">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white uppercase">Integrations Hub</h1>
           <p className="text-gray-500 dark:text-zinc-400 mt-2">Manage global configurations for WhatsApp, Twilio, Stripe, and other third-party services.</p>

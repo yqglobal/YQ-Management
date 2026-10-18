@@ -43,7 +43,7 @@ export default function SuperAdminMarketing() {
         <title>Marketing & Campaigns | Super Admin</title>
       </Head>
 
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Email Marketing</h1>
           <p className="text-gray-500 dark:text-gray-400">Send broadcasts and promotional campaigns</p>

@@ -181,7 +181,7 @@ if [ ! -d "node_modules" ]; then
 fi
 
 log_info "Starting Next.js development server..."
-npm run dev -- -p 3001 >> "$LOG_FILE" 2>&1 &
+npm run dev >> "$LOG_FILE" 2>&1 &
 FRONTEND_PID=$!
 
 sleep 4

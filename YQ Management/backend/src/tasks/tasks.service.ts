@@ -69,7 +69,7 @@ export class TasksService {
           const tenantAdmin = await this.prisma.user.findFirst({
             where: {
               tenantId: invite.tenantId,
-              role: 'TENANT_ADMIN',
+              role: 'OWNER',
             },
           });
 
@@ -136,7 +136,7 @@ export class TasksService {
             nextBillingDate: null,
             cancelAtPeriodEnd: false, // Reset flag
             metadata: {
-              ...(sub.metadata as object || {}),
+              ...((sub.metadata as object) || {}),
               cancelledAt: now.toISOString(),
             },
           },
@@ -144,7 +144,10 @@ export class TasksService {
 
         // Send email to owner
         const owner = await this.prisma.user.findFirst({
-          where: { tenantId: sub.tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+          where: {
+            tenantId: sub.tenantId,
+            role: { in: ['OWNER', 'ADMIN'] },
+          },
           select: { email: true },
         });
 
@@ -155,11 +158,16 @@ export class TasksService {
           );
         }
       } catch (err) {
-        this.logger.error(`Failed to cancel deferred subscription ${sub.id}`, err);
+        this.logger.error(
+          `Failed to cancel deferred subscription ${sub.id}`,
+          err,
+        );
       }
     }
 
-    this.logger.log(`Processed ${subscriptionsToCancel.length} deferred cancellations.`);
+    this.logger.log(
+      `Processed ${subscriptionsToCancel.length} deferred cancellations.`,
+    );
   }
 
   /**
@@ -181,7 +189,9 @@ export class TasksService {
       });
 
       if (result.count > 0) {
-        this.logger.log(`Cleaned up ${result.count} abandoned PENDING_PAYMENT visits.`);
+        this.logger.log(
+          `Cleaned up ${result.count} abandoned PENDING_PAYMENT visits.`,
+        );
       }
     } catch (err) {
       this.logger.error('Failed to run abandoned payments cleanup', err);
@@ -217,8 +227,9 @@ export class TasksService {
 
       const diffMins = (visit.scheduledTime.getTime() - now.getTime()) / 60000;
       const baseUrl =
-        process.env.NEXT_PUBLIC_APP_URL || `${process.env.NEXT_PUBLIC_APP_URL || "https://app.qmova.yqbuddy.com"}`;
-      const statusUrl = `${baseUrl}/status/${visit.accessToken}`;
+        process.env.NEXT_PUBLIC_APP_URL ||
+        `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com'}`;
+      const statusUrl = `${baseUrl}/customer/status/${visit.accessToken}`;
 
       let message: string | null = null;
 
@@ -293,14 +304,18 @@ export class TasksService {
             staffNotes: 'Auto-skipped due to step expiration',
           },
         });
-        
+
         // Let the normal SEF engine move them along
-        await this.visitStepService.evaluateNextSteps(step.visitId, step.id, 'EXPIRED');
+        await this.visitStepService.evaluateNextSteps(
+          step.visitId,
+          step.id,
+          'EXPIRED',
+        );
       } catch (err) {
         this.logger.error(`Failed to handle expired step ${step.id}`, err);
       }
     }
-    
+
     if (expiredSteps.length > 0) {
       this.logger.log(`Cleaned up ${expiredSteps.length} expired visit steps.`);
     }

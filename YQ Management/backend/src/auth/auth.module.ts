@@ -15,7 +15,7 @@ import { SubscriptionModule } from '../subscription/subscription.module';
   imports: [
     PrismaModule,
     ConfigModule,
-    UsersModule,
+    forwardRef(() => UsersModule),
     forwardRef(() => SubscriptionModule),
     PassportModule,
     JwtModule.registerAsync({
@@ -26,7 +26,7 @@ import { SubscriptionModule } from '../subscription/subscription.module';
         }
         return {
           secret,
-          signOptions: { expiresIn: '30d' },
+          signOptions: { expiresIn: '7d' },
         };
       },
     }),

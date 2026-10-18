@@ -61,7 +61,7 @@ export class PoliciesService {
 
     if (hasTos && hasPrivacy) {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (user?.tenantId && user.role === 'TENANT_ADMIN') {
+      if (user?.tenantId && user.role === 'OWNER') {
         const sub = await this.prisma.subscription.findUnique({
           where: { tenantId: user.tenantId },
         });

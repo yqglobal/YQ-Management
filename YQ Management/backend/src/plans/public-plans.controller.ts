@@ -31,7 +31,7 @@ export class PublicPlansController {
             whatsappChat: false,
             whatsappChatbot: false,
           },
-          limits: { maxQueues: 1, maxTokens: 100 },
+          limits: { maxServices: 1, maxTokens: 100 },
         });
         await this.plansService.createPlan({
           name: 'Standard Plan',
@@ -49,7 +49,7 @@ export class PublicPlansController {
             whatsappChat: true,
             whatsappChatbot: true,
           },
-          limits: { maxQueues: 5, maxTokens: 1000 },
+          limits: { maxServices: 5, maxTokens: 1000 },
         });
         await this.plansService.createPlan({
           name: 'Premium Plan',
@@ -67,7 +67,7 @@ export class PublicPlansController {
             whatsappChat: true,
             whatsappChatbot: true,
           },
-          limits: { maxQueues: 20, maxTokens: 10000 },
+          limits: { maxServices: 20, maxTokens: 10000 },
         });
         plans = await this.plansService.listPlans('ACTIVE', 0, 50);
       } catch (error) {

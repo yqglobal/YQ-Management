@@ -19,9 +19,12 @@ export class CustomerService {
     });
   }
 
-  async findAll(tenantId: string) {
+  async findAll(tenantId: string, cursor?: string, limit: number = 50) {
     const customers = await this.prisma.extendedClient.customer.findMany({
       where: { tenantId },
+      take: limit + 1, // fetch one extra to see if there's a next page
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { createdAt: 'desc' },
       include: {
         visits: {
           select: {
@@ -34,7 +37,13 @@ export class CustomerService {
       },
     });
 
-    return customers.map((c: any) => {
+    let nextCursor: string | undefined = undefined;
+    if (customers.length > limit) {
+      const nextItem = customers.pop();
+      nextCursor = nextItem?.id;
+    }
+
+    const items = customers.map((c: any) => {
       const visits = c.visits || [];
 
       let totalWaitMs = 0;
@@ -75,12 +84,17 @@ export class CustomerService {
         name: c.name,
         phone: c.phone,
         email: c.email,
+        isVip: c.isVip,
+        isBlocked: c.isBlocked,
+        notes: c.notes,
         totalVisits: visits.length,
         avgWaitMinutes: avgWaitMinutesStr,
         lastVisitLabel: lastVisitLabelStr,
         lastVisitMs: maxCreatedAt,
       };
     });
+
+    return { items, nextCursor };
   }
 
   async findOne(id: string, tenantId: string) {
@@ -91,14 +105,53 @@ export class CustomerService {
           orderBy: { createdAt: 'desc' },
           take: 10,
           include: {
-            service: true,
+            service: { include: { serviceFlow: true } },
             queue: { include: { location: true } },
-            // include all visit fields that VisitDrawer needs
+            location: true,
+            bookingPayments: true,
+            visitSteps: {
+              include: { templateStep: true },
+              orderBy: { stepOrder: 'asc' },
+            },
           },
         },
       },
     });
     if (!customer) throw new NotFoundException('Customer not found');
-    return customer;
+
+    let age: number | null = null;
+    let gender: string | null = null;
+    for (const v of customer.visits || []) {
+      // Map visitSteps to steps for frontend convenience
+      (v as any).steps = (v as any).visitSteps;
+      const meta = (v.metadata as any) || {};
+      const form = (v.formResponses as any) || {};
+      if (!age && (meta.age || form.age)) {
+        const parsed = parseInt(meta.age || form.age, 10);
+        if (!isNaN(parsed)) age = parsed;
+      }
+      if (!gender && (meta.gender || form.gender)) {
+        gender = String(meta.gender || form.gender);
+      }
+      if (age && gender) break;
+    }
+
+    return {
+      ...customer,
+      age,
+      gender,
+    };
+  }
+
+  async update(id: string, tenantId: string, data: any) {
+    const customer = await this.prisma.extendedClient.customer.findFirst({
+      where: { id, tenantId },
+    });
+    if (!customer) throw new NotFoundException('Customer not found');
+
+    return this.prisma.extendedClient.customer.update({
+      where: { id },
+      data,
+    });
   }
 }

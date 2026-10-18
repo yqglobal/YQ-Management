@@ -68,10 +68,10 @@ export function ChatDrawer({ chatToken, messages, chatMessage, setChatMessage, o
             </div>
           ) : (
             messages.map((msg: Message) => (
-              <div key={msg.id} className={`flex ${msg.sender === 'OPERATOR' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${msg.sender === 'OPERATOR' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border border-gray-200 dark:border-white/5 rounded-bl-none'}`}>
+              <div key={msg.id} className={`flex ${msg.sender === 'MANAGER' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${msg.sender === 'MANAGER' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border border-gray-200 dark:border-white/5 rounded-bl-none'}`}>
                   <p className="text-sm">{msg.body}</p>
-                  <p className={`text-[10px] mt-1 ${msg.sender === 'OPERATOR' ? 'text-indigo-200' : 'text-gray-500 dark:text-zinc-500'}`}>
+                  <p className={`text-[10px] mt-1 ${msg.sender === 'MANAGER' ? 'text-indigo-200' : 'text-gray-500 dark:text-zinc-500'}`}>
                     {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>

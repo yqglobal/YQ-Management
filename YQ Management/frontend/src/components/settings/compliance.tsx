@@ -15,7 +15,7 @@ export default function ComplianceSettings() {
   const [isDeleting, setIsDeleting] = useState(false);
   
   if (!user) return null;
-  const isOwner = user.role === 'TENANT_ADMIN' || user.role === 'SUPER_ADMIN';
+  const isOwner = user.role === 'OWNER' || user.role === 'SUPER_ADMIN';
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -53,13 +53,10 @@ export default function ComplianceSettings() {
 
   return (
     <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
-      {/* Decorative left edge accent */}
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#6366f1]"></div>
-      
       <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <span className="material-symbols-outlined text-[#6366f1]" style={{ fontVariationSettings: "'FILL' 1" }}>gavel</span>
+            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>gavel</span>
             <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white tracking-tight font-semibold">Compliance & Data</h2>
           </div>
           <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline">Export your data and manage account lifecycle.</p>
@@ -72,7 +69,7 @@ export default function ComplianceSettings() {
         <section>
           <div className="flex items-center justify-between bg-surface-bright dark:bg-zinc-900 rounded-2xl p-6 border border-border dark:border-dark-border shadow-sm">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-[#6366f1]/10 text-[#6366f1] flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                 <Download strokeWidth={1.5} className="w-5 h-5" />
               </div>
               <div>
@@ -88,7 +85,7 @@ export default function ComplianceSettings() {
                     className={`h-[44px] px-6 rounded-lg font-body-md font-semibold transition-colors flex items-center justify-center gap-2 w-fit ${
                       !isOwner 
                         ? 'bg-surface-container-low dark:bg-white/5 text-outline cursor-not-allowed border border-border dark:border-dark-border' 
-                        : 'bg-[#6366f1] text-white hover:bg-[#4f46e5] shadow-sm'
+                        : 'bg-primary text-white hover:bg-primary/90 shadow-sm'
                     }`}
                   >
                     {isExporting ? <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" /> : <Download strokeWidth={1.5} className="w-5 h-5" />}
@@ -114,7 +111,6 @@ export default function ComplianceSettings() {
         {/* Danger Zone: Account Deletion */}
         <section>
           <div className="bg-error-container/50 dark:bg-error-container/20 border border-error/20 rounded-2xl p-6 relative overflow-hidden">
-             <div className="absolute left-0 top-0 bottom-0 w-1 bg-error"></div>
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-full bg-error-container text-on-error-container flex items-center justify-center shrink-0 mt-0.5">
                 <Trash2 strokeWidth={1.5} className="w-5 h-5" />

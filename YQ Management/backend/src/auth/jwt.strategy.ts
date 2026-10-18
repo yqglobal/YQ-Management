@@ -49,16 +49,28 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       // Verify user still exists in database to prevent orphaned JWT errors
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
-        select: { id: true, role: true, tenantId: true },
+        select: {
+          id: true,
+          role: true,
+          tenantId: true,
+          allowedPages: true,
+          allowedLocationIds: true,
+          allowedServiceIds: true,
+        },
       });
 
       if (!user) {
         throw new UnauthorizedException('User no longer exists');
       }
 
-      // Sync role and tenantId from DB in case they were updated
+      // Sync role, tenantId and allowed scopes from DB in case they were updated
       payload.role = user.role;
       payload.tenantId = user.tenantId;
+      if (user.allowedPages) payload.allowedPages = user.allowedPages;
+      if (user.allowedLocationIds)
+        payload.allowedLocationIds = user.allowedLocationIds;
+      if (user.allowedServiceIds)
+        payload.allowedServiceIds = user.allowedServiceIds;
     }
 
     return {

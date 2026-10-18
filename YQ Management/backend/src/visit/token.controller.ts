@@ -62,7 +62,7 @@ export class TokenController {
     await this.redisService.client.set(redisKey, otpCode, 'EX', 300);
 
     // Check custom branding
-    const sub = tenant.subscriptions?.[0];
+    const sub = tenant.subscriptions;
     let planFeatures: any = sub?.plan?.features || {};
     if (typeof planFeatures === 'string') {
       try {

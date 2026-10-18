@@ -13,7 +13,7 @@ export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
   @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
   @Get('export')
   async exportAnalytics(
     @Req() req: AuthenticatedRequest,
@@ -22,6 +22,7 @@ export class AnalyticsController {
     @Query('tz') tz: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('locationId') locationId?: string,
   ) {
     const csv = await this.analyticsService.exportAnalyticsCSV(
       req.user.tenantId,
@@ -29,14 +30,15 @@ export class AnalyticsController {
       tz || 'UTC',
       startDate,
       endDate,
+      locationId,
     );
     res.header('Content-Type', 'text/csv');
-    res.attachment(`qmova-analytics-${timeframe}.csv`);
+    res.attachment(`qmova-analytics-${timeframe || 'export'}.csv`);
     return res.send(csv);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
   @Get()
   async getDashboardAnalytics(
     @Req() req: AuthenticatedRequest,
@@ -44,6 +46,7 @@ export class AnalyticsController {
     @Query('tz') tz: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('locationId') locationId?: string,
   ) {
     return this.analyticsService.getDashboardAnalytics(
       req.user.tenantId,
@@ -51,6 +54,7 @@ export class AnalyticsController {
       tz || 'UTC',
       startDate,
       endDate,
+      locationId,
     );
   }
 }

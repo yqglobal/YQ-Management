@@ -7,6 +7,7 @@ import {
   CommunicationStatus,
 } from './logging/communication-log.service';
 import { SmsService } from '../sms/sms.service';
+import { TemplateService } from './templates/template.service';
 import * as QRCode from 'qrcode';
 
 /**
@@ -53,6 +54,7 @@ export class VisitNotificationService {
     private readonly whatsappService: WhatsappService,
     private readonly communicationLogService: CommunicationLogService,
     private readonly smsService: SmsService,
+    private readonly templateService: TemplateService,
   ) {}
 
   /**
@@ -129,7 +131,10 @@ export class VisitNotificationService {
         serviceStart: true,
         completedAt: true,
         queueId: true,
+        customerId: true,
         createdAt: true,
+        cancelReason: true,
+        metadata: true,
         surveySent: true,
         rating: true,
         customer: { select: { name: true, phone: true } },
@@ -140,7 +145,10 @@ export class VisitNotificationService {
             emaExpectedDuration: true,
           },
         },
-        location: { select: { name: true, googlePlaceId: true } },
+        queue: { select: { name: true } },
+        location: {
+          select: { name: true, googlePlaceId: true, timezone: true },
+        },
         tenant: {
           select: {
             name: true,
@@ -169,7 +177,8 @@ export class VisitNotificationService {
       this.logger.debug(`${type}: visit not found`);
       return false;
     }
-    const hasWhatsapp = visit.tenant?.whatsappConnected && visit.tenant?.whatsappInstanceId;
+    const hasWhatsapp =
+      visit.tenant?.whatsappConnected && visit.tenant?.whatsappInstanceId;
     const hasSms = visit.tenant?.smsConnected;
     if (!hasWhatsapp && !hasSms) {
       this.logger.debug(
@@ -189,9 +198,10 @@ export class VisitNotificationService {
     visit: NonNullable<Awaited<ReturnType<typeof this.fetchVisitBase>>>,
     message: string,
     type: string,
-    qrDataUrl?: string
+    qrDataUrl?: string,
   ): Promise<void> {
-    const hasWhatsapp = visit.tenant?.whatsappConnected && visit.tenant?.whatsappInstanceId;
+    const hasWhatsapp =
+      visit.tenant?.whatsappConnected && visit.tenant?.whatsappInstanceId;
     const hasSms = visit.tenant?.smsConnected;
 
     let result: any = { success: false, error: 'No provider attempted' };
@@ -210,7 +220,9 @@ export class VisitNotificationService {
             message,
           );
         } catch (err: any) {
-          this.logger.warn(`WhatsApp QR send failed (${err.message}), falling back to text`);
+          this.logger.warn(
+            `WhatsApp QR send failed (${err.message}), falling back to text`,
+          );
           result = await this.whatsappService.sendMessage(
             visit.tenant.whatsappInstanceId!,
             visit.customer.phone!,
@@ -229,7 +241,7 @@ export class VisitNotificationService {
       result = await this.smsService.sendSms(
         visit.tenantId,
         visit.customer.phone!,
-        message
+        message,
       );
     }
 
@@ -242,7 +254,7 @@ export class VisitNotificationService {
       status: result.success
         ? CommunicationStatus.SENT
         : CommunicationStatus.FAILED,
-      provider: hasWhatsapp ? 'evolution' : (visit.tenant.smsProvider || 'sms'),
+      provider: hasWhatsapp ? 'evolution' : visit.tenant.smsProvider || 'sms',
       providerId: result.providerId,
       errorMessage: result.error,
     });
@@ -252,7 +264,7 @@ export class VisitNotificationService {
   private buildWatermark(
     visit: NonNullable<Awaited<ReturnType<typeof this.fetchVisitBase>>>,
   ): string {
-    const sub = visit.tenant.subscriptions?.[0];
+    const sub = visit.tenant.subscriptions;
     let planFeatures: Record<string, unknown> = {};
     try {
       planFeatures =
@@ -310,33 +322,62 @@ export class VisitNotificationService {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
+        timeZone: visit.location?.timezone || 'UTC',
       }).format(new Date((visit as any).scheduledTime));
 
-      message = `Hi ${visit.customer.name}, your booking was confirmed for *${serviceName}*${locationText} at *${formattedDate}*. Thanks for booking!${linkText}${watermark}`;
+      message =
+        (await this.templateService.renderWhatsAppForWorkspace(
+          visit.tenantId,
+          'appointment_created',
+          {
+            name: visit.customer.name,
+            service_name: serviceName,
+            location_name: visit.location?.name || '',
+            date: formattedDate,
+            token: displayId,
+            link: statusUrl || '',
+          },
+        )) + watermark;
     } else {
       // Walk-in: calculate queue position and ETA
-      let positionText: string;
       if (visit.queueId) {
-        const peopleAhead = await this.prisma.visit.count({
-          where: {
-            queueId: visit.queueId,
-            currentState: 'WAITING',
-            createdAt: { lt: visit.createdAt },
-          },
-        });
+        const peopleAhead = await this.prisma.visit.count(
+          {
+            where: {
+              queueId: visit.queueId,
+              currentState: 'WAITING',
+              createdAt: { lt: visit.createdAt },
+            },
+          }
+        );
         const etaMins = peopleAhead * perPersonMins;
-        if (etaMins === 0) {
-          positionText = `\n\nThere are *0* people ahead of you. It's almost your turn! Please move towards the reception.`;
-        } else {
-          positionText = `\n\nThere are *${peopleAhead}* people ahead of you. Estimated wait: *~${etaMins} mins*. Please move towards the reception when it's your turn.`;
-        }
+        message =
+          (await this.templateService.renderWhatsAppForWorkspace(
+            visit.tenantId,
+            'queue_joined',
+            {
+              name: visit.customer.name,
+              position: peopleAhead + 1,
+              queue_name: visit.queue?.name || serviceName,
+              wait_time: etaMins,
+              link: statusUrl || '',
+            },
+            (visit.customer as any)?.preferredLanguage || 'en'
+          )) + watermark;
       } else {
-        positionText = `\n\nWe'll notify you when it's almost your turn. Type *STATUS* to check your position.`;
+        message =
+          (await this.templateService.renderWhatsAppForWorkspace(
+            visit.tenantId,
+            'queue_joined',
+            {
+              name: visit.customer.name,
+              position: 1,
+              queue_name: serviceName,
+              wait_time: 0,
+              link: statusUrl || '',
+            },
+          )) + watermark;
       }
-
-      message =
-        `Hello ${visit.customer.name} 👋 Your ticket *${displayId}* has been issued${locationText} for *${serviceName}*.` +
-        `${positionText}${linkText}${watermark}`;
     }
 
     // Attempt to send QR code image if there's a status URL
@@ -345,9 +386,7 @@ export class VisitNotificationService {
       try {
         qrDataUrl = await QRCode.toDataURL(statusUrl);
       } catch (err: any) {
-        this.logger.warn(
-          `VISIT_CREATED QR generation failed (${err.message})`,
-        );
+        this.logger.warn(`VISIT_CREATED QR generation failed (${err.message})`);
       }
     }
 
@@ -360,22 +399,61 @@ export class VisitNotificationService {
     if (!this.canSendMessage(visit, 'VISIT_CALLED')) return;
 
     const displayId = visit.displayId || payload.displayId || 'Unknown';
-    const message = `🔔 *It's Your Turn!*\n\nHello ${visit.customer.name}, ticket *${displayId}* for *${visit.service?.name || 'your service'}* is now being called.\n\nPlease proceed to the counter immediately.`;
+    const message = await this.templateService.renderWhatsAppForWorkspace(
+      visit.tenantId,
+      'visit_called',
+      {
+        name: visit.customer.name,
+        token: displayId,
+        service_name: visit.service?.name || 'your service',
+      },
+      (visit.customer as any)?.preferredLanguage || 'en',
+    );
 
     await this.sendMessage(visit, message, 'visit_called');
   }
 
   /** VISIT_CANCELLED: Cancellation notification. */
   private async handleVisitCancelled(
-    payload: VisitEventPayload,
+    payload: VisitEventPayload & {
+      cancelReason?: string;
+      customMessage?: string;
+      refundApplicable?: boolean;
+    },
   ): Promise<void> {
     const visit = await this.fetchVisitBase(payload.visitId!);
     if (!this.canSendMessage(visit, 'VISIT_CANCELLED')) return;
 
     const displayId = visit.displayId || payload.displayId || 'Unknown';
-    const message = `❌ *Booking Cancelled*\n\nHello ${visit.customer.name}, your booking for *${visit.service?.name || 'the service'}* (Ticket: ${displayId}) has been cancelled.`;
+    const baseMsg = await this.templateService.renderWhatsAppForWorkspace(
+      visit.tenantId,
+      'visit_cancelled',
+      {
+        name: visit.customer.name,
+        token: displayId,
+        service_name: visit.service?.name || 'the service',
+      },
+      (visit.customer as any)?.preferredLanguage || 'en',
+    );
 
-    await this.sendMessage(visit, message, 'visit_cancelled');
+    const reason =
+      payload.cancelReason || visit.cancelReason || 'Cancelled by staff';
+    const notes = payload.customMessage;
+    const isRefund =
+      payload.refundApplicable !== undefined
+        ? payload.refundApplicable
+        : (visit.metadata as any)?.cancellation?.refundApplicable;
+    const refundText = isRefund
+      ? '✅ Refund applicable and is being processed.'
+      : 'No refund applicable.';
+
+    let detailsMsg = `\n\n📌 *Reason:* ${reason}`;
+    if (notes && notes !== reason) {
+      detailsMsg += `\n📝 *Notes:* ${notes}`;
+    }
+    detailsMsg += `\n💳 *Refund Status:* ${refundText}`;
+
+    await this.sendMessage(visit, baseMsg + detailsMsg, 'visit_cancelled');
   }
 
   /** VISIT_MISSED: Missed turn notification. */
@@ -384,7 +462,16 @@ export class VisitNotificationService {
     if (!this.canSendMessage(visit, 'VISIT_MISSED')) return;
 
     const displayId = visit.displayId || payload.displayId || 'Unknown';
-    const message = `⚠️ *Missed Turn*\n\nHello ${visit.customer.name}, we called your ticket *${displayId}* for *${visit.service?.name || 'the service'}* but you were not present. Please speak to the receptionist.`;
+    const message = await this.templateService.renderWhatsAppForWorkspace(
+      visit.tenantId,
+      'visit_missed',
+      {
+        name: visit.customer.name,
+        token: displayId,
+        service_name: visit.service?.name || 'the service',
+      },
+      (visit.customer as any)?.preferredLanguage || 'en',
+    );
 
     await this.sendMessage(visit, message, 'visit_missed');
   }
@@ -407,7 +494,14 @@ export class VisitNotificationService {
     if (!this.canSendMessage(visit, 'VISIT_COMPLETED')) return;
 
     const watermark = this.buildWatermark(visit);
-    let message = `Hi ${visit.customer.name}, your service is now complete. We hope you had a great experience!${watermark}`;
+    let message =
+      (await this.templateService.renderWhatsAppForWorkspace(
+        visit.tenantId,
+        'visit_completed',
+        {
+          name: visit.customer.name,
+        },
+      )) + watermark;
     let shouldRequestRating = false;
 
     // Evaluate Smart Reviews conditions
@@ -440,21 +534,23 @@ export class VisitNotificationService {
       // Set chat session to step 20 so the chatbot awaits a rating reply.
       try {
         const normalizedPhone = this.normalizePhone(visit.customer.phone!);
-        await this.prisma.chatSession.upsert({
-          where: {
-            tenantId_phone: {
+        await this.prisma.chatSession.upsert(
+          {
+            where: {
+              tenantId_phone: {
+                tenantId: visit.tenantId,
+                phone: normalizedPhone,
+              },
+            },
+            update: { step: 20, context: { locationId: visit.locationId } },
+            create: {
               tenantId: visit.tenantId,
               phone: normalizedPhone,
+              step: 20,
+              context: { locationId: visit.locationId },
             },
-          },
-          update: { step: 20, context: { locationId: visit.locationId } },
-          create: {
-            tenantId: visit.tenantId,
-            phone: normalizedPhone,
-            step: 20,
-            context: { locationId: visit.locationId },
-          },
-        });
+          }
+        );
       } catch (err: any) {
         this.logger.error(
           `VISIT_COMPLETED: failed to set chat session step 20 — ${err.message}`,
@@ -474,40 +570,75 @@ export class VisitNotificationService {
       return;
     }
 
-    const message = `Hi ${visit.customer.name}, it's been a little while since your visit. 🌟 *How did we do?*\n\nPlease reply with a number from *1 to 5* to rate your experience (5 being excellent). Your feedback is very important to us!`;
+    // Check if a ReviewRequest was sent to this customer in the last 30 days
+    const recentRequest = await this.prisma.reviewRequest.findFirst({
+      where: {
+        tenantId: visit.tenantId,
+        customerId: visit.customerId,
+        sentAt: {
+          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days
+        },
+      },
+    });
+
+    if (recentRequest) {
+      this.logger.log(
+        `VISIT_CSAT: skipping for ${visit.id} — customer already asked for review recently`,
+      );
+      return;
+    }
+
+    const location = await this.prisma.location.findUnique({
+      where: { id: visit.locationId },
+      select: { googlePlaceId: true },
+    });
+
+    let reviewLink = '';
+    if (location?.googlePlaceId) {
+      reviewLink = `\n\nOr leave us a review directly on Google: https://search.google.com/local/writereview?placeid=${location.googlePlaceId}`;
+    }
+
+    const message = `Hi ${visit.customer.name}, it's been a little while since your visit. 🌟 *How did we do?*\n\nPlease reply with a number from *1 to 5* to rate your experience (5 being excellent). Your feedback is very important to us!${reviewLink}`;
 
     await this.sendMessage(visit, message, 'visit_csat');
 
-    // We assume success for CSAT DB updates since sendMessage internal logging handled it,
-    // but in a real-world scenario we could return result from sendMessage.
-    // For now we'll just update surveySent.
+    await this.prisma.reviewRequest.create({
+      data: {
+        tenantId: visit.tenantId,
+        visitId: visit.id,
+        customerId: visit.customerId,
+        status: 'SENT',
+        sentAt: new Date(),
+      },
+    });
+
     await this.prisma.visit.update({
       where: { id: visit.id },
       data: { surveySent: true },
     });
 
-      try {
-        const normalizedPhone = this.normalizePhone(visit.customer.phone!);
-        await this.prisma.chatSession.upsert({
-          where: {
-            tenantId_phone: {
-              tenantId: visit.tenantId,
-              phone: normalizedPhone,
-            },
-          },
-          update: { step: 20, context: { locationId: visit.locationId } },
-          create: {
+    try {
+      const normalizedPhone = this.normalizePhone(visit.customer.phone!);
+      await this.prisma.chatSession.upsert({
+        where: {
+          tenantId_phone: {
             tenantId: visit.tenantId,
             phone: normalizedPhone,
-            step: 20,
-            context: { locationId: visit.locationId },
           },
-        });
-      } catch (err: any) {
-        this.logger.error(
-          `VISIT_CSAT: failed to set chat session step 20 — ${err.message}`,
-        );
-      }
+        },
+        update: { step: 20, context: { locationId: visit.locationId } },
+        create: {
+          tenantId: visit.tenantId,
+          phone: normalizedPhone,
+          step: 20,
+          context: { locationId: visit.locationId },
+        },
+      });
+    } catch (err: any) {
+      this.logger.error(
+        `VISIT_CSAT: failed to set chat session step 20 — ${err.message}`,
+      );
+    }
   }
 
   private async handleStepActivated(payload: VisitEventPayload) {
@@ -519,21 +650,24 @@ export class VisitNotificationService {
     });
 
     if (!step) return;
-    
+
     // Only NOTIFICATION and FORM steps proactively message the customer upon activation by default,
     // OR if the step template explicitly requires it via notifyCustomerOnActivation.
-    const shouldNotify = 
-      step.templateStep.type === 'NOTIFICATION' || 
+    const shouldNotify =
+      step.templateStep.type === 'NOTIFICATION' ||
       step.templateStep.type === 'FORM' ||
       step.templateStep.notifyCustomerOnActivation;
 
     if (!shouldNotify) return;
 
     const visit = await this.fetchVisitBase(step.visitId);
-    if (!this.canSendMessage(visit, 'STEP_ACTIVATED' as any)) return;
+    if (!this.canSendMessage(visit, 'STEP_ACTIVATED')) return;
 
     // Resolve the message — priority: notificationTemplate > customerInstruction > FORM URL > generic
-    let rawTemplate = step.templateStep.notificationTemplate || step.templateStep.customerInstruction || '';
+    let rawTemplate =
+      step.templateStep.notificationTemplate ||
+      step.templateStep.customerInstruction ||
+      '';
 
     if (!rawTemplate) {
       if (step.templateStep.type === 'FORM') {
@@ -544,16 +678,20 @@ export class VisitNotificationService {
     }
 
     // Substitute template variables
-    const locationHint = (step.templateStep as any).customerView?.locationHint
-      || step.templateStep.locationDescription
-      || visit.location?.name
-      || '';
+    const locationHint =
+      (step.templateStep as any).customerView?.locationHint ||
+      step.templateStep.locationDescription ||
+      visit.location?.name ||
+      '';
 
     const message = rawTemplate
       .replace(/\{\{customer_name\}\}/g, visit.customer.name || 'Customer')
       .replace(/\{\{step_name\}\}/g, step.name)
       .replace(/\{\{business_name\}\}/g, visit.tenant?.name || 'Us')
-      .replace(/\{\{ticket_number\}\}/g, visit.displayId || visit.id.slice(-6).toUpperCase())
+      .replace(
+        /\{\{ticket_number\}\}/g,
+        visit.displayId || visit.id.slice(-6).toUpperCase(),
+      )
       .replace(/\{\{location\}\}/g, locationHint)
       .replace(/\{\{eta_minutes\}\}/g, ''); // ETA is dynamic — strip if not resolved
 

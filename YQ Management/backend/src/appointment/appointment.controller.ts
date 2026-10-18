@@ -93,7 +93,7 @@ export class AppointmentController {
   }
 
   @Delete(':id')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.appointmentService.remove(id, req.user.tenantId);
   }

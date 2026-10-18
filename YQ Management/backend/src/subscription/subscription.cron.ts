@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionService } from '../subscription/subscription.service';
@@ -7,7 +7,7 @@ import { CommunicationEvent } from '../communication/events/communication-events
 import { EmailService } from '../email/email.service';
 
 @Injectable()
-export class SubscriptionCron {
+export class SubscriptionCron implements OnModuleInit {
   private readonly logger = new Logger(SubscriptionCron.name);
 
   constructor(
@@ -17,7 +17,16 @@ export class SubscriptionCron {
     private readonly emailService: EmailService,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async onModuleInit() {
+    this.logger.log('Checking for expired trials on application startup...');
+    try {
+      await this.expireTrials();
+    } catch (e) {
+      this.logger.error('Startup trial expiration check failed', e);
+    }
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
   async expireTrials() {
     this.logger.log('Running trial expiration cron');
     const expired = await this.prisma.subscription.findMany({
@@ -75,7 +84,7 @@ export class SubscriptionCron {
           if (!sub.tenantId) return;
           try {
             const workspaceOwner = await this.prisma.user.findFirst({
-              where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
+              where: { tenantId: sub.tenantId, role: 'OWNER' },
               select: { email: true },
             });
 
@@ -140,7 +149,7 @@ export class SubscriptionCron {
           if (!sub.tenantId) return;
           try {
             const workspaceOwner = await this.prisma.user.findFirst({
-              where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
+              where: { tenantId: sub.tenantId, role: 'OWNER' },
               select: { email: true },
             });
             const adminOwner = await this.prisma.user.findFirst({
@@ -232,7 +241,7 @@ export class SubscriptionCron {
           });
 
           const workspaceOwner = await this.prisma.user.findFirst({
-            where: { tenantId: sub.tenantId, role: 'TENANT_ADMIN' },
+            where: { tenantId: sub.tenantId, role: 'OWNER' },
             select: { email: true },
           });
 

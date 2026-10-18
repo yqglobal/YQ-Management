@@ -153,7 +153,7 @@ export default function BillingSettings() {
     return null;
   }, [paymentStatus]);
 
-  const { usage } = usePlan();
+  const { usage, limits, queueUsagePct, serviceUsagePct, locationUsagePct, tokenUsagePct } = usePlan();
 
   const handleUpgradeClick = (plan: AnyFixMe) => {
     // If it's a downgrade
@@ -193,15 +193,22 @@ export default function BillingSettings() {
     }
   }, [paymentData]);
 
-  const isTrial = currentSub?.status === 'TRIAL';
-  // Trial users AND paying users (including free ACTIVE plans) should see their plan details (not the pricing grid)
-  const isPaid = currentSub?.status === 'ACTIVE' || isTrial;
-  const isExpired = currentSub?.status === 'EXPIRED' || currentSub?.status === 'CANCELLED';
+  const isTrialActive =
+    currentSub?.status === 'TRIAL' &&
+    Boolean(!currentSub?.trialEndDate || new Date(currentSub.trialEndDate) > new Date());
+  const isExpired =
+    currentSub?.status === 'EXPIRED' ||
+    currentSub?.status === 'CANCELLED' ||
+    (currentSub?.status === 'TRIAL' &&
+      Boolean(currentSub?.trialEndDate && new Date(currentSub.trialEndDate) <= new Date()));
+  const isTrial = isTrialActive;
+  // Active paying users and users with an ACTIVE trial see plan details; expired trials see plan options
+  const isPaid = (currentSub?.status === 'ACTIVE' || isTrialActive) && !isExpired;
   const isPastDue = currentSub?.status === 'PAST_DUE';
   const isPendingPayment = currentSub?.status === 'PENDING_PAYMENT';
   
   let trialDaysLeft = 0;
-  if (isTrial && currentSub?.trialEndDate) {
+  if (isTrialActive && currentSub?.trialEndDate) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const end = new Date(currentSub.trialEndDate);
@@ -319,17 +326,15 @@ export default function BillingSettings() {
               : 'bg-gradient-to-br from-zinc-900/90 to-black border-white/10 shadow-black/50'
           } backdrop-blur-xl group`}>
             {/* Background Glows & Mesh */}
-            <div className={`absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full blur-[120px] opacity-30 pointer-events-none transition-transform duration-1000 group-hover:scale-110 ${isTrial ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
-            <div className={`absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full blur-[120px] opacity-20 pointer-events-none transition-transform duration-1000 group-hover:scale-110 ${isTrial ? 'bg-purple-500' : 'bg-sky-500'}`} />
+            <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full blur-[120px] opacity-25 pointer-events-none transition-transform duration-1000 group-hover:scale-110 bg-primary" />
+            <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full blur-[120px] opacity-15 pointer-events-none transition-transform duration-1000 group-hover:scale-110 bg-primary" />
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
 
             <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-10">
               
               <div className="flex-1">
-                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-bold uppercase tracking-widest mb-6 shadow-sm backdrop-blur-md ${
-                  isTrial ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] ${isTrial ? 'bg-indigo-400 animate-pulse' : 'bg-emerald-400'}`}></span>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/15 text-white text-xs font-bold uppercase tracking-widest mb-6 shadow-sm backdrop-blur-md">
+                  <span className="w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] bg-primary"></span>
                   {isTrial ? '14-Day Trial Active' : 'Active Subscription'}
                 </div>
                 
@@ -387,13 +392,19 @@ export default function BillingSettings() {
                     <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
                       <CheckCircle2 className="w-4 h-4" />
                     </div>
-                    Up to {currentSub?.plan?.limits?.maxQueues || 'Unlimited'} Queues
+                    Up to {limits.maxLocations > 0 ? limits.maxLocations : 'Unlimited'} Location{limits.maxLocations === 1 ? '' : 's'}
                   </li>
                   <li className="flex items-center gap-4 text-white text-base font-medium">
                     <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
                       <CheckCircle2 className="w-4 h-4" />
                     </div>
-                    Up to {currentSub?.plan?.limits?.maxTokens || 'Unlimited'} Tokens/day
+                    Up to {limits.maxServices > 0 ? limits.maxServices : 'Unlimited'} Services
+                  </li>
+                  <li className="flex items-center gap-4 text-white text-base font-medium">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                    Up to {limits.maxTokens > 0 ? limits.maxTokens : 'Unlimited'} Tokens/day
                   </li>
                   {currentSub?.plan?.features?.whatsappNotifications && (
                     <li className="flex items-center gap-4 text-white text-base font-medium">
@@ -418,25 +429,130 @@ export default function BillingSettings() {
           </div>
 
           {/* Usage Stats Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             
             {/* Queues Usage */}
-            <div className="bg-card dark:bg-zinc-900/60 border border-border dark:border-white/10 rounded-[2rem] p-10 flex flex-col sm:flex-row items-center justify-between group overflow-hidden relative shadow-lg">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-colors duration-700"></div>
+            <div className="bg-card dark:bg-zinc-900/60 border border-border dark:border-white/10 rounded-[2rem] p-6 flex flex-col items-center justify-between group overflow-hidden relative shadow-lg">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors duration-700"></div>
               
-              <div className="relative z-10 text-center sm:text-left mb-8 sm:mb-0">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-500 mb-5 border border-emerald-500/20 shadow-inner">
-                  <span className="material-symbols-outlined text-[28px]">layers</span>
+              <div className="relative z-10 text-center w-full mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 text-primary mb-3 border border-primary/20 shadow-inner">
+                  <span className="material-symbols-outlined text-[24px]">layers</span>
                 </div>
-                <h3 className="text-2xl font-bold text-on-surface dark:text-white mb-2">Active Queues</h3>
-                <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Queues configured in workspace</p>
-                <div className="mt-6 flex items-baseline justify-center sm:justify-start gap-2">
-                  <span className="text-5xl font-black text-on-surface dark:text-white tracking-tighter">{usage.queues}</span>
-                  <span className="text-zinc-400 font-bold text-lg">/ {currentSub?.plan?.limits?.maxQueues || '∞'}</span>
+                <h3 className="text-xl font-bold text-on-surface dark:text-white mb-1">Active Queues</h3>
+                <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">Queues in workspace</p>
+                <div className="mt-4 flex items-baseline justify-center gap-1.5">
+                  <span className="text-4xl font-black text-on-surface dark:text-white tracking-tighter">{usage.queues}</span>
+                  <span className="text-zinc-400 font-bold text-base">/ {limits.maxQueues > 0 ? limits.maxQueues : '∞'}</span>
                 </div>
               </div>
 
-              <div className="relative z-10 w-40 h-40 flex items-center justify-center shrink-0">
+              <div className="relative z-10 w-28 h-28 flex items-center justify-center shrink-0">
+                <svg className="w-full h-full transform -rotate-90 drop-shadow-[0_0_8px_rgba(21,113,255,0.3)]" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-surface-container-high dark:text-zinc-800" />
+                  <circle 
+                    cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" 
+                    strokeLinecap="round"
+                    className="text-primary transition-all duration-1000 ease-out"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - (queueUsagePct / 100))}`}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center flex-col">
+                  <span className="text-2xl font-black text-on-surface dark:text-white">
+                    {Math.round(queueUsagePct)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Services Usage */}
+            <div className="bg-card dark:bg-zinc-900/60 border border-border dark:border-white/10 rounded-[2rem] p-6 flex flex-col items-center justify-between group overflow-hidden relative shadow-lg">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors duration-700"></div>
+              
+              <div className="relative z-10 text-center w-full mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 mb-3 border border-indigo-500/20 shadow-inner">
+                  <span className="material-symbols-outlined text-[24px]">design_services</span>
+                </div>
+                <h3 className="text-xl font-bold text-on-surface dark:text-white mb-1">Services</h3>
+                <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">Services offered</p>
+                <div className="mt-4 flex items-baseline justify-center gap-1.5">
+                  <span className="text-4xl font-black text-on-surface dark:text-white tracking-tighter">{usage.services}</span>
+                  <span className="text-zinc-400 font-bold text-base">/ {limits.maxServices > 0 ? limits.maxServices : '∞'}</span>
+                </div>
+              </div>
+
+              <div className="relative z-10 w-28 h-28 flex items-center justify-center shrink-0">
+                <svg className="w-full h-full transform -rotate-90 drop-shadow-[0_0_8px_rgba(99,102,241,0.3)]" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-surface-container-high dark:text-zinc-800" />
+                  <circle 
+                    cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" 
+                    strokeLinecap="round"
+                    className="text-indigo-500 transition-all duration-1000 ease-out"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - (serviceUsagePct / 100))}`}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center flex-col">
+                  <span className="text-2xl font-black text-on-surface dark:text-white">
+                    {Math.round(serviceUsagePct)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Locations Usage */}
+            <div className="bg-card dark:bg-zinc-900/60 border border-border dark:border-white/10 rounded-[2rem] p-6 flex flex-col items-center justify-between group overflow-hidden relative shadow-lg">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors duration-700"></div>
+              
+              <div className="relative z-10 text-center w-full mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 mb-3 border border-amber-500/20 shadow-inner">
+                  <span className="material-symbols-outlined text-[24px]">location_on</span>
+                </div>
+                <h3 className="text-xl font-bold text-on-surface dark:text-white mb-1">Locations</h3>
+                <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">Branches configured</p>
+                <div className="mt-4 flex items-baseline justify-center gap-1.5">
+                  <span className="text-4xl font-black text-on-surface dark:text-white tracking-tighter">{usage.locations}</span>
+                  <span className="text-zinc-400 font-bold text-base">/ {limits.maxLocations > 0 ? limits.maxLocations : '∞'}</span>
+                </div>
+              </div>
+
+              <div className="relative z-10 w-28 h-28 flex items-center justify-center shrink-0">
+                <svg className="w-full h-full transform -rotate-90 drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-surface-container-high dark:text-zinc-800" />
+                  <circle 
+                    cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" 
+                    strokeLinecap="round"
+                    className="text-amber-500 transition-all duration-1000 ease-out"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - (locationUsagePct / 100))}`}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center flex-col">
+                  <span className="text-2xl font-black text-on-surface dark:text-white">
+                    {Math.round(locationUsagePct)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tokens Usage */}
+            <div className="bg-card dark:bg-zinc-900/60 border border-border dark:border-white/10 rounded-[2rem] p-6 flex flex-col items-center justify-between group overflow-hidden relative shadow-lg">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors duration-700"></div>
+              
+              <div className="relative z-10 text-center w-full mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 mb-3 border border-emerald-500/20 shadow-inner">
+                  <span className="material-symbols-outlined text-[24px]">confirmation_number</span>
+                </div>
+                <h3 className="text-xl font-bold text-on-surface dark:text-white mb-1">Tokens</h3>
+                <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">Visits this month</p>
+                <div className="mt-4 flex items-baseline justify-center gap-1.5">
+                  <span className="text-4xl font-black text-on-surface dark:text-white tracking-tighter">{usage.tokensThisMonth}</span>
+                  <span className="text-zinc-400 font-bold text-base">/ {limits.maxTokens > 0 ? limits.maxTokens : '∞'}</span>
+                </div>
+              </div>
+
+              <div className="relative z-10 w-28 h-28 flex items-center justify-center shrink-0">
                 <svg className="w-full h-full transform -rotate-90 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-surface-container-high dark:text-zinc-800" />
                   <circle 
@@ -444,47 +560,12 @@ export default function BillingSettings() {
                     strokeLinecap="round"
                     className="text-emerald-500 transition-all duration-1000 ease-out"
                     strokeDasharray={`${2 * Math.PI * 40}`}
-                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - (currentSub?.plan?.limits?.maxQueues ? Math.min(1, usage.queues / currentSub.plan.limits.maxQueues) : 0))}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - (tokenUsagePct / 100))}`}
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center flex-col">
-                  <span className="text-3xl font-black text-on-surface dark:text-white">
-                    {currentSub?.plan?.limits?.maxQueues ? Math.round((usage.queues / currentSub.plan.limits.maxQueues) * 100) : 0}%
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Tokens Usage */}
-            <div className="bg-card dark:bg-zinc-900/60 border border-border dark:border-white/10 rounded-[2rem] p-10 flex flex-col sm:flex-row items-center justify-between group overflow-hidden relative shadow-lg">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/5 rounded-full blur-3xl group-hover:bg-sky-500/10 transition-colors duration-700"></div>
-              
-              <div className="relative z-10 text-center sm:text-left mb-8 sm:mb-0">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-sky-500/10 text-sky-500 mb-5 border border-sky-500/20 shadow-inner">
-                  <span className="material-symbols-outlined text-[28px]">confirmation_number</span>
-                </div>
-                <h3 className="text-2xl font-bold text-on-surface dark:text-white mb-2">Tokens This Month</h3>
-                <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Customers served across locations</p>
-                <div className="mt-6 flex items-baseline justify-center sm:justify-start gap-2">
-                  <span className="text-5xl font-black text-on-surface dark:text-white tracking-tighter">{usage.tokensThisMonth}</span>
-                  <span className="text-zinc-400 font-bold text-lg">/ {currentSub?.plan?.limits?.maxTokens || '∞'}</span>
-                </div>
-              </div>
-
-              <div className="relative z-10 w-40 h-40 flex items-center justify-center shrink-0">
-                <svg className="w-full h-full transform -rotate-90 drop-shadow-[0_0_8px_rgba(14,165,233,0.3)]" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-surface-container-high dark:text-zinc-800" />
-                  <circle 
-                    cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="8" fill="none" 
-                    strokeLinecap="round"
-                    className="text-sky-500 transition-all duration-1000 ease-out"
-                    strokeDasharray={`${2 * Math.PI * 40}`}
-                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - (currentSub?.plan?.limits?.maxTokens ? Math.min(1, usage.tokensThisMonth / currentSub.plan.limits.maxTokens) : 0))}`}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center flex-col">
-                  <span className="text-3xl font-black text-on-surface dark:text-white">
-                    {currentSub?.plan?.limits?.maxTokens ? Math.round((usage.tokensThisMonth / currentSub.plan.limits.maxTokens) * 100) : 0}%
+                  <span className="text-2xl font-black text-on-surface dark:text-white">
+                    {Math.round(tokenUsagePct)}%
                   </span>
                 </div>
               </div>
@@ -565,17 +646,14 @@ export default function BillingSettings() {
                 ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900'
                 : isPendingPayment
                 ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900'
-                : 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-900'
+                : 'bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30'
             }`}>
-              <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                isExpired ? 'bg-red-500' : isPastDue ? 'bg-amber-500' : isPendingPayment ? 'bg-blue-500' : 'bg-indigo-500'
-              }`}></div>
-              <div className="flex items-center gap-4 pl-2">
+              <div className="flex items-center gap-4">
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                   isExpired ? 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400' :
                   isPastDue ? 'bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400' :
                   isPendingPayment ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' :
-                  'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400'
+                  'bg-primary/10 dark:bg-primary/20 text-primary'
                 }`}>
                   <span className="material-symbols-outlined text-[18px]">
                     {isExpired ? 'error' : isPastDue ? 'credit_card_off' : isPendingPayment ? 'pending' : 'hourglass_empty'}
@@ -587,20 +665,21 @@ export default function BillingSettings() {
                       isExpired ? 'text-red-600 dark:text-red-400' :
                       isPastDue ? 'text-amber-600 dark:text-amber-400' :
                       isPendingPayment ? 'text-blue-600 dark:text-blue-400' :
-                      'text-indigo-600 dark:text-indigo-400'
+                      'text-primary dark:text-sky-400'
                     }>
                       {isExpired ? 'Expired' : isPastDue ? 'Grace Period Active' : isPendingPayment ? 'Payment Processing' : `${trialDaysLeft} days left`}
                     </span>
                   </p>
                   <p className="text-xs text-on-surface-variant dark:text-outline mt-0.5">
-                    {isTrial ? `Trial started ${formatBillingDate(currentSub?.trialStartDate)}${currentSub?.trialEndDate ? ` · Ends ${formatBillingDate(currentSub?.trialEndDate)}` : ''}` :
+                    {isTrialActive ? `Trial started ${formatBillingDate(currentSub?.trialStartDate)}${currentSub?.trialEndDate ? ` · Ends ${formatBillingDate(currentSub?.trialEndDate)}` : ''}` :
+                     isExpired ? `Trial ended on ${formatBillingDate(currentSub?.trialEndDate || currentSub?.endedAt)} · Please choose a plan below to restore access.` :
                      isPastDue ? 'Your payment failed. Please update your payment method.' :
                      isPendingPayment ? 'Please wait while we verify your payment.' :
                      'Action required on your subscription.'}
                   </p>
                 </div>
               </div>
-              {isTrial && (
+              {isTrialActive && (
                 <button
                   onClick={() => { if (confirm('Are you sure you want to cancel your trial? You will lose access immediately.')) handleCancelSubscription(true); }}
                   className="text-xs font-semibold text-on-surface-variant dark:text-outline border border-border dark:border-dark-border px-4 h-9 rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors shrink-0"
@@ -611,9 +690,8 @@ export default function BillingSettings() {
             </div>
           )}
 
-          <div className="bg-white dark:bg-dark-card border border-[#D97706]/30 dark:border-[#D97706]/20 rounded-2xl p-6 mb-8 flex items-start gap-4 shadow-sm relative overflow-hidden">
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#D97706]"></div>
-            <div className="w-10 h-10 rounded-full bg-[#D97706]/10 flex items-center justify-center shrink-0 text-[#D97706]">
+          <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl p-6 mb-8 flex items-start gap-4 shadow-sm relative overflow-hidden">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
               <span className="material-symbols-outlined">info</span>
             </div>
             <div>
@@ -720,7 +798,7 @@ export default function BillingSettings() {
 
               <div className="space-y-3 mb-8">
                 <div className="flex items-center gap-3 text-on-surface dark:text-white font-body-sm font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-primary" /> {checkoutPlan.limits?.maxQueues || 1} Queues & {checkoutPlan.limits?.maxTokens || 500} Tokens/day
+                  <CheckCircle2 className="w-4 h-4 text-primary" /> {checkoutPlan.limits?.maxServices || 1} Services & {checkoutPlan.limits?.maxTokens || 500} Tokens/day
                 </div>
                 {checkoutPlan.features?.whatsappNotifications && (
                   <div className="flex items-center gap-3 text-on-surface dark:text-white font-body-sm font-medium">

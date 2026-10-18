@@ -103,6 +103,69 @@ export class VisitCron {
     }
   }
 
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleStepDelayNotifications() {
+    this.logger.debug('Checking step delay notifications...');
+
+    try {
+      const activeSteps = await this.prisma.visitStep.findMany({
+        where: {
+          status: 'ACTIVE',
+          activatedAt: { not: null },
+        },
+        include: {
+          templateStep: true,
+          visit: {
+            include: { customer: { select: { phone: true, name: true } }, tenant: true },
+          },
+        },
+      });
+
+      const now = new Date().getTime();
+
+      for (const step of activeSteps) {
+        if (!step.activatedAt) continue;
+        const rules = step.templateStep?.notificationRules as any;
+        if (!rules || !Array.isArray(rules)) continue;
+
+        const delayRules = rules.filter(
+          (r: any) => r.trigger === 'DELAY' && typeof r.delayMinutes === 'number'
+        );
+        if (delayRules.length === 0) continue;
+
+        const activeMs = now - step.activatedAt.getTime();
+        const activeMins = Math.floor(activeMs / 60000);
+
+        const visit = step.visit as any;
+        const customerPhone = visit?.customer?.phone;
+        const tenant = visit?.tenant;
+
+        if (!customerPhone || !tenant?.whatsappConnected || !tenant?.whatsappInstanceId) {
+          continue;
+        }
+
+        for (const rule of delayRules) {
+          // Trigger if the elapsed minutes matches exactly the configured delay minutes
+          if (activeMins === rule.delayMinutes) {
+            const message = `⏳ *Update:* You have been at ${step.name} for ${activeMins} minutes. (Template: ${rule.templateId})`;
+            try {
+              await this.whatsappService.sendMessage(
+                tenant.whatsappInstanceId,
+                customerPhone,
+                message,
+              );
+              this.logger.log(`Sent DELAY notification for step ${step.id} to ${customerPhone}`);
+            } catch (e) {
+              this.logger.error(`Failed to send DELAY notification for step ${step.id}: ${e}`);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      this.logger.error('Step delay notifications failed', e);
+    }
+  }
+
   @Cron(CronExpression.EVERY_HOUR)
   async handleExpiredVisitSteps() {
     this.logger.log('Starting Sweep for Expired Visit Steps...');
@@ -116,19 +179,25 @@ export class VisitCron {
       });
 
       if (expiredSteps.length > 0) {
-        this.logger.log(`Found ${expiredSteps.length} expired steps to mark as EXPIRED.`);
+        this.logger.log(
+          `Found ${expiredSteps.length} expired steps to mark as EXPIRED.`,
+        );
 
         await this.prisma.visitStep.updateMany({
-          where: { id: { in: expiredSteps.map(s => s.id) } },
+          where: { id: { in: expiredSteps.map((s) => s.id) } },
           data: { status: 'EXPIRED' },
         });
 
         // Create OutboxEvents so the UI updates live
-        const events = expiredSteps.map(step => ({
+        const events = expiredSteps.map((step) => ({
           type: 'VISIT_UPDATED',
-          payload: { visitId: step.visitId, tenantId: step.tenantId, queueId: step.queueId },
+          payload: {
+            visitId: step.visitId,
+            tenantId: step.tenantId,
+            queueId: step.queueId,
+          },
         }));
-        
+
         await this.prisma.outboxEvent.createMany({
           data: events,
         });
@@ -279,7 +348,7 @@ export class VisitCron {
         if (remindersSent.includes(reminderType)) continue;
 
         // Construct message
-        const sub = visit.tenant.subscriptions?.[0];
+        const sub = visit.tenant.subscriptions;
         let planFeatures: any = sub?.plan?.features || {};
         if (typeof planFeatures === 'string') {
           try {
@@ -371,7 +440,7 @@ export class VisitCron {
           : [];
         if (sentList.includes(reminderType)) continue;
 
-        const sub = appt.tenant.subscriptions?.[0];
+        const sub = appt.tenant.subscriptions;
         let planFeatures: any = sub?.plan?.features || {};
         if (typeof planFeatures === 'string') {
           try {
@@ -425,25 +494,27 @@ export class VisitCron {
     this.logger.debug('Running Deferred Steps Monitor...');
     try {
       const now = new Date();
-      
+
       const readySteps = await this.prisma.visitStep.findMany({
         where: {
           status: 'DEFERRED',
-          deferredUntil: { lte: now }
-        }
+          deferredUntil: { lte: now },
+        },
       });
 
       if (readySteps.length === 0) return;
 
-      this.logger.log(`Found ${readySteps.length} deferred steps ready to activate.`);
+      this.logger.log(
+        `Found ${readySteps.length} deferred steps ready to activate.`,
+      );
 
       for (const step of readySteps) {
         await this.prisma.visitStep.update({
           where: { id: step.id },
           data: {
             status: 'PENDING',
-            deferredUntil: null // Clear it once processed
-          }
+            deferredUntil: null, // Clear it once processed
+          },
         });
 
         await this.prisma.outboxEvent.create({
@@ -452,9 +523,9 @@ export class VisitCron {
             payload: {
               visitStepId: step.id,
               visitId: step.visitId,
-              tenantId: step.tenantId
-            }
-          }
+              tenantId: step.tenantId,
+            },
+          },
         });
       }
     } catch (err) {

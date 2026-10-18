@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchApi } from '../../lib/api';
+import { fetchApi, getBackendUrl } from '../../lib/api';
+import { getTenantUrl, slugify } from '../../lib/utils';
 import { useAuth } from '../AuthContext';
 import { toast } from 'sonner';
 import {
@@ -15,6 +16,9 @@ interface GoogleIntegration {
   id: string;
   email: string;
   tokenExpiry: string | null;
+  hasRefreshToken?: boolean;
+  isRevoked?: boolean;
+  isExpired?: boolean;
   createdAt: string;
 }
 
@@ -67,20 +71,41 @@ function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }
 
 // ─── Token Status Badge ─────────────────────────────────────────────────────────
 
-function TokenStatusBadge({ tokenExpiry }: { tokenExpiry: string | null }) {
-  if (!tokenExpiry) return (
-    <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-medium">
-      <AlertCircle className="w-3 h-3" /> Unknown
-    </span>
-  );
-  const isExpired = new Date(tokenExpiry).getTime() < Date.now();
-  return isExpired ? (
+function TokenStatusBadge({
+  tokenExpiry,
+  hasRefreshToken,
+  isRevoked,
+  isExpired,
+}: {
+  tokenExpiry: string | null;
+  hasRefreshToken?: boolean;
+  isRevoked?: boolean;
+  isExpired?: boolean;
+}) {
+  if (isRevoked || (tokenExpiry && new Date(tokenExpiry).getTime() === 0)) {
+    return (
+      <span className="flex items-center gap-1 text-xs text-red-500 dark:text-red-400 font-medium">
+        <AlertCircle className="w-3 h-3" /> Token Revoked — Re-authorize
+      </span>
+    );
+  }
+  if (isExpired) {
+    return (
+      <span className="flex items-center gap-1 text-xs text-red-500 dark:text-red-400 font-medium">
+        <AlertCircle className="w-3 h-3" /> Token Expired — Re-authorize
+      </span>
+    );
+  }
+  if (hasRefreshToken || !tokenExpiry || new Date(tokenExpiry).getTime() > Date.now()) {
+    return (
+      <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+        <CheckCircle2 className="w-3 h-3" /> Active
+      </span>
+    );
+  }
+  return (
     <span className="flex items-center gap-1 text-xs text-red-500 dark:text-red-400 font-medium">
       <AlertCircle className="w-3 h-3" /> Token Expired — Re-authorize
-    </span>
-  ) : (
-    <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-      <CheckCircle2 className="w-3 h-3" /> Active
     </span>
   );
 }
@@ -111,7 +136,15 @@ const MANUAL_STEPS = [
   },
 ];
 
-function ManualSetupGuide({ bookingUrl }: { bookingUrl: string }) {
+function ManualSetupGuide({
+  bookingUrl,
+  locations = [],
+  tenantSubdomain = '',
+}: {
+  bookingUrl: string;
+  locations?: LocationSetting[];
+  tenantSubdomain?: string;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -158,9 +191,28 @@ function ManualSetupGuide({ bookingUrl }: { bookingUrl: string }) {
                   </a>
                 )}
                 {i === 2 && bookingUrl && (
-                  <div className="mt-2.5 flex items-center gap-2 p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
-                    <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300 flex-1 break-all">{bookingUrl}</span>
-                    <CopyButton value={bookingUrl} />
+                  <div className="mt-2.5 space-y-2">
+                    <div className="flex items-center gap-2 p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+                      <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300 flex-1 break-all">{bookingUrl}</span>
+                      <CopyButton value={bookingUrl} />
+                    </div>
+                    {locations.length > 1 && tenantSubdomain && (
+                      <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700/60 space-y-1.5">
+                        <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                          Or copy location-specific links for separate Google listings:
+                        </p>
+                        {locations.map((loc) => {
+                          const locUrl = getTenantUrl(tenantSubdomain, `/booking/${slugify(loc.name)}`);
+                          return (
+                            <div key={loc.id} className="flex items-center justify-between gap-2 p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200/60 dark:border-zinc-700/40 text-xs">
+                              <span className="font-medium text-zinc-700 dark:text-zinc-300 truncate max-w-[140px]">{loc.name}</span>
+                              <span className="font-mono text-zinc-500 dark:text-zinc-400 text-[11px] truncate flex-1">{locUrl}</span>
+                              <CopyButton value={locUrl} label="Copy" />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -183,10 +235,11 @@ function CalendarPicker({
   value: string;
   onChange: (val: string) => void;
 }) {
-  const { data: calendars, isLoading } = useQuery({
+  const { data: calendars, isLoading, error } = useQuery({
     queryKey: ['google-calendars', integrationId],
     queryFn: () => fetchApi(`/integrations/google/calendars/${integrationId}`),
     enabled: !!integrationId,
+    retry: false,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -198,19 +251,44 @@ function CalendarPicker({
     );
   }
 
+  const warningItem = (calendars || []).find((c: any) => c.warning);
+  const warningMsg = warningItem?.warning || (error as any)?.message;
+  const activationUrl = warningItem?.activationUrl;
+
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full h-10 px-3 py-2 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-    >
-      <option value="">— Sync to Primary Calendar —</option>
-      {(calendars || []).map((cal: any) => (
-        <option key={cal.id} value={cal.id}>
-          {cal.primary ? '⭐ Primary — ' : ''}{cal.summary}
-        </option>
-      ))}
-    </select>
+    <div className="space-y-1.5">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full h-10 px-3 py-2 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+      >
+        <option value="">— Sync to Primary Calendar —</option>
+        {(calendars || []).map((cal: any) => (
+          <option key={cal.id} value={cal.id}>
+            {cal.primary ? '⭐ Primary — ' : ''}{cal.summary}
+          </option>
+        ))}
+      </select>
+
+      {warningMsg && (
+        <div className="flex items-start gap-1.5 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-lg text-xs text-amber-800 dark:text-amber-300">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+          <div className="flex-1 leading-relaxed">
+            <span>{warningMsg}</span>
+            {activationUrl && (
+              <a
+                href={activationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+              >
+                Enable Calendar API in Google Cloud Console <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -238,7 +316,12 @@ function GBPAutoSetup({
     setLoadingAccounts(true);
     setApiError('');
     try {
-      const data = await fetchApi(`/integrations/google/business-accounts/${integrationId}`);
+      const data: any = await fetchApi(`/integrations/google/business-accounts/${integrationId}`);
+      if (data && data.unapproved) {
+        setGbpAccounts([]);
+        setApiError(data.message || 'Google Business Profile API requires project approval from Google. Use the manual guide above.');
+        return;
+      }
       setGbpAccounts(Array.isArray(data) ? data : []);
       if (!Array.isArray(data) || data.length === 0) {
         setApiError('No Google Business listings found for this account.');
@@ -344,6 +427,11 @@ function GBPAutoSetup({
                 )}
               </select>
 
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 flex-wrap">
+                <span>URL to apply:</span>
+                <span className="font-mono text-blue-600 dark:text-blue-400 break-all">{bookingUrl}</span>
+              </div>
+
               <button
                 onClick={handleSetBookingUrl}
                 disabled={!selectedGbpLocation || !bookingUrl || settingBooking || bookingSet}
@@ -372,6 +460,12 @@ export default function GoogleBusinessSettings() {
   const [locations, setLocations] = useState<LocationSetting[]>([]);
   const [disconnectConfirm, setDisconnectConfirm] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [selectedLocationSlug, setSelectedLocationSlug] = useState<string>('all');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['google-business-settings'],
@@ -438,8 +532,18 @@ export default function GoogleBusinessSettings() {
   };
 
   const integrations: GoogleIntegration[] = settings?.googleIntegrations || [];
-  const tenantSubdomain: string = settings?.tenant?.subdomain || '';
-  const bookingUrl = tenantSubdomain ? `https://${tenantSubdomain}.qmova.yqbuddy.com/booking` : '';
+  const tenantSubdomain: string = settings?.tenant?.subdomain || user?.tenant?.subdomain || '';
+
+  const getBookingUrlForSlug = (slug?: string) => {
+    if (!mounted || !tenantSubdomain) return '';
+    if (!slug || slug === 'all') {
+      return getTenantUrl(tenantSubdomain, '/booking');
+    }
+    return getTenantUrl(tenantSubdomain, `/booking/${slug}`);
+  };
+
+  const bookingUrl = getBookingUrlForSlug(selectedLocationSlug);
+  const globalBookingUrl = mounted && tenantSubdomain ? getTenantUrl(tenantSubdomain, '/booking') : '';
 
   if (isLoading) {
     return (
@@ -470,6 +574,40 @@ export default function GoogleBusinessSettings() {
             When someone finds your business on Google Maps or Search, they'll see a <strong>"Book an appointment"</strong> button 
             that takes them straight to your Qmova booking page — no calls, no friction.
           </p>
+
+          {locations.length > 1 && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-xs text-blue-200 font-medium">Booking link for:</span>
+              <button
+                type="button"
+                onClick={() => setSelectedLocationSlug('all')}
+                className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-colors ${
+                  selectedLocationSlug === 'all'
+                    ? 'bg-white text-blue-700 shadow-sm'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+              >
+                All Locations (Global)
+              </button>
+              {locations.map((loc) => {
+                const slug = slugify(loc.name);
+                return (
+                  <button
+                    key={loc.id}
+                    type="button"
+                    onClick={() => setSelectedLocationSlug(slug)}
+                    className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-colors ${
+                      selectedLocationSlug === slug
+                        ? 'bg-white text-blue-700 shadow-sm'
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                    }`}
+                  >
+                    {loc.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {bookingUrl ? (
             <div className="mt-4 flex items-center gap-2 p-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl">
@@ -531,7 +669,11 @@ export default function GoogleBusinessSettings() {
                 <div className="flex-1 h-px bg-zinc-100 dark:bg-zinc-800" />
                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Works for everyone ✓</span>
               </div>
-              <ManualSetupGuide bookingUrl={bookingUrl} />
+              <ManualSetupGuide
+                bookingUrl={bookingUrl}
+                locations={locations}
+                tenantSubdomain={tenantSubdomain}
+              />
             </div>
 
             {/* Method 2: Auto API */}
@@ -542,18 +684,24 @@ export default function GoogleBusinessSettings() {
                   <div className="flex-1 h-px bg-zinc-100 dark:bg-zinc-800" />
                   <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Requires Google account linked ↓</span>
                 </div>
-                {locations.filter(l => l.googleIntegrationId).map(loc => (
-                  <div key={loc.id} className="mb-3 last:mb-0">
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1.5 pl-1">
-                      For location: <span className="font-medium text-zinc-700 dark:text-zinc-300">{loc.name}</span>
+                {locations.filter(l => l.googleIntegrationId).map(loc => {
+                  const locBookingUrl = locations.length > 1 && loc.name
+                    ? getTenantUrl(tenantSubdomain, `/booking/${slugify(loc.name)}`)
+                    : (globalBookingUrl || bookingUrl);
+
+                  return (
+                    <div key={loc.id} className="mb-3 last:mb-0">
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1.5 pl-1">
+                        For location: <span className="font-medium text-zinc-700 dark:text-zinc-300">{loc.name}</span>
+                      </div>
+                      <GBPAutoSetup
+                        location={loc}
+                        integrationId={loc.googleIntegrationId!}
+                        bookingUrl={locBookingUrl}
+                      />
                     </div>
-                    <GBPAutoSetup
-                      location={loc}
-                      integrationId={loc.googleIntegrationId!}
-                      bookingUrl={bookingUrl}
-                    />
-                  </div>
-                ))}
+                  );
+                })}
                 {locations.every(l => !l.googleIntegrationId) && (
                   <div className="text-xs text-zinc-400 dark:text-zinc-600 italic p-3 border border-dashed border-zinc-200 dark:border-zinc-700 rounded-lg">
                     Connect a Google account and map it to a location below to use the automatic method.
@@ -581,7 +729,7 @@ export default function GoogleBusinessSettings() {
           </div>
           <button
             onClick={() => {
-              window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?intent=link_tenant`;
+              window.location.href = `${getBackendUrl()}/auth/google?intent=link_tenant`;
             }}
             className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
           >
@@ -605,14 +753,19 @@ export default function GoogleBusinessSettings() {
                   </div>
                   <div>
                     <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{integration.email}</div>
-                    <TokenStatusBadge tokenExpiry={integration.tokenExpiry} />
+                    <TokenStatusBadge
+                      tokenExpiry={integration.tokenExpiry}
+                      hasRefreshToken={integration.hasRefreshToken}
+                      isRevoked={integration.isRevoked}
+                      isExpired={integration.isExpired}
+                    />
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {integration.tokenExpiry && new Date(integration.tokenExpiry).getTime() < Date.now() && (
+                  {(integration.isRevoked || integration.isExpired) && (
                     <button
-                      onClick={() => { window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?intent=link_tenant`; }}
+                      onClick={() => { window.location.href = `${getBackendUrl()}/auth/google?intent=link_tenant`; }}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                     >
                       <RefreshCw className="w-3 h-3" /> Re-authorize
@@ -783,8 +936,8 @@ export default function GoogleBusinessSettings() {
               role="switch"
               aria-checked={enableSmartReviews}
               onClick={() => setEnableSmartReviews(!enableSmartReviews)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
-                enableSmartReviews ? 'bg-emerald-500' : 'bg-zinc-200 dark:bg-zinc-700'
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                enableSmartReviews ? 'bg-primary' : 'bg-zinc-200 dark:bg-zinc-700'
               }`}
             >
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${enableSmartReviews ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -792,8 +945,8 @@ export default function GoogleBusinessSettings() {
           </div>
 
           {enableSmartReviews && (
-            <div className="space-y-2 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-              <label htmlFor="threshold" className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+            <div className="space-y-2 p-4 bg-primary/5 rounded-xl border border-primary/20">
+              <label htmlFor="threshold" className="text-sm font-medium text-on-surface dark:text-zinc-100">
                 Wait Time Threshold
               </label>
               <div className="flex items-center gap-3">
@@ -804,11 +957,11 @@ export default function GoogleBusinessSettings() {
                   max={120}
                   value={reviewWaitThresholdMins}
                   onChange={(e) => setReviewWaitThresholdMins(parseInt(e.target.value) || 15)}
-                  className="w-24 h-10 px-3 text-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm font-semibold text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-24 h-10 px-3 text-center rounded-lg border border-border dark:border-dark-border bg-card dark:bg-dark-card text-sm font-semibold text-on-surface dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">minutes</span>
+                <span className="text-sm text-on-surface-variant dark:text-zinc-400">minutes</span>
               </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs text-on-surface-variant dark:text-zinc-400">
                 Only send a review request if the customer waited less than {reviewWaitThresholdMins} min. Longer waits are excluded to protect your rating.
               </p>
             </div>
@@ -821,7 +974,7 @@ export default function GoogleBusinessSettings() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           {saving ? 'Saving…' : 'Save Settings'}

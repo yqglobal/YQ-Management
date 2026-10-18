@@ -2,21 +2,22 @@ import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import AdminLayout from '../../../components/AdminLayout';
 import { Search, Users, Phone, Mail, Clock, BarChart2, Plus, MessageSquare, Star, ShieldAlert } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
-import { CreateCustomerModal } from '../../../components/modals/CreateCustomerModal';
+import { CreateVisitModal } from '../../../components/modals/CreateVisitModal';
+import { CustomerDrawer } from '../../../components/CustomerDrawer';
 
-function avgWaitMinutes(visits: AnyFixMe[]): string {
-  const completed = visits.filter((v: AnyFixMe) => v.completedAt && v.createdAt);
+function avgWaitMinutes(visits: any[]): string {
+  const completed = visits.filter((v: any) => v.completedAt && v.createdAt);
   if (!completed.length) return '—';
-  const avg = completed.reduce((sum: number, v: AnyFixMe) => {
+  const avg = completed.reduce((sum: number, v: any) => {
     return sum + (new Date(v.completedAt).getTime() - new Date(v.createdAt).getTime());
   }, 0) / completed.length;
   const mins = Math.round(avg / 60000);
   return mins < 1 ? '<1 min' : `${mins} min`;
 }
 
-function lastVisitLabel(visits: AnyFixMe[]): string {
+function lastVisitLabel(visits: any[]): string {
   if (!visits.length) return '—';
   const sorted = [...visits].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const d = new Date(sorted[0].createdAt);
@@ -31,26 +32,39 @@ function lastVisitLabel(visits: AnyFixMe[]): string {
 export default function RecordsPage() {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'visits' | 'recent' | 'name'>('visits');
 
-  const { data: visits = [], isLoading } = useQuery({
-    queryKey: ['visits'],
-    queryFn: () => fetchApi('/visits').catch(() => []),
+  
+  const queryClient = useQueryClient();
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => fetchApi(`/customer/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customers'] })
   });
 
-  const peopleMap = new Map<string, AnyFixMe>();
-  (visits as AnyFixMe[]).forEach((v) => {
-    if (v.customer?.id) {
-      if (!peopleMap.has(v.customer.id)) {
-        peopleMap.set(v.customer.id, { ...v.customer, visits: [v] });
-      } else {
-        peopleMap.get(v.customer.id).visits.push(v);
-      }
-    }
+  
+  const { 
+    data: customersData, 
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useInfiniteQuery({
+    queryKey: ['customers'],
+    queryFn: async ({ pageParam }) => {
+      const url = pageParam ? `/customer?cursor=${pageParam}` : '/customer';
+      return fetchApi(url);
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage: any) => lastPage.nextCursor,
   });
+
+  const customersRaw = customersData?.pages.flatMap(page => page.items) || [];
+
+
 
   const people = useMemo(() => {
-    let list = Array.from(peopleMap.values());
+    let list = [...customersRaw];
 
     if (search) {
       const q = search.toLowerCase();
@@ -61,17 +75,13 @@ export default function RecordsPage() {
       );
     }
 
-    if (sortBy === 'visits') list.sort((a, b) => b.visits.length - a.visits.length);
-    else if (sortBy === 'recent') list.sort((a, b) => {
-      const la = a.visits.reduce((max: number, v: AnyFixMe) => Math.max(max, new Date(v.createdAt).getTime()), 0);
-      const lb = b.visits.reduce((max: number, v: AnyFixMe) => Math.max(max, new Date(v.createdAt).getTime()), 0);
-      return lb - la;
-    });
+    if (sortBy === 'visits') list.sort((a, b) => (b.totalVisits || 0) - (a.totalVisits || 0));
+    else if (sortBy === 'recent') list.sort((a, b) => (b.lastVisitMs || 0) - (a.lastVisitMs || 0));
     else list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     return list;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visits, search, sortBy]);
+  }, [customersRaw, search, sortBy]);
 
   return (
     <AdminLayout pageTitle="Records">
@@ -79,7 +89,7 @@ export default function RecordsPage() {
         <title>Records | Qmova</title>
       </Head>
 
-      <div className="max-w-6xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="w-full mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -99,9 +109,9 @@ export default function RecordsPage() {
         {/* Summary stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {[
-            { label: 'Total Customers', value: peopleMap.size, icon: Users },
-            { label: 'Total Visits', value: (visits as AnyFixMe[]).length, icon: BarChart2 },
-            { label: 'Avg. Visits / Customer', value: peopleMap.size ? ((visits as AnyFixMe[]).length / peopleMap.size).toFixed(1) : '0', icon: Clock },
+            { label: 'Total Customers', value: customersRaw.length, icon: Users },
+            { label: 'Total Visits', value: (customersRaw as any[]).reduce((sum, c) => sum + (c.totalVisits || 0), 0), icon: BarChart2 },
+            { label: 'Avg. Visits / Customer', value: customersRaw.length ? ((customersRaw as any[]).reduce((sum, c) => sum + (c.totalVisits || 0), 0) / customersRaw.length).toFixed(1) : '0', icon: Clock },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-1">
@@ -165,14 +175,14 @@ export default function RecordsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border dark:divide-dark-border">
-                  {people.map((person: AnyFixMe) => (
-                    <tr key={person.id} className="hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors group">
+                  {people.map((person: any) => (
+                    <tr key={person.id} onClick={() => setSelectedCustomer(person.id)} className="hover:bg-surface-container-low dark:hover:bg-white/[0.02] transition-colors group cursor-pointer">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center font-bold text-primary text-sm shrink-0">
                             {(person.name || '?').charAt(0).toUpperCase()}
                           </div>
-                          <p className="font-semibold text-on-surface dark:text-white text-sm">{person.name || 'Unknown'}</p>
+                          <p className={`font-semibold text-sm ${person.isBlocked ? 'text-red-500 line-through' : 'text-on-surface dark:text-white'}`}>{person.name || 'Unknown'}</p>
                         </div>
                       </td>
                       <td className="p-4">
@@ -194,29 +204,42 @@ export default function RecordsPage() {
                       </td>
                       <td className="p-4 text-center">
                         <span className="inline-flex items-center justify-center px-2.5 py-1 text-xs font-semibold bg-primary/10 dark:bg-primary/20 text-primary rounded-full">
-                          {person.visits.length}
+                          {person.totalVisits || 0}
                         </span>
                       </td>
                       <td className="p-4 text-center">
                         <span className="text-sm text-on-surface-variant font-medium">
-                          {avgWaitMinutes(person.visits)}
+                          {person.avgWaitMinutes || '—'}
                         </span>
                       </td>
                       <td className="p-4">
-                        <span className="text-sm text-on-surface-variant">{lastVisitLabel(person.visits)}</span>
+                        <span className="text-sm text-on-surface-variant">{person.lastVisitLabel || '—'}</span>
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                           <button className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Message on WhatsApp"><MessageSquare className="w-4 h-4" /></button>
-                           <button className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors" title="Mark VIP"><Star className="w-4 h-4" /></button>
-                           <button className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Block"><ShieldAlert className="w-4 h-4" /></button>
+                           {person.phone && <button onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${person.phone.replace(/[^0-9]/g, '')}`); }} className="p-2 text-[#25D366] hover:bg-[#25D366]/10 rounded-lg transition-colors" title="Message on WhatsApp"><MessageSquare className="w-4 h-4" /></button>}
+                           <button onClick={(e) => { e.stopPropagation(); updateMutation.mutate({ id: person.id, data: { isBlocked: !person.isBlocked } }); }} className={`p-2 rounded-lg transition-colors ${person.isBlocked ? 'bg-red-500/20 text-red-600' : 'text-red-500 hover:bg-red-500/10'}`} title={person.isBlocked ? 'Unblock' : 'Block'}><ShieldAlert className="w-4 h-4" /></button>
                         </div>
                       </td>
                     </tr>
                   ))}
+                
                 </tbody>
               </table>
+              
+              {hasNextPage && (
+                <div className="flex justify-center p-4 border-t border-surface-container-high dark:border-white/10">
+                  <button 
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl font-medium transition-colors text-sm flex items-center gap-2"
+                  >
+                    {isFetchingNextPage ? 'Loading...' : 'Load More'}
+                  </button>
+                </div>
+              )}
             </div>
+
           ) : (
             <div className="p-16 flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 bg-surface-container-low dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
@@ -239,7 +262,8 @@ export default function RecordsPage() {
         </div>
       </div>
 
-      <CreateCustomerModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <CreateVisitModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <CustomerDrawer isOpen={!!selectedCustomer} onClose={() => setSelectedCustomer(null)} customerId={selectedCustomer} />
     </AdminLayout>
   );
 }

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Zap, CheckCircle2, ArrowRight, Sparkles, Shield, Globe, MessageSquare, BarChart3, Palette, Webhook, Calendar, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { usePlan } from '../hooks/usePlan';
+import { useAuth } from './AuthContext';
 
 // Maps a PlanFeatures key → display info shown in the welcome modal
 const FEATURE_DISPLAY: Record<string, { icon: React.FC<AnyFixMe>; label: string; color: string; bgColor: string }> = {
@@ -39,28 +40,32 @@ function getWelcomeStorageKey(subscriptionId: string | null | undefined, planNam
 
 export function PlanWelcomeModal({ onDismiss }: { onDismiss?: () => void }) {
   const plan = usePlan();
+  const { user } = useAuth();
   const [visible, setVisible] = useState(false);
   const [storageKey, setStorageKey] = useState('');
 
+  if (user && !['SUPER_ADMIN', 'OWNER', 'ADMIN'].includes(user.role)) {
+    return null;
+  }
+
   useEffect(() => {
     if (plan.isLoading) return;
-    if (!plan.planName && !plan.isTrialActive) return;
+    if (!plan.planName && !plan.isTrialActive) {
+      if (onDismiss) onDismiss();
+      return;
+    }
 
-    // We need the subscription ID from the billing endpoint — proxy via window.__sub_id__ set by usePlan
-    // For simplicity we use planName + status as the dedup key
     const key = getWelcomeStorageKey(null, `${plan.planName}_${plan.status}`);
     setStorageKey(key);
 
     if (typeof window === 'undefined') return;
     const seen = localStorage.getItem(key);
     if (!seen) {
-      // Small delay so the modal appears after the dashboard loads
-      const t = setTimeout(() => setVisible(true), 1500);
-      return () => clearTimeout(t);
+      setVisible(true);
     } else {
       if (onDismiss) onDismiss();
     }
-  }, [plan.isLoading, plan.planName, plan.status]);
+  }, [plan.isLoading, plan.planName, plan.status, plan.isTrialActive]);
 
   const dismiss = () => {
     if (storageKey) localStorage.setItem(storageKey, '1');
@@ -83,94 +88,90 @@ export function PlanWelcomeModal({ onDismiss }: { onDismiss?: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
       onClick={(e) => { if (e.target === e.currentTarget) dismiss(); }}
     >
-      <div className="relative bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
-        {/* Header gradient band */}
-        <div className={`bg-gradient-to-r ${gradient} px-8 pt-10 pb-8 text-white`}>
-          <button
-            onClick={dismiss}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
-          >
-            <X className="w-4 h-4" />
-          </button>
+      <div className="relative bg-white dark:bg-[#1a1a1a] rounded-3xl shadow-xl dark:shadow-[0_0_80px_-20px_rgba(0,0,0,1)] border border-zinc-200 dark:border-white/5 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
+        
+        <button
+          onClick={dismiss}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white z-20"
+        >
+          <X className="w-4 h-4" />
+        </button>
 
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-4xl">{emoji}</span>
+        {/* Top Section */}
+        <div className="relative p-8 pb-6 border-b border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-[#202020]">
+          <div className="flex items-center gap-4 mb-4">
+            <span className="text-4xl filter drop-shadow-lg">{emoji}</span>
             <div>
-              <p className="text-sm font-semibold text-white/70 uppercase tracking-widest">
-                {plan.isTrialActive ? 'You\'re on a' : 'Welcome to'}
+              <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-0.5">
+                {plan.isTrialActive ? "You're on a" : 'Welcome to'}
               </p>
-              <h2 className="text-2xl font-black tracking-tight">{displayPlan} Plan</h2>
+              <h2 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white">{displayPlan} Plan</h2>
             </div>
           </div>
-
-          <p className="text-white/80 text-sm leading-relaxed">
+          <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed">
             {plan.isTrialActive
               ? `You have ${plan.trialDaysLeft} day${plan.trialDaysLeft !== 1 ? 's' : ''} to explore all features. Here's what's included:`
               : "Here's everything included in your plan. Let's get you set up!"}
           </p>
         </div>
 
-        {/* Features grid */}
-        <div className="px-8 py-6">
+        {/* Bottom Section */}
+        <div className="p-8 pt-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">
+            Included in your plan
+          </p>
+          
           {enabledFeatures.length > 0 ? (
-            <>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-4">
-                Included in your plan
-              </p>
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                {enabledFeatures.map((key) => {
-                  const def = FEATURE_DISPLAY[key];
-                  const Icon = def.icon;
-                  return (
-                    <div
-                      key={key}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 dark:border-zinc-800 hover:border-gray-200 dark:hover:border-zinc-700 transition-colors"
-                    >
-                      <div className={`w-8 h-8 rounded-lg ${def.bgColor} flex items-center justify-center shrink-0`}>
-                        <Icon className={`w-4 h-4 ${def.color}`} />
-                      </div>
-                      <span className="text-sm font-medium text-gray-800 dark:text-zinc-200 leading-snug">
-                        {def.label}
-                      </span>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {enabledFeatures.map((key) => {
+                const def = FEATURE_DISPLAY[key];
+                const Icon = def.icon;
+                
+                return (
+                  <div
+                    key={key}
+                    className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-50 dark:bg-white/[0.02] border border-zinc-100 dark:border-white/5 hover:bg-zinc-100 dark:hover:bg-white/[0.04] transition-colors"
+                  >
+                    <div className={`w-8 h-8 rounded-xl ${def.bgColor} flex items-center justify-center shrink-0`}>
+                      <Icon className={`w-4 h-4 ${def.color}`} style={{ color: 'currentColor' }} />
                     </div>
-                  );
-                })}
-              </div>
-            </>
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      {def.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
-            <div className="mb-6 p-4 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl border border-indigo-100 dark:border-indigo-500/20 flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
-              <p className="text-sm text-indigo-700 dark:text-indigo-300 leading-relaxed">
+            <div className="mb-6 p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-indigo-200 leading-relaxed">
                 You have full access to all features during your trial. Explore everything — queues, appointments, WhatsApp, branding and more!
               </p>
             </div>
           )}
 
-          {/* Security note */}
-          <div className="flex items-center gap-2 mb-6 text-xs text-zinc-400 dark:text-zinc-500">
+          <div className="flex items-center gap-2 mb-6 text-xs text-zinc-500">
             <Shield className="w-3.5 h-3.5 shrink-0" />
             <span>Your data is encrypted and secure. Cancel anytime.</span>
           </div>
 
-          {/* CTAs */}
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
             <button
               onClick={dismiss}
-              className={`flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r ${gradient} text-white font-bold rounded-xl hover:opacity-90 transition-opacity shadow-lg`}
+              className="flex-1 bg-zinc-900 dark:bg-white/10 hover:bg-zinc-800 dark:hover:bg-white/15 text-white font-semibold py-3.5 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              Get Started
+              <CheckCircle2 className="w-5 h-5" /> Get Started
             </button>
             <Link
               href="/dashboard/settings/billing"
               onClick={dismiss}
-              className="flex items-center justify-center gap-1.5 px-4 py-3 bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-xl border border-gray-200 dark:border-zinc-700 font-medium text-sm transition-colors"
+              className="bg-transparent hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white font-semibold py-3.5 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 border border-zinc-200 dark:border-white/5"
             >
-              Plans
-              <ArrowRight className="w-4 h-4" />
+              Plans <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>

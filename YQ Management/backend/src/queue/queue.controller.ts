@@ -23,7 +23,7 @@ export class QueueController {
   constructor(private readonly queueService: QueueService) {}
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   @Post()
   async createQueue(
     @Req() req: AuthenticatedRequest,
@@ -68,7 +68,7 @@ export class QueueController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   @Patch(':id')
   async updateQueue(
     @Req() req: AuthenticatedRequest,
@@ -87,7 +87,14 @@ export class QueueController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
+  @Delete('unlinked/purge')
+  async purgeUnlinkedQueues(@Req() req: AuthenticatedRequest) {
+    return this.queueService.purgeUnlinkedQueues(req.user.tenantId);
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   @Delete(':id')
   async deleteQueue(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.queueService.deleteQueueForTenant(id, req.user.tenantId);
@@ -103,7 +110,7 @@ export class QueueController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   @Patch(':id/status')
   async updateStatus(
     @Req() req: AuthenticatedRequest,
@@ -118,7 +125,7 @@ export class QueueController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
   @Post(':id/advance')
   async advanceQueueTurn(
     @Req() req: AuthenticatedRequest,
@@ -129,8 +136,23 @@ export class QueueController {
     return this.queueService.advanceTurn(id);
   }
 
+  /**
+   * Announce-only: plays TV + WhatsApp announcement for the next waiting
+   * customer WITHOUT changing their state to IN_SERVICE.
+   */
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
+  @Post(':id/announce-next')
+  async announceNextInQueue(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    await this.queueService.getQueueByIdForTenant(id, req.user.tenantId);
+    return this.queueService.announceNext(id);
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
   @Post('tokens/:tokenId/complete')
   async completeQueueToken(
     @Req() req: AuthenticatedRequest,
@@ -140,7 +162,7 @@ export class QueueController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
   @Post('tokens/:tokenId/skip')
   async skipQueueToken(
     @Req() req: AuthenticatedRequest,

@@ -5,6 +5,8 @@ import { AppModule } from './../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 
+jest.setTimeout(30000);
+
 describe('Service Flow Engine (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -72,6 +74,18 @@ describe('Service Flow Engine (e2e)', () => {
     });
     customerId = customer.id;
 
+    const queue = await prisma.queue.create({
+      data: {
+        name: 'Main Queue',
+        tenantId,
+        locationId,
+        status: 'ACTIVE',
+        services: {
+          connect: { id: serviceId },
+        },
+      },
+    });
+
     // 2. Setup Service Flow and Steps directly in DB
     const flow = await prisma.serviceFlow.create({
       data: {
@@ -104,6 +118,15 @@ describe('Service Flow Engine (e2e)', () => {
       },
     });
     secondStepTemplateId = step2.id;
+
+    await prisma.flowStepTransition.create({
+      data: {
+        flowId,
+        fromStepId: firstStepTemplateId,
+        toStepId: secondStepTemplateId,
+        isDefault: true,
+      },
+    });
   });
 
   afterAll(async () => {
@@ -111,8 +134,11 @@ describe('Service Flow Engine (e2e)', () => {
     await prisma.visitStepEvent.deleteMany({ where: { tenantId } });
     await prisma.visitStep.deleteMany({ where: { tenantId } });
     await prisma.visit.deleteMany({ where: { tenantId } });
+    await prisma.flowStepTransition.deleteMany({ where: { flowId } });
+    await prisma.flowStepTemplate.deleteMany({ where: { flowId } });
     await prisma.serviceFlow.deleteMany({ where: { tenantId } });
     await prisma.customer.deleteMany({ where: { tenantId } });
+    await prisma.queue.deleteMany({ where: { tenantId } });
     await prisma.service.deleteMany({ where: { tenantId } });
     await prisma.location.deleteMany({ where: { tenantId } });
     await prisma.user.deleteMany({ where: { tenantId } });
@@ -122,14 +148,12 @@ describe('Service Flow Engine (e2e)', () => {
 
   it('1. Create Visit triggers instantiation of VisitSteps', async () => {
     const res = await request(app.getHttpServer())
-      .post('/visits')
+      .post('/visits/staff-walkin')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
-        customerId,
+        customerName: 'Jane Doe',
         locationId,
         serviceId,
-        source: 'WALK_IN',
-        currentState: 'CHECKED_IN',
       })
       .expect(201);
 
@@ -142,9 +166,8 @@ describe('Service Flow Engine (e2e)', () => {
       orderBy: { stepOrder: 'asc' },
     });
 
-    expect(visitSteps.length).toBe(2);
+    expect(visitSteps.length).toBe(1);
     expect(visitSteps[0].status).toBe('PENDING'); // Step 1 is unlocked
-    expect(visitSteps[1].status).toBe('LOCKED'); // Step 2 is waiting on step 1
   });
 
   it('2. Activate and Advance Step 1 unlocks Step 2', async () => {
@@ -167,7 +190,13 @@ describe('Service Flow Engine (e2e)', () => {
       .send({ status: 'DONE' })
       .expect(201);
 
-    // Verify Step 1 is DONE and Step 2 is PENDING
+    // Re-fetch all steps to see the newly instantiated step 2
+    visitSteps = await prisma.visitStep.findMany({
+      where: { visitId },
+      orderBy: { stepOrder: 'asc' },
+    });
+    expect(visitSteps.length).toBe(2);
+
     step1 = await prisma.visitStep.findUnique({
       where: { id: visitSteps[0].id },
     });

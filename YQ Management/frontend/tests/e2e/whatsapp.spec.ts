@@ -1,14 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { seedMassQueues } from './helpers/seed';
+import { loginAsRole } from './test-utils';
 
 test.describe('WhatsApp Settings E2E Flow', () => {
-  let credentials: { email: string; password: string; queueIds: string[] };
-
-  test.beforeAll(async () => {
-    credentials = await seedMassQueues();
+  test.beforeEach(async ({ page }) => {
+    // Login as SUPER_ADMIN to ensure FeatureGuard does not lock WhatsApp integrations
+    await loginAsRole(page, 'SUPER_ADMIN');
   });
 
-  test('Should navigate to WhatsApp settings, generate QR, generate Pairing Code, and send a test message', async ({ page }) => {
+  test('Should navigate to WhatsApp settings, generate QR, and send a test message', async ({ page }) => {
     // 1. Intercept Status endpoint
     let state = 'close';
     await page.route('**/whatsapp/status', async route => {
@@ -51,57 +50,55 @@ test.describe('WhatsApp Settings E2E Flow', () => {
       await route.fulfill({ status: 200, body: JSON.stringify({ success: true }) });
     });
 
-    // 6. Login to Dashboard
-    await page.goto('/login');
-    await page.fill('input[type="email"]', credentials.email);
-    await page.fill('input[type="password"]', credentials.password);
-    await page.click('button[type="submit"]');
+    // 6. Ensure tenant uses Evolution API provider
+    await page.route('**/tenant/me', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'tenant-123', whatsappProvider: 'EVOLUTION' })
+      });
+    });
 
-    try {
-      const otpSelector = 'input[placeholder="000000"]';
-      await page.waitForSelector(otpSelector, { timeout: 2000 });
-      await page.fill(otpSelector, '000000');
-      await page.click('button[type="submit"]');
-    } catch (e) {
-      // OTP not required
+    // 7. Navigate to WhatsApp Integrations Settings
+    await page.goto('/dashboard/settings/integrations');
+
+    // Ensure Evolution API tab is selected
+    const evolutionBtn = page.locator('button', { hasText: 'Evolution API (QR Code)' });
+    if (await evolutionBtn.isVisible()) {
+      await evolutionBtn.click();
     }
 
-    await page.waitForURL(/.*\/dashboard/, { timeout: 10000 });
-
-    // 7. Navigate to WhatsApp Settings
-    await page.goto('/dashboard/settings/whatsapp');
-    
-    // Skip tour modal if it appears
-    try {
-      await page.locator('button', { hasText: 'Skip' }).click({ timeout: 2000 });
-    } catch (e) {}
-
-    await expect(page.locator('h2', { hasText: 'Device Connectivity' })).toBeVisible();
+    await expect(page.locator('h3', { hasText: 'Link Your Account' })).toBeVisible({ timeout: 15000 });
 
     // 8. Test QR Generation Flow
     const generateQrBtn = page.locator('button', { hasText: 'Generate QR Code' });
-    await expect(generateQrBtn).toBeVisible();
+    await expect(generateQrBtn).toBeVisible({ timeout: 10000 });
     await generateQrBtn.click();
-    
 
+    // Verify QR code image is displayed
+    const qrImg = page.locator('img[alt="WhatsApp QR Code"]');
+    await expect(qrImg).toBeVisible({ timeout: 10000 });
 
-    // 10. Simulate successful connection
-    state = 'open'; // Subsequent polls to /whatsapp/status will now return connected
+    // 8. Simulate successful connection
+    state = 'open'; // Subsequent refetches/polls to /whatsapp/status will now return connected
+    await page.reload();
 
-    // Give it time to poll and switch UI
-    await expect(page.locator('h3', { hasText: 'Connected & Active' })).toBeVisible({ timeout: 10000 });
+    // Verify Connected & Send Test Message section appears
+    await expect(page.locator('h3', { hasText: 'Send Test Message' })).toBeVisible({ timeout: 15000 });
 
-    // 11. Test Message Flow
-    const testPhoneInput = page.locator('input[type="tel"]').first();
-    // Focus and fill
+    // 9. Test Message Flow
+    const testPhoneInput = page.locator('input[placeholder="234 567 8900"]');
+    await expect(testPhoneInput).toBeVisible();
     await testPhoneInput.fill('0987654321');
-    const testMessageArea = page.locator('textarea');
+
+    const testMessageArea = page.locator('textarea[placeholder="Type a test message..."]');
     await testMessageArea.fill('Hello from E2E Test');
 
     const dispatchBtn = page.locator('button', { hasText: 'Dispatch Message' });
+    await expect(dispatchBtn).toBeEnabled();
     await dispatchBtn.click();
 
     // Verify success toast
-    await expect(page.locator('text=Test message sent successfully')).toBeVisible();
+    await expect(page.locator('text=Test message sent successfully')).toBeVisible({ timeout: 10000 });
   });
 });

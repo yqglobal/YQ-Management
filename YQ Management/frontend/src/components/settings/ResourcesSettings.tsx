@@ -79,11 +79,10 @@ export function ResourcesSettings() {
 
   return (
     <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-indigo-500" />
       <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <Box className="w-5 h-5 text-indigo-500" />
+            <Box className="w-5 h-5 text-primary" />
             <h2 className="font-headline-sm text-headline-sm font-semibold text-on-surface dark:text-white">Facility Resources</h2>
           </div>
           <p className="text-on-surface-variant dark:text-zinc-400 font-body-sm text-body-sm">
@@ -130,8 +129,8 @@ export function ResourcesSettings() {
                {newResourceServiceIds.map(sid => {
                  const srv = services.find((s: any) => s.id === sid);
                  return srv ? (
-                   <span key={sid} className="text-[10px] bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded flex items-center gap-1">
-                     {srv.name} <X className="w-3 h-3 cursor-pointer hover:text-blue-800" onClick={() => setNewResourceServiceIds(newResourceServiceIds.filter(id => id !== sid))} />
+                   <span key={sid} className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded flex items-center gap-1">
+                     {srv.name} <X className="w-3 h-3 cursor-pointer hover:opacity-80" onClick={() => setNewResourceServiceIds(newResourceServiceIds.filter(id => id !== sid))} />
                    </span>
                  ) : null;
                })}
@@ -161,7 +160,7 @@ export function ResourcesSettings() {
                 {editingResourceId === res.id ? (
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
                     <input type="text" value={editResourceName} onChange={e => setEditResourceName(e.target.value)}
-                      className="bg-canvas dark:bg-zinc-900 border border-indigo-500 rounded-lg px-3 py-1.5 text-sm font-medium outline-none" placeholder="Name" autoFocus />
+                      className="bg-canvas dark:bg-zinc-900 border border-primary rounded-lg px-3 py-1.5 text-sm font-medium outline-none" placeholder="Name" autoFocus />
                     <select value={editResourceType} onChange={e => setEditResourceType(e.target.value)}
                       className="bg-canvas dark:bg-zinc-900 border border-border dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm outline-none">
                       <option value="Counter">Counter / Desk</option>
@@ -189,8 +188,8 @@ export function ResourcesSettings() {
                           {editResourceServiceIds.map(sid => {
                             const srv = services.find((s: any) => s.id === sid);
                             return srv ? (
-                              <span key={sid} className="text-[10px] bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded flex items-center gap-1">
-                                {srv.name} <X className="w-3 h-3 cursor-pointer hover:text-blue-800" onClick={() => setEditResourceServiceIds(editResourceServiceIds.filter(id => id !== sid))} />
+                              <span key={sid} className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded flex items-center gap-1">
+                                {srv.name} <X className="w-3 h-3 cursor-pointer hover:opacity-80" onClick={() => setEditResourceServiceIds(editResourceServiceIds.filter(id => id !== sid))} />
                               </span>
                             ) : null;
                           })}
@@ -201,14 +200,14 @@ export function ResourcesSettings() {
                 ) : (
                   <div className="flex items-center gap-3 flex-1">
                     <div className="w-10 h-10 rounded-lg bg-surface dark:bg-zinc-800 flex items-center justify-center border border-border dark:border-zinc-700">
-                      <Box className="w-5 h-5 text-indigo-500" />
+                      <Box className="w-5 h-5 text-primary" />
                     </div>
                     <div>
                       <p className="font-semibold text-sm text-on-surface dark:text-white">{res.name}</p>
                       <div className="flex items-center gap-2">
                          <p className="text-xs text-on-surface-variant dark:text-zinc-500">{res.type || 'Resource'}</p>
                          {res.services && res.services.length > 0 && (
-                           <span className="text-[10px] bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded-full font-medium">
+                           <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
                              {res.services.length} Linked Service{res.services.length !== 1 ? 's' : ''}
                            </span>
                          )}
@@ -220,7 +219,7 @@ export function ResourcesSettings() {
                   {editingResourceId === res.id ? (
                     <>
                       <button onClick={() => handleUpdateResource(res.id)} disabled={updateResourceMutation.isPending}
-                        className="p-2 text-indigo-600 hover:bg-indigo-500/10 rounded-lg transition-colors" title="Save">
+                        className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Save">
                         {updateResourceMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                       </button>
                       <button onClick={() => setEditingResourceId(null)} className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors" title="Cancel">

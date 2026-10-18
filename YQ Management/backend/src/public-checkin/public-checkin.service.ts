@@ -269,8 +269,9 @@ export class PublicCheckinService {
           visit.service?.expectedDuration ||
           5);
       const baseUrl =
-        process.env.NEXT_PUBLIC_APP_URL || `${process.env.NEXT_PUBLIC_APP_URL || "https://app.qmova.yqbuddy.com"}`;
-      const statusUrl = `${baseUrl}/status/${visit.accessToken}`;
+        process.env.NEXT_PUBLIC_APP_URL ||
+        `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com'}`;
+      const statusUrl = `${baseUrl}/customer/status/${visit.accessToken}`;
       const msg =
         `✅ You've checked in at *${visit.location?.name || visit.tenant?.name}*!\n\n` +
         `📋 Booking: *${visit.service?.name}*\n` +

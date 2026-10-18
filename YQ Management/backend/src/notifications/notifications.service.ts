@@ -1,4 +1,10 @@
-import { Injectable, Logger, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
@@ -11,7 +17,8 @@ export class NotificationsService implements OnModuleInit {
 
   constructor(
     @InjectQueue('whatsapp') private readonly whatsappQueue: Queue,
-    @Inject(forwardRef(() => WhatsappService)) private readonly whatsappService: WhatsappService,
+    @Inject(forwardRef(() => WhatsappService))
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   onModuleInit() {

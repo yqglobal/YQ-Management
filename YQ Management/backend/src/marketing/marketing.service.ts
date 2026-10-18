@@ -13,7 +13,7 @@ export class MarketingService {
 
   async getAudienceCounts() {
     const totalTenants = await this.prisma.user.count({
-      where: { role: 'TENANT_ADMIN' },
+      where: { role: 'OWNER' },
     });
     const subscribers = await this.prisma.marketingSubscriber.count({
       where: { active: true },
@@ -44,7 +44,7 @@ export class MarketingService {
 
     if (audience === 'ALL_TENANTS' || audience === 'ALL') {
       const users = await this.prisma.user.findMany({
-        where: { role: 'TENANT_ADMIN' },
+        where: { role: 'OWNER' },
         select: { email: true },
       });
       emails = emails.concat(users.map((u) => u.email));
@@ -66,7 +66,7 @@ export class MarketingService {
           tenant: {
             select: {
               users: {
-                where: { role: 'TENANT_ADMIN' },
+                where: { role: 'OWNER' },
                 select: { email: true },
               },
             },

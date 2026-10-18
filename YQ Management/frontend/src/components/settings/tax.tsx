@@ -114,12 +114,10 @@ export default function TaxSettings() {
   return (
     <div className="space-y-8">
       <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden">
-        <div className="absolute left-0 top-0 bottom-0 w-2 bg-indigo-500"></div>
-
         <div className="flex items-start justify-between mb-8">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <Building2 className="w-6 h-6 text-indigo-500" />
+              <Building2 className="w-6 h-6 text-primary" />
               <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white font-semibold">Tax Compliance</h2>
             </div>
             <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline">
@@ -136,7 +134,7 @@ export default function TaxSettings() {
             <select
               value={form.country}
               onChange={(e) => updateCountry(e.target.value)}
-              className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow text-on-surface dark:text-white"
+              className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow text-on-surface dark:text-white"
             >
               {REGIMES.map((r) => (
                 <option key={r.country} value={r.country}>
@@ -154,7 +152,7 @@ export default function TaxSettings() {
               type="text"
               value={form.businessLegalName}
               onChange={(e) => setForm({ ...form, businessLegalName: e.target.value })}
-              className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow text-on-surface dark:text-white"
+              className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow text-on-surface dark:text-white"
               placeholder="e.g. Acme Corp Ltd."
             />
           </div>
@@ -167,7 +165,7 @@ export default function TaxSettings() {
               type="text"
               value={form.taxNumber}
               onChange={(e) => setForm({ ...form, taxNumber: e.target.value })}
-              className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow text-on-surface dark:text-white uppercase"
+              className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow text-on-surface dark:text-white uppercase"
               placeholder={`Your ${form.taxRegime} number`}
             />
           </div>
@@ -181,7 +179,7 @@ export default function TaxSettings() {
               step="0.01"
               value={form.defaultTaxRatePercent}
               onChange={(e) => setForm({ ...form, defaultTaxRatePercent: e.target.value })}
-              className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow text-on-surface dark:text-white"
+              className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow text-on-surface dark:text-white"
             />
           </div>
         </div>
@@ -195,7 +193,7 @@ export default function TaxSettings() {
                 onChange={(e) => setForm({ ...form, taxInclusive: e.target.checked })}
                 className="peer sr-only"
               />
-              <div className="w-5 h-5 border-2 border-outline dark:border-zinc-500 rounded flex items-center justify-center peer-checked:bg-indigo-500 peer-checked:border-indigo-500 transition-colors">
+              <div className="w-5 h-5 border-2 border-outline dark:border-zinc-500 rounded flex items-center justify-center peer-checked:bg-primary peer-checked:border-primary transition-colors">
                 <svg className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
@@ -214,12 +212,10 @@ export default function TaxSettings() {
       </div>
 
       <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden">
-        <div className="absolute left-0 top-0 bottom-0 w-2 bg-blue-500"></div>
-
         <div className="flex items-start justify-between mb-8">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <Receipt className="w-6 h-6 text-blue-500" />
+              <Receipt className="w-6 h-6 text-primary" />
               <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white font-semibold">Invoice Preferences</h2>
             </div>
             <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline">
@@ -237,7 +233,7 @@ export default function TaxSettings() {
               type="text"
               value={form.invoicePrefix}
               onChange={(e) => setForm({ ...form, invoicePrefix: e.target.value })}
-              className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-on-surface dark:text-white uppercase"
+              className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow text-on-surface dark:text-white uppercase"
               placeholder="INV"
             />
             <p className="text-[12px] text-on-surface-variant dark:text-zinc-500 mt-2">

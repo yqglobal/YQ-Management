@@ -68,7 +68,13 @@ describe('Queue System Concurrency (e2e)', () => {
     let queue = await prisma.queue.findFirst({ where: { tenantId } });
     if (!queue) {
       queue = await prisma.queue.create({
-        data: { tenantId, name: 'Main Queue', locationId, status: 'ACTIVE' },
+        data: {
+          tenantId,
+          name: 'Main Queue',
+          locationId,
+          status: 'ACTIVE',
+          services: { connect: { id: serviceId } },
+        },
       });
     }
     queueId = queue.id;
@@ -114,22 +120,22 @@ describe('Queue System Concurrency (e2e)', () => {
 
   it('1. Can handle highly concurrent queue joins without duplicating order numbers', async () => {
     // Fire all requests concurrently
-    const promises = customerIds.map((cid) =>
-      request(app.getHttpServer())
-        .post('/visits')
+    const promises = customerIds.map((cid) => {
+      return request(app.getHttpServer())
+        .post('/visits/staff-walkin')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          customerId: cid,
+          customerName: `Cust ${cid}`,
           locationId,
           serviceId,
-          source: 'WALK_IN',
-          currentState: 'CHECKED_IN',
-        }),
-    );
+          queueId,
+        });
+    });
 
     const responses = await Promise.all(promises);
 
     responses.forEach((res) => {
+      if (res.status !== 201) console.error(res.body);
       expect(res.status).toBe(201);
     });
 

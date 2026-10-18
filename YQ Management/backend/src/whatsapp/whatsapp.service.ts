@@ -1575,8 +1575,6 @@ export class WhatsappService implements OnModuleInit {
         where: { whatsappInstanceId: instanceName },
         include: {
           subscriptions: {
-            take: 1,
-            orderBy: { createdAt: 'desc' },
             include: { plan: true },
           },
         },
@@ -1587,7 +1585,7 @@ export class WhatsappService implements OnModuleInit {
         return { ignored: true };
       }
 
-      const sub = tenant.subscriptions?.[0];
+      const sub = tenant.subscriptions;
       let isActive = false;
       const now = new Date();
 
@@ -1614,52 +1612,76 @@ export class WhatsappService implements OnModuleInit {
 
       // 0) CHECK IF USER IS RESPONDING TO A CSAT SURVEY
       try {
-        const pendingSurveyVisit = await this.prisma.visit.findFirst({
+        const pendingReviewRequest = await this.prisma.reviewRequest.findFirst({
           where: {
             tenantId: tenant.id,
             customer: { phone },
-            surveySent: true,
-            rating: null,
-            currentState: 'COMPLETED',
+            status: 'SENT',
           },
-          orderBy: { completedAt: 'desc' },
+          orderBy: { sentAt: 'desc' },
         });
+
+        const pendingSurveyVisit = pendingReviewRequest
+          ? await this.prisma.visit.findUnique({
+              where: { id: pendingReviewRequest.visitId },
+            })
+          : await this.prisma.visit.findFirst({
+              where: {
+                tenantId: tenant.id,
+                customer: { phone },
+                surveySent: true,
+                rating: null,
+                currentState: 'COMPLETED',
+              },
+              orderBy: { completedAt: 'desc' },
+            });
 
         if (pendingSurveyVisit) {
           const rating = parseInt(rawText.trim(), 10);
           if (!isNaN(rating) && rating >= 1 && rating <= 5) {
             // Try to extract any text after the number as feedback
             const feedbackText = rawText.replace(/^\s*\d[.,\s-]*/, '').trim();
-            
+
             await this.prisma.visit.update({
               where: { id: pendingSurveyVisit.id },
-              data: { 
+              data: {
                 rating,
-                ...(feedbackText ? { feedbackText } : {})
+                ...(feedbackText ? { feedbackText } : {}),
               },
             });
-            let replyMessage = 'Thank you for your feedback! We appreciate it.';
 
-            if (rating >= 4) {
-              const location = await this.prisma.location.findUnique({
-                where: { id: pendingSurveyVisit.locationId },
-                select: { googlePlaceId: true },
+            if (pendingReviewRequest) {
+              await this.prisma.reviewRequest.update({
+                where: { id: pendingReviewRequest.id },
+                data: {
+                  status: 'COMPLETED',
+                  completedAt: new Date(),
+                  rating,
+                  feedback: feedbackText || null,
+                  source: 'INTERNAL',
+                },
               });
-              if (location?.googlePlaceId) {
-                const reviewLink = `https://search.google.com/local/writereview?placeid=${location.googlePlaceId}`;
-                replyMessage = `We are thrilled you had a great experience! We would really appreciate it if you could share it on Google:\n${reviewLink}`;
-              } else {
-                replyMessage = 'Thank you for your fantastic feedback!';
-              }
-            } else {
-              replyMessage = "Thank you for your feedback. We are sorry your experience wasn't perfect. Our team has been notified and we will strive to do better next time.";
             }
 
-            await this.sendMessage(
-              instanceName,
-              jid,
-              replyMessage,
-            );
+            let replyMessage = 'Thank you for your feedback! We appreciate it.';
+
+            if (rating <= 3) {
+              await this.prisma.message.create({
+                data: {
+                  tenantId: tenant.id,
+                  customerPhone: phone,
+                  body: `🚨 Low Score Alert: Customer rated their experience ${rating}/5.`,
+                  sender: 'SYSTEM',
+                  isRead: false,
+                },
+              });
+              replyMessage =
+                "Thank you for your feedback. We are sorry your experience wasn't perfect. Our team has been notified and we will strive to do better next time.";
+            } else {
+              replyMessage = 'Thank you for your fantastic feedback!';
+            }
+
+            await this.sendMessage(instanceName, jid, replyMessage);
             return { handled: true, action: 'survey_collected' };
           }
         }
@@ -1709,7 +1731,7 @@ export class WhatsappService implements OnModuleInit {
         return { handled: true, action: 'logged_only' };
       }
 
-      const subscription = tenant.subscriptions?.[0];
+      const subscription = tenant.subscriptions;
       const plan = subscription?.plan;
       let planFeatures = plan?.features as any;
 
@@ -1847,16 +1869,13 @@ export class WhatsappService implements OnModuleInit {
     const tenant = await this.prisma.tenant.findFirst({
       where: { whatsappInstanceId: instanceName },
       include: {
-        subscriptions: {
-          take: 1,
-          orderBy: { createdAt: 'desc' },
-        },
+        subscriptions: true,
       },
     });
 
     if (!tenant) return { active: false, tenant: null };
 
-    const sub = tenant.subscriptions?.[0];
+    const sub = tenant.subscriptions;
     let isActive = false;
     const now = new Date();
 
@@ -1924,6 +1943,101 @@ export class WhatsappService implements OnModuleInit {
     }
 
     return { success: true, providerId: result.data?.key?.id };
+  }
+
+  async sendMetaCloudMessage(tenant: any, to: string, text: string) {
+    if (!tenant.metaCloudToken || !tenant.metaCloudPhoneNumberId) {
+      this.logger.warn(`Tenant ${tenant.id} missing Meta Cloud credentials`);
+      return { success: false, error: 'Missing Meta Cloud credentials' };
+    }
+
+    const url = `https://graph.facebook.com/v19.0/${tenant.metaCloudPhoneNumberId}/messages`;
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to,
+      type: 'text',
+      text: {
+        preview_url: false,
+        body: text,
+      },
+    };
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tenant.metaCloudToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        this.logger.error(`Meta Cloud API error: ${JSON.stringify(data)}`);
+        return {
+          success: false,
+          error: data.error?.message || 'Failed to send message',
+        };
+      }
+
+      return { success: true, messageId: data.messages?.[0]?.id };
+    } catch (e) {
+      this.logger.error(`Error calling Meta Cloud API: ${e.message}`);
+      return { success: false, error: e.message };
+    }
+  }
+
+  async sendMetaCloudMediaMessage(tenant: any, to: string, mediaUrl: string, mediaType: string, caption: string) {
+    if (!tenant.metaCloudToken || !tenant.metaCloudPhoneNumberId) {
+      return { success: false, error: 'Missing Meta Cloud credentials' };
+    }
+
+    const url = `https://graph.facebook.com/v19.0/${tenant.metaCloudPhoneNumberId}/messages`;
+    const typeMap: Record<string, string> = {
+      image: 'image',
+      video: 'video',
+      audio: 'audio',
+      document: 'document',
+    };
+
+    const type = typeMap[mediaType] || 'document';
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to,
+      type,
+      [type]: {
+        link: mediaUrl,
+        caption: caption || undefined,
+      },
+    };
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tenant.metaCloudToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        this.logger.error(`Meta Cloud API error: ${JSON.stringify(data)}`);
+        return {
+          success: false,
+          error: data.error?.message || 'Failed to send media',
+        };
+      }
+
+      return { success: true, messageId: data.messages?.[0]?.id };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
   }
 
   async sendMessage(instanceName: string, number: string, text: string) {
@@ -2085,12 +2199,18 @@ export class WhatsappService implements OnModuleInit {
 
   // Send a message by resolving the tenant's configured instanceName.
   async sendToTenant(tenantId: string, number: string, text: string) {
-    if (!tenantId) {
-      return { success: false, error: 'Missing tenantId' };
-    }
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
     });
+    if (!tenant || !tenant.whatsappConnected) {
+      return { success: false, error: 'WhatsApp not connected' };
+    }
+
+    if (tenant.whatsappProvider === 'META_CLOUD') {
+      const normalizedNumber = number.replace(/\D/g, '');
+      return this.sendMetaCloudMessage(tenant, normalizedNumber, text);
+    }
+
     if (!tenant || !tenant.whatsappInstanceId || !tenant.whatsappConnected) {
       this.logger.warn(
         `Tenant ${tenantId} WhatsApp is not configured or disconnected`,

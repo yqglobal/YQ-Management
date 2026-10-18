@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const SUPER_ADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || 'yqbuddysa@gmail.com';
+const SUPER_ADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || '';
 
 export const config = {
   matcher: [
@@ -40,7 +40,7 @@ export async function middleware(req: NextRequest) {
     
     // Fallbacks for known deployments if env var isn't set
     if (!baseDomain) {
-      const expectedDomain = process.env.NEXT_PUBLIC_DOMAIN_BASE || 'qmova.yqbuddy.com';
+      const expectedDomain = process.env.NEXT_PUBLIC_DOMAIN_BASE || 'qmova.com';
       if (hostname.includes(expectedDomain)) baseDomain = expectedDomain;
     }
 
@@ -83,17 +83,21 @@ export async function middleware(req: NextRequest) {
     });
   }
 
-  // Authenticate super-admin routes
-  if (req.nextUrl.pathname.startsWith('/super-admin')) {
+  // Authenticate dashboard and super-admin routes
+  if (req.nextUrl.pathname.startsWith('/dashboard') || req.nextUrl.pathname.startsWith('/super-admin')) {
     if (!token) {
       const redirectRes = NextResponse.redirect(new URL('/login', req.url));
       redirectRes.cookies.delete('token');
       redirectRes.cookies.delete('access_token');
       return redirectRes;
     }
+  }
+
+  // Verify super-admin permissions
+  if (req.nextUrl.pathname.startsWith('/super-admin')) {
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.qmova.yqbuddy.com';
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NEXT_PUBLIC_DOMAIN_BASE ? 'https://api.' + process.env.NEXT_PUBLIC_DOMAIN_BASE : 'https://api.qmova.com');
       const res = await fetch(`${backendUrl}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -104,7 +108,6 @@ export async function middleware(req: NextRequest) {
       if (res.ok) {
         const data = await res.json();
         const isSuper = data.role === 'SUPER_ADMIN' ||
-          data.email?.toLowerCase() === 'yqbuddysa@gmail.com' ||
           (SUPER_ADMIN_EMAIL && data.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase());
         if (!isSuper) {
           return NextResponse.redirect(new URL('/dashboard', req.url));

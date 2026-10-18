@@ -20,13 +20,87 @@ export class MessagesService {
   async getMessages(visitId: string, tenantId: string) {
     const token = await this.prisma.visit.findFirst({
       where: { id: visitId, tenantId },
+      include: { customer: true },
     });
     if (!token) throw new NotFoundException('Visit not found');
 
-    return this.prisma.message.findMany({
-      where: { visitId, tenantId, isDeleted: false },
+    const customerPhone = token.customer?.phone;
+    const cleanDigits = customerPhone ? customerPhone.replace(/\D/g, '') : null;
+    const lastDigits = cleanDigits && cleanDigits.length >= 7 ? cleanDigits.slice(-9) : cleanDigits;
+
+    const messageOrConditions: any[] = [{ visitId }];
+    if (customerPhone) messageOrConditions.push({ customerPhone });
+    if (cleanDigits) {
+      messageOrConditions.push({ customerPhone: cleanDigits });
+      messageOrConditions.push({ customerPhone: `+${cleanDigits}` });
+    }
+    if (lastDigits) {
+      messageOrConditions.push({ customerPhone: { contains: lastDigits } });
+    }
+
+    const messages = await this.prisma.message.findMany({
+      where: {
+        tenantId,
+        isDeleted: false,
+        OR: messageOrConditions,
+      },
       orderBy: { createdAt: 'asc' },
     });
+
+    // Also include automated messages sent via WhatsApp (ticket confirmation, reminders, status updates, OTP)
+    const commConditions: any[] = [];
+    if (customerPhone) commConditions.push({ recipient: customerPhone });
+    if (cleanDigits) {
+      commConditions.push({ recipient: cleanDigits });
+      commConditions.push({ recipient: `+${cleanDigits}` });
+    }
+    if (lastDigits) {
+      commConditions.push({ recipient: { contains: lastDigits } });
+    }
+
+    let commLogs: any[] = [];
+    if (commConditions.length > 0) {
+      commLogs = await this.prisma.communicationLog.findMany({
+        where: {
+          tenantId,
+          channel: { in: ['whatsapp', 'WHATSAPP'] },
+          OR: commConditions,
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+    }
+
+    const existingMessages = new Set(
+      messages.map((m) => `${m.body.trim().slice(0, 40)}_${new Date(m.createdAt).getMinutes()}`),
+    );
+
+    const automatedMessages = commLogs
+      .filter(
+        (log) =>
+          !existingMessages.has(
+            `${(log.body || '').trim().slice(0, 40)}_${new Date(log.sentAt || log.createdAt).getMinutes()}`,
+          ),
+      )
+      .map((log) => ({
+        id: `comm-${log.id}`,
+        body: log.body || '',
+        sender: 'SYSTEM',
+        createdAt: log.sentAt || log.createdAt,
+        conversationId: null,
+        customerPhone: log.recipient,
+        isRead: true,
+        tenantId: log.tenantId || tenantId,
+        visitId: token.id,
+        isDeleted: false,
+        whatsappId: log.providerId || null,
+        isAutomated: true,
+        automatedType: log.type,
+        status: log.status === 'SENT' || log.status === 'DELIVERED' ? 'delivered' : 'sent',
+      }));
+
+    const all = [...messages, ...automatedMessages];
+    all.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return all;
   }
 
   async getInbox(tenantId: string, locationId?: string) {
@@ -98,10 +172,76 @@ export class MessagesService {
       data: { unreadCount: 0 },
     });
 
-    return this.prisma.message.findMany({
-      where: { tenantId, customerPhone: phone, isDeleted: false },
+    const cleanDigits = phone ? phone.replace(/\D/g, '') : null;
+    const lastDigits = cleanDigits && cleanDigits.length >= 7 ? cleanDigits.slice(-9) : cleanDigits;
+
+    const messageOrConditions: any[] = [{ customerPhone: phone }];
+    if (cleanDigits) {
+      messageOrConditions.push({ customerPhone: cleanDigits });
+      messageOrConditions.push({ customerPhone: `+${cleanDigits}` });
+    }
+    if (lastDigits) {
+      messageOrConditions.push({ customerPhone: { contains: lastDigits } });
+    }
+
+    const messages = await this.prisma.message.findMany({
+      where: {
+        tenantId,
+        isDeleted: false,
+        OR: messageOrConditions,
+      },
       orderBy: { createdAt: 'asc' },
     });
+
+    const commConditions: any[] = [{ recipient: phone }];
+    if (cleanDigits) {
+      commConditions.push({ recipient: cleanDigits });
+      commConditions.push({ recipient: `+${cleanDigits}` });
+    }
+    if (lastDigits) {
+      commConditions.push({ recipient: { contains: lastDigits } });
+    }
+
+    const commLogs = await this.prisma.communicationLog.findMany({
+      where: {
+        tenantId,
+        channel: { in: ['whatsapp', 'WHATSAPP'] },
+        OR: commConditions,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const existingMessages = new Set(
+      messages.map((m) => `${m.body.trim().slice(0, 40)}_${new Date(m.createdAt).getMinutes()}`),
+    );
+
+    const automatedMessages = commLogs
+      .filter(
+        (log) =>
+          !existingMessages.has(
+            `${(log.body || '').trim().slice(0, 40)}_${new Date(log.sentAt || log.createdAt).getMinutes()}`,
+          ),
+      )
+      .map((log) => ({
+        id: `comm-${log.id}`,
+        body: log.body || '',
+        sender: 'SYSTEM',
+        createdAt: log.sentAt || log.createdAt,
+        conversationId: null,
+        customerPhone: log.recipient,
+        isRead: true,
+        tenantId: log.tenantId || tenantId,
+        visitId: null,
+        isDeleted: false,
+        whatsappId: log.providerId || null,
+        isAutomated: true,
+        automatedType: log.type,
+        status: log.status === 'SENT' || log.status === 'DELIVERED' ? 'delivered' : 'sent',
+      }));
+
+    const all = [...messages, ...automatedMessages];
+    all.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return all;
   }
 
   async sendMessageFromOperator(
@@ -138,7 +278,7 @@ export class MessagesService {
         conversationId: conversation.id,
         visitId,
         body: text,
-        sender: 'OPERATOR',
+        sender: 'MANAGER',
       },
     });
 
@@ -193,7 +333,7 @@ export class MessagesService {
         customerPhone: phone,
         conversationId: conversation.id,
         body: bodyText,
-        sender: 'OPERATOR',
+        sender: 'MANAGER',
       },
     });
 

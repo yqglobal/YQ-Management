@@ -35,7 +35,7 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
     if (!tenant || !tenant.locations) return [];
     
     // Admins see all locations
-    if (user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN') {
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'OWNER' || user?.role === 'ADMIN') {
       return tenant.locations;
     }
     
@@ -54,9 +54,9 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
       const saved = localStorage.getItem('qmova_active_location_id');
       if (saved) {
         // Only set it if it's still allowed (or if 'all' is selected and user is admin)
-        if (saved === 'all' && (user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN')) {
+        if (saved === 'all' && (user?.role === 'SUPER_ADMIN' || user?.role === 'OWNER' || user?.role === 'ADMIN')) {
           setActiveLocationId('all');
-        } else if (allowedLocations.some(l => l.id === saved)) {
+        } else if (allowedLocations.some((l: any) => l.id === saved)) {
           setActiveLocationId(saved);
         }
       }
@@ -65,10 +65,10 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     // If no active location (or invalid one) is set, default to something sensible
-    if (!activeLocationId || (activeLocationId !== 'all' && !allowedLocations.some(l => l.id === activeLocationId))) {
+    if (!activeLocationId || (activeLocationId !== 'all' && !allowedLocations.some((l: any) => l.id === activeLocationId))) {
       if (allowedLocations.length > 0) {
         // Admins default to 'all', others default to their first allowed location
-        if (user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN') {
+        if (user?.role === 'SUPER_ADMIN' || user?.role === 'OWNER' || user?.role === 'ADMIN') {
            setActiveLocationId('all');
         } else {
            setActiveLocationId(allowedLocations[0].id);

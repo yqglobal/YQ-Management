@@ -12,7 +12,6 @@ import {
   DollarSign,
   Globe,
   Navigation,
-  BarChart3,
   Layers,
   Sparkles,
   Smartphone,
@@ -95,7 +94,7 @@ export default function SuperAdminAnalytics() {
         <title>Platform Analytics | Super Admin</title>
       </Head>
 
-      <div className="max-w-6xl mx-auto space-y-8 pb-20">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8 pb-20">
         {/* Header and Tab Navigation Bar */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-200 dark:border-white/10 pb-6">
           <div>
@@ -312,7 +311,7 @@ export default function SuperAdminAnalytics() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
                     <span className="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Real MRR</span>
-                    <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-2 font-mono">${financials.realMRR.toLocaleString()}</p>
+                    <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-2 font-mono">${(financials.realMRR / 100).toLocaleString()}</p>
                     <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1 flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                       <TrendingUp className="w-3.5 h-3.5" /> Calculated from active database subscriptions
                     </p>
@@ -320,13 +319,13 @@ export default function SuperAdminAnalytics() {
 
                   <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
                     <span className="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">Real ARR</span>
-                    <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-2 font-mono">${financials.realARR.toLocaleString()}</p>
+                    <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-2 font-mono">${(financials.realARR / 100).toLocaleString()}</p>
                     <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Annualized from actual live billing plans</p>
                   </div>
 
                   <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
                     <span className="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">ARPU (Per Business)</span>
-                    <p className="text-3xl font-black text-blue-600 dark:text-blue-400 mt-2 font-mono">${financials.arpu.toFixed(2)}</p>
+                    <p className="text-3xl font-black text-blue-600 dark:text-blue-400 mt-2 font-mono">${(financials.arpu / 100).toFixed(2)}</p>
                     <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Average real revenue per registered tenant</p>
                   </div>
                 </div>

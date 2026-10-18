@@ -1,4 +1,5 @@
-import { Min, 
+import {
+  Min,
   IsString,
   IsOptional,
   IsBoolean,
@@ -81,7 +82,12 @@ export class CreateStepDto {
 
   /** What appears on the customer's phone for this stage. null/omitted = nothing shown. */
   @IsOptional()
-  customerView?: { title?: string; message?: string; showEta?: boolean; icon?: string } | null;
+  customerView?: {
+    title?: string;
+    message?: string;
+    showEta?: boolean;
+    icon?: string;
+  } | null;
 
   @IsOptional()
   @IsInt()
@@ -90,6 +96,18 @@ export class CreateStepDto {
   @IsOptional()
   @IsInt()
   deferredByHours?: number;
+
+  @IsOptional()
+  @IsInt()
+  expectedDuration?: number;
+
+  @IsOptional()
+  @IsInt()
+  bufferDuration?: number;
+
+  @IsOptional()
+  @IsInt()
+  concurrentSlots?: number;
 
   @IsOptional()
   @IsInt()

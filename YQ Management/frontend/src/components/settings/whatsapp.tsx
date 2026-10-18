@@ -23,6 +23,12 @@ export default function WhatsAppSettingsPage() {
   const [testMessage, setTestMessage] = useState('Test message from Qmova');
   const [qrCountdown, setQrCountdown] = useState<number>(60);
   
+  // Meta Cloud States
+  const [provider, setProvider] = useState<'EVOLUTION' | 'META_CLOUD'>('EVOLUTION');
+  const [metaCloudToken, setMetaCloudToken] = useState('');
+  const [metaCloudPhoneNumberId, setMetaCloudPhoneNumberId] = useState('');
+  const [metaCloudAccountId, setMetaCloudAccountId] = useState('');
+  
   const logToBackend = (level: string, message: string, data?: AnyFixMe) => {
     fetchApi('/whatsapp/frontend-log', {
       method: 'POST',
@@ -86,6 +92,14 @@ export default function WhatsAppSettingsPage() {
   }, [whatsappStatus]);
 
   // Sync the global tenant query cache with the WhatsApp connection status
+  useEffect(() => {
+    if (tenant) {
+      setProvider(tenant.whatsappProvider || 'EVOLUTION');
+      setMetaCloudToken(tenant.metaCloudToken || '');
+      setMetaCloudPhoneNumberId(tenant.metaCloudPhoneNumberId || '');
+      setMetaCloudAccountId(tenant.metaCloudAccountId || '');
+    }
+  }, [tenant?.id, tenant?.whatsappProvider]);
   useEffect(() => {
     if (tenant && isWhatsAppConnected !== undefined) {
       if (isWhatsAppConnected !== tenant.whatsappConnected) {
@@ -157,14 +171,11 @@ export default function WhatsAppSettingsPage() {
       featureName="WhatsApp Integration"
       description="Connect your WhatsApp Business account to send automated notifications, position updates, and serve customers via chat."
     >
-    <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8 hover:border-primary/50 hover:shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)] transition-all duration-300 group">
-      {/* Decorative left edge accent */}
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#25D366]"></div>
-
+    <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8 hover:border-primary/50 transition-all duration-300 group">
       <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <span className="material-symbols-outlined text-[#25D366]" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
+            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
             <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white tracking-tight font-semibold">WhatsApp Integration</h2>
           </div>
           <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline">Connect your WhatsApp account to send automated queue notifications.</p>
@@ -182,7 +193,94 @@ export default function WhatsAppSettingsPage() {
         />
       )}
 
-      <div className="space-y-12">
+      {/* Provider Selector */}
+      <div className="mb-8">
+        <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline uppercase tracking-wider mb-2">WhatsApp Provider</label>
+        <div className="flex p-1 bg-surface-container-low dark:bg-black/50 rounded-xl w-max">
+          <button 
+            onClick={() => {
+              setProvider('EVOLUTION');
+              updateTenantMutation.mutate({ whatsappProvider: 'EVOLUTION' });
+            }} 
+            className={`px-6 h-[40px] rounded-lg font-body-sm font-semibold transition-all duration-300 ${provider === 'EVOLUTION' ? 'bg-white dark:bg-zinc-800 text-on-surface dark:text-white shadow-sm' : 'text-on-surface-variant dark:text-outline hover:text-on-surface'}`}
+          >
+            Evolution API (QR Code)
+          </button>
+          <button 
+            onClick={() => {
+              setProvider('META_CLOUD');
+              updateTenantMutation.mutate({ whatsappProvider: 'META_CLOUD' });
+            }} 
+            className={`px-6 h-[40px] rounded-lg font-body-sm font-semibold transition-all duration-300 ${provider === 'META_CLOUD' ? 'bg-white dark:bg-zinc-800 text-on-surface dark:text-white shadow-sm' : 'text-on-surface-variant dark:text-outline hover:text-on-surface'}`}
+          >
+            Meta Cloud API (Official)
+          </button>
+        </div>
+      </div>
+
+      {provider === 'META_CLOUD' && (
+        <div className="space-y-6 bg-surface-bright dark:bg-zinc-900 rounded-2xl p-6 md:p-8 border border-border dark:border-dark-border shadow-sm mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="space-y-2">
+            <h3 className="font-headline-sm text-headline-sm text-on-surface dark:text-white tracking-tight font-semibold">Meta Cloud API Setup</h3>
+            <p className="font-body-sm text-on-surface-variant dark:text-outline">
+              Enter your official Meta WhatsApp Business API credentials.
+            </p>
+          </div>
+          
+          <div className="space-y-4 max-w-2xl">
+            <div className="space-y-2">
+              <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline uppercase tracking-wider">Permanent Token</label>
+              <input 
+                type="password"
+                value={metaCloudToken}
+                onChange={e => setMetaCloudToken(e.target.value)}
+                placeholder="EAAG... (System User Token)"
+                className="w-full h-[44px] px-4 rounded-lg bg-white dark:bg-black/50 border border-border dark:border-dark-border focus:ring-1 focus:ring-primary focus:border-primary font-mono text-sm"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline uppercase tracking-wider">Phone Number ID</label>
+                <input 
+                  type="text"
+                  value={metaCloudPhoneNumberId}
+                  onChange={e => setMetaCloudPhoneNumberId(e.target.value)}
+                  placeholder="e.g. 1044..."
+                  className="w-full h-[44px] px-4 rounded-lg bg-white dark:bg-black/50 border border-border dark:border-dark-border focus:ring-1 focus:ring-primary focus:border-primary font-mono text-sm"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline uppercase tracking-wider">Business Account ID</label>
+                <input 
+                  type="text"
+                  value={metaCloudAccountId}
+                  onChange={e => setMetaCloudAccountId(e.target.value)}
+                  placeholder="e.g. 1022..."
+                  className="w-full h-[44px] px-4 rounded-lg bg-white dark:bg-black/50 border border-border dark:border-dark-border focus:ring-1 focus:ring-primary focus:border-primary font-mono text-sm"
+                />
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => updateTenantMutation.mutate({ 
+                metaCloudToken, 
+                metaCloudPhoneNumberId, 
+                metaCloudAccountId,
+                whatsappConnected: !!(metaCloudToken && metaCloudPhoneNumberId)
+              })}
+              disabled={updateTenantMutation.isPending}
+              className="mt-4 h-[44px] px-6 bg-primary hover:bg-primary-600 text-white rounded-lg font-body-md font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {updateTenantMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Save Credentials
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className={`space-y-12 ${provider !== 'EVOLUTION' ? 'hidden' : ''}`}>
         {/* Connection Status Section */}
         <section>
           {isWhatsAppConnected ? (
@@ -243,7 +341,7 @@ export default function WhatsAppSettingsPage() {
                   <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-500">
                     <div className="space-y-2">
                       <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline uppercase tracking-wider">WhatsApp Phone Number</label>
-                      <div className="h-[44px] rounded-lg bg-white dark:bg-black/50 border border-border dark:border-dark-border focus-within:ring-1 focus-within:ring-[#25D366] focus-within:border-[#25D366]">
+                      <div className="h-[44px] rounded-lg bg-white dark:bg-black/50 border border-border dark:border-dark-border focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
                         <PhoneInput 
                           value={pairingPhoneNumber}
                           onChange={setPairingPhoneNumber}
@@ -268,7 +366,7 @@ export default function WhatsAppSettingsPage() {
                         }
                       }}
                       disabled={pairingCodeMutation.isPending || !pairingPhoneNumber}
-                      className="w-full h-[44px] bg-[#25D366] hover:bg-[#1DA851] disabled:opacity-50 text-white rounded-lg font-body-md font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
+                      className="w-full h-[44px] bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-lg font-body-md font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
                     >
                       {pairingCodeMutation.isPending ? <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" /> : <Smartphone strokeWidth={1.5} className="w-5 h-5" />}
                       Generate Pairing Code
@@ -284,7 +382,7 @@ export default function WhatsAppSettingsPage() {
                           connectMutation.mutate(false);
                         }}
                         disabled={connectMutation.isPending}
-                        className="w-full py-4 bg-[#25D366] hover:bg-[#1DA851] disabled:opacity-50 text-white font-semibold rounded-xl transition-colors shadow-sm flex flex-col items-center justify-center gap-1"
+                        className="w-full py-4 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors shadow-sm flex flex-col items-center justify-center gap-1"
                       >
                         <div className="flex items-center gap-2">
                           {connectMutation.isPending ? <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" /> : <QrCode strokeWidth={1.5} className="w-5 h-5" />}
@@ -313,7 +411,7 @@ export default function WhatsAppSettingsPage() {
                       <button
                         onClick={() => connectMutation.mutate(true)}
                         disabled={connectMutation.isPending}
-                        className="flex items-center gap-2 font-body-sm font-semibold text-on-surface dark:text-white hover:text-[#25D366] transition-colors"
+                        className="flex items-center gap-2 font-body-sm font-semibold text-on-surface dark:text-white hover:text-primary transition-colors"
                       >
                         <RefreshCw strokeWidth={1.5} className={`w-4 h-4 ${connectMutation.isPending ? 'animate-spin' : ''}`} />
                         {connectMutation.isPending ? 'Refreshing...' : 'Refresh QR'}
@@ -323,7 +421,7 @@ export default function WhatsAppSettingsPage() {
                       </div>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-zinc-400 text-center max-w-[280px] mt-2">
-                      <span className="font-semibold text-indigo-500 dark:text-indigo-400 block mb-1 flex items-center justify-center gap-2">
+                      <span className="font-semibold text-primary dark:text-sky-400 block mb-1 flex items-center justify-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" /> Waiting for scan...
                       </span>
                       After scanning QR on WhatsApp mobile phone, wait for 15-20 seconds for the screen to update.
@@ -374,7 +472,7 @@ export default function WhatsAppSettingsPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline uppercase tracking-wider">Recipient Number</label>
-                  <div className="h-[44px] rounded-lg bg-white dark:bg-black/50 border border-border dark:border-dark-border focus-within:ring-1 focus-within:ring-[#25D366] focus-within:border-[#25D366]">
+                  <div className="h-[44px] rounded-lg bg-white dark:bg-black/50 border border-border dark:border-dark-border focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
                     <PhoneInput 
                       value={testPhone} 
                       onChange={setTestPhone} 
@@ -388,7 +486,7 @@ export default function WhatsAppSettingsPage() {
                    <textarea
                      value={testMessage}
                      onChange={(e) => setTestMessage(e.target.value)}
-                     className="w-full p-3 rounded-lg bg-white dark:bg-black/50 border border-border dark:border-dark-border focus:ring-1 focus:ring-[#25D366] focus:border-[#25D366] resize-none h-24 font-body-md text-on-surface dark:text-white outline-none"
+                     className="w-full p-3 rounded-lg bg-white dark:bg-black/50 border border-border dark:border-dark-border focus:ring-1 focus:ring-primary focus:border-primary resize-none h-24 font-body-md text-on-surface dark:text-white outline-none"
                      placeholder="Type a test message..."
                    />
                 </div>
@@ -413,7 +511,7 @@ export default function WhatsAppSettingsPage() {
                       });
                     }}
                     disabled={testMutation.isPending || !testPhone || !testMessage}
-                    className="w-full h-[44px] bg-[#25D366] hover:bg-[#1DA851] disabled:opacity-50 text-white font-body-md font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+                    className="w-full h-[44px] bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-body-md font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
                   >
                     {testMutation.isPending ? <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" /> : <Send strokeWidth={1.5} className="w-5 h-5" />}
                     Dispatch Message

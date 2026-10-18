@@ -29,7 +29,7 @@ import type { AuthenticatedRequest } from '../auth/types/auth.types';
 
 @Controller('billing')
 @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-@Roles(Role.TENANT_ADMIN, Role.OPERATOR, Role.SUPER_ADMIN, Role.ADMIN)
+@Roles(Role.OWNER, Role.MANAGER, Role.SUPER_ADMIN, Role.ADMIN)
 export class BillingController {
   constructor(
     private readonly subscriptionService: SubscriptionService,
@@ -84,7 +84,7 @@ export class BillingController {
   }
 
   @Post('workspace/subscription')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async createSubscription(
     @Request() req: AuthenticatedRequest,
     @Body() dto: CreateSubscriptionDto,
@@ -95,7 +95,7 @@ export class BillingController {
   }
 
   @Post('workspace/subscription/trial')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async startTrial(
     @Request() req: AuthenticatedRequest,
     @Body() body: CreateSubscriptionDto,
@@ -110,7 +110,7 @@ export class BillingController {
   }
 
   @Put('workspace/subscription/upgrade')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async upgradeSubscription(
     @Request() req: AuthenticatedRequest,
     @Body() dto: UpgradeSubscriptionDto,
@@ -121,7 +121,7 @@ export class BillingController {
   }
 
   @Put('workspace/subscription/downgrade')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async downgradeSubscription(
     @Request() req: AuthenticatedRequest,
     @Body() dto: DowngradeSubscriptionDto,
@@ -133,7 +133,7 @@ export class BillingController {
   }
 
   @Get('workspace/subscription/downgrade-preview')
-  @Roles(Role.TENANT_ADMIN, Role.ADMIN)
+  @Roles(Role.OWNER, Role.ADMIN)
   async getDowngradePreview(
     @Request() req: AuthenticatedRequest,
     @Query('planId') planId: string,
@@ -148,7 +148,7 @@ export class BillingController {
   }
 
   @Post('workspace/subscription/cancel')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async cancelSubscription(
     @Request() req: AuthenticatedRequest,
     @Body() dto: CancelSubscriptionDto,
@@ -157,7 +157,7 @@ export class BillingController {
   }
 
   @Post('workspace/subscription/resume')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async resumeSubscription(
     @Request() req: AuthenticatedRequest,
     @Body() dto: ResumeSubscriptionDto,
@@ -179,13 +179,13 @@ export class BillingController {
   }
 
   @Post('workspace/subscription/renew')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async renewSubscription(@Request() req: AuthenticatedRequest) {
     return this.subscriptionService.renewSubscription(req.user.tenantId);
   }
 
   @Post('workspace/subscription/expire-trial')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async expireTrial(@Request() req: AuthenticatedRequest) {
     return this.subscriptionService.expireTrial(req.user.tenantId);
   }
@@ -193,7 +193,7 @@ export class BillingController {
 
 @Controller('billing/invoices')
 @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-@Roles(Role.TENANT_ADMIN, Role.OPERATOR)
+@Roles(Role.OWNER, Role.MANAGER)
 export class BillingInvoicesController {
   constructor(private readonly invoiceService: InvoiceService) {}
 
@@ -211,7 +211,7 @@ export class BillingInvoicesController {
   }
 
   @Post('generate')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async generateInvoice(
     @Request() req: AuthenticatedRequest,
     @Body() body: GenerateInvoiceDto,

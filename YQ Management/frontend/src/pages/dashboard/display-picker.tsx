@@ -20,7 +20,7 @@ export default function DisplayPicker() {
         <title>Display Picker | Qmova</title>
       </Head>
 
-      <div className="max-w-6xl mx-auto space-y-8 p-4 sm:p-6 lg:p-8 font-body-md text-on-surface dark:text-white">
+      <div className="w-full mx-auto space-y-8 p-4 sm:p-6 lg:p-8 font-body-md text-on-surface dark:text-white">
         
         {/* Header Section */}
         <div className="flex flex-col gap-2 mb-8">

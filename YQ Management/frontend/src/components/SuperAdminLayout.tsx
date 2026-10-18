@@ -4,8 +4,6 @@ import { useRouter } from 'next/router';
 import {
   LayoutDashboard,
   Building2,
-  CreditCard,
-  Users,
   LogOut,
   Activity,
   Package,
@@ -16,7 +14,6 @@ import {
   Bell,
   Sliders,
   Inbox,
-  Layers,
   FileText,
   Megaphone,
 } from 'lucide-react';

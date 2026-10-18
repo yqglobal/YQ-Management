@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
   Inject,
   forwardRef,
 } from '@nestjs/common';
@@ -32,6 +33,7 @@ export class QueueService {
     tokenDisplayConfig?: any,
     locationId?: string,
     serviceIds?: string[],
+    skipLimitCheck: boolean = false,
   ) {
     if (!serviceIds || serviceIds.length === 0) {
       throw new BadRequestException(
@@ -39,16 +41,18 @@ export class QueueService {
       );
     }
 
-    // SECURITY: Enforce plan limits
-    const currentQueuesCount = await this.prisma.queue.count({
-      where: { tenantId },
-    });
+    if (!skipLimitCheck) {
+      // SECURITY: Enforce plan limits
+      const currentQueuesCount = await this.prisma.queue.count({
+        where: { tenantId },
+      });
 
-    await this.subscriptionService.checkLimit(
-      tenantId,
-      'queues',
-      currentQueuesCount,
-    );
+      await this.subscriptionService.checkLimit(
+        tenantId,
+        'queues',
+        currentQueuesCount,
+      );
+    }
 
     const queue = await this.prisma.queue.create({
       data: {
@@ -129,11 +133,47 @@ export class QueueService {
 
   async deleteQueueForTenant(queueId: string, tenantId: string) {
     await this.getQueueByIdForTenant(queueId, tenantId);
-    await this.redisService.client.del(`queue:${queueId}:state`);
+    await this.redisService.client.del(`queue:${queueId}:state`).catch(() => {});
+    await this.prisma.blockOff.deleteMany({ where: { queueId } });
+    await this.prisma.visit.updateMany({
+      where: { queueId },
+      data: { queueId: null },
+    });
     await this.prisma.queue.delete({
       where: { id: queueId },
     });
     return { success: true };
+  }
+
+  async purgeUnlinkedQueues(tenantId: string) {
+    const unlinkedQueues = await this.prisma.queue.findMany({
+      where: {
+        tenantId,
+        services: { none: {} },
+      },
+      select: { id: true, name: true },
+    });
+
+    const queueIds = unlinkedQueues.map((q) => q.id);
+    if (queueIds.length > 0) {
+      await this.prisma.blockOff.deleteMany({
+        where: { queueId: { in: queueIds } },
+      });
+      await this.prisma.visit.updateMany({
+        where: { queueId: { in: queueIds } },
+        data: { queueId: null },
+      });
+      await this.prisma.queue.deleteMany({
+        where: { id: { in: queueIds } },
+      });
+      for (const q of unlinkedQueues) {
+        await this.redisService.client
+          .del(`queue:${q.id}:state`)
+          .catch(() => {});
+      }
+    }
+
+    return { success: true, purgedCount: queueIds.length };
   }
 
   async getQueuesForTenant(userTokenPayload: any, locationId?: string) {
@@ -144,7 +184,7 @@ export class QueueService {
     }
 
     if (
-      userTokenPayload.role === 'OPERATOR' ||
+      userTokenPayload.role === 'MANAGER' ||
       userTokenPayload.role === 'MANAGER'
     ) {
       const user = await this.prisma.user.findUnique({
@@ -215,8 +255,6 @@ export class QueueService {
         tenant: {
           include: {
             subscriptions: {
-              take: 1,
-              orderBy: { createdAt: 'desc' },
               include: { plan: true },
             },
           },
@@ -232,15 +270,15 @@ export class QueueService {
       },
     });
 
-    if (queue && queue.tenant) {
-      const tenant = queue.tenant as any;
-      const planFeatures = tenant.subscriptions?.[0]?.plan?.features;
+    if (queue && (queue as any).tenant) {
+      const tenant = (queue as any).tenant as any;
+      const planFeatures = tenant.subscriptions?.plan?.features;
       const hasCustomBranding = planFeatures?.customBranding === true;
       if (!hasCustomBranding) {
         tenant.branding = null;
       }
 
-      const sub = tenant.subscriptions?.[0];
+      const sub = tenant.subscriptions;
       const isSubscriptionActive =
         sub && (sub.status === 'ACTIVE' || sub.status === 'TRIAL');
 
@@ -269,12 +307,15 @@ export class QueueService {
     return this.prisma.visit.findMany({
       where: {
         queueId,
-        currentState: { in: ['WAITING', 'CHECKED_IN', 'IN_SERVICE'] },
+        currentState: { in: ['WAITING', 'CHECKED_IN'] },
       },
       include: {
         customer: { select: { name: true } },
+        service: { select: { name: true } },
+        queue: { select: { name: true } },
       },
       orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+      take: 20,
     });
   }
 
@@ -377,7 +418,75 @@ export class QueueService {
   }
 
   async advanceTurn(queueId: string) {
+    const queue = await this.prisma.queue.findUnique({ where: { id: queueId } });
+    if (queue && (queue.status === 'PAUSED' || queue.status === 'PAUSED_FOR_EMERGENCY')) {
+      throw new ConflictException('Queue is currently paused. Please resume the queue to advance turns.');
+    }
     return this.visitService.advanceTurn(queueId);
+  }
+
+  /**
+   * Announce-only: looks up the next WAITING/CHECKED_IN visit in the queue
+   * and fires a VISIT_CALLED outbox event WITHOUT changing state.
+   * Used by the "Call Next" button in the pipeline panel so the TV
+   * announcement plays and WhatsApp is sent, but service does not start yet.
+   */
+  async announceNext(queueId: string) {
+    const queue = await this.prisma.queue.findUnique({
+      where: { id: queueId },
+      include: {
+        tenant: {
+          select: { id: true, whatsappConnected: true, whatsappInstanceId: true },
+        },
+      },
+    });
+    if (queue && (queue.status === 'PAUSED' || queue.status === 'PAUSED_FOR_EMERGENCY')) {
+      return { announced: false, message: 'Queue is currently paused. Please resume the queue to call the next customer.' };
+    }
+
+    const nextVisit = await this.prisma.visit.findFirst({
+      where: { queueId, currentState: { in: ['WAITING', 'CHECKED_IN'] } },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+      include: {
+        customer: { select: { name: true, phone: true } },
+        service: { select: { name: true } },
+        queue: { select: { name: true } },
+      },
+    });
+
+    if (!nextVisit) {
+      return { announced: false, message: 'No waiting customers in this queue' };
+    }
+
+    await this.prisma.outboxEvent.create({
+      data: {
+        type: 'VISIT_CALLED',
+        payload: {
+          visitId: nextVisit.id,
+          queueId,
+          tenantId: nextVisit.tenantId,
+          displayId: nextVisit.displayId,
+          customerName: nextVisit.customer?.name,
+          serviceName: nextVisit.service?.name,
+          queueName: nextVisit.queue?.name,
+          announceOnly: true,
+        },
+      },
+    });
+
+    const isWhatsappConnected = Boolean(
+      queue?.tenant?.whatsappConnected && queue?.tenant?.whatsappInstanceId,
+    );
+
+    return {
+      announced: true,
+      visitId: nextVisit.id,
+      displayId: nextVisit.displayId,
+      customerName: nextVisit.customer?.name,
+      whatsappConnected: isWhatsappConnected,
+      hasCustomerPhone: Boolean(nextVisit.customer?.phone),
+      whatsappSent: isWhatsappConnected && Boolean(nextVisit.customer?.phone),
+    };
   }
 
   async completeToken(visitId: string, tenantId?: string, operatorId?: string) {

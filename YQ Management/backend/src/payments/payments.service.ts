@@ -19,12 +19,12 @@ export class PaymentsService {
   private readonly baseUrl =
     process.env.BACKEND_URL ||
     (process.env.NODE_ENV === 'production'
-      ? `${process.env.BACKEND_URL || "https://api.qmova.yqbuddy.com"}`
+      ? `${process.env.BACKEND_URL || 'https://api.qmova.yqbuddy.com'}`
       : 'http://localhost:3000');
   private readonly frontendUrl =
     process.env.FRONTEND_URL ||
     (process.env.NODE_ENV === 'production'
-      ? `${process.env.FRONTEND_URL || "https://qmova.yqbuddy.com"}`
+      ? `${process.env.FRONTEND_URL || 'https://qmova.yqbuddy.com'}`
       : 'http://localhost:3001');
 
   private getOzowCheckoutUrl() {
@@ -63,7 +63,11 @@ export class PaymentsService {
     }
 
     let finalAmount = plan.price;
-    if (billingInterval === 'yearly' && plan.annualPrice != null && plan.annualPrice > 0) {
+    if (
+      billingInterval === 'yearly' &&
+      plan.annualPrice != null &&
+      plan.annualPrice > 0
+    ) {
       finalAmount = plan.annualPrice;
     }
 

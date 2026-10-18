@@ -1,6 +1,8 @@
 import { useRouter } from 'next/router';
 import AdminLayout from '../../../components/AdminLayout';
 import { ScannerInterface } from '../../../components/ScannerInterface';
+import { ScanLine } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function ScanPage() {
   const router = useRouter();
@@ -10,22 +12,21 @@ export default function ScanPage() {
       pageTitle="Scan & Verify" 
       pageSubtitle="Scan customer QR codes to check-in or verify access"
     >
-      <div className="h-[calc(100vh-140px)] w-full">
-        <ScannerInterface 
-          mode="page"
-          onScanSuccess={(data) => {
-            if (data?.valid) {
-              // Usually the ScannerInterface handles advancing stages itself.
-              // If it returns a success and says "Open Record", we go to service-desk.
-              // It also passes the tokenId which is the visitId or queueToken ID.
-              if (data.tokenId) {
-                router.push(`/dashboard/service-desk?visitId=${data.tokenId}`);
-              } else {
-                router.push('/dashboard/service-desk');
+      <div className="flex-1 w-full p-4 md:p-6 lg:p-8 flex items-center justify-center">
+        <div className="w-full max-w-5xl h-full min-h-[600px] flex">
+          <ScannerInterface 
+            mode="page"
+            onScanSuccess={(data) => {
+              if (data?.valid) {
+                if (data.tokenId) {
+                  router.push(`/dashboard/service-desk?visitId=${data.tokenId}`);
+                } else {
+                  router.push('/dashboard/service-desk');
+                }
               }
-            }
-          }} 
-        />
+            }} 
+          />
+        </div>
       </div>
     </AdminLayout>
   );

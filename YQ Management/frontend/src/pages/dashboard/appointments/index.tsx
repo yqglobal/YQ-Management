@@ -71,7 +71,7 @@ export default function AppointmentsPage() {
 
   const { data: visitsData = [], isLoading: visitsLoading, refetch: refetchVisits } = useQuery({
     queryKey: ['visits', activeLocationId],
-    queryFn: () => fetchApi(`/visits${locParamPrefix}`).catch(() => []),
+    queryFn: () => fetchApi(`/visits${locParamPrefix}`).then((res: any) => res.data || res).catch(() => []),
     enabled: view !== 'day',
   });
 
@@ -101,8 +101,14 @@ export default function AppointmentsPage() {
   };
 
   const checkInMutation = useMutation({
-    mutationFn: (id: string) => fetchApi(`/appointments/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'CHECKED_IN' }) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] })
+    mutationFn: ({ id, type }: { id: string, type: 'Appointment' | 'Visit' }) => 
+      type === 'Appointment' 
+        ? fetchApi(`/visit/checkin-appointment/${id}`, { method: 'POST' })
+        : fetchApi(`/visit/${id}/checkin`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['visits'] });
+    }
   });
 
   const rescheduleMutation = useMutation({
@@ -159,7 +165,7 @@ export default function AppointmentsPage() {
       }
     });
 
-    if (user && user.role === 'OPERATOR') {
+    if (user && user.role === 'MANAGER') {
       if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
         return items.filter(item => user.allowedServiceIds!.includes(item.serviceId));
       }
@@ -267,7 +273,7 @@ export default function AppointmentsPage() {
         <title>Appointments | Qmova</title>
       </Head>
 
-      <div className="max-w-7xl mx-auto space-y-5 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+      <div className="w-full mx-auto space-y-5 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-wrap">
@@ -500,7 +506,7 @@ export default function AppointmentsPage() {
                                     <div className="flex justify-end gap-2">
                                       {apt._type === 'Appointment' && (apt.currentState === 'SCHEDULED' || apt.currentState === 'CONFIRMED') && isSameDay(d, new Date()) && (
                                         <button
-                                          onClick={(e) => { e.stopPropagation(); checkInMutation.mutate(apt.id); }}
+                                          onClick={(e) => { e.stopPropagation(); checkInMutation.mutate({ id: apt.id, type: apt._type }); }}
                                           disabled={checkInMutation.isPending}
                                           className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center gap-1 transition-colors"
                                         >

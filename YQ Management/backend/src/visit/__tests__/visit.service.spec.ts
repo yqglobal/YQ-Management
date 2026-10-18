@@ -25,6 +25,13 @@ describe('VisitService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
+    visitStep: {
+      updateMany: jest.fn(),
+    },
+    service: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
     outboxEvent: {
       create: jest.fn(),
     },
@@ -45,11 +52,20 @@ describe('VisitService', () => {
         { provide: WhatsappService, useValue: {} },
         { provide: RedisService, useValue: {} },
         { provide: SubscriptionService, useValue: {} },
-        { provide: AppointmentService, useValue: {} },
+        {
+          provide: AppointmentService,
+          useValue: { updateAvgActualDuration: jest.fn().mockReturnValue(Promise.resolve()) },
+        },
         { provide: CommunicationService, useValue: {} },
         { provide: ServiceService, useValue: {} },
         { provide: BlockOffService, useValue: {} },
-        { provide: VisitStepService, useValue: { activateFirstPendingStep: jest.fn() } },
+        {
+          provide: VisitStepService,
+          useValue: {
+            activateFirstPendingStep: jest.fn(),
+            advanceStep: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -163,4 +179,83 @@ describe('VisitService', () => {
       );
     });
   });
+
+  describe('completeService', () => {
+    it('should complete visit, mark active step DONE, and skip pending steps by default', async () => {
+      const mockVisit = {
+        id: 'v1',
+        tenantId: 't1',
+        currentState: 'IN_SERVICE',
+        serviceId: 's1',
+        serviceStart: new Date(Date.now() - 60000),
+        visitSteps: [
+          { id: 'step1', status: 'ACTIVE', stepOrder: 1 },
+          { id: 'step2', status: 'PENDING', stepOrder: 2 },
+        ],
+      };
+      mockPrismaService.visit.findUnique.mockResolvedValue(mockVisit);
+      mockPrismaService.visit.update.mockResolvedValue({
+        ...mockVisit,
+        currentState: 'COMPLETED',
+        completedAt: new Date(),
+        serviceStart: mockVisit.serviceStart,
+      });
+      mockPrismaService.visitStep.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.service.findUnique.mockResolvedValue({ id: 's1', expectedDuration: 15 });
+      mockPrismaService.service.update.mockResolvedValue({});
+
+      const result = await service.completeService('v1', 't1');
+
+      expect(mockPrismaService.visitStep.updateMany).toHaveBeenCalledWith({
+        where: { visitId: 'v1', status: 'ACTIVE' },
+        data: expect.objectContaining({ status: 'DONE' }),
+      });
+      expect(mockPrismaService.visitStep.updateMany).toHaveBeenCalledWith({
+        where: {
+          visitId: 'v1',
+          status: { in: ['PENDING', 'QUEUED', 'DEFERRED', 'LOCKED'] },
+        },
+        data: expect.objectContaining({ status: 'SKIPPED' }),
+      });
+      expect(mockPrismaService.visit.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'v1' },
+          data: expect.objectContaining({
+            currentState: 'COMPLETED',
+            currentStepId: null,
+          }),
+        }),
+      );
+      expect(mockPrismaService.outboxEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ type: 'VISIT_COMPLETED' }),
+        }),
+      );
+    });
+
+    it('should advance step only when opts.forceComplete is explicitly false', async () => {
+      const mockVisit = {
+        id: 'v1',
+        tenantId: 't1',
+        currentState: 'IN_SERVICE',
+        visitSteps: [
+          { id: 'step1', status: 'ACTIVE', stepOrder: 1 },
+          { id: 'step2', status: 'PENDING', stepOrder: 2 },
+        ],
+      };
+      mockPrismaService.visit.findUnique.mockResolvedValue(mockVisit);
+      const visitStepService = (service as any).visitStepService;
+
+      await service.completeService('v1', 't1', 'op1', { forceComplete: false });
+
+      expect(visitStepService.advanceStep).toHaveBeenCalledWith(
+        't1',
+        'step1',
+        'op1',
+        {},
+      );
+      expect(mockPrismaService.visitStep.updateMany).not.toHaveBeenCalled();
+    });
+  });
 });
+

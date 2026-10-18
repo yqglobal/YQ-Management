@@ -13,12 +13,79 @@ import { toPng } from 'html-to-image';
 
 const baseUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') : 'http://localhost:3000';
 
+// Helper functions for cookie and localStorage persistence
+function getCookie(name: string): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[2]) : '';
+}
+
+function setCookie(name: string, value: string, days = 7) {
+  if (typeof document === 'undefined') return;
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+}
+
+function getStoredTokens(subdomain?: string): string[] {
+  if (typeof window === 'undefined') return [];
+  const tokensSet = new Set<string>();
+
+  // 1. General localStorage
+  try {
+    const raw = localStorage.getItem('qmova_active_tokens');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) parsed.forEach(t => t && tokensSet.add(String(t).trim()));
+    }
+  } catch (e) {}
+
+  // 2. Tenant-specific localStorage
+  if (subdomain) {
+    try {
+      const rawSub = localStorage.getItem(`qmova_active_tokens_${subdomain}`);
+      if (rawSub) {
+        const parsed = JSON.parse(rawSub);
+        if (Array.isArray(parsed)) parsed.forEach(t => t && tokensSet.add(String(t).trim()));
+      }
+    } catch (e) {}
+  }
+
+  // 3. Document cookie
+  try {
+    const cookieVal = getCookie('qmova_session');
+    if (cookieVal) {
+      cookieVal.split(',').forEach(t => t && tokensSet.add(t.trim()));
+    }
+  } catch (e) {}
+
+  return Array.from(tokensSet).filter(Boolean);
+}
+
+function persistTokens(tokens: string[], subdomain?: string) {
+  if (typeof window === 'undefined' || !tokens || tokens.length === 0) return;
+  const cleanTokens = Array.from(new Set(tokens.map(t => String(t).trim()))).filter(Boolean);
+  if (cleanTokens.length === 0) return;
+
+  try {
+    const existing = getStoredTokens(subdomain);
+    const merged = Array.from(new Set([...existing, ...cleanTokens]));
+
+    localStorage.setItem('qmova_active_tokens', JSON.stringify(merged));
+    if (subdomain) {
+      localStorage.setItem(`qmova_active_tokens_${subdomain}`, JSON.stringify(merged));
+    }
+    setCookie('qmova_session', merged.join(','), 7);
+  } catch (e) {
+    console.error('Failed to persist tokens:', e);
+  }
+}
+
 export default function StatusPage() {
   const router = useRouter();
-  const { subdomain, tokens } = router.query;
+  const { subdomain } = router.query;
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   
-  const [localTokens, setLocalTokens] = useState<string>('');
+  const [activeTokens, setActiveTokens] = useState<string>('');
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [recoveryPhone, setRecoveryPhone] = useState('');
   const [recoveryOtp, setRecoveryOtp] = useState('');
@@ -26,6 +93,9 @@ export default function StatusPage() {
   const [recoveryError, setRecoveryError] = useState('');
   const [isRecovering, setIsRecovering] = useState(false);
   const [expandedVisit, setExpandedVisit] = useState<AnyFixMe | null>(null);
+  const [visits, setVisits] = useState<AnyFixMe[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isReady, setIsReady] = useState(false);
 
   const downloadTicket = async (elementId: string, filename: string) => {
     const el = document.getElementById(elementId);
@@ -40,24 +110,6 @@ export default function StatusPage() {
       console.error('Failed to download ticket', err);
     }
   };
-
-  useEffect(() => {
-    if (router.query.recover === 'true') {
-      setRecoveryMode(true);
-    }
-  }, [router.query.recover]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const isDark = document.documentElement.classList.contains('dark');
-      setTheme(isDark ? 'dark' : 'light');
-      
-      const storedTokens = JSON.parse(localStorage.getItem('qmova_active_tokens') || '[]');
-      if (storedTokens.length > 0) {
-        setLocalTokens(storedTokens.join(','));
-      }
-    }
-  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -93,55 +145,118 @@ export default function StatusPage() {
     enabled: !!subdomain,
   });
 
-  const activeTokens = tokens || localTokens;
-  const [visits, setVisits] = useState<AnyFixMe[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
+  // 1. Resolve tokens from URL and device storage on router ready
   useEffect(() => {
-    setIsLoading(true);
-    if (!activeTokens) {
-      setIsLoading(false);
+    if (!router.isReady) return;
+
+    if (router.query.recover === 'true') {
       setRecoveryMode(true);
+      setIsLoading(false);
+      setIsReady(true);
       return;
     }
-    const query = activeTokens ? `?tokens=${activeTokens}` : '';
-    let es: EventSource | null = null;
-    let loadingTimer: ReturnType<typeof setTimeout> | null = null;
 
+    // A. Query tokens from URL
+    let urlTokens: string[] = [];
+    if (router.query.tokens) {
+      if (typeof router.query.tokens === 'string') {
+        urlTokens = router.query.tokens.split(',').map(s => s.trim()).filter(Boolean);
+      } else if (Array.isArray(router.query.tokens)) {
+        urlTokens = router.query.tokens.map(s => String(s).trim()).filter(Boolean);
+      }
+    }
+
+    // B. Stored tokens from localStorage & cookie
+    const storedTokens = getStoredTokens(subdomain as string);
+
+    // C. Combine & deduplicate
+    const combined = Array.from(new Set([...urlTokens, ...storedTokens])).filter(Boolean);
+
+    if (combined.length > 0) {
+      persistTokens(combined, subdomain as string);
+      const tokenStr = combined.join(',');
+      setActiveTokens(tokenStr);
+      setRecoveryMode(false);
+
+      // If URL was missing ?tokens= but we have tokens stored on this device, sync URL shallowly
+      if (!router.query.tokens) {
+        router.replace(
+          {
+            pathname: router.pathname,
+            query: { ...router.query, tokens: tokenStr },
+          },
+          undefined,
+          { shallow: true }
+        );
+      }
+    } else {
+      // Truly no tokens on device or URL
+      setActiveTokens('');
+      setRecoveryMode(true);
+      setIsLoading(false);
+    }
+    setIsReady(true);
+  }, [router.isReady, router.query.tokens, router.query.recover, subdomain]);
+
+  // 2. Fetch and stream visits when activeTokens are available
+  useEffect(() => {
+    if (!isReady || !activeTokens) return;
+
+    setIsLoading(true);
+    let es: EventSource | null = null;
+    let isCancelled = false;
+
+    // Fast initial REST fetch for immediate rendering
+    fetchApi(`/public-visit/status-multiple?tokens=${activeTokens}`)
+      .then((data: AnyFixMe) => {
+        if (!isCancelled && Array.isArray(data)) {
+          if (data.length > 0) {
+            setVisits(data);
+            setIsLoading(false);
+            setRecoveryMode(false);
+          } else {
+            setIsLoading(false);
+            setRecoveryMode(true);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Initial status-multiple fetch failed, SSE will stream:', err);
+      });
+
+    // Real-time SSE stream
     const connect = () => {
       if (es) {
         es.close();
       }
 
-      es = new EventSource(`${baseUrl}/public-visit/stream${query}`, {
-        withCredentials: true, // Crucial for sending HTTP-Only cookies
+      es = new EventSource(`${baseUrl}/public-visit/stream?tokens=${activeTokens}`, {
+        withCredentials: true,
       });
 
       es.onmessage = (event) => {
-        // Ignore SSE heartbeat/ping messages sent by the backend to keep the connection alive
         if (event.data === ':heartbeat' || event.data?.startsWith(':')) return;
         try {
           const data = JSON.parse(event.data);
-          setVisits(data);
-          setIsLoading(false);
+          if (Array.isArray(data)) {
+            setVisits(data);
+            setIsLoading(false);
+            if (data.length > 0) {
+              setRecoveryMode(false);
+            }
+          }
         } catch (err) {
           console.error('Failed to parse SSE data', err);
         }
       };
 
       es.onerror = () => {
-        // EventSource auto-reconnects (CONNECTING state). Only fail loading indicator
-        // if we haven't received any data yet (prevents flashing during normal reconnects).
-        if (loadingTimer) clearTimeout(loadingTimer);
-        loadingTimer = setTimeout(() => setIsLoading(false), 4000);
+        // SSE auto-reconnects
       };
     };
 
     connect();
 
-    // Page Visibility API: when the user returns to this tab after it was backgrounded,
-    // browsers may have throttled or killed the SSE connection entirely.
-    // Force-reconnect to get an immediate data refresh.
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         connect();
@@ -150,18 +265,11 @@ export default function StatusPage() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      isCancelled = true;
       if (es) es.close();
-      if (loadingTimer) clearTimeout(loadingTimer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [activeTokens]);
-
-  // Smart OTP Trigger: If finished loading and no active tickets are found, auto-trigger OTP recovery
-  useEffect(() => {
-    if (!isLoading && !recoveryMode && visits.length === 0) {
-      setRecoveryMode(true);
-    }
-  }, [isLoading, recoveryMode, visits.length]);
+  }, [activeTokens, isReady]);
 
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,10 +299,18 @@ export default function StatusPage() {
       });
       
       if (data.tokens && data.tokens.length > 0) {
-        localStorage.setItem('qmova_active_tokens', JSON.stringify(data.tokens));
-        setLocalTokens(data.tokens.join(','));
+        persistTokens(data.tokens, subdomain as string);
+        const tokenStr = data.tokens.join(',');
+        setActiveTokens(tokenStr);
         setRecoveryMode(false);
-        // EventSource will automatically re-run because activeTokens changes
+        router.replace(
+          {
+            pathname: router.pathname,
+            query: { ...router.query, tokens: tokenStr },
+          },
+          undefined,
+          { shallow: true }
+        );
       } else {
         setRecoveryError('No active tickets found for this number.');
       }

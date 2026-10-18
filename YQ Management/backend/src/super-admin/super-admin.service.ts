@@ -141,7 +141,7 @@ export class SuperAdminService {
           },
         },
         users: {
-          where: { role: { in: ['TENANT_ADMIN', 'SUPER_ADMIN'] } },
+          where: { role: { in: ['OWNER', 'SUPER_ADMIN'] } },
           select: { email: true },
         },
         subscriptions: {
@@ -153,7 +153,6 @@ export class SuperAdminService {
               select: { name: true },
             },
           },
-          take: 1,
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -195,14 +194,17 @@ export class SuperAdminService {
 
     if (!tenant) return null;
 
-    // Determine active subscription status
-    const activeSub = await this.prisma.subscription.findFirst({
-      where: { tenantId: id, status: { in: ['ACTIVE', 'TRIAL'] } },
+    // Determine subscription status
+    const currentSub = await this.prisma.subscription.findFirst({
+      where: { tenantId: id },
+      include: { plan: true },
+      orderBy: { createdAt: 'desc' },
     });
 
     return {
       ...tenant,
-      subscriptionStatus: activeSub ? activeSub.status : 'INACTIVE',
+      subscriptions: currentSub,
+      subscriptionStatus: currentSub ? currentSub.status : 'INACTIVE',
     };
   }
 
@@ -361,7 +363,7 @@ export class SuperAdminService {
       planCounts[planName] = (planCounts[planName] || 0) + 1;
     });
     const trialCount = await this.prisma.tenant.count({
-      where: { subscriptions: { some: { status: 'TRIAL' } } },
+      where: { subscriptions: { is: { status: 'TRIAL' } } },
     });
     const realARR = realMRR * 12;
     const arpu = totalTenants > 0 ? realMRR / totalTenants : 0;
@@ -610,8 +612,8 @@ export class SuperAdminService {
     if (dto.features !== undefined) data.features = dto.features;
     if (dto.limits !== undefined) {
       data.limits = dto.limits;
-      if (dto.limits.maxQueues !== undefined)
-        data.maxQueues = dto.limits.maxQueues;
+      if (dto.limits.maxServices !== undefined)
+        data.maxServices = dto.limits.maxServices;
       if (dto.limits.maxTokens !== undefined)
         data.maxVisits = dto.limits.maxTokens;
     }
@@ -684,15 +686,10 @@ export class SuperAdminService {
     const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
     if (!plan) throw new Error('Plan not found');
 
-    // Cancel existing active/trial subscriptions
-    await this.prisma.subscription.updateMany({
-      where: { tenantId, status: { in: ['ACTIVE', 'TRIAL'] } },
-      data: { status: 'CANCELLED', cancellationDate: new Date() },
-    });
-
     const isFree = options?.isFree ?? false;
-    const interval =
+    const rawInterval =
       options?.billingInterval || plan.billingInterval || 'MONTHLY';
+    const interval = rawInterval.toUpperCase();
 
     let currentPeriodEnd = new Date();
     if (options?.customEndDate) {
@@ -705,23 +702,53 @@ export class SuperAdminService {
       currentPeriodEnd = new Date(Date.now() + periodMs);
     }
 
-    // Create new subscription
-    const sub = await this.prisma.subscription.create({
-      data: {
-        tenantId,
+    const existing = await this.prisma.subscription.findUnique({
+      where: { tenantId },
+    });
+
+    const existingMeta = (existing?.metadata as any) || {};
+    const newMetadata = {
+      ...existingMeta,
+      assignedByAdmin: true,
+      isFree,
+      assignedAt: new Date().toISOString(),
+    };
+
+    // Upsert subscription to avoid Unique constraint failure on Subscription_tenantId_key
+    const sub = await this.prisma.subscription.upsert({
+      where: { tenantId },
+      update: {
         planId,
         status: 'ACTIVE',
-        billingInterval: interval,
+        billingInterval: interval.toLowerCase(),
         currentPeriodStart: new Date(),
         currentPeriodEnd,
         nextBillingDate: isFree ? null : currentPeriodEnd, // No billing if free
-        metadata: { assignedByAdmin: true, isFree },
+        metadata: newMetadata,
+        cancellationDate: null,
+        cancelAtPeriodEnd: false,
+        endedAt: null,
+        trialStartDate: null,
+        trialEndDate: null,
+      },
+      create: {
+        tenantId,
+        planId,
+        status: 'ACTIVE',
+        billingInterval: interval.toLowerCase(),
+        currentPeriodStart: new Date(),
+        currentPeriodEnd,
+        nextBillingDate: isFree ? null : currentPeriodEnd, // No billing if free
+        metadata: newMetadata,
+      },
+      include: {
+        plan: true,
       },
     });
 
     try {
       const owner = await this.prisma.user.findFirst({
-        where: { tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+        where: { tenantId, role: { in: ['OWNER', 'ADMIN'] } },
         select: { email: true },
       });
       if (owner?.email) {
@@ -755,7 +782,7 @@ export class SuperAdminService {
 
     try {
       const owner = await this.prisma.user.findFirst({
-        where: { tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+        where: { tenantId, role: { in: ['OWNER', 'ADMIN'] } },
         select: { email: true },
       });
       if (owner?.email) {
@@ -928,8 +955,10 @@ export class SuperAdminService {
       });
       await tx.blueprintStep.createMany({
         data: source.steps.map(
-          ({ id: _id, blueprintId: _bid, ...stepData }) => ({
+          ({ id: _id, blueprintId: _bid, customerView, notificationRules, ...stepData }) => ({
             ...stepData,
+            customerView: customerView === null ? undefined : customerView,
+            notificationRules: notificationRules === null ? undefined : (notificationRules as any),
             blueprintId: newFlow.id,
           }),
         ),
@@ -1024,6 +1053,7 @@ export class SuperAdminService {
     tenantId: string,
     dto: {
       maxVisits?: number | null;
+      maxServices?: number | null;
       maxQueues?: number | null;
       maxLocations?: number | null;
       maxStaff?: number | null;
@@ -1043,11 +1073,16 @@ export class SuperAdminService {
     const existingMeta = (sub.metadata as any) || {};
     const prevLimits = { ...(existingMeta.customLimits || {}) };
 
+    if (dto.maxServices !== undefined && dto.maxQueues === undefined) {
+      dto.maxQueues = dto.maxServices;
+    }
+
     // null means "remove this override" — delete the key entirely
     // undefined means "leave unchanged"
     // a number means "set to this value"
     const limitKeys = [
       'maxVisits',
+      'maxServices',
       'maxQueues',
       'maxLocations',
       'maxStaff',
@@ -1116,8 +1151,10 @@ export class SuperAdminService {
       };
     }
 
-    const planLimits = (sub.plan?.limits as any) || {};
-    const planFeatures = (sub.plan?.features as any) || {};
+    const rawLimits = sub.plan?.limits;
+    const planLimits = typeof rawLimits === 'string' ? JSON.parse(rawLimits) : (rawLimits || {});
+    const rawFeatures = sub.plan?.features;
+    const planFeatures = typeof rawFeatures === 'string' ? JSON.parse(rawFeatures) : (rawFeatures || {});
     const subMeta = (sub.metadata as any) || {};
     const customLimits: Record<string, number> = subMeta.customLimits || {};
     const customFeatures: Record<string, boolean | string | number> =
@@ -1129,14 +1166,25 @@ export class SuperAdminService {
         sub.plan?.maxVisits ??
         planLimits.maxTokens ??
         null,
+      maxServices:
+        customLimits.maxServices ??
+        planLimits.maxServices ??
+        planLimits.maxQueues ??
+        null,
       maxQueues:
         customLimits.maxQueues ??
-        sub.plan?.maxQueues ??
+        customLimits.maxServices ??
         planLimits.maxQueues ??
+        planLimits.maxServices ??
         null,
       maxLocations:
         customLimits.maxLocations ?? planLimits.maxLocations ?? null,
-      maxStaff: customLimits.maxStaff ?? planLimits.maxStaff ?? null,
+      maxStaff:
+        customLimits.maxStaff ??
+        customLimits.maxMembers ??
+        planLimits.maxStaff ??
+        planLimits.maxMembers ??
+        null,
     };
 
     const effectiveFeatures = { ...planFeatures, ...customFeatures };

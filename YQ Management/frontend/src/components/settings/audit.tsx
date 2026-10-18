@@ -24,20 +24,17 @@ export default function AuditLogs() {
       if (filterStatus && filterStatus !== 'all') queryParams.append('status', filterStatus);
       return fetchApi(`/audit?${queryParams.toString()}`);
     },
-    enabled: !!(user?.role === 'TENANT_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'),
+    enabled: !!(user?.role === 'OWNER' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'),
   });
 
-  if (!user || (user.role !== 'TENANT_ADMIN' && user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) return null;
+  if (!user || (user.role !== 'OWNER' && user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) return null;
 
   return (
     <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
-      {/* Decorative left edge accent */}
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#E11D48]"></div>
-      
       <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <span className="material-symbols-outlined text-[#E11D48]" style={{ fontVariationSettings: "'FILL' 1" }}>policy</span>
+            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>policy</span>
             <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white tracking-tight font-semibold">Audit Logs</h2>
           </div>
           <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline">View system activities and security events.</p>
@@ -56,7 +53,7 @@ export default function AuditLogs() {
               setFilterAction(e.target.value);
               setPage(0);
             }}
-            className="w-full h-[44px] pl-11 pr-4 bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg font-body-md text-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-[#E11D48] focus:border-[#E11D48] shadow-sm"
+            className="w-full h-[44px] pl-11 pr-4 bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg font-body-md text-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-sm"
           />
         </div>
         <div className="relative min-w-[200px]">
@@ -67,7 +64,7 @@ export default function AuditLogs() {
               setFilterStatus(e.target.value);
               setPage(0);
             }}
-            className="w-full h-[44px] pl-11 pr-10 bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg font-body-md text-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-[#E11D48] focus:border-[#E11D48] appearance-none shadow-sm"
+            className="w-full h-[44px] pl-11 pr-10 bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg font-body-md text-body-md text-on-surface dark:text-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary appearance-none shadow-sm"
           >
             <option value="all">All Statuses</option>
             <option value="success">Successful (2xx-3xx)</option>

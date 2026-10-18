@@ -19,8 +19,6 @@ export class AnalyticsDigestCron {
     const tenants = await this.prisma.tenant.findMany({
       include: {
         subscriptions: {
-          take: 1,
-          orderBy: { createdAt: 'desc' },
           include: { plan: true },
         },
       },
@@ -31,7 +29,7 @@ export class AnalyticsDigestCron {
 
     for (const tenant of tenants) {
       // Check if feature is enabled in their plan (e.g. premium/business plans)
-      const subscription = tenant.subscriptions?.[0];
+      const subscription = tenant.subscriptions;
       const plan = subscription?.plan;
       let planFeatures = plan?.features as any;
       if (typeof planFeatures === 'string') {

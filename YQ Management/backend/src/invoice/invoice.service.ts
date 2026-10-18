@@ -63,15 +63,15 @@ export class InvoiceService {
   // ───────────────────────────────────────────────────────────────────────────
   // PER-VISIT INVOICES (Taxation-aware)
   // ───────────────────────────────────────────────────────────────────────────
-  
+
   async generateVisitInvoice(visitId: string) {
     const visit = await this.prisma.visit.findUnique({
       where: { id: visitId },
-      include: { 
+      include: {
         tenant: true,
         service: true,
         customer: true,
-        visitInvoice: true
+        visitInvoice: true,
       },
     });
 
@@ -93,7 +93,7 @@ export class InvoiceService {
       lineItemSubtotal,
       taxConfig.country,
       taxConfig.defaultTaxRatePercent || 0,
-      taxConfig.taxInclusive || false
+      taxConfig.taxInclusive || false,
     );
 
     // Generate Invoice Number safely with transaction locking on tenant counter
@@ -101,18 +101,20 @@ export class InvoiceService {
       where: { id: tenant.id },
       data: { invoiceCounter: { increment: 1 } },
     });
-    
+
     const prefix = updatedTenant.invoicePrefix || 'INV';
     const year = new Date().getFullYear();
     const sequence = updatedTenant.invoiceCounter.toString().padStart(4, '0');
     const invoiceNumber = `${prefix}-${year}-${sequence}`;
 
-    const lineItemsSnap = [{
-      name: visit.service.name,
-      qty,
-      unitPrice: price,
-      taxable: true
-    }];
+    const lineItemsSnap = [
+      {
+        name: visit.service.name,
+        qty,
+        unitPrice: price,
+        taxable: true,
+      },
+    ];
 
     const newInvoice = await this.prisma.visitInvoice.create({
       data: {
@@ -130,7 +132,57 @@ export class InvoiceService {
       },
     });
 
-    this.logger.log(`Visit Invoice generated: ${newInvoice.invoiceNumber} for visit ${visit.id}`);
+    this.logger.log(
+      `Visit Invoice generated: ${newInvoice.invoiceNumber} for visit ${visit.id}`,
+    );
     return newInvoice;
+  }
+
+  async updateVisitInvoice(visitId: string, lineItems: any[]) {
+    const invoice = await this.prisma.visitInvoice.findUnique({
+      where: { visitId },
+      include: { tenant: true },
+    });
+
+    if (!invoice)
+      throw new NotFoundException('Invoice not found for this visit');
+
+    const taxConfig = (invoice.tenant.taxConfig as any) || {
+      country: 'IN',
+      defaultTaxRatePercent: 18,
+      taxInclusive: false,
+    };
+
+    let subtotal = 0;
+    lineItems.forEach((item) => {
+      subtotal += item.unitPrice * item.qty;
+    });
+
+    const computed = computeTax(
+      subtotal,
+      taxConfig.country,
+      taxConfig.defaultTaxRatePercent || 0,
+      taxConfig.taxInclusive || false,
+    );
+
+    const updated = await this.prisma.visitInvoice.update({
+      where: { id: invoice.id },
+      data: {
+        subtotal: computed.subtotal,
+        totalTax: computed.totalTax,
+        total: computed.total,
+        taxLines: computed.taxLines as any,
+        lineItemsSnap: lineItems as any,
+      },
+    });
+
+    await this.prisma.visit.update({
+      where: { id: visitId },
+      data: {
+        lineItems: lineItems as any,
+      },
+    });
+
+    return updated;
   }
 }

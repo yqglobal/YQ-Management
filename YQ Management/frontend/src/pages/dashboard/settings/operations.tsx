@@ -11,7 +11,7 @@ import { ResourcesSettings } from '../../../components/settings/ResourcesSetting
 
 
 export default function ResourcesSettingsPage() {
-  const { tenant } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'locations' | 'services' | 'resources' | 'providers'>('locations');
 
@@ -21,10 +21,8 @@ export default function ResourcesSettingsPage() {
     }
   }, [router.query.tab]);
   
-  const isJourneyMode = tenant?.operatingMode === 'JOURNEY';
-
   return (
-    <SettingsLayout pageTitle="Operations" pageSubtitle="Manage your business locations, services, and operational resources.">
+    <>
       <Head>
         <title>Operations | Settings | Qmova</title>
       </Head>
@@ -34,29 +32,27 @@ export default function ResourcesSettingsPage() {
           onClick={() => setActiveTab('locations')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'locations'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              ? 'border-primary text-primary'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
           Locations
         </button>
-        {!isJourneyMode && (
-          <button
-            onClick={() => setActiveTab('services')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'services'
-                ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
-            }`}
-          >
-            Services
-          </button>
-        )}
+        <button
+          onClick={() => setActiveTab('services')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'services'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
+          }`}
+        >
+          Services
+        </button>
         <button
           onClick={() => setActiveTab('resources')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'resources'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              ? 'border-primary text-primary'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
@@ -66,7 +62,7 @@ export default function ResourcesSettingsPage() {
           onClick={() => setActiveTab('providers')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'providers'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              ? 'border-primary text-primary'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
@@ -75,9 +71,18 @@ export default function ResourcesSettingsPage() {
       </div>
 
       {activeTab === 'locations' && <LocationsSettings />}
-      {!isJourneyMode && activeTab === 'services' && <ServicesSettings />}
+      {activeTab === 'services' && <ServicesSettings />}
       {activeTab === 'resources' && <ResourcesSettings />}
       {activeTab === 'providers' && <ProvidersSettings />}
-    </SettingsLayout>
+    </>
   );
 }
+
+
+ResourcesSettingsPage.getLayout = function getLayout(page: React.ReactElement) {
+  return (
+    <SettingsLayout pageTitle="Operations" pageSubtitle="Manage your business locations, services, and operational resources.">
+      {page}
+    </SettingsLayout>
+  );
+};

@@ -6,6 +6,7 @@ import {
   IsObject,
   IsInt,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { AppointmentStatus, VisitSource } from '@prisma/client';
 
 export class CreateAppointmentDto {
@@ -16,6 +17,22 @@ export class CreateAppointmentDto {
   @IsOptional()
   @IsString()
   customerId?: string;
+
+  @IsOptional()
+  @IsString()
+  customerName?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  queueId?: string;
 
   @IsString()
   locationId: string;
@@ -42,6 +59,10 @@ export class CreateAppointmentDto {
   status?: AppointmentStatus;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'RECEPTION_MANUAL') return VisitSource.RECEPTION;
+    return value;
+  })
   @IsEnum(VisitSource)
   bookingSource?: VisitSource;
 
@@ -60,4 +81,11 @@ export class CreateAppointmentDto {
   @IsOptional()
   @IsInt()
   accompanyingGuests?: number;
+
+  @IsOptional()
+  @IsString()
+  cancelReason?: string;
+
+  @IsOptional()
+  refundApplicable?: boolean;
 }

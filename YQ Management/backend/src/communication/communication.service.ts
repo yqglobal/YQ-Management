@@ -74,29 +74,29 @@ export class CommunicationService {
       case CommunicationEvent.CUSTOMER_VERIFIED:
         await this.handleCustomerVerified(payload);
         break;
-      case CommunicationEvent.QUEUE_JOINED:
-        await this.handleQueueJoined(payload);
-        break;
-      case CommunicationEvent.POSITION_CHANGED:
-        await this.handlePositionChanged(payload);
-        break;
-      case CommunicationEvent.NOW_SERVING:
-        await this.handleNowServing(payload);
-        break;
-      case CommunicationEvent.QUEUE_DELAYED:
-        await this.handleQueueDelayed(payload);
-        break;
-      case CommunicationEvent.QUEUE_COMPLETED:
-        await this.handleQueueCompleted(payload);
-        break;
-      case CommunicationEvent.QUEUE_CANCELLED:
-        await this.handleQueueCancelled(payload);
-        break;
-      case CommunicationEvent.FEEDBACK_REQUESTED:
-        await this.handleFeedbackRequested(payload);
-        break;
-      case CommunicationEvent.CHECK_IN:
-        await this.handleCheckIn(payload);
+        //      case CommunicationEvent.QUEUE_JOINED:
+        //        await this.handleQueueJoined(payload);
+        //        break;
+        //      case CommunicationEvent.POSITION_CHANGED:
+        //        await this.handlePositionChanged(payload);
+        //        break;
+        //      case CommunicationEvent.NOW_SERVING:
+        //        await this.handleNowServing(payload);
+        //        break;
+        //      case CommunicationEvent.QUEUE_DELAYED:
+        //        await this.handleQueueDelayed(payload);
+        //        break;
+        //      case CommunicationEvent.QUEUE_COMPLETED:
+        //        await this.handleQueueCompleted(payload);
+        //        break;
+        //      case CommunicationEvent.QUEUE_CANCELLED:
+        //        await this.handleQueueCancelled(payload);
+        //        break;
+        //      case CommunicationEvent.FEEDBACK_REQUESTED:
+        //        await this.handleFeedbackRequested(payload);
+        //        break;
+        //      case CommunicationEvent.CHECK_IN:
+        //        await this.handleCheckIn(payload);
         break;
       case CommunicationEvent.TOKEN_TRANSFERRED:
         await this.handleTokenTransferred(payload);

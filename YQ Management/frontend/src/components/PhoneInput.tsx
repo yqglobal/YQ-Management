@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PhoneInputLib from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
-import { detectCountryByTimezone } from '../lib/country-codes';
-import type { CountryCode } from 'react-phone-number-input';
+import { detectCountryCode, getInitialCountryIso } from '../lib/country-codes';
+import type { Country } from 'react-phone-number-input';
 
 interface PhoneInputProps {
   value: string;
@@ -11,6 +11,7 @@ interface PhoneInputProps {
   required?: boolean;
   className?: string;
   disabled?: boolean;
+  defaultCountry?: Country;
 }
 
 export default function PhoneInput({
@@ -19,17 +20,31 @@ export default function PhoneInput({
   placeholder = '+1 234 567 8900',
   required = false,
   className = '',
-  disabled = false
+  disabled = false,
+  defaultCountry: propDefaultCountry
 }: PhoneInputProps) {
-  const [defaultCountry, setDefaultCountry] = useState<CountryCode>('US');
+  const [defaultCountry, setDefaultCountry] = useState<Country>(
+    propDefaultCountry || (getInitialCountryIso() as Country) || 'US'
+  );
 
   useEffect(() => {
-    // Attempt location-based country detection via timezone
-    const country = detectCountryByTimezone();
-    if (country) {
-      setDefaultCountry(country as CountryCode);
+    if (propDefaultCountry) {
+      setDefaultCountry(propDefaultCountry);
+      return;
     }
-  }, []);
+
+    // IP-based country detection with fallback to timezone
+    let isMounted = true;
+    detectCountryCode().then((countryObj) => {
+      if (isMounted && countryObj && countryObj.country) {
+        setDefaultCountry(countryObj.country as Country);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [propDefaultCountry]);
 
   const sanitizedValue = value ? value.replace(/\s+/g, '') : value;
 

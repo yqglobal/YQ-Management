@@ -29,13 +29,13 @@ export class InvitationController {
     private readonly prisma: PrismaService,
   ) {}
 
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.MANAGER)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.MANAGER)
   @Get()
   async getInvitations(@Req() req: AuthenticatedRequest) {
     return this.invitationService.getInvitations(req.user.tenantId);
   }
 
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.MANAGER)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.MANAGER)
   @Post()
   async createInvitation(
     @Req() req: AuthenticatedRequest,
@@ -48,7 +48,7 @@ export class InvitationController {
     return { success: true, invitation };
   }
 
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.MANAGER)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.MANAGER)
   @Post('send-email')
   async sendEmailInvitation(
     @Req() req: AuthenticatedRequest,
@@ -75,19 +75,19 @@ export class InvitationController {
       invitation.code,
       inviterName,
       tenant?.name || 'Your Team',
-      body.role || Role.OPERATOR,
+      body.role || Role.MANAGER,
     );
 
     return { success: true, invitation };
   }
 
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   @Post('join-code')
   async createJoinCode(
     @Req() req: AuthenticatedRequest,
     @Body() body: { role?: string },
   ) {
-    const role = (body.role as Role) || Role.OPERATOR;
+    const role = (body.role as Role) || Role.MANAGER;
     const invitation = await this.invitationService.createJoinCode(
       req.user.tenantId,
       role,
@@ -95,7 +95,7 @@ export class InvitationController {
     return { success: true, invitation };
   }
 
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.MANAGER)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.MANAGER)
   @Delete(':id')
   async revokeInvitation(
     @Req() req: AuthenticatedRequest,

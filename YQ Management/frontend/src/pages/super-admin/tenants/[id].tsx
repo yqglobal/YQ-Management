@@ -6,10 +6,10 @@ import SuperAdminLayout from '../../../components/SuperAdminLayout';
 import { fetchApi } from '../../../lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, CreditCard, Users, Activity, Globe, AlertCircle, Clock,
-  CheckCircle2, XCircle, Settings, Store, Building2, MapPin, Check, X, ShieldAlert,
+  ArrowLeft, CreditCard, Users, Activity, AlertCircle, Clock,
+  CheckCircle2, XCircle, Settings, Store, MapPin, Check, X, ShieldAlert,
   Zap, Layers, Sliders, Crown, Info, ChevronDown, ChevronRight,
-  RefreshCw, Send, Target, Star, Package, Workflow
+  RefreshCw, Send, Target, Workflow
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -269,7 +269,10 @@ export default function SuperAdminTenantDetail() {
   const handleSaveLimits = () => {
     const dto: any = {};
     if (pendingLimits.maxVisits !== undefined) dto.maxVisits = pendingLimits.maxVisits;
-    if (pendingLimits.maxQueues !== undefined) dto.maxQueues = pendingLimits.maxQueues;
+    if (pendingLimits.maxServices !== undefined) {
+      dto.maxServices = pendingLimits.maxServices;
+      dto.maxQueues = pendingLimits.maxServices;
+    }
     if (pendingLimits.maxLocations !== undefined) dto.maxLocations = pendingLimits.maxLocations;
     if (pendingLimits.maxStaff !== undefined) dto.maxStaff = pendingLimits.maxStaff;
     if (Object.keys(pendingFeatures).length > 0) dto.customFeatures = pendingFeatures;
@@ -284,7 +287,7 @@ export default function SuperAdminTenantDetail() {
     return (
       <SuperAdminLayout pageTitle="Business Details" pageSubtitle="Loading...">
         <Head><title>Business Details | Super Admin</title></Head>
-        <div className="max-w-6xl mx-auto space-y-8 pb-12">
+        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8 pb-12">
           <div className="h-10 w-48 bg-gray-200 dark:bg-white/5 rounded animate-pulse" />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[1,2,3,4].map(i => <div key={i} className="h-32 bg-white dark:bg-zinc-950 rounded-2xl border border-gray-200 dark:border-white/10 animate-pulse" />)}
@@ -298,7 +301,7 @@ export default function SuperAdminTenantDetail() {
     return (
       <SuperAdminLayout pageTitle="Business Not Found" pageSubtitle="Does not exist">
         <Head><title>Not Found | Super Admin</title></Head>
-        <div className="max-w-6xl mx-auto py-12 text-center">
+        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
           <AlertCircle className="w-12 h-12 text-gray-400 dark:text-zinc-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Business Not Found</h2>
           <Link href="/super-admin/tenants" className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium">
@@ -313,7 +316,7 @@ export default function SuperAdminTenantDetail() {
     <SuperAdminLayout pageTitle={tenant.name} pageSubtitle="Advanced business management and telemetry">
       <Head><title>{tenant.name} | Super Admin</title></Head>
 
-      <div className="max-w-6xl mx-auto space-y-8 pb-12">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8 pb-12">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -457,7 +460,7 @@ export default function SuperAdminTenantDetail() {
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           user.role === 'SUPER_ADMIN' ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/10 dark:text-purple-400' :
                           user.role === 'OWNER' ? 'bg-rose-100 text-rose-800 dark:bg-rose-500/10 dark:text-rose-400' :
-                          user.role === 'TENANT_ADMIN' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-400' :
+                          user.role === 'OWNER' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-400' :
                           user.role === 'MANAGER' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400' :
                           'bg-gray-100 text-gray-800 dark:bg-gray-500/10 dark:text-gray-400'
                         }`}>{user.role.replace(/_/g, ' ')}</span>
@@ -500,7 +503,7 @@ export default function SuperAdminTenantDetail() {
                   ) : tenant.transactions.map((tx: any) => (
                     <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 font-mono text-xs text-gray-500 break-all max-w-[150px] sm:max-w-none">{tx.id}</td>
-                      <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">{tx.currency} {Number(tx.amount || 0).toFixed(2)}</td>
+                      <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">{tx.currency} {Number((tx.amount || 0) / 100).toFixed(2)}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           ['COMPLETE','SUCCEEDED'].includes(tx.status) ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' :
@@ -631,7 +634,7 @@ export default function SuperAdminTenantDetail() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   { label: 'Max Visits', val: effectiveLimits.effectiveLimits?.maxVisits, icon: <Activity className="w-5 h-5" />, key: 'maxVisits' },
-                  { label: 'Max Queues', val: effectiveLimits.effectiveLimits?.maxQueues, icon: <Layers className="w-5 h-5" />, key: 'maxQueues' },
+                  { label: 'Max Services', val: effectiveLimits.effectiveLimits?.maxServices, icon: <Layers className="w-5 h-5" />, key: 'maxServices' },
                   { label: 'Max Locations', val: effectiveLimits.effectiveLimits?.maxLocations, icon: <MapPin className="w-5 h-5" />, key: 'maxLocations' },
                   { label: 'Max Staff', val: effectiveLimits.effectiveLimits?.maxStaff, icon: <Users className="w-5 h-5" />, key: 'maxStaff' },
                 ].map((item) => {
@@ -692,7 +695,7 @@ export default function SuperAdminTenantDetail() {
                 ) : (
                   <>
                     <LimitRow label="Monthly Visit Quota" planVal={effectiveLimits?.effectiveLimits?.maxVisits ?? null} customVal={effectiveLimits?.customOverrides?.maxVisits} unit=" visits" editing={editingLimits} onChange={(v) => setPendingLimits((p: any) => ({...p, maxVisits: v}))} onClear={() => setPendingLimits((p: any) => ({...p, maxVisits: null}))} />
-                    <LimitRow label="Maximum Queues" planVal={effectiveLimits?.effectiveLimits?.maxQueues ?? null} customVal={effectiveLimits?.customOverrides?.maxQueues} unit=" queues" editing={editingLimits} onChange={(v) => setPendingLimits((p: any) => ({...p, maxQueues: v}))} onClear={() => setPendingLimits((p: any) => ({...p, maxQueues: null}))} />
+                    <LimitRow label="Maximum Services" planVal={effectiveLimits?.effectiveLimits?.maxServices ?? null} customVal={effectiveLimits?.customOverrides?.maxServices} unit=" services" editing={editingLimits} onChange={(v) => setPendingLimits((p: any) => ({...p, maxServices: v}))} onClear={() => setPendingLimits((p: any) => ({...p, maxServices: null}))} />
                     <LimitRow label="Maximum Locations" planVal={effectiveLimits?.effectiveLimits?.maxLocations ?? null} customVal={effectiveLimits?.customOverrides?.maxLocations} unit=" locations" editing={editingLimits} onChange={(v) => setPendingLimits((p: any) => ({...p, maxLocations: v}))} onClear={() => setPendingLimits((p: any) => ({...p, maxLocations: null}))} />
                     <LimitRow label="Maximum Staff Members" planVal={effectiveLimits?.effectiveLimits?.maxStaff ?? null} customVal={effectiveLimits?.customOverrides?.maxStaff} unit=" staff" editing={editingLimits} onChange={(v) => setPendingLimits((p: any) => ({...p, maxStaff: v}))} onClear={() => setPendingLimits((p: any) => ({...p, maxStaff: null}))} />
                     {editingLimits && (

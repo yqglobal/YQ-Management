@@ -12,7 +12,7 @@ async function main() {
   const tenants = await prisma.tenant.findMany({
     include: {
       users: {
-        where: { role: 'TENANT_ADMIN' },
+        where: { role: 'OWNER' },
         take: 1
       }
     }

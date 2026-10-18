@@ -142,7 +142,7 @@ export class PublicVisitController {
     await this.redisService.client.set(redisKey, otpCode, 'EX', 300);
 
     // Check custom branding
-    const sub = tenant.subscriptions?.[0];
+    const sub = tenant.subscriptions;
     let planFeatures: any = sub?.plan?.features || {};
     if (typeof planFeatures === 'string') {
       try {
@@ -219,7 +219,7 @@ export class PublicVisitController {
         domain:
           process.env.COOKIE_DOMAIN ||
           (process.env.NODE_ENV === 'production'
-            ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
+            ? process.env.FRONTEND_DOMAIN || '.qmova.yqbuddy.com'
             : undefined),
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       });
@@ -260,7 +260,11 @@ export class PublicVisitController {
     @Param('stepId') stepId: string,
     @Body() body: { formData: any },
   ) {
-    return this.visitStepService.submitFormPublic(accessToken, stepId, body.formData);
+    return this.visitStepService.submitFormPublic(
+      accessToken,
+      stepId,
+      body.formData,
+    );
   }
 
   @Post(':accessToken/revert-step/:stepId')
@@ -352,9 +356,18 @@ export class PublicVisitController {
       // Offline / Skipped Payment Logic
       try {
         const primaryVisit = visits[0];
-        const service = await this.prisma.service.findUnique({ where: { id: primaryVisit.serviceId } });
-        
-        if (service && service.basePrice && service.basePrice > 0 && (service.paymentMode === 'PAY_AT_SERVICE' || service.paymentMode === 'OPTIONAL_PREPAY')) {
+        const service = await this.prisma.service.findUnique({
+          where: { id: primaryVisit.serviceId },
+          include: { serviceFlow: true },
+        });
+
+        if (service && service.basePrice && service.basePrice > 0) {
+          const flow = service.serviceFlow;
+          const allowsOffline = flow?.isActive 
+             ? flow.checkinPayMode !== 'STRIPE_ONLY'
+             : (service.paymentMode === 'PAY_AT_SERVICE' || service.paymentMode === 'OPTIONAL_PREPAY');
+
+          if (allowsOffline) {
           await this.prisma.bookingPayment.create({
             data: {
               tenantId: primaryVisit.tenantId,
@@ -368,9 +381,13 @@ export class PublicVisitController {
               stripePaymentMethodType: 'OFFLINE',
             },
           });
+          }
         }
       } catch (e) {
-        this.logger.error(`Failed to create offline payment for visit ${visitIds[0]}:`, e);
+        this.logger.error(
+          `Failed to create offline payment for visit ${visitIds[0]}:`,
+          e,
+        );
       }
     }
 
@@ -386,7 +403,7 @@ export class PublicVisitController {
         domain:
           process.env.COOKIE_DOMAIN ||
           (process.env.NODE_ENV === 'production'
-            ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
+            ? process.env.FRONTEND_DOMAIN || '.qmova.yqbuddy.com'
             : undefined),
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       });

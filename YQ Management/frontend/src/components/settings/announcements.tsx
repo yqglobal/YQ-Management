@@ -80,13 +80,10 @@ export default function AnnouncementsSettings() {
       description="Enhance your waiting room displays with automated Text-to-Speech callouts when it's a customer's turn."
     >
       <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
-        {/* Decorative left edge accent */}
-        <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#059669]"></div>
-        
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <span className="material-symbols-outlined text-[#059669]" style={{ fontVariationSettings: "'FILL' 1" }}>campaign</span>
+              <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>campaign</span>
               <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white tracking-tight font-semibold">Public Announcements</h2>
             </div>
             <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline">Configure automated audio callouts for display screens.</p>
@@ -109,13 +106,13 @@ export default function AnnouncementsSettings() {
                     }
                   });
                 }} className="sr-only peer" />
-                <div className="w-11 h-6 bg-surface-variant rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
+                <div className="w-11 h-6 bg-surface-variant rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </div>
             </label>
             <button 
               onClick={handleSave}
               disabled={updateMutation.isPending}
-              className="h-[44px] px-6 bg-[#059669] hover:bg-[#047857] text-white font-semibold rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              className="h-[44px] px-6 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {updateMutation.isPending ? <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" /> : <Save strokeWidth={1.5} className="w-5 h-5" />}
               Save
@@ -135,7 +132,7 @@ export default function AnnouncementsSettings() {
                     <select
                       value={config.language}
                       onChange={(e) => setConfig({ ...config, language: e.target.value })}
-                      className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-[#059669] focus:border-[#059669] outline-none text-on-surface dark:text-white appearance-none"
+                      className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface dark:text-white appearance-none"
                     >
                       <option value="en-US">English (United States)</option>
                       <option value="en-GB">English (United Kingdom)</option>
@@ -153,7 +150,7 @@ export default function AnnouncementsSettings() {
                     <select
                       value={config.voice}
                       onChange={(e) => setConfig({ ...config, voice: e.target.value })}
-                      className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-[#059669] focus:border-[#059669] outline-none text-on-surface dark:text-white appearance-none"
+                      className="w-full h-[44px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg px-4 font-body-md text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface dark:text-white appearance-none"
                     >
                       <option value="female">Female</option>
                       <option value="male">Male</option>
@@ -170,13 +167,13 @@ export default function AnnouncementsSettings() {
                     value={config.template}
                     onChange={(e) => setConfig({ ...config, template: e.target.value })}
                     rows={2}
-                    className="w-full h-[104px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg p-4 font-data-mono text-[14px] leading-relaxed focus:ring-1 focus:ring-[#059669] focus:border-[#059669] outline-none text-on-surface dark:text-white resize-none"
+                    className="w-full h-[104px] bg-white dark:bg-zinc-900 border border-border dark:border-dark-border rounded-lg p-4 font-data-mono text-[14px] leading-relaxed focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface dark:text-white resize-none"
                   />
                   <div className="flex justify-between items-center mt-2">
                     <p className="text-[12px] text-outline font-data-mono">Vars: {'{{token}}'}, {'{{resource}}'}</p>
                     <button 
                       onClick={handleTestAudio} 
-                      className="text-[#059669] hover:text-[#047857] font-body-sm font-semibold flex items-center gap-1"
+                      className="text-primary hover:opacity-80 font-body-sm font-semibold flex items-center gap-1"
                     >
                       <PlayCircle strokeWidth={1.5} className="w-4 h-4" /> Preview
                     </button>

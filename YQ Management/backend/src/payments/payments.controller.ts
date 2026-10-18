@@ -19,7 +19,7 @@ export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
   @Post('generate-link')
   async generatePaymentLink(
     @Req() req: any,

@@ -11,7 +11,7 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const email = 'yqbuddysa@gmail.com';
+  const email = process.env.SUPER_ADMIN_EMAIL || 'support@qmova.com';
   const user = await prisma.user.findUnique({ where: { email } });
   
   if (!user) {

@@ -9,6 +9,10 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { ServiceService } from '../service/service.service';
+import { ServiceFlowService } from '../service-flow/service-flow.service';
+import { BUSINESS_CATALOG } from '../service-flow/business-catalog';
+import { ChangeIndustryDto } from './dto/change-industry.dto';
 
 @Injectable()
 export class TenantService {
@@ -17,6 +21,10 @@ export class TenantService {
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => RedisService))
     private readonly redisService: RedisService,
+    @Inject(forwardRef(() => ServiceService))
+    private readonly serviceService: ServiceService,
+    @Inject(forwardRef(() => ServiceFlowService))
+    private readonly serviceFlowService: ServiceFlowService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -63,8 +71,6 @@ export class TenantService {
           select: { id: true, name: true, address: true, city: true },
         },
         subscriptions: {
-          take: 1,
-          orderBy: { createdAt: 'desc' },
           include: { plan: true },
         },
         paymentAccount: {
@@ -80,7 +86,7 @@ export class TenantService {
     }
 
     // Enforce customBranding feature toggle
-    const sub = tenant.subscriptions?.[0];
+    const sub = tenant.subscriptions;
     const plan = sub?.plan;
     const hasCustomBranding = plan?.features
       ? (plan.features as any).customBranding === true
@@ -124,9 +130,8 @@ export class TenantService {
             services: { select: { id: true } },
           },
         },
+        invitations: { select: { id: true, email: true } },
         subscriptions: {
-          take: 1,
-          orderBy: { createdAt: 'desc' },
           include: { plan: true },
         },
       },
@@ -137,7 +142,7 @@ export class TenantService {
     }
 
     // Enforce customBranding feature toggle
-    const subscription = tenant.subscriptions?.[0];
+    const subscription = tenant.subscriptions;
     const plan = subscription?.plan;
 
     let planFeatures = plan?.features as any;
@@ -203,6 +208,22 @@ export class TenantService {
     });
   }
 
+  async getTenantUpcomingTokens(tenantId: string) {
+    return this.prisma.visit.findMany({
+      where: {
+        tenantId,
+        currentState: { in: ['WAITING', 'CHECKED_IN'] },
+      },
+      include: {
+        customer: { select: { name: true } },
+        queue: { select: { name: true } },
+        service: { select: { name: true } },
+      },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+      take: 20,
+    });
+  }
+
   async createTenant(data: {
     name: string;
     subdomain: string;
@@ -234,7 +255,19 @@ export class TenantService {
       showSupportInfo?: boolean;
       selfServeModeEnabled?: boolean;
       selfServeOtpEnabled?: boolean;
+      setupComplete?: boolean;
       operatingMode?: any;
+      staffViewLayout?: any;
+      taxConfig?: any;
+      invoicePrefix?: string;
+      invoiceCounter?: number;
+      whatsappProvider?: any;
+      metaCloudAccountId?: string;
+      metaCloudPhoneNumberId?: string;
+      metaCloudToken?: string;
+      whatsappConnected?: boolean;
+      whatsappInstanceId?: string;
+      whatsappPhone?: string;
     },
   ) {
     const tenant = await this.prisma.tenant.findUnique({ where: { id } });
@@ -271,15 +304,44 @@ export class TenantService {
       updateData.businessType = data.businessType;
     if (data.operatingMode !== undefined)
       updateData.operatingMode = data.operatingMode;
+    if (data.staffViewLayout !== undefined)
+      updateData.staffViewLayout = data.staffViewLayout;
     if (data.strictPrivacyMode !== undefined)
       updateData.strictPrivacyMode = data.strictPrivacyMode;
     if (data.aiConfig !== undefined) updateData.aiConfig = data.aiConfig;
-    
-    if (data.supportEmail !== undefined) updateData.supportEmail = data.supportEmail;
-    if (data.supportPhone !== undefined) updateData.supportPhone = data.supportPhone;
-    if (data.showSupportInfo !== undefined) updateData.showSupportInfo = data.showSupportInfo;
-    if (data.selfServeModeEnabled !== undefined) updateData.selfServeModeEnabled = data.selfServeModeEnabled;
-    if (data.selfServeOtpEnabled !== undefined) updateData.selfServeOtpEnabled = data.selfServeOtpEnabled;
+    if (data.setupComplete !== undefined)
+      updateData.setupComplete = data.setupComplete;
+
+    if (data.supportEmail !== undefined)
+      updateData.supportEmail = data.supportEmail;
+    if (data.supportPhone !== undefined)
+      updateData.supportPhone = data.supportPhone;
+    if (data.showSupportInfo !== undefined)
+      updateData.showSupportInfo = data.showSupportInfo;
+    if (data.selfServeModeEnabled !== undefined)
+      updateData.selfServeModeEnabled = data.selfServeModeEnabled;
+    if (data.selfServeOtpEnabled !== undefined)
+      updateData.selfServeOtpEnabled = data.selfServeOtpEnabled;
+
+    if (data.taxConfig !== undefined) updateData.taxConfig = data.taxConfig;
+    if (data.invoicePrefix !== undefined)
+      updateData.invoicePrefix = data.invoicePrefix;
+    if (data.invoiceCounter !== undefined)
+      updateData.invoiceCounter = data.invoiceCounter;
+    if (data.whatsappProvider !== undefined)
+      updateData.whatsappProvider = data.whatsappProvider;
+    if (data.metaCloudAccountId !== undefined)
+      updateData.metaCloudAccountId = data.metaCloudAccountId;
+    if (data.metaCloudPhoneNumberId !== undefined)
+      updateData.metaCloudPhoneNumberId = data.metaCloudPhoneNumberId;
+    if (data.metaCloudToken !== undefined)
+      updateData.metaCloudToken = data.metaCloudToken;
+    if (data.whatsappConnected !== undefined)
+      updateData.whatsappConnected = data.whatsappConnected;
+    if (data.whatsappInstanceId !== undefined)
+      updateData.whatsappInstanceId = data.whatsappInstanceId;
+    if (data.whatsappPhone !== undefined)
+      updateData.whatsappPhone = data.whatsappPhone;
 
     return this.prisma.tenant.update({
       where: { id },
@@ -372,5 +434,265 @@ export class TenantService {
     });
 
     return { logoUrl };
+  }
+
+  async getOnboardingState(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      include: {
+        locations: true,
+        services: { include: { serviceFlow: { include: { steps: true } } } },
+        queues: true,
+        invitations: true,
+      },
+    });
+    if (!tenant) throw new NotFoundException('Tenant not found');
+
+    const [userCount, staffCount, flowCount, onlineVisitCount] = await Promise.all([
+      this.prisma.user.count({ where: { tenantId } }),
+      this.prisma.staff.count({ where: { tenantId } }),
+      this.prisma.serviceFlow.count({ where: { tenantId } }),
+      this.prisma.visit.count({
+        where: {
+          tenantId,
+          source: { in: ['ONLINE', 'QR_KIOSK', 'PORTAL', 'SELF_SERVE'] as any },
+        },
+      }),
+    ]);
+
+    const hasJourney =
+      flowCount > 0 ||
+      tenant.services.some(
+        (s) => (s as any).serviceFlow || (s as any).journeyStages,
+      );
+
+    const hasTeam =
+      userCount > 1 ||
+      staffCount > 0 ||
+      (tenant.invitations && tenant.invitations.length > 0);
+
+    const custExp =
+      typeof tenant.customerExperience === 'object' && tenant.customerExperience !== null
+        ? (tenant.customerExperience as any)
+        : {};
+
+    const hasSharedQr =
+      !!custExp.portalShared ||
+      onlineVisitCount > 0;
+
+    return {
+      queueCount: tenant.queues.length,
+      serviceCount: tenant.services.length,
+      locationCount: tenant.locations.length,
+      staffCount: hasTeam ? 1 : 0,
+      whatsappConnected:
+        tenant.whatsappConnected || !!tenant.whatsappInstanceId || !!tenant.whatsappPhone,
+      hasSharedQr,
+      journeyCount: hasJourney ? 1 : 0,
+      hasJourney,
+      setupComplete: tenant.setupComplete,
+    };
+  }
+
+  async getIndustryMigrationPreview(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, businessType: true },
+    });
+    if (!tenant) throw new NotFoundException('Tenant not found');
+
+    const services = await this.prisma.service.findMany({
+      where: { tenantId },
+      include: {
+        visits: {
+          where: {
+            currentState: {
+              in: ['WAITING', 'CHECKED_IN', 'CALLED', 'IN_SERVICE', 'SERVING'] as any,
+            },
+          },
+          select: { id: true },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const activeVisitsCount = services.reduce(
+      (acc, s) => acc + s.visits.length,
+      0,
+    );
+
+    const templateServices = services
+      .filter(
+        (s) =>
+          s.description?.toLowerCase().includes('auto-provisioned') ||
+          s.name.endsWith(' Service'),
+      )
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+      }));
+
+    const customServices = services
+      .filter(
+        (s) =>
+          !s.description?.toLowerCase().includes('auto-provisioned') &&
+          !s.name.endsWith(' Service'),
+      )
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+      }));
+
+    return {
+      currentBusinessType: tenant.businessType || 'general',
+      totalServices: services.length,
+      templateServices,
+      customServices,
+      activeVisitsCount,
+    };
+  }
+
+  async changeIndustry(tenantId: string, dto: ChangeIndustryDto) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
+    if (!tenant) throw new NotFoundException('Tenant not found');
+
+    // 1. Query current services
+    const services = await this.prisma.service.findMany({
+      where: { tenantId },
+    });
+
+    let removedCount = 0;
+
+    // 2. Execute service strategy
+    if (dto.serviceStrategy === 'REMOVE_TEMPLATE_ONLY') {
+      const templateServices = services.filter(
+        (s) =>
+          s.description?.toLowerCase().includes('auto-provisioned') ||
+          s.name.endsWith(' Service'),
+      );
+      for (const service of templateServices) {
+        try {
+          await this.serviceService.remove(
+            service.id,
+            tenantId,
+            'delete_all',
+            undefined,
+            true, // keepHistory safely moves visits to Archived Services
+          );
+          removedCount++;
+        } catch (err) {
+          this.logger.error(
+            `Error removing template service ${service.id}: ${err}`,
+          );
+        }
+      }
+    } else if (dto.serviceStrategy === 'DELETE_ALL') {
+      for (const service of services) {
+        try {
+          await this.serviceService.remove(
+            service.id,
+            tenantId,
+            'delete_all',
+            undefined,
+            true, // keepHistory safely moves visits to Archived Services
+          );
+          removedCount++;
+        } catch (err) {
+          this.logger.error(`Error removing service ${service.id}: ${err}`);
+        }
+      }
+    }
+
+    // 3. Find default staff view layout if mapped in BUSINESS_CATALOG
+    let staffViewLayout: any = undefined;
+    for (const ind of BUSINESS_CATALOG) {
+      const sub = ind.subTypes?.find((s) => s.key === dto.newBusinessType);
+      if (sub?.defaultStaffLayout) {
+        staffViewLayout = sub.defaultStaffLayout;
+        break;
+      }
+    }
+
+    // 4. Update tenant businessType
+    const updatedTenant = await this.prisma.tenant.update({
+      where: { id: tenantId },
+      data: {
+        businessType: dto.newBusinessType,
+        ...(staffViewLayout ? { staffViewLayout } : {}),
+      },
+    });
+
+    // Invalidate Redis caches
+    try {
+      if (tenant.subdomain) {
+        await this.redisService.client.del(
+          `tenant:subdomain:${tenant.subdomain}`,
+        );
+      }
+      await this.redisService.client.del(`tenant:id:${tenantId}`);
+    } catch (e) {
+      this.logger.warn(`Failed to clear tenant cache for ${tenantId}`);
+    }
+
+    // 5. Auto-create initial service & flow blueprint if requested
+    let createdServiceId: string | null = null;
+    if (dto.provisionNewService !== false) {
+      const location = await this.prisma.location.findFirst({
+        where: { tenantId },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      if (location) {
+        let subLabel = dto.newBusinessType
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (l) => l.toUpperCase());
+        let blueprintKey = 'general';
+
+        for (const ind of BUSINESS_CATALOG) {
+          const sub = ind.subTypes?.find((s) => s.key === dto.newBusinessType);
+          if (sub) {
+            subLabel = sub.name || sub.key;
+            blueprintKey = sub.flowTemplateKey || 'general';
+            break;
+          }
+        }
+
+        try {
+          const newService = await this.serviceService.create(tenantId, {
+            name: `${subLabel} Service`,
+            description: `Auto-provisioned for ${subLabel}`,
+            locationId: location.id,
+            expectedDuration: 20,
+            allowAppointments: true,
+          });
+
+          if (newService?.id) {
+            createdServiceId = newService.id;
+            await this.serviceFlowService
+              .applyIndustryTemplate(tenantId, newService.id, blueprintKey)
+              .catch((err) =>
+                this.logger.warn(
+                  `Blueprint apply failed during changeIndustry: ${err}`,
+                ),
+              );
+          }
+        } catch (err) {
+          this.logger.error(
+            `Error auto-provisioning service for ${dto.newBusinessType}: ${err}`,
+          );
+        }
+      }
+    }
+
+    return {
+      success: true,
+      businessType: updatedTenant.businessType,
+      removedServicesCount: removedCount,
+      createdServiceId,
+    };
   }
 }

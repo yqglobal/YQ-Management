@@ -304,7 +304,7 @@ export class WhatsappChatbot {
     const hasPayment = await this.prisma.bookingPayment.findFirst({
       where: { visitId: visit.id, status: 'SUCCEEDED' },
     });
-    
+
     if (hasPayment) {
       const tenantEmail = visit.tenant.supportEmail || 'the business directly';
       await this.sendMsg(
@@ -758,34 +758,50 @@ export class WhatsappChatbot {
       return;
     }
 
-    if (rating >= 4) {
-      const locationId = session.context?.locationId;
-      let reviewLink = null;
+    // Find the pending review request
+    const reviewRequest = await this.prisma.reviewRequest.findFirst({
+      where: {
+        tenantId,
+        customer: { phone },
+        status: 'SENT',
+      },
+      orderBy: { sentAt: 'desc' },
+    });
 
-      if (locationId) {
-        const location = await this.prisma.location.findUnique({
-          where: { id: locationId },
-          select: { googlePlaceId: true },
-        });
+    if (reviewRequest) {
+      await this.prisma.reviewRequest.update({
+        where: { id: reviewRequest.id },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+          rating,
+          source: 'INTERNAL',
+        },
+      });
 
-        if (location?.googlePlaceId) {
-          reviewLink = `https://search.google.com/local/writereview?placeid=${location.googlePlaceId}`;
-        }
-      }
+      // Update visit as well for legacy compatibility
+      await this.prisma.visit.update({
+        where: { id: reviewRequest.visitId },
+        data: { rating },
+      });
+    }
 
-      if (reviewLink) {
-        await this.sendMsg(
-          jid,
-          `We are thrilled you had a great experience! We would really appreciate it if you could share it on Google:\n${reviewLink}`,
-        );
-      } else {
-        await this.sendMsg(jid, 'Thank you for your fantastic feedback!');
-      }
-    } else {
+    if (rating <= 3) {
+      await this.prisma.message.create({
+        data: {
+          tenantId,
+          customerPhone: phone,
+          body: `🚨 Low Score Alert: Customer rated their experience ${rating}/5.`,
+          sender: 'SYSTEM',
+          isRead: false,
+        },
+      });
       await this.sendMsg(
         jid,
         "Thank you for your feedback. We are sorry your experience wasn't perfect. Our team has been notified and we will strive to do better next time.",
       );
+    } else {
+      await this.sendMsg(jid, 'Thank you for your fantastic feedback!');
     }
 
     await this.updateSession(session.id, 0, {});

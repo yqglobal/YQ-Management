@@ -37,36 +37,42 @@ export class TenantController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-  @Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER)
   @Get()
   async getAllTenants(@Req() req: AuthenticatedRequest) {
     return this.tenantService.getAllTenants();
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER)
   @Get('export')
   async exportData(@Req() req: AuthenticatedRequest) {
-    // Only TENANT_ADMIN or SUPER_ADMIN can export
+    // Only OWNER or SUPER_ADMIN can export
     return this.tenantService.exportData(req.user.tenantId);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER, Role.ADMIN, Role.MANAGER, Role.STAFF)
   @Get('me')
   async getMyTenant(@Req() req: AuthenticatedRequest) {
     return this.tenantService.getTenantById(req.user.tenantId);
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @Get('onboarding-state')
+  async getOnboardingState(@Req() req: AuthenticatedRequest) {
+    return this.tenantService.getOnboardingState(req.user.tenantId);
+  }
+
   @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-  @Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER, Role.ADMIN)
   @Patch(':id')
   async updateTenant(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: UpdateTenantDto,
   ) {
-    // SECURITY: TENANT_ADMIN can only update their own tenant.
+    // SECURITY: OWNER can only update their own tenant.
     // SUPER_ADMIN can update any tenant.
     if (req.user.role !== Role.SUPER_ADMIN && id !== req.user.tenantId) {
       throw new Error('Forbidden: You can only update your own tenant.');
@@ -75,7 +81,38 @@ export class TenantController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-  @Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER)
+  @Get(':id/industry-migration-preview')
+  async getIndustryMigrationPreview(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    if (req.user.role !== Role.SUPER_ADMIN && id !== req.user.tenantId) {
+      throw new ForbiddenException(
+        'Forbidden: You can only inspect your own workspace.',
+      );
+    }
+    return this.tenantService.getIndustryMigrationPreview(id);
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER)
+  @Post(':id/change-industry')
+  async changeIndustry(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    if (req.user.role !== Role.SUPER_ADMIN && id !== req.user.tenantId) {
+      throw new ForbiddenException(
+        'Forbidden: You can only change industry for your own workspace.',
+      );
+    }
+    return this.tenantService.changeIndustry(id, body);
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER)
   @Post(':id/logo')
   @UseInterceptors(require('@nestjs/platform-express').FileInterceptor('logo'))
   async uploadLogo(
@@ -122,5 +159,11 @@ export class TenantController {
   @Get('public/:tenantId/recently-called')
   async getTenantRecentlyCalledTokens(@Param('tenantId') tenantId: string) {
     return this.tenantService.getTenantRecentlyCalledTokens(tenantId);
+  }
+
+  // Public endpoint for live TV display upcoming waiting queue tokens
+  @Get('public/:tenantId/upcoming-tokens')
+  async getTenantUpcomingTokens(@Param('tenantId') tenantId: string) {
+    return this.tenantService.getTenantUpcomingTokens(tenantId);
   }
 }

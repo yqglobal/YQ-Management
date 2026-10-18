@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -11,12 +12,12 @@ import { google } from 'googleapis';
 @Injectable()
 export class GoogleService {
   private readonly logger = new Logger(GoogleService.name);
-  private oauth2Client;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-  ) {
+  ) {}
+
+  private getNewOAuth2Client() {
     const clientId =
       this.configService.get<string>('GOOGLE_CLIENT_ID') || 'mock-client-id';
     const clientSecret =
@@ -26,11 +27,7 @@ export class GoogleService {
       this.configService.get<string>('BACKEND_URL') || 'http://localhost:3000';
     const redirectUri = `${backendUrl}/auth/google/callback`;
 
-    this.oauth2Client = new google.auth.OAuth2(
-      clientId,
-      clientSecret,
-      redirectUri,
-    );
+    return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
   }
 
   // ─── Token Refresh Helper ─────────────────────────────────────────────────────
@@ -42,25 +39,27 @@ export class GoogleService {
    * This is a critical production fix — Google access tokens expire after 1 hour.
    * Without this, all calendar and GBP calls silently fail after first connect.
    */
-  private async refreshTokenIfNeeded(integration: {
+  private async getAuthenticatedClient(integration: {
     id: string;
     accessToken: string;
     refreshToken: string | null;
     tokenExpiry: Date | null;
   }) {
+    const oauth2Client = this.getNewOAuth2Client();
+
     // If no refresh token, can't refresh — return existing credentials
     if (!integration.refreshToken) {
-      this.oauth2Client.setCredentials({
+      oauth2Client.setCredentials({
         access_token: integration.accessToken,
       });
-      return;
+      return oauth2Client;
     }
 
     const isExpired =
       !integration.tokenExpiry ||
       new Date(integration.tokenExpiry).getTime() - Date.now() < 5 * 60 * 1000; // 5 min buffer
 
-    this.oauth2Client.setCredentials({
+    oauth2Client.setCredentials({
       access_token: integration.accessToken,
       refresh_token: integration.refreshToken,
     });
@@ -70,7 +69,11 @@ export class GoogleService {
         this.logger.log(
           `Refreshing Google OAuth token for integration ${integration.id}`,
         );
-        const { credentials } = await this.oauth2Client.refreshAccessToken();
+        const { credentials } = await oauth2Client.refreshAccessToken();
+
+        const newExpiry = credentials.expiry_date
+          ? new Date(credentials.expiry_date)
+          : new Date(Date.now() + 3600 * 1000);
 
         // Persist refreshed token
         await this.prisma.googleIntegration.update({
@@ -80,13 +83,11 @@ export class GoogleService {
             ...(credentials.refresh_token
               ? { refreshToken: credentials.refresh_token }
               : {}),
-            tokenExpiry: credentials.expiry_date
-              ? new Date(credentials.expiry_date)
-              : null,
+            tokenExpiry: newExpiry,
           },
         });
 
-        this.oauth2Client.setCredentials(credentials);
+        oauth2Client.setCredentials(credentials);
         this.logger.log(
           `Token refreshed successfully for integration ${integration.id}`,
         );
@@ -94,20 +95,26 @@ export class GoogleService {
         this.logger.error(
           `Failed to refresh token for integration ${integration.id}: ${err.message}`,
         );
-        // Mark integration as needing re-auth
-        await this.prisma.googleIntegration
-          .update({
-            where: { id: integration.id },
-            data: { tokenExpiry: new Date(0) }, // epoch = expired
-          })
-          .catch(() => {
-            /* ignore */
-          });
+        // Only mark integration as needing re-auth if Google explicitly rejected the grant
+        if (
+          err?.message?.includes('invalid_grant') ||
+          err?.response?.data?.error === 'invalid_grant'
+        ) {
+          await this.prisma.googleIntegration
+            .update({
+              where: { id: integration.id },
+              data: { tokenExpiry: new Date(0) }, // epoch = revoked
+            })
+            .catch(() => {
+              /* ignore */
+            });
+        }
         throw new Error(
           `Google token expired and could not be refreshed. Please re-connect the account.`,
         );
       }
     }
+    return oauth2Client;
   }
 
   // ─── Calendar Sync ─────────────────────────────────────────────────────────────
@@ -135,11 +142,11 @@ export class GoogleService {
     }
 
     try {
-      await this.refreshTokenIfNeeded(integration);
+      const authClient = await this.getAuthenticatedClient(integration);
 
       const calendar = google.calendar({
         version: 'v3',
-        auth: this.oauth2Client,
+        auth: authClient,
       });
 
       // Use the specific calendarId if configured, otherwise fall back to 'primary'
@@ -196,11 +203,11 @@ export class GoogleService {
       return;
 
     try {
-      await this.refreshTokenIfNeeded(integration);
+      const authClient = await this.getAuthenticatedClient(integration);
 
       const calendar = google.calendar({
         version: 'v3',
-        auth: this.oauth2Client,
+        auth: authClient,
       });
       const calendarId = location?.googleCalendarId || 'primary';
 
@@ -249,11 +256,11 @@ export class GoogleService {
       return;
 
     try {
-      await this.refreshTokenIfNeeded(integration);
+      const authClient = await this.getAuthenticatedClient(integration);
 
       const calendar = google.calendar({
         version: 'v3',
-        auth: this.oauth2Client,
+        auth: authClient,
       });
       const calendarId = location?.googleCalendarId || 'primary';
 
@@ -285,20 +292,80 @@ export class GoogleService {
       throw new NotFoundException('Google integration not found');
     }
 
-    await this.refreshTokenIfNeeded(integration);
+    try {
+      const authClient = await this.getAuthenticatedClient(integration);
 
-    const calendar = google.calendar({
-      version: 'v3',
-      auth: this.oauth2Client,
-    });
-    const response = await calendar.calendarList.list({ maxResults: 50 });
+      const calendar = google.calendar({
+        version: 'v3',
+        auth: authClient,
+      });
+      const response = await calendar.calendarList.list({ maxResults: 50 });
 
-    return (response.data.items || []).map((cal) => ({
-      id: cal.id,
-      summary: cal.summary,
-      primary: cal.primary || false,
-      backgroundColor: cal.backgroundColor,
-    }));
+      return (response.data.items || []).map((cal) => ({
+        id: cal.id,
+        summary: cal.summary,
+        primary: cal.primary || false,
+        backgroundColor: cal.backgroundColor,
+      }));
+    } catch (err: any) {
+      const errMsg = err?.message || '';
+      this.logger.warn(
+        `Failed to fetch Google Calendars for integration ${integrationId}: ${errMsg}`,
+      );
+
+      // Check if Google Calendar API is disabled or not activated in GCP project
+      if (
+        errMsg.includes('Google Calendar API has not been used in project') ||
+        errMsg.includes('disabled') ||
+        err?.code === 403 ||
+        err?.status === 403
+      ) {
+        const urlMatch = errMsg.match(
+          /https:\/\/console\.developers\.google\.com[^\s]+/,
+        );
+        const activationUrl = urlMatch
+          ? urlMatch[0]
+          : 'https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview';
+
+        return [
+          {
+            id: 'primary',
+            summary: 'Primary Calendar (Default)',
+            primary: true,
+            warning:
+              'Google Calendar API is not enabled in your Google Cloud Console project.',
+            activationUrl,
+          },
+        ];
+      }
+
+      // If token expired
+      if (
+        errMsg.includes('invalid_grant') ||
+        err?.code === 401 ||
+        err?.status === 401
+      ) {
+        return [
+          {
+            id: 'primary',
+            summary: 'Primary Calendar (Default)',
+            primary: true,
+            warning:
+              'Google authorization has expired. Please re-authorize your Google account.',
+          },
+        ];
+      }
+
+      // General fallback
+      return [
+        {
+          id: 'primary',
+          summary: 'Primary Calendar (Default)',
+          primary: true,
+          warning: errMsg || 'Unable to load custom calendars from Google.',
+        },
+      ];
+    }
   }
 
   // ─── Disconnect ────────────────────────────────────────────────────────────────
@@ -318,11 +385,12 @@ export class GoogleService {
 
     // Attempt to revoke the token at Google's end (best-effort)
     try {
-      this.oauth2Client.setCredentials({
+      const oauth2Client = this.getNewOAuth2Client();
+      oauth2Client.setCredentials({
         access_token: integration.accessToken,
         refresh_token: integration.refreshToken,
       });
-      await this.oauth2Client.revokeCredentials();
+      await oauth2Client.revokeCredentials();
     } catch (err: any) {
       this.logger.warn(
         `Could not revoke Google token for ${integrationId}: ${err.message}`,
@@ -364,13 +432,13 @@ export class GoogleService {
       throw new NotFoundException('Google integration not found');
     }
 
-    await this.refreshTokenIfNeeded(integration);
+    const authClient = await this.getAuthenticatedClient(integration);
 
     try {
       // Use the My Business Account Management API v1
       const mybusiness = google.mybusinessaccountmanagement({
         version: 'v1',
-        auth: this.oauth2Client,
+        auth: authClient,
       });
 
       const accountsRes = await mybusiness.accounts.list();
@@ -382,7 +450,7 @@ export class GoogleService {
           try {
             const mybusinessInfo = google.mybusinessbusinessinformation({
               version: 'v1',
-              auth: this.oauth2Client,
+              auth: authClient,
             });
 
             const locationsRes = await mybusinessInfo.accounts.locations.list({
@@ -417,18 +485,32 @@ export class GoogleService {
 
       return accountsWithLocations;
     } catch (err: any) {
-      this.logger.error(
-        'Failed to fetch Google Business Profile accounts',
-        err?.message,
+      const errMsg = err?.message || '';
+      this.logger.warn(
+        `Failed to fetch Google Business Profile accounts for integration ${integrationId}: ${errMsg}`,
       );
-      // Return a friendly error the UI can handle
-      if (err?.code === 403 || err?.status === 403) {
-        throw new ForbiddenException(
-          'Google Business Profile API access is not enabled for this account. ' +
-            'This feature requires API approval from Google for production use.',
-        );
+
+      // Check if token is revoked or expired
+      if (
+        errMsg.includes('invalid_grant') ||
+        err?.code === 401 ||
+        err?.status === 401
+      ) {
+        return {
+          unapproved: true,
+          accounts: [],
+          message:
+            'Google authorization expired. Please click Re-authorize to reconnect.',
+        };
       }
-      throw err;
+
+      // Return a friendly payload the UI handles gracefully (quota, unapproved API, etc.)
+      return {
+        unapproved: true,
+        accounts: [],
+        message:
+          'Google Business Profile API access is limited or pending Google project approval. Please use the Manual Setup Guide above.',
+      };
     }
   }
 
@@ -450,27 +532,65 @@ export class GoogleService {
       throw new NotFoundException('Google integration not found');
     }
 
-    await this.refreshTokenIfNeeded(integration);
+    const authClient = await this.getAuthenticatedClient(integration);
 
     try {
-      const mybusinessInfo = google.mybusinessbusinessinformation({
+      const mybusinessPlaceActions = google.mybusinessplaceactions({
         version: 'v1',
-        auth: this.oauth2Client,
+        auth: authClient,
       });
 
-      // Patch just the websiteUri field with our booking URL
-      await (mybusinessInfo.locations as any).patch({
-        name: gbpLocationName,
-        updateMask: 'websiteUri',
-        requestBody: {
-          websiteUri: bookingUrl,
-        },
+      // Fetch existing links to avoid duplicates
+      const existingLinks = await (
+        mybusinessPlaceActions.locations as any
+      ).placeActionLinks.list({
+        parent: gbpLocationName,
       });
+
+      const appointmentLink = existingLinks.data.placeActionLinks?.find(
+        (link: any) => link.placeActionType === 'APPOINTMENT',
+      );
+
+      if (appointmentLink) {
+        await (mybusinessPlaceActions.locations as any).placeActionLinks.patch({
+          name: appointmentLink.name,
+          updateMask: 'uri',
+          requestBody: {
+            uri: bookingUrl,
+          },
+        });
+      } else {
+        await (mybusinessPlaceActions.locations as any).placeActionLinks.create(
+          {
+            parent: gbpLocationName,
+            requestBody: {
+              placeActionType: 'APPOINTMENT',
+              isEditable: true,
+              uri: bookingUrl,
+            },
+          },
+        );
+      }
 
       return { success: true, bookingUrl };
     } catch (err: any) {
-      this.logger.error('Failed to set booking URL on GBP', err?.message);
-      throw err;
+      const errMsg = err?.message || '';
+      this.logger.error('Failed to set booking URL on GBP', errMsg);
+      if (
+        errMsg.includes('Quota exceeded') ||
+        errMsg.includes('mybusiness') ||
+        err?.code === 403 ||
+        err?.status === 403 ||
+        err?.code === 429 ||
+        err?.status === 429
+      ) {
+        throw new BadRequestException(
+          'Google Business Profile API access requires Google project approval or has exceeded quota. Please use Method 1 (Manual Setup Guide) to add your booking link.',
+        );
+      }
+      throw new BadRequestException(
+        errMsg || 'Failed to set booking URL on Google Business Profile',
+      );
     }
   }
 
@@ -502,12 +622,86 @@ export class GoogleService {
       select: {
         id: true,
         email: true,
+        accessToken: true,
+        refreshToken: true,
         tokenExpiry: true,
         createdAt: true,
       },
     });
 
-    return { tenant, locations, googleIntegrations };
+    const sanitizedIntegrations = await Promise.all(
+      googleIntegrations.map(async (integration) => {
+        let currentExpiry = integration.tokenExpiry;
+        const isRevoked = currentExpiry?.getTime() === 0;
+
+        // If expired or about to expire in 5 mins, and has a refresh token (and not explicitly revoked with epoch 0)
+        const isExpiringSoon =
+          !currentExpiry ||
+          new Date(currentExpiry).getTime() - Date.now() < 5 * 60 * 1000;
+
+        if (isExpiringSoon && integration.refreshToken && !isRevoked) {
+          try {
+            const oauth2Client = this.getNewOAuth2Client();
+            oauth2Client.setCredentials({
+              access_token: integration.accessToken,
+              refresh_token: integration.refreshToken,
+            });
+
+            const { credentials } = await oauth2Client.refreshAccessToken();
+            const newExpiry = credentials.expiry_date
+              ? new Date(credentials.expiry_date)
+              : new Date(Date.now() + 3600 * 1000);
+
+            await this.prisma.googleIntegration.update({
+              where: { id: integration.id },
+              data: {
+                accessToken: credentials.access_token || integration.accessToken,
+                ...(credentials.refresh_token
+                  ? { refreshToken: credentials.refresh_token }
+                  : {}),
+                tokenExpiry: newExpiry,
+              },
+            });
+            currentExpiry = newExpiry;
+          } catch (err: any) {
+            this.logger.warn(
+              `Silent refresh failed for integration ${integration.id} (${integration.email}): ${err.message}`,
+            );
+            if (
+              err?.message?.includes('invalid_grant') ||
+              err?.response?.data?.error === 'invalid_grant'
+            ) {
+              await this.prisma.googleIntegration
+                .update({
+                  where: { id: integration.id },
+                  data: { tokenExpiry: new Date(0) },
+                })
+                .catch(() => {});
+              currentExpiry = new Date(0);
+            }
+          }
+        }
+
+        const isNowRevoked = currentExpiry?.getTime() === 0;
+        const isNowExpired =
+          isNowRevoked ||
+          (!integration.refreshToken &&
+            currentExpiry &&
+            new Date(currentExpiry).getTime() < Date.now());
+
+        return {
+          id: integration.id,
+          email: integration.email,
+          tokenExpiry: currentExpiry,
+          hasRefreshToken: !!integration.refreshToken,
+          isRevoked: isNowRevoked,
+          isExpired: isNowExpired,
+          createdAt: integration.createdAt,
+        };
+      }),
+    );
+
+    return { tenant, locations, googleIntegrations: sanitizedIntegrations };
   }
 
   async updateSettings(

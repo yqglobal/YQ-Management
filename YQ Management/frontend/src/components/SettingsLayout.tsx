@@ -1,7 +1,7 @@
 import React from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from './AdminLayout';
-import { Shield, Workflow, CreditCard, Building, User, Box } from 'lucide-react';
+import { Shield, Workflow, CreditCard, Building, Box, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from './AuthContext';
 
@@ -12,24 +12,25 @@ interface SettingsLayoutProps {
 }
 
 const settingsNavLinks = [
+  { label: 'Personal Settings', href: '/dashboard/settings/personal', icon: <User className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Workspace & Identity', href: '/dashboard/settings/workspace', icon: <Building className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'Billing & Usage', href: '/dashboard/settings/billing', icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Team & Security', href: '/dashboard/settings/team', icon: <Shield className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Operations', href: '/dashboard/settings/operations', icon: <Box className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Integrations & Comms', href: '/dashboard/settings/integrations', icon: <Workflow className="w-4 h-4" strokeWidth={1.5} /> },
-  { label: 'SLA & Automation', href: '/dashboard/settings/sla', icon: <Workflow className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'Staff View & My-Desk', href: '/dashboard/settings/staff-view', icon: <Building className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Payments & Payouts', href: '/dashboard/settings/payments', icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
-  { label: 'Billing & Usage', href: '/dashboard/settings/billing', icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
 ];
 
 export default function SettingsLayout({ children, pageTitle = 'Settings', pageSubtitle = '' }: SettingsLayoutProps) {
   const router = useRouter();
   const { user } = useAuth();
 
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'OWNER';
 
   const filteredNavLinks = settingsNavLinks.filter(link => {
-    if (link.href === '/dashboard/settings/workspace') return true;
     if (isAdmin) return true;
+    if (link.href === '/dashboard/settings/personal') return true;
     
     // Check if the operator has explicit permission for this settings page
     // Map the href to the page ID (e.g., /dashboard/settings/workspace -> settings-workspace)
@@ -46,7 +47,7 @@ export default function SettingsLayout({ children, pageTitle = 'Settings', pageS
       settingsMode
       settingsNavLinks={filteredNavLinks}
     >
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
         {/* Page Header */}
         <header className="mb-8">
           <h1 className="text-2xl font-semibold text-on-surface dark:text-white tracking-tight">

@@ -19,9 +19,16 @@ import { CreateStepDto } from './dto/create-step.dto';
 import { UpdateStepDto } from './dto/update-step.dto';
 import { ReorderStepsDto } from './dto/reorder-steps.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePagePermission } from '../auth/permissions.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Role } from '@prisma/client';
 
-@UseGuards(JwtAuthGuard)
-@Controller('service-flows')
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
+@RequirePagePermission('service-flow')
+@Controller(['service-flows', 'service-flow'])
 export class ServiceFlowController {
   constructor(private readonly serviceFlowService: ServiceFlowService) {}
 
@@ -36,6 +43,8 @@ export class ServiceFlowController {
   }
 
   @Get('by-service/:serviceId')
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.STAFF)
+  @RequirePagePermission('')
   getFlowByService(@Req() req: any, @Param('serviceId') serviceId: string) {
     return this.serviceFlowService.getFlowByServiceId(
       req.user.tenantId,

@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import Head from 'next/head';
 import SettingsLayout from '../../../components/SettingsLayout';
 import StaffSettingsPage from '../../../components/settings/staff';
-import RolesSettingsPage from '../../../components/settings/RolesTable';
+import { RolesTable as RolesSettingsPage } from '../../../components/settings/RolesTable';
 import SecuritySettingsPage from '../../../components/settings/security';
 
 export default function TeamSettingsWrapper() {
   const [activeTab, setActiveTab] = useState<'staff' | 'roles' | 'security'>('staff');
 
   return (
-    <SettingsLayout pageTitle="Team & Security" pageSubtitle="Manage your staff, roles, and workspace security.">
+    <>
       <Head>
         <title>Team & Security | Settings | Qmova</title>
       </Head>
@@ -19,7 +19,7 @@ export default function TeamSettingsWrapper() {
           onClick={() => setActiveTab('staff')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'staff'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              ? 'border-primary text-primary'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
@@ -29,7 +29,7 @@ export default function TeamSettingsWrapper() {
           onClick={() => setActiveTab('roles')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'roles'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              ? 'border-primary text-primary'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
@@ -39,7 +39,7 @@ export default function TeamSettingsWrapper() {
           onClick={() => setActiveTab('security')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'security'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              ? 'border-primary text-primary'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
@@ -47,11 +47,20 @@ export default function TeamSettingsWrapper() {
         </button>
       </div>
 
-      <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto">
+      <div className="flex flex-col gap-8 w-full mx-auto">
         {activeTab === 'staff' && <StaffSettingsPage />}
         {activeTab === 'roles' && <RolesSettingsPage />}
         {activeTab === 'security' && <SecuritySettingsPage />}
       </div>
-    </SettingsLayout>
+    </>
   );
 }
+
+
+TeamSettingsWrapper.getLayout = function getLayout(page: React.ReactElement) {
+  return (
+    <SettingsLayout pageTitle="Team & Security" pageSubtitle="Manage your staff, roles, and workspace security.">
+      {page}
+    </SettingsLayout>
+  );
+};

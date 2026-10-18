@@ -64,3 +64,15 @@ login.html
 render.yaml
 playwright-report/
 deploy-to-prod.sh
+
+# Scratch and local utility scripts
+scratch/
+backend/scratch/
+backend/check-user.ts
+backend/fix-password.js
+backend/test_*.js
+backend/test_*.ts
+frontend/fix-*.js
+frontend/update_*.py
+test-results/
+*.patch

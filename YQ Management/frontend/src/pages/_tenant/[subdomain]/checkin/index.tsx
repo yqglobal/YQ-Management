@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import { detectCountryCode, getInitialCountryIso } from '../../../../lib/country-codes';
 import { CheckCircle2, Clock, MapPin, ChevronRight, ArrowLeft, Loader2, QrCode } from 'lucide-react';
 import { fetchApi } from '../../../../lib/api';
 import Link from 'next/link';
@@ -49,6 +50,7 @@ export default function SelfServeCheckinPage({ tenant }: { tenant: any }) {
 
   const [step, setStep] = useState<Step>('choose');
   const [phone, setPhone] = useState('');
+  const [defaultCountry, setDefaultCountry] = useState<any>(() => getInitialCountryIso());
   const [otp, setOtp] = useState('');
   const [sessionToken, setSessionToken] = useState('');
   const [visits, setVisits] = useState<VisitSummary[]>([]);
@@ -57,6 +59,12 @@ export default function SelfServeCheckinPage({ tenant }: { tenant: any }) {
   const [error, setError] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
   const [ewtSeconds, setEwtSeconds] = useState(0);
+
+  useEffect(() => {
+    detectCountryCode().then(c => {
+      if (c?.country) setDefaultCountry(c.country);
+    });
+  }, []);
 
   const primaryColor = tenant?.branding?.primaryColor || '#4f46e5';
 
@@ -246,7 +254,7 @@ export default function SelfServeCheckinPage({ tenant }: { tenant: any }) {
                 <div className="mb-4">
                   <PhoneInput
                     international
-                    defaultCountry="ZA"
+                    defaultCountry={defaultCountry}
                     value={phone}
                     onChange={(v) => setPhone(v || '')}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus-within:ring-2 bg-white"

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import {
-  ScanLine, CheckCircle2, Check, XCircle, RefreshCcw, PlayCircle, StopCircle, Loader2, X
+  ScanLine, CheckCircle2, Check, XCircle, RefreshCcw, PlayCircle, StopCircle, Loader2, X, CameraOff, AlertCircle
 } from 'lucide-react';
 import { fetchApi } from '../../lib/api';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import { detectCountryCode, getInitialCountryIso } from '../../lib/country-codes';
 import { useLocation } from '../LocationContext';
 import { toast } from 'sonner';
 
@@ -42,7 +43,6 @@ const SCANNER_CONFIG = {
 };
 
 export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boolean; onClose: () => void; onScanSuccess: (data: AnyFixMe) => void }) {
-  if (!isOpen) return null;
 
   const { activeLocationId } = useLocation();
   const [continuousMode, setContinuousMode] = useState(true); // Default ON
@@ -54,25 +54,24 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
   const [isProcessing, setIsProcessing] = useState(false);
   const [useFrontCamera, setUseFrontCamera] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [hasCheckedCameras, setHasCheckedCameras] = useState(false);
   const [manualTokenId, setManualTokenId] = useState('');
   const [manualProcessing, setManualProcessing] = useState(false);
   const [lookupTab, setLookupTab] = useState<'token' | 'phone'>('token');
 
-  const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>('US');
+  const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>(() => getInitialCountryIso());
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('qmova_scanner_country');
       if (saved) {
         setDefaultCountry(saved);
-      } else {
-        import('../../lib/country-codes').then(({ detectCountryCode }) => {
-          detectCountryCode().then(country => {
-             if (country) setDefaultCountry(country.country);
-          });
-        });
+        return;
       }
     }
+    detectCountryCode().then(country => {
+      if (country) setDefaultCountry(country.country);
+    });
   }, []);
   const [manualPhone, setManualPhone] = useState('');
   const [phoneProcessing, setPhoneProcessing] = useState(false);
@@ -117,11 +116,17 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
    const getCameras = useCallback(async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-        setError('Camera API not supported in this browser or over insecure HTTP.');
+        setError('Camera API not supported in this browser or over insecure connection.');
+        setHasCheckedCameras(true);
         return;
       }
 
-      let devices = await navigator.mediaDevices.enumerateDevices();
+      let devices: MediaDeviceInfo[] = [];
+      try {
+        devices = await navigator.mediaDevices.enumerateDevices();
+      } catch (enumErr) {
+        console.warn('Error enumerating devices:', enumErr);
+      }
       let videoDevices = devices.filter((device) => device.kind === 'videoinput');
 
       if (videoDevices.length === 0 || (videoDevices.length > 0 && !videoDevices[0].label)) {
@@ -130,8 +135,15 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
           stream.getTracks().forEach(track => track.stop());
           devices = await navigator.mediaDevices.enumerateDevices();
           videoDevices = devices.filter((device) => device.kind === 'videoinput');
-        } catch (e) {
-          console.warn('Initial silent camera permission request failed or denied:', e);
+        } catch (e: any) {
+          const isNotFound = e?.name === 'NotFoundError' || String(e?.message || e).includes('Requested device not found');
+          if (isNotFound) {
+            setError('No camera device detected on this system. You can enter ticket IDs manually.');
+            setAvailableCameras([]);
+            setHasCheckedCameras(true);
+            return;
+          }
+          console.warn('Initial camera permission request failed or denied:', e);
         }
       }
 
@@ -149,10 +161,17 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
           : sortedCameras.find(c => !c.label.toLowerCase().includes('front')) || sortedCameras[0];
         setSelectedCamera(defaultCamera?.deviceId || sortedCameras[0].deviceId);
       } else {
-        setError('No camera devices found. Please connect a camera and check permissions.');
+        setError('No camera device detected on this system. You can enter ticket IDs manually.');
       }
-    } catch {
-      setError('Unable to access camera. Please check permissions.');
+    } catch (err: any) {
+      const isNotFound = err?.name === 'NotFoundError' || String(err?.message || err).includes('Requested device not found');
+      if (isNotFound) {
+        setError('No camera device detected on this system. You can enter ticket IDs manually.');
+      } else {
+        setError('Unable to access camera. Please check permissions.');
+      }
+    } finally {
+      setHasCheckedCameras(true);
     }
   }, [useFrontCamera]);
 
@@ -162,13 +181,23 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       stream.getTracks().forEach(track => track.stop());
       await getCameras();
-    } catch {
-      setError('Camera permission denied. Please allow camera access and try again.');
+    } catch (e: any) {
+      const isNotFound = e?.name === 'NotFoundError' || String(e?.message || e).includes('Requested device not found');
+      if (isNotFound) {
+        setError('No camera device detected on this system. You can enter ticket IDs manually.');
+      } else {
+        setError('Camera permission denied. Please allow camera access and try again.');
+      }
     }
   }, [getCameras]);
 
   const initializeScanner = useCallback(async () => {
     if (scannerRef.current || manualStopRef.current) return;
+
+    if (hasCheckedCameras && availableCameras.length === 0 && !selectedCamera) {
+      setError('No camera device detected on this system. You can enter ticket IDs manually.');
+      return;
+    }
 
     setIsInitializing(true);
     setError(null);
@@ -271,7 +300,11 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
         } else {
           throw new Error('No selected camera ID, trying facingMode fallback');
         }
-      } catch (primaryErr) {
+      } catch (primaryErr: any) {
+        const isNotFound = primaryErr?.name === 'NotFoundError' || String(primaryErr?.message || primaryErr).includes('Requested device not found');
+        if (isNotFound) {
+          throw primaryErr;
+        }
         console.warn('Failed starting with selectedCamera ID, falling back to facingMode:', primaryErr);
         try {
           await html5QrCode.start(
@@ -280,7 +313,11 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
             onScanSuccess,
             onScanFailure
           );
-        } catch (secondaryErr) {
+        } catch (secondaryErr: any) {
+          const isSecNotFound = secondaryErr?.name === 'NotFoundError' || String(secondaryErr?.message || secondaryErr).includes('Requested device not found');
+          if (isSecNotFound) {
+            throw secondaryErr;
+          }
           console.warn('Failed starting with environment facingMode, trying user/default webcam:', secondaryErr);
           await html5QrCode.start({ facingMode: 'user' }, config, onScanSuccess, onScanFailure);
         }
@@ -291,13 +328,19 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
       resetIdleTimer();
 
     } catch (err: AnyFixMe) {
-      console.error('Final scanner initialization error:', err);
-      setError('Failed to initialize camera scanner. Please check permissions or select a different camera.');
-      setScannerStatus('error');
+      const isNotFound = err?.name === 'NotFoundError' || String(err?.message || err).includes('Requested device not found');
+      if (isNotFound) {
+        setError('No camera device detected on this system. You can enter ticket IDs manually.');
+        setScannerStatus('idle');
+      } else {
+        console.error('Final scanner initialization error:', err);
+        setError('Failed to initialize camera scanner. Please check permissions or select a different camera.');
+        setScannerStatus('error');
+      }
     } finally {
       setIsInitializing(false);
     }
-  }, [selectedCamera, isProcessing, useFrontCamera]);
+  }, [selectedCamera, isProcessing, useFrontCamera, hasCheckedCameras, availableCameras.length]);
 
   const cleanupScanner = useCallback(async () => {
     if (scannerRef.current) {
@@ -322,15 +365,26 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
     }
     setError(null);
     setValidationResult(null);
+
+    if (hasCheckedCameras && availableCameras.length === 0 && !selectedCamera) {
+      setError('No camera device detected on this system. You can enter ticket IDs manually.');
+      return;
+    }
+
     if (!selectedCamera && availableCameras.length === 0) {
       try {
         await requestCameraPermission();
-      } catch (e) {
+      } catch (e: any) {
+        const isNotFound = e?.name === 'NotFoundError' || String(e?.message || e).includes('Requested device not found');
+        if (isNotFound) {
+          setError('No camera device detected on this system. You can enter ticket IDs manually.');
+          return;
+        }
         console.warn('Camera request failed:', e);
       }
     }
     await initializeScanner();
-  }, [selectedCamera, availableCameras, initializeScanner, requestCameraPermission]);
+  }, [selectedCamera, availableCameras, initializeScanner, requestCameraPermission, hasCheckedCameras]);
 
   const stopScanning = useCallback(async () => {
     setIsInitializing(false);
@@ -422,7 +476,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
         onScanSuccess({ ...validationResult, checkedIn: true, status: 'WAITING' });
       }
     } catch (e: AnyFixMe) {
-      alert(e.message || 'Failed to check in');
+      toast.error(e.message || 'Failed to check in');
     }
   }, [validationResult, onScanSuccess, continuousMode]);
 
@@ -435,7 +489,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
       setValidationResult((prev) => prev ? { ...prev, status: 'Advanced' } : prev);
       onScanSuccess({ ...validationResult, checkedIn: true, status: 'Advanced' });
     } catch (e: AnyFixMe) {
-      alert(e.message || 'Failed to advance step');
+      toast.error(e.message || 'Failed to advance step');
     }
   }, [validationResult, onScanSuccess]);
 
@@ -447,7 +501,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
       setValidationResult((prev) => prev ? { ...prev, status: 'Skipped' } : prev);
       onScanSuccess({ ...validationResult, checkedIn: true, status: 'Skipped' });
     } catch (e: AnyFixMe) {
-      alert(e.message || 'Failed to skip step');
+      toast.error(e.message || 'Failed to skip step');
     }
   }, [validationResult, onScanSuccess]);
 
@@ -461,7 +515,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
       // Re-validate to get updated state
       validateManualToken(); 
     } catch (e: AnyFixMe) {
-      alert(e.message || 'Failed to redeem');
+      toast.error(e.message || 'Failed to redeem');
     }
   }, [validationResult?.activeStep?.id, validateManualToken]);
 
@@ -504,11 +558,15 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
   }, [manualPhone]);
 
   useEffect(() => {
+    if (!isOpen) {
+      cleanupScanner();
+      return;
+    }
     getCameras();
     return () => {
       cleanupScanner();
     };
-  }, [getCameras, cleanupScanner]);
+  }, [isOpen, getCameras, cleanupScanner]);
 
   useEffect(() => {
     if (validationResult && resultContainerRef.current) {
@@ -517,13 +575,13 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
   }, [validationResult]);
 
   useEffect(() => {
-    if (scannerStatus === 'idle' && !manualStopRef.current) {
+    if (isOpen && hasCheckedCameras && (availableCameras.length > 0 || selectedCamera) && scannerStatus === 'idle' && !manualStopRef.current) {
       const timer = setTimeout(() => {
         startScanning();
       }, 400);
       return () => clearTimeout(timer);
     }
-  }, [scannerStatus, startScanning]);
+  }, [isOpen, hasCheckedCameras, availableCameras.length, selectedCamera, scannerStatus, startScanning]);
 
   useEffect(() => {
     if (availableCameras.length > 0) {
@@ -536,6 +594,8 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
       }
     }
   }, [useFrontCamera, availableCameras, selectedCamera]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-zinc-950/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -575,6 +635,16 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
                       <span className="text-sm">Initializing Camera...</span>
                     </div>
                   )}
+
+                  {hasCheckedCameras && availableCameras.length === 0 && !isInitializing && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-zinc-400 bg-zinc-900/90 p-4 text-center">
+                      <CameraOff className="w-10 h-10 mb-2 opacity-60 text-zinc-400" />
+                      <span className="text-sm font-semibold text-zinc-200">No Camera Detected</span>
+                      <span className="text-xs text-zinc-400 mt-1 max-w-[240px]">
+                        No video camera was found on this system. You can look up tickets manually below.
+                      </span>
+                    </div>
+                  )}
                   
                   <div className="absolute top-8 left-8 w-8 h-8 border-t-2 border-l-2 border-white/80 rounded-tl-lg pointer-events-none z-10"></div>
                   <div className="absolute top-8 right-8 w-8 h-8 border-t-2 border-r-2 border-white/80 rounded-tr-lg pointer-events-none z-10"></div>
@@ -601,15 +671,24 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
                   
                   <div className="absolute bottom-4 z-10 w-full flex justify-between px-4 items-center">
                     <span className="text-white text-xs font-data-mono tracking-widest uppercase bg-black/50 px-2 py-1 rounded">
-                      {scannerStatus === 'scanning' ? 'Awaiting QR...' : scannerStatus === 'processing' ? 'Validating...' : 'Stopped'}
+                      {availableCameras.length === 0 ? 'Manual Mode' : scannerStatus === 'scanning' ? 'Awaiting QR...' : scannerStatus === 'processing' ? 'Validating...' : 'Stopped'}
                     </span>
-                    {scannerStatus === 'scanning' ? (
-                       <button onClick={stopScanning} className="bg-red-500 text-white p-1 rounded-full"><StopCircle className="w-5 h-5"/></button>
-                    ) : (
-                       <button onClick={startScanning} className="bg-primary text-white p-1 rounded-full"><PlayCircle className="w-5 h-5"/></button>
+                    {availableCameras.length > 0 && (
+                      scannerStatus === 'scanning' ? (
+                        <button onClick={stopScanning} className="bg-red-500 text-white p-1 rounded-full"><StopCircle className="w-5 h-5"/></button>
+                      ) : (
+                        <button onClick={startScanning} className="bg-primary text-white p-1 rounded-full"><PlayCircle className="w-5 h-5"/></button>
+                      )
                     )}
                   </div>
                 </div>
+
+                {error && (
+                  <div className="p-3 mb-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
 
                 <div className="mt-auto">
                   <div className="flex items-center gap-1 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl p-1 mb-4">

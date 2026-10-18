@@ -9,6 +9,7 @@ import { Logo } from '../../components/Logo';
 import { useAuth } from '../../components/AuthContext';
 
 interface Blog {
+  id?: string;
   slug: string;
   title: string;
   coverImage?: string;
@@ -92,7 +93,7 @@ export default function BlogListing({ blogs }: { blogs: Blog[] }) {
             ) : (
               blogs.map((blog, idx) => (
                 <motion.div 
-                  key={blog.id} 
+                  key={blog.id || blog.slug} 
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}

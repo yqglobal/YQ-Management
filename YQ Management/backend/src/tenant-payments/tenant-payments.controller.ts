@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Body, Req, UseGuards, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Req,
+  UseGuards,
+  Param,
+} from '@nestjs/common';
 import { TenantPaymentsService } from './tenant-payments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -16,6 +24,12 @@ export class TenantPaymentsController {
   @Get('status')
   getAccountStatus(@Req() req: any) {
     return this.tenantPaymentsService.getAccountStatus(req.user.tenantId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('reset')
+  resetConnectAccount(@Req() req: any) {
+    return this.tenantPaymentsService.resetConnectAccount(req.user.tenantId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -74,10 +88,7 @@ export class TenantPaymentsController {
   }
 
   @Post('public/payment/:id/complete')
-  completePayment(
-    @Param('id') id: string,
-    @Body() body: { method?: string },
-  ) {
+  completePayment(@Param('id') id: string, @Body() body: { method?: string }) {
     return this.tenantPaymentsService.completePayment(id, body?.method);
   }
 
@@ -85,7 +96,15 @@ export class TenantPaymentsController {
   @Post('manual')
   recordManualPayment(
     @Req() req: any,
-    @Body() body: { visitId: string, amount: number, method: string, description?: string, source?: 'CHECKIN' | 'CHECKOUT', proofUrl?: string }
+    @Body()
+    body: {
+      visitId: string;
+      amount: number;
+      method: string;
+      description?: string;
+      source?: 'CHECKIN' | 'CHECKOUT';
+      proofUrl?: string;
+    },
   ) {
     return this.tenantPaymentsService.recordManualPayment(
       req.user.tenantId,
@@ -93,7 +112,11 @@ export class TenantPaymentsController {
       body.amount,
       body.method,
       body.description,
-      { source: body.source, staffId: req.user.userId, proofUrl: body.proofUrl },
+      {
+        source: body.source,
+        staffId: req.user.userId,
+        proofUrl: body.proofUrl,
+      },
     );
   }
 

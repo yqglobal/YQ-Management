@@ -40,7 +40,7 @@ export class ServiceFlowService {
         isActive: dto.isActive ?? true,
         allowPartialCompletion: dto.allowPartialCompletion ?? false,
         paymentTiming: dto.paymentTiming ?? 'CHECKIN',
-        checkinPayMode: dto.checkinPayMode ?? 'ONLINE_OR_COUNTER',
+        checkinPayMode: dto.checkinPayMode ?? 'BOTH',
         autoSendInvoice: dto.autoSendInvoice ?? false,
         allowUnpaidCheckout: dto.allowUnpaidCheckout ?? false,
       },
@@ -120,7 +120,7 @@ export class ServiceFlowService {
   }
 
   async getFlowByServiceId(tenantId: string, serviceId: string) {
-    const flow = await this.prisma.serviceFlow.findUnique({
+    let flow = await this.prisma.serviceFlow.findUnique({
       where: { serviceId },
       include: {
         steps: {
@@ -130,11 +130,28 @@ export class ServiceFlowService {
       },
     });
     if (!flow || flow.tenantId !== tenantId) return null;
+
+    // Self-healing for legacy flows
+    const hasCheckIn = flow.steps.some((s) => s.type === 'CHECK_IN');
+    const hasCheckOut = flow.steps.some((s) => s.type === 'CHECK_OUT');
+    if (!hasCheckIn || !hasCheckOut) {
+      await this.ensureBookends(flow.id);
+      flow = await this.prisma.serviceFlow.findUnique({
+        where: { serviceId },
+        include: {
+          steps: {
+            orderBy: { stepOrder: 'asc' },
+            include: { transitions: true },
+          },
+        },
+      });
+    }
+
     return flow;
   }
 
   async getFlowWithSteps(tenantId: string, flowId: string) {
-    const flow = await this.prisma.serviceFlow.findUnique({
+    let flow = await this.prisma.serviceFlow.findUnique({
       where: { id: flowId },
       include: {
         steps: {
@@ -146,6 +163,24 @@ export class ServiceFlowService {
     });
     if (!flow || flow.tenantId !== tenantId)
       throw new NotFoundException('Flow not found');
+
+    // Self-healing for legacy flows
+    const hasCheckIn = flow.steps.some((s) => s.type === 'CHECK_IN');
+    const hasCheckOut = flow.steps.some((s) => s.type === 'CHECK_OUT');
+    if (!hasCheckIn || !hasCheckOut) {
+      await this.ensureBookends(flow.id);
+      flow = await this.prisma.serviceFlow.findUnique({
+        where: { id: flowId },
+        include: {
+          steps: {
+            orderBy: { stepOrder: 'asc' },
+            include: { transitions: true },
+          },
+          service: { select: { id: true, name: true } },
+        },
+      });
+    }
+
     return flow;
   }
 
@@ -155,12 +190,38 @@ export class ServiceFlowService {
     });
     if (!flow || flow.tenantId !== tenantId)
       throw new NotFoundException('Flow not found');
-    const { serviceId, ...rest } = dto; // serviceId is immutable after creation
+
+    const { serviceId, ...rest } = dto;
+
+    // Allow linking an orphaned flow (serviceId null → a real serviceId)
+    // but never allow re-linking an already-linked flow (would break 1:1 constraint).
+    const updateData: any = { ...rest };
+    if (serviceId) {
+      if (flow.serviceId && flow.serviceId !== serviceId) {
+        throw new BadRequestException(
+          'Cannot change the linked service. Delete this flow and create a new one for the target service.',
+        );
+      }
+      if (!flow.serviceId) {
+        // Verify the target service belongs to this tenant and has no existing flow
+        const existing = await this.prisma.serviceFlow.findUnique({
+          where: { serviceId },
+        });
+        if (existing && existing.id !== flowId) {
+          throw new ConflictException('That service already has a flow.');
+        }
+        updateData.serviceId = serviceId;
+      }
+    }
+
     await this.ensureBookends(flowId);
     return this.prisma.serviceFlow.update({
       where: { id: flowId },
-      data: rest,
-      include: { steps: { orderBy: { stepOrder: 'asc' } } },
+      data: updateData,
+      include: {
+        steps: { orderBy: { stepOrder: 'asc' } },
+        service: { select: { id: true, name: true } },
+      },
     });
   }
 
@@ -317,12 +378,24 @@ export class ServiceFlowService {
     } = dto as any;
     if (step.isSystem) {
       // System bookends: only wording / customer-facing view / notification can change.
-      const allowed = ['name', 'description', 'customerView', 'customerInstruction', 'notifyCustomerOnActivation', 'notificationTemplate'];
+      const allowed = [
+        'name',
+        'description',
+        'customerView',
+        'customerInstruction',
+        'notifyCustomerOnActivation',
+        'notificationTemplate',
+      ];
       for (const k of Object.keys(updateData)) {
         if (!allowed.includes(k)) delete updateData[k];
       }
-    } else if (updateData.type === 'CHECK_IN' || updateData.type === 'CHECK_OUT') {
-      throw new BadRequestException('Cannot convert a stage into a system stage.');
+    } else if (
+      updateData.type === 'CHECK_IN' ||
+      updateData.type === 'CHECK_OUT'
+    ) {
+      throw new BadRequestException(
+        'Cannot convert a stage into a system stage.',
+      );
     }
 
     const updated = await this.prisma.flowStepTemplate.update({
@@ -364,7 +437,9 @@ export class ServiceFlowService {
     if (!step || step.flow.tenantId !== tenantId)
       throw new NotFoundException('Step not found');
     if (step.isSystem) {
-      throw new BadRequestException('Check-in and Check-out cannot be deleted.');
+      throw new BadRequestException(
+        'Check-in and Check-out cannot be deleted.',
+      );
     }
     await this.prisma.flowStepTemplate.delete({ where: { id: stepId } });
   }
@@ -380,7 +455,9 @@ export class ServiceFlowService {
     if (!flow || flow.tenantId !== tenantId)
       throw new NotFoundException('Flow not found');
 
-    const all = await this.prisma.flowStepTemplate.findMany({ where: { flowId } });
+    const all = await this.prisma.flowStepTemplate.findMany({
+      where: { flowId },
+    });
     const systemIds = new Set(all.filter((s) => s.isSystem).map((s) => s.id));
     const middleIds = orderedStepIds.filter((id) => !systemIds.has(id));
 
@@ -424,7 +501,7 @@ export class ServiceFlowService {
 
   async applyIndustryTemplate(
     tenantId: string,
-    serviceId: string,
+    serviceId: string | undefined,
     templateKey: string,
     includedStepNames?: string[],
   ) {
@@ -442,20 +519,22 @@ export class ServiceFlowService {
     }
 
     // Remove existing flow if any
-    const existing = await this.prisma.serviceFlow.findUnique({
-      where: { serviceId },
-    });
-    if (existing) {
-      if (existing.tenantId !== tenantId)
-        throw new NotFoundException('Service not found');
-      await this.prisma.serviceFlow.delete({ where: { id: existing.id } });
+    if (serviceId) {
+      const existing = await this.prisma.serviceFlow.findUnique({
+        where: { serviceId },
+      });
+      if (existing) {
+        if (existing.tenantId !== tenantId)
+          throw new NotFoundException('Service not found');
+        await this.prisma.serviceFlow.delete({ where: { id: existing.id } });
+      }
     }
 
     // Create flow
     const flow = await this.prisma.serviceFlow.create({
       data: {
         tenantId,
-        serviceId,
+        serviceId: serviceId || null,
         name: template.name,
         description: template.description,
         isActive: true,
@@ -483,6 +562,7 @@ export class ServiceFlowService {
     });
 
     let orderIndex = 1;
+    let totalDuration = 0;
     for (const stepData of chosen) {
       if (
         stepData.type === 'PAYMENT' ||
@@ -500,6 +580,24 @@ export class ServiceFlowService {
           stepOrder: orderIndex++, // Reassign order cleanly
         },
       });
+
+      if (data.expectedDuration && !data.isOptional && !data.deferredByHours && !data.deferredByDays) {
+        totalDuration += data.expectedDuration;
+      }
+    }
+
+    // Update parent Service with the aggregated expectedDuration only if it doesn't have one
+    if (totalDuration > 0 && serviceId) {
+      const existingService = await this.prisma.service.findUnique({
+        where: { id: serviceId },
+        select: { expectedDuration: true }
+      });
+      if (!existingService?.expectedDuration) {
+        await this.prisma.service.update({
+          where: { id: serviceId },
+          data: { expectedDuration: totalDuration },
+        });
+      }
     }
 
     await this.ensureBookends(flow.id);
@@ -509,7 +607,7 @@ export class ServiceFlowService {
   // ── Shared Utilities ────────────────────────────────────────────────────────
 
   async getFlowForVisitInstantiation(serviceId: string) {
-    return this.prisma.serviceFlow.findUnique({
+    let flow = await this.prisma.serviceFlow.findUnique({
       where: { serviceId },
       include: {
         steps: {
@@ -517,5 +615,23 @@ export class ServiceFlowService {
         },
       },
     });
+
+    if (flow) {
+      const hasCheckIn = flow.steps.some((s) => s.type === 'CHECK_IN');
+      const hasCheckOut = flow.steps.some((s) => s.type === 'CHECK_OUT');
+      if (!hasCheckIn || !hasCheckOut) {
+        await this.ensureBookends(flow.id);
+        flow = await this.prisma.serviceFlow.findUnique({
+          where: { serviceId },
+          include: {
+            steps: {
+              orderBy: { stepOrder: 'asc' },
+            },
+          },
+        });
+      }
+    }
+
+    return flow;
   }
 }

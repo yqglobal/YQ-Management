@@ -3,8 +3,8 @@ import Head from 'next/head';
 import AdminLayout from '../../components/AdminLayout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
-import { MessageSquare, Send, Search, Phone, RefreshCw, CheckCircle, Trash2, Smile, Paperclip, X, Image as ImageIcon, FileText } from 'lucide-react';
-import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
+import { MessageSquare, Send, Search, Phone, RefreshCw, CheckCircle, Trash2, Smile, Paperclip, X, Image as ImageIcon, FileText, ArrowLeft } from 'lucide-react';
+import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import { toast } from 'sonner';
 import { useSocket } from '../../components/SocketProvider';
 import { useLocation } from '../../components/LocationContext';
@@ -144,9 +144,9 @@ export default function InboxPage() {
         <title>Inbox | Qmova</title>
       </Head>
 
-      <div className="flex h-[calc(100vh-140px)] bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl overflow-hidden shadow-sm">
+      <div className="flex relative h-[calc(100dvh-140px)] bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl overflow-hidden shadow-sm">
         {/* Sidebar */}
-        <div className="w-80 border-r border-border dark:border-dark-border flex flex-col bg-surface dark:bg-dark-card shrink-0">
+        <div className={`absolute inset-0 z-10 md:static md:w-80 border-r border-border dark:border-dark-border flex flex-col bg-surface dark:bg-dark-card shrink-0 transition-transform duration-300 ${selectedPhone ? '-translate-x-full md:translate-x-0' : 'translate-x-0'}`}>
           <div className="p-4 border-b border-border dark:border-dark-border">
             <h2 className="font-headline-sm font-semibold mb-3">Conversations</h2>
             <div className="relative">
@@ -200,7 +200,13 @@ export default function InboxPage() {
               {/* Header */}
               <div className="p-4 border-b border-border dark:border-dark-border bg-surface dark:bg-dark-card flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                  <button 
+                    onClick={() => setSelectedPhone(null)}
+                    className="md:hidden p-2 -ml-2 hover:bg-surface-container rounded-full text-on-surface-variant transition-colors"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary shrink-0">
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
@@ -223,7 +229,7 @@ export default function InboxPage() {
                   <div className="text-center text-sm text-on-surface-variant py-8">No messages yet.</div>
                 ) : (
                   messages.map((m: AnyFixMe) => {
-                    const isOperator = m.sender === 'OPERATOR';
+                    const isOperator = m.sender === 'MANAGER';
                     const isSystem = m.sender === 'SYSTEM';
                     const isOurSide = isOperator || isSystem;
                     
@@ -301,7 +307,7 @@ export default function InboxPage() {
                 {/* Emoji Picker */}
                 {showEmojiPicker && (
                   <div className="absolute bottom-[80px] left-4 z-50 shadow-2xl" ref={emojiPickerRef}>
-                    <EmojiPicker onEmojiClick={onEmojiClick} theme="auto" />
+                    <EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.AUTO} />
                   </div>
                 )}
 

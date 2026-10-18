@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
+import PhoneInput from '../PhoneInput';
 import {
   X, Loader2, MapPin, Briefcase, Clock, User as UserIcon, Link2, Check,
 } from 'lucide-react';
@@ -192,11 +193,14 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
               </div>
               <div>
                 <label className="block text-xs font-medium text-on-surface-variant dark:text-zinc-400 mb-1">Phone</label>
-                <input
-                  type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                  placeholder="+27 82 000 0000"
-                  className="w-full px-3 py-2.5 rounded-xl border border-border dark:border-dark-border bg-white dark:bg-zinc-800 text-sm outline-none focus:border-[#0284C7] transition-colors text-on-surface dark:text-white"
-                />
+                <div className="h-[42px] px-3 rounded-xl border border-border dark:border-dark-border bg-white dark:bg-zinc-800 text-sm flex items-center focus-within:border-[#0284C7] transition-colors overflow-hidden">
+                  <PhoneInput
+                    value={phone}
+                    onChange={setPhone}
+                    placeholder="+27 82 000 0000"
+                    className="w-full text-sm text-on-surface dark:text-white"
+                  />
+                </div>
               </div>
               <div className="col-span-2">
                 <label className="block text-xs font-medium text-on-surface-variant dark:text-zinc-400 mb-1">Short Bio <span className="text-zinc-400 font-normal">(shown to customers)</span></label>

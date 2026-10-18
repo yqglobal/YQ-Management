@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { Layers, Plus, Loader2, Pencil, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { ServiceModal } from '../modals/ServiceModal';
 import { DeleteServiceModal } from '../modals/DeleteServiceModal';
 import { QuotaFreezeGuard } from '../QuotaFreezeGuard';
@@ -48,12 +47,10 @@ export function ServicesSettings() {
   return (
     <>
       <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
-        <div className="absolute left-0 top-0 bottom-0 w-2 bg-blue-500" />
-
         <div className="flex flex-col md:flex-row md:items-start justify-between mb-6 gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <Layers className="w-5 h-5 text-blue-500" />
+              <Layers className="w-5 h-5 text-primary" />
               <h2 className="font-headline-sm text-headline-sm font-semibold text-on-surface dark:text-white">Services</h2>
             </div>
             <p className="text-on-surface-variant dark:text-zinc-400 font-body-sm text-body-sm">
@@ -67,7 +64,7 @@ export function ServicesSettings() {
               </span>
               <div className="w-32 h-2 bg-surface-container-low dark:bg-zinc-800 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                  className="h-full bg-primary rounded-full transition-all duration-500"
                   style={{ width: plan.limits.maxServices > 0 ? `${Math.min((services.length / plan.limits.maxServices) * 100, 100)}%` : '100%' }}
                 />
               </div>
@@ -75,7 +72,17 @@ export function ServicesSettings() {
             <button
               type="button"
               onClick={() => { setSelectedServiceForEdit(null); setIsServiceModalOpen(true); }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all shadow-sm"
+              disabled={(plan.limits.maxServices > 0 && services.length >= plan.limits.maxServices) || locations.length === 0}
+              className={`px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all shadow-sm ${
+                (plan.limits.maxServices > 0 && services.length >= plan.limits.maxServices) || locations.length === 0
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-500'
+                  : 'bg-primary hover:bg-primary/90 text-white'
+              }`}
+              title={
+                locations.length === 0 
+                  ? 'You must create a location first' 
+                  : (plan.limits.maxServices > 0 && services.length >= plan.limits.maxServices ? 'Service limit reached on current plan' : '')
+              }
             >
               <Plus className="w-4 h-4" strokeWidth={2.5} />
               Create Service
@@ -86,7 +93,7 @@ export function ServicesSettings() {
         <QuotaWarningBanner 
           resourceType="services" 
           frozenCount={plan.frozenCounts?.services || 0} 
-          limit={typeof plan.limits === 'string' ? JSON.parse(plan.limits).maxServices : plan.limits?.maxServices} 
+          limit={plan.limits?.maxServices}
         />
 
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-between mb-6">
@@ -96,14 +103,14 @@ export function ServicesSettings() {
                placeholder="Search services..." 
                value={serviceSearchQuery}
                onChange={(e) => setServiceSearchQuery(e.target.value)}
-               className="w-full bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 rounded-lg pl-3 pr-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+               className="w-full bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 rounded-lg pl-3 pr-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
              />
            </div>
            <div className="flex items-center gap-2 w-full sm:w-auto">
              <select 
                value={selectedServiceLocationId}
                onChange={(e) => setSelectedServiceLocationId(e.target.value)}
-               className="bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
+               className="bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:border-primary outline-none"
              >
                <option value="all">All Locations</option>
                {locations.map((loc: any) => (
@@ -113,7 +120,7 @@ export function ServicesSettings() {
              <select 
                value={serviceSort}
                onChange={(e) => setServiceSort(e.target.value)}
-               className="bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
+               className="bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:border-primary outline-none"
              >
                <option value="name-asc">A to Z</option>
                <option value="name-desc">Z to A</option>
@@ -136,8 +143,8 @@ export function ServicesSettings() {
                 <QuotaFreezeGuard key={service.id} isFrozen={service.frozenByQuota} resourceName="service">
                 <div className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-zinc-800 rounded-xl gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0">
-                      <Layers className="w-5 h-5 text-blue-500" />
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
+                      <Layers className="w-5 h-5 text-primary" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-sm text-on-surface dark:text-white">{service.name}</p>

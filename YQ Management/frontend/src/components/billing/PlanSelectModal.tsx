@@ -27,8 +27,8 @@ export function PlanSelectModal({ isOpen, onClose, onSelectPlan, isPendingPaymen
     setDowngradeError(null);
     if (status === 'ACTIVE' && planName && planName !== plan.name) {
       if (plan.limits) {
-        const maxQueues = typeof plan.limits === 'string' ? JSON.parse(plan.limits as string).maxQueues : (plan.limits as Record<string, unknown>)?.maxQueues;
-        if (maxQueues && usage.queues > maxQueues) {
+        const maxServices = typeof plan.limits === 'string' ? JSON.parse(plan.limits as string).maxServices : (plan.limits as Record<string, unknown>)?.maxServices;
+        if (maxServices && usage.services > maxServices) {
           // It's a downgrade that exceeds hard limits. Wait, we decided to freeze them instead of blocking.
           // But actually, we just warn the user. We will open the downgrade warning modal from the parent!
         }
@@ -85,15 +85,16 @@ export function PlanSelectModal({ isOpen, onClose, onSelectPlan, isPendingPaymen
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {(plans as Record<string, unknown>[]).map((plan) => {
+          {(plans as any[]).map((plan) => {
             const price = billingInterval === 'yearly' && plan.annualPrice > 0
               ? plan.annualPrice
               : plan.price;
             const isPopular = plan.name.toLowerCase().includes('standard') || plan.name.toLowerCase().includes('pro');
             const isCurrent = plan.name === planName;
+            const planLimits: any = typeof plan.limits === 'string' ? JSON.parse(plan.limits as string) : (plan.limits || {});
 
             return (
-              <div key={plan.id} className={`bg-card dark:bg-zinc-950/50 rounded-[28px] border ${isCurrent ? 'border-primary shadow-xl dark:border-primary/50' : isPopular ? 'border-primary/50 shadow-lg dark:border-primary/30' : 'border-border dark:border-zinc-800'} p-7 flex flex-col relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1`}>
+              <div key={plan.id as string} className={`bg-card dark:bg-zinc-950/50 rounded-[28px] border ${isCurrent ? 'border-primary shadow-xl dark:border-primary/50' : isPopular ? 'border-primary/50 shadow-lg dark:border-primary/30' : 'border-border dark:border-zinc-800'} p-7 flex flex-col relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1`}>
                 {isPopular && !isCurrent && (
                   <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary to-sky-400"></div>
                 )}
@@ -101,18 +102,18 @@ export function PlanSelectModal({ isOpen, onClose, onSelectPlan, isPendingPaymen
                   <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 to-green-400"></div>
                 )}
                 <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-headline-md text-xl font-bold text-on-surface dark:text-white">{plan.name}</h3>
+                  <h3 className="font-headline-md text-xl font-bold text-on-surface dark:text-white">{plan.name as string}</h3>
                   {isCurrent && (
                     <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wide">Current</span>
                   )}
                 </div>
-                <p className="font-body-sm text-on-surface-variant dark:text-zinc-400 min-h-[60px] mb-6">{plan.description}</p>
+                <p className="font-body-sm text-on-surface-variant dark:text-zinc-400 min-h-[60px] mb-6">{plan.description as string}</p>
                 <div className="mb-8">
-                  <span className="font-data-mono-lg text-4xl font-extrabold text-on-surface dark:text-white">{plan.currency === 'ZAR' ? 'R' : '$'}{price}</span>
+                  <span className="font-data-mono-lg text-4xl font-extrabold text-on-surface dark:text-white">{plan.currency === 'ZAR' ? 'R' : '$'}{price as number}</span>
                   <span className="text-on-surface-variant dark:text-zinc-500 ml-1 font-medium">/{billingInterval === 'yearly' ? 'year' : 'month'}</span>
-                  {billingInterval === 'yearly' && plan.annualPrice > 0 && plan.price > 0 && (
+                  {billingInterval === 'yearly' && (plan.annualPrice as number) > 0 && (plan.price as number) > 0 && (
                     <div className="mt-2 inline-block bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs px-2 py-0.5 rounded-full font-bold">
-                      {Math.round(((plan.price as number * 12 - (plan.annualPrice as number)) / (plan.price as number * 12)) * 100)}% OFF
+                      {Math.round((((plan.price as number) * 12 - (plan.annualPrice as number)) / ((plan.price as number) * 12)) * 100)}% OFF
                     </div>
                   )}
                 </div>
@@ -133,25 +134,25 @@ export function PlanSelectModal({ isOpen, onClose, onSelectPlan, isPendingPaymen
                       <div className="mt-0.5 bg-emerald-100 dark:bg-emerald-500/20 p-0.5 rounded-full">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       </div>
-                      <span className="text-[14px] text-on-surface dark:text-zinc-300 font-medium">Up to {plan.limits?.maxQueues || 1} Queues</span>
+                      <span className="text-[14px] text-on-surface dark:text-zinc-300 font-medium">Up to {planLimits?.maxLocations || 1} Location{planLimits?.maxLocations === 1 ? '' : 's'}</span>
                     </li>
                     <li className="flex items-start gap-3">
                       <div className="mt-0.5 bg-emerald-100 dark:bg-emerald-500/20 p-0.5 rounded-full">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       </div>
-                      <span className="text-[14px] text-on-surface dark:text-zinc-300 font-medium">Up to {plan.limits?.maxTokens || 500} Tokens/day</span>
+                      <span className="text-[14px] text-on-surface dark:text-zinc-300 font-medium">Up to {planLimits?.maxServices || 1} Services</span>
                     </li>
                     <li className="flex items-start gap-3">
                       <div className="mt-0.5 bg-emerald-100 dark:bg-emerald-500/20 p-0.5 rounded-full">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       </div>
-                      <span className="text-[14px] text-on-surface dark:text-zinc-300 font-medium">Up to {plan.limits?.maxLocations || 1} Locations</span>
+                      <span className="text-[14px] text-on-surface dark:text-zinc-300 font-medium">Up to {planLimits?.maxTokens || 500} Tokens/day</span>
                     </li>
                     <li className="flex items-start gap-3">
                       <div className="mt-0.5 bg-emerald-100 dark:bg-emerald-500/20 p-0.5 rounded-full">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       </div>
-                      <span className="text-[14px] text-on-surface dark:text-zinc-300 font-medium">Up to {plan.limits?.maxServices || 1} Services</span>
+                      <span className="text-[14px] text-on-surface dark:text-zinc-300 font-medium">Up to {planLimits?.maxStaff || planLimits?.maxMembers || 2} Staff Members</span>
                     </li>
                   </ul>
                 </div>

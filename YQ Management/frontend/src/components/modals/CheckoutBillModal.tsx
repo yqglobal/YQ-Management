@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, X, Receipt, QrCode, Banknote, CreditCard, Landmark, CheckCircle2, Copy, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchApi } from '../../lib/api';
+import { getTenantUrl } from '../../lib/utils';
 import { InvoiceModal } from './InvoiceModal';
 
 export interface VisitBill {
@@ -38,7 +39,7 @@ const METHODS = [
 ] as const;
 
 const money = (n: number, currency: string) =>
-  new Intl.NumberFormat(undefined, { style: 'currency', currency: currency || 'ZAR' }).format(n);
+  new Intl.NumberFormat(undefined, { style: 'currency', currency: currency || 'ZAR' }).format(n / 100);
 
 export function CheckoutBillModal({
   isOpen, bill, customerName, customerPhone, tenantId, tenantSubdomain,
@@ -108,7 +109,7 @@ export function CheckoutBillModal({
           description: 'Payment at check-out',
         }),
       });
-      setPayLink(`https://${tenantSubdomain}.qmova.yqbuddy.com/pay/${res.paymentId}`);
+      setPayLink(tenantSubdomain ? getTenantUrl(tenantSubdomain, `/pay/${res.paymentId}`) : `/pay/${res.paymentId}`);
     } catch (e: any) {
       toast.error(e?.message || 'Failed to create payment link');
     } finally {

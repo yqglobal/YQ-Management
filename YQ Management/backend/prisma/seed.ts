@@ -18,22 +18,6 @@ async function main() {
     },
   });
 
-  // Create default Super Admin
-  const hashedPassword = await bcrypt.hash('admin123', 10);
-  
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@yqqueue.com' },
-    update: {
-      password: hashedPassword,
-    },
-    create: {
-      email: 'admin@yqqueue.com',
-      password: hashedPassword,
-      role: 'SUPER_ADMIN',
-      tenantId: tenant.id,
-    },
-  });
-
   // Create requested Super Admin
   const newAdminPassword = await bcrypt.hash('Southafrica@2026', 10);
   
@@ -51,9 +35,17 @@ async function main() {
     },
   });
 
+  // Remove old super admins if they exist
+  await prisma.user.deleteMany({
+    where: {
+      email: {
+        in: ['admin@yqqueue.com', 'support@qmova.com']
+      }
+    }
+  });
+
   console.log('✅ Seed completed successfully');
   console.log('Admin Credentials:');
-  console.log('Email: admin@yqqueue.com (admin123)');
   console.log('Email: yqbuddysa@gmail.com (Southafrica@2026)');
 }
 

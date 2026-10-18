@@ -9,7 +9,7 @@ import { usePlan } from '../../hooks/usePlan';
 import { QuotaExhaustedModal } from '../QuotaExhaustedModal';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
-import { detectCountryCode } from '../../lib/country-codes';
+import { detectCountryCode, getInitialCountryIso } from '../../lib/country-codes';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -25,6 +25,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
   const [accompanyingGuests, setAccompanyingGuests] = useState(0);
   
   const [isBlockMode, setIsBlockMode] = useState(false);
+  const [isCustomTime, setIsCustomTime] = useState(false);
   
   const [locationId, setLocationId] = useState('');
   const [queueId, setQueueId] = useState('');
@@ -32,7 +33,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [notes, setNotes] = useState('');
-  const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>('US');
+  const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>(() => getInitialCountryIso());
   
   const queryClient = useQueryClient();
   const plan = usePlan();
@@ -402,8 +403,19 @@ export function CreateAppointmentModal({ isOpen, onClose }: CreateAppointmentMod
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Time <span className="text-red-500">*</span></label>
-                  {(queueId || serviceId) && scheduledDate ? (
+                  
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300">Time <span className="text-red-500">*</span></label>
+                    <button
+                      type="button"
+                      onClick={() => { setIsCustomTime(!isCustomTime); setScheduledTime(''); }}
+                      className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+                    >
+                      {isCustomTime ? 'View Slots' : 'Custom Time'}
+                    </button>
+                  </div>
+                  {(queueId || serviceId) && scheduledDate && !isCustomTime ? (
+
                     <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
                       {isLoadingSlots ? (
                         <p className="col-span-3 text-sm text-center text-gray-500">Loading slots...</p>

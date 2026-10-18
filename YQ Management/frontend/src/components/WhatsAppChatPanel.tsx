@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Loader2, PhoneOff, MessageSquare, RefreshCw, Trash2 } from 'lucide-react';
+import { Send, Loader2, PhoneOff, MessageSquare, RefreshCw, Trash2, X } from 'lucide-react';
 import { fetchApi } from '../lib/api';
 import { toast } from 'sonner';
 import { useSocket } from './SocketProvider';
@@ -10,6 +10,8 @@ interface Message {
   fromMe: boolean;
   timestamp: string;
   status?: string;
+  isAutomated?: boolean;
+  automatedType?: string;
 }
 
 interface WhatsAppChatPanelProps {
@@ -18,6 +20,7 @@ interface WhatsAppChatPanelProps {
   customerPhone?: string;
   queueName?: string;
   onClose?: () => void;
+  hideHeader?: boolean;
 }
 
 function timeLabel(ts: string): string {
@@ -34,7 +37,77 @@ function dateSeparator(ts: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueName, onClose }: WhatsAppChatPanelProps) {
+function getAutomatedBadge(type?: string, body?: string): { label: string; icon: string } {
+  if (body?.includes('check-in code') || type === 'otp') {
+    return { label: 'Check-in OTP', icon: 'key' };
+  }
+  if (body?.includes('appointment is scheduled') || body?.includes('checked in') || type === 'queue_joined') {
+    return { label: 'Ticket Confirmation', icon: 'confirmation_number' };
+  }
+  if (body?.includes("You're late") || body?.includes('Reminder') || type === 'reminder') {
+    return { label: 'Automated Reminder', icon: 'alarm' };
+  }
+  if (body?.includes('SLA BREACH') || type === 'sla_breach') {
+    return { label: 'SLA Escalation', icon: 'warning' };
+  }
+  if (type === 'now_serving') {
+    return { label: 'Calling Customer', icon: 'campaign' };
+  }
+  if (type === 'position_update') {
+    return { label: 'Queue Position Update', icon: 'update' };
+  }
+  if (type === 'delay') {
+    return { label: 'Delay Notice', icon: 'schedule' };
+  }
+  if (type === 'survey' || body?.includes('experience? Reply')) {
+    return { label: 'CSAT Survey', icon: 'reviews' };
+  }
+  return { label: 'Automated WhatsApp', icon: 'smart_toy' };
+}
+
+function renderMessageBody(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sky-600 dark:text-sky-300 underline underline-offset-2 break-all hover:opacity-80 font-medium"
+        >
+          {part}
+        </a>
+      );
+    }
+
+    const boldRegex = /\*([^*]+)\*/g;
+    const subParts = part.split(boldRegex);
+    if (subParts.length > 1) {
+      return (
+        <span key={index}>
+          {subParts.map((sub, sIdx) =>
+            sIdx % 2 === 1 ? <strong key={sIdx} className="font-bold">{sub}</strong> : sub
+          )}
+        </span>
+      );
+    }
+
+    return <span key={index}>{part}</span>;
+  });
+}
+
+export function WhatsAppChatPanel({
+  tokenId,
+  customerName: _customerName,
+  customerPhone,
+  queueName: _queueName,
+  onClose,
+  hideHeader = false,
+}: WhatsAppChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -51,11 +124,14 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
     try {
       const data = await fetchApi(`/messages/token/${tokenId}`);
       if (Array.isArray(data)) {
-        const mapped = data.map((m: AnyFixMe) => ({
+        const mapped: Message[] = data.map((m: AnyFixMe) => ({
           id: m.id,
           body: m.body,
-          fromMe: m.sender === 'OPERATOR',
+          fromMe: m.sender === 'MANAGER' || m.sender === 'SYSTEM' || !!m.isAutomated,
+          isAutomated: !!m.isAutomated || m.sender === 'SYSTEM',
+          automatedType: m.automatedType,
           timestamp: m.createdAt,
+          status: m.status || (m.sender === 'CUSTOMER' ? undefined : 'delivered'),
         }));
         setMessages(mapped);
       }
@@ -69,7 +145,7 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
     setLoading(true);
     fetchMessages().finally(() => setLoading(false));
 
-    pollRef.current = setInterval(fetchMessages, 5000);
+    pollRef.current = setInterval(fetchMessages, 4000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
@@ -81,21 +157,28 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
 
   useEffect(() => {
     if (!socket) return;
-    const handler = (payload: AnyFixMe) => {
+    const handleDeleteMessage = (payload: AnyFixMe) => {
       if (payload.type === 'MESSAGE_DELETED') {
         setMessages(prev => prev.filter(m => m.id !== payload.messageId));
       }
     };
-    socket.on('MESSAGE_DELETED', handler);
-    return () => {
-      socket.off('MESSAGE_DELETED', handler);
+    const handleNewMessage = () => {
+      fetchMessages();
     };
-  }, [socket]);
+
+    socket.on('MESSAGE_DELETED', handleDeleteMessage);
+    socket.on('NEW_MESSAGE', handleNewMessage);
+    socket.on('NEW_INBOX_MESSAGE', handleNewMessage);
+    return () => {
+      socket.off('MESSAGE_DELETED', handleDeleteMessage);
+      socket.off('NEW_MESSAGE', handleNewMessage);
+      socket.off('NEW_INBOX_MESSAGE', handleNewMessage);
+    };
+  }, [socket, fetchMessages]);
 
   const handleDelete = async (msgId: string) => {
     if (!window.confirm('Delete this message for everyone?')) return;
     
-    // Optimistic delete
     const previous = [...messages];
     setMessages(prev => prev.filter(m => m.id !== msgId));
     
@@ -103,7 +186,7 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
       await fetchApi(`/messages/inbox/${msgId}`, { method: 'DELETE' });
     } catch (e: AnyFixMe) {
       toast.error(e?.message || 'Failed to delete message');
-      setMessages(previous); // Revert
+      setMessages(previous);
     }
   };
 
@@ -122,7 +205,7 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
     setMessages(prev => [...prev, optimistic]);
     setInput('');
     if (textareaRef.current) {
-      textareaRef.current.style.height = '44px';
+      textareaRef.current.style.height = '36px';
     }
 
     try {
@@ -150,119 +233,137 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
     setInput(e.target.value);
     const el = e.target;
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+    el.style.height = Math.min(el.scrollHeight, 80) + 'px';
   };
 
   // Group messages with date separators
-  const groupedMessages: { type: 'date'; label: string } | { type: 'msg'; msg: Message }[] = [];
+  const groupedMessages: ({ type: 'date'; label: string } | { type: 'msg'; msg: Message })[] = [];
   let lastDate = '';
   messages.forEach(msg => {
     const d = dateSeparator(msg.timestamp);
     if (d !== lastDate) {
-      (groupedMessages as AnyFixMe[]).push({ type: 'date', label: d });
+      groupedMessages.push({ type: 'date', label: d });
       lastDate = d;
     }
-    (groupedMessages as AnyFixMe[]).push({ type: 'msg', msg });
+    groupedMessages.push({ type: 'msg', msg });
   });
 
   return (
-    <div className="flex flex-col h-full bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl overflow-hidden shadow-sm">
-      {/* Header */}
-      <div className="flex items-start justify-between p-4 border-b border-border dark:border-dark-border shrink-0 bg-surface dark:bg-dark-card">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-            {(customerName || '?').charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p className="font-semibold text-on-surface dark:text-white text-sm leading-tight">{customerName || 'Customer'}</p>
+    <div className="flex flex-col h-full bg-[#efeae2]/60 dark:bg-[#0b141a] border border-border dark:border-dark-border rounded-xl overflow-hidden shadow-xs">
+      {/* Optional Standalone Header (hidden when embedded in drawer that already has Chat title) */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border dark:border-dark-border shrink-0 bg-surface dark:bg-dark-card select-none">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-bold text-xs text-on-surface dark:text-white">Chat</span>
             {customerPhone && (
-              <p className="text-xs text-on-surface-variant dark:text-zinc-400 flex items-center gap-1 mt-0.5">
-                <span className="material-symbols-outlined text-[12px]">smartphone</span>
-                {customerPhone}
-              </p>
+              <span className="text-[10px] text-outline font-mono">{customerPhone}</span>
             )}
-            {queueName && (
-              <p className="text-[10px] uppercase tracking-wider text-primary font-semibold mt-0.5">{queueName}</p>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={fetchMessages}
+              title="Refresh messages"
+              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface-container dark:hover:bg-white/10 text-outline hover:text-on-surface transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
+            {onClose && (
+              <button
+                onClick={onClose}
+                title="Close chat"
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface-container dark:hover:bg-white/10 text-outline hover:text-on-surface transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={fetchMessages}
-            title="Refresh"
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low dark:hover:bg-white/10 transition-colors text-on-surface-variant"
-          >
-            <RefreshCw className="w-4 h-4" strokeWidth={1.5} />
-          </button>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low dark:hover:bg-white/10 transition-colors text-on-surface-variant"
-            >
-              <span className="material-symbols-outlined text-[18px]">close</span>
-            </button>
-          )}
-        </div>
-      </div>
+      )}
 
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#E5DDD5]/10 dark:bg-zinc-900/20">
-        {loading && (
-          <div className="flex items-center justify-center h-20">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" strokeWidth={1.5} />
+      {/* Messages area - WhatsApp replica */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-[#efeae2]/50 dark:bg-[#0b141a]">
+        {loading && messages.length === 0 && (
+          <div className="flex items-center justify-center h-24">
+            <Loader2 className="w-5 h-5 animate-spin text-emerald-600" strokeWidth={1.5} />
           </div>
         )}
 
-        {error && !loading && (
-          <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-surface-container dark:bg-white/5 flex items-center justify-center">
-              <PhoneOff className="w-5 h-5 text-on-surface-variant" strokeWidth={1.5} />
+        {error && !loading && messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
+            <div className="w-9 h-9 rounded-full bg-surface-container dark:bg-white/5 flex items-center justify-center">
+              <PhoneOff className="w-4 h-4 text-on-surface-variant" strokeWidth={1.5} />
             </div>
-            <p className="text-xs text-on-surface-variant dark:text-zinc-400 max-w-[200px]">{error}</p>
+            <p className="text-xs text-on-surface-variant dark:text-zinc-400 max-w-[220px]">{error}</p>
           </div>
         )}
 
         {!loading && !error && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-surface-container dark:bg-white/5 flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 text-on-surface-variant opacity-50" strokeWidth={1.5} />
+            <div className="w-9 h-9 rounded-full bg-surface-container dark:bg-white/5 flex items-center justify-center">
+              <MessageSquare className="w-4 h-4 text-emerald-600/70" strokeWidth={1.5} />
             </div>
-            <p className="text-xs text-on-surface-variant dark:text-zinc-400">No messages yet.<br />Send the first message below.</p>
+            <p className="text-xs text-on-surface-variant dark:text-zinc-400">
+              No WhatsApp messages yet.<br />Send a message below.
+            </p>
           </div>
         )}
 
-        {!loading && (groupedMessages as AnyFixMe[]).map((item: AnyFixMe, i: number) => {
+        {groupedMessages.map((item, i) => {
           if (item.type === 'date') {
             return (
-              <div key={`date-${i}`} className="flex justify-center">
-                <span className="bg-surface-container dark:bg-white/10 text-outline dark:text-zinc-400 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full shadow-sm">
+              <div key={`date-${i}`} className="flex justify-center my-1.5 select-none">
+                <span className="bg-white/90 dark:bg-[#182229]/90 text-[#54656f] dark:text-[#8696a0] text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded-md shadow-xs border border-black/5 dark:border-white/5">
                   {item.label}
                 </span>
               </div>
             );
           }
-          const msg: Message = item.msg;
+
+          const msg = item.msg;
+          const badge = msg.isAutomated ? getAutomatedBadge(msg.automatedType, msg.body) : null;
+
           return (
-            <div key={msg.id} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'} max-w-full group/msg`}>
-              <div className={`max-w-[80%] px-3 py-2 rounded-xl shadow-sm relative ${
-                msg.fromMe
-                  ? 'bg-sky-100 dark:bg-sky-900/40 border border-sky-200 dark:border-sky-800 rounded-tr-none text-sky-900 dark:text-sky-100'
-                  : 'bg-white dark:bg-dark-card border border-border dark:border-dark-border rounded-tl-none text-on-surface dark:text-white'
-              }`}>
-                {msg.fromMe && msg.status !== 'sending' && (
-                  <button 
+            <div
+              key={msg.id}
+              className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'} max-w-full group/msg my-1`}
+            >
+              <div
+                className={`max-w-[85%] px-3 py-1.5 rounded-lg text-xs leading-relaxed shadow-xs relative ${
+                  msg.fromMe
+                    ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-[#e9edef] border border-[#c1e7b9]/40 dark:border-[#02735a]/40 rounded-tr-none'
+                    : 'bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef] border border-black/5 dark:border-white/5 rounded-tl-none'
+                }`}
+              >
+                {/* Delete button on hover for manual operator messages */}
+                {msg.fromMe && !msg.isAutomated && msg.status !== 'sending' && (
+                  <button
                     onClick={() => handleDelete(msg.id)}
-                    className="absolute -left-8 top-1/2 -translate-y-1/2 p-1.5 text-alert hover:bg-alert/10 rounded-full opacity-0 group-hover/msg:opacity-100 transition-opacity"
+                    className="absolute -left-7 top-1/2 -translate-y-1/2 p-1 text-rose-500 hover:bg-rose-500/10 rounded-full opacity-0 group-hover/msg:opacity-100 transition-opacity"
                     title="Delete message"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
-                <p className="text-sm leading-snug break-words">{msg.body}</p>
-                <div className={`flex items-center gap-1 mt-1 justify-end`}>
-                  <span className="text-[10px] opacity-60 font-mono">{timeLabel(msg.timestamp)}</span>
+
+                {/* Automated WhatsApp Pill */}
+                {badge && (
+                  <div className="flex items-center gap-1 mb-1 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200 bg-emerald-200/50 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded w-fit select-none">
+                    <span className="material-symbols-outlined text-[12px]">{badge.icon}</span>
+                    <span>{badge.label}</span>
+                  </div>
+                )}
+
+                <div className="whitespace-pre-wrap break-words">{renderMessageBody(msg.body)}</div>
+
+                <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-[#667781] dark:text-[#8696a0] select-none">
+                  <span className="font-sans">{timeLabel(msg.timestamp)}</span>
                   {msg.fromMe && (
-                    <span className={`material-symbols-outlined text-[12px] ${msg.status === 'sending' ? 'opacity-30' : 'text-sky-500'}`}>
+                    <span
+                      className={`material-symbols-outlined text-[13px] ${
+                        msg.status === 'sending' ? 'opacity-40' : 'text-[#53bdeb]'
+                      }`}
+                    >
                       {msg.status === 'sending' ? 'schedule' : 'done_all'}
                     </span>
                   )}
@@ -274,9 +375,9 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="shrink-0 p-3 bg-surface dark:bg-dark-card border-t border-border dark:border-dark-border">
-        <div className="flex items-end gap-2">
+      {/* Input - Compact WhatsApp Field */}
+      <div className="shrink-0 p-2 bg-[#f0f2f5] dark:bg-[#202c33] border-t border-border/80 dark:border-dark-border/60">
+        <div className="flex items-end gap-1.5">
           <textarea
             ref={textareaRef}
             value={input}
@@ -284,18 +385,20 @@ export function WhatsAppChatPanel({ tokenId, customerName, customerPhone, queueN
             onKeyDown={handleKeyDown}
             placeholder="Type a message… (Enter to send)"
             rows={1}
-            className="flex-1 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl px-3 py-2.5 text-sm text-on-surface dark:text-white placeholder:text-on-surface-variant focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none overflow-hidden transition-all"
-            style={{ minHeight: '44px', maxHeight: '100px' }}
+            className="flex-1 bg-white dark:bg-[#2a3942] border border-border/60 dark:border-transparent rounded-2xl px-3 py-1.5 text-xs text-on-surface dark:text-[#e9edef] placeholder:text-outline/70 focus:ring-1 focus:ring-emerald-500 focus:outline-none resize-none transition-all leading-normal"
+            style={{ minHeight: '36px', maxHeight: '80px' }}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || sending}
-            className="w-11 h-11 shrink-0 bg-primary hover:bg-primary-container text-white rounded-xl flex items-center justify-center transition-all disabled:opacity-40 shadow-sm"
+            className="w-9 h-9 shrink-0 bg-[#00a884] hover:bg-[#06cf9c] text-white rounded-full flex items-center justify-center transition-all disabled:opacity-35 shadow-xs cursor-pointer"
+            title="Send WhatsApp message"
           >
-            {sending
-              ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
-              : <Send className="w-4 h-4" strokeWidth={1.5} />
-            }
+            {sending ? (
+              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+            ) : (
+              <Send className="w-4 h-4" strokeWidth={2} />
+            )}
           </button>
         </div>
       </div>

@@ -33,7 +33,9 @@ export class TenantPaymentsService {
 
   async createConnectAccount(tenantId: string) {
     if (!this.stripe) {
-      throw new BadRequestException('Stripe is not configured on this server. Please add STRIPE_SECRET_KEY to your environment variables.');
+      throw new BadRequestException(
+        'Stripe is not configured on this server. Please add STRIPE_SECRET_KEY to your environment variables.',
+      );
     }
 
     let account = await this.prisma.tenantPaymentAccount.findUnique({
@@ -47,7 +49,13 @@ export class TenantPaymentsService {
     }
 
     if (account.connectedAccountId) {
-      return this.createAccountLink(account.connectedAccountId);
+      try {
+        return await this.createAccountLink(account.connectedAccountId);
+      } catch (err: any) {
+        this.logger.warn(
+          `Existing account ${account.connectedAccountId} failed for current Stripe mode: ${err.message}. Creating a new account.`,
+        );
+      }
     }
 
     // Create a new Express account on Stripe
@@ -71,8 +79,33 @@ export class TenantPaymentsService {
     return this.createAccountLink(stripeAccount.id);
   }
 
+  async resetConnectAccount(tenantId: string) {
+    await this.prisma.tenantPaymentAccount.updateMany({
+      where: { tenantId },
+      data: {
+        connectedAccountId: null,
+        accountStatus: 'NOT_CONNECTED',
+        chargesEnabled: false,
+        payoutsEnabled: false,
+        detailsSubmitted: false,
+      },
+    });
+    return { success: true };
+  }
+
   private async createAccountLink(accountId: string) {
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    let baseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+    const isLive = process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_');
+
+    // Stripe live mode strictly requires an HTTPS public domain for redirect URLs.
+    if (
+      this.stripe &&
+      isLive &&
+      (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1') || !baseUrl.startsWith('https://'))
+    ) {
+      baseUrl = process.env.STRIPE_CONNECT_RETURN_URL_BASE || 'https://qmova.yqbuddy.com';
+    }
+
     const accountLink = await this.stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${baseUrl}/dashboard/settings/payments?stripe=refresh`,
@@ -83,48 +116,83 @@ export class TenantPaymentsService {
   }
 
   async getAccountStatus(tenantId: string) {
+    const isTestMode = !process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_');
     const account = await this.prisma.tenantPaymentAccount.findUnique({
       where: { tenantId },
     });
-    if (!account) return { status: 'NOT_CONNECTED' };
+    if (!account) return { status: 'NOT_CONNECTED', isTestMode };
 
     if (!this.stripe) {
-      return { status: account.accountStatus || 'NOT_CONNECTED' };
+      return { status: account.accountStatus || 'NOT_CONNECTED', isTestMode };
     }
 
     if (!account.connectedAccountId) {
-      return { status: account.accountStatus };
+      return { status: account.accountStatus, isTestMode };
     }
 
-    // Retrieve live status from Stripe
-    const stripeAccount = await this.stripe.accounts.retrieve(
-      account.connectedAccountId,
-    );
+    try {
+      // Retrieve status from Stripe
+      const stripeAccount = await this.stripe.accounts.retrieve(
+        account.connectedAccountId,
+      );
 
-    const isReady =
-      stripeAccount.charges_enabled && stripeAccount.payouts_enabled;
-    const status = isReady ? 'ENABLED' : 'RESTRICTED';
+      const isReady =
+        stripeAccount.charges_enabled && stripeAccount.payouts_enabled;
+      const status = isReady ? 'ENABLED' : 'RESTRICTED';
 
-    await this.prisma.tenantPaymentAccount.update({
-      where: { tenantId },
-      data: {
+      await this.prisma.tenantPaymentAccount.update({
+        where: { tenantId },
+        data: {
+          chargesEnabled: stripeAccount.charges_enabled,
+          payoutsEnabled: stripeAccount.payouts_enabled,
+          detailsSubmitted: stripeAccount.details_submitted,
+          accountStatus: status,
+          currentlyDue: stripeAccount.requirements?.currently_due as any,
+          eventuallyDue: stripeAccount.requirements?.eventually_due as any,
+          pendingVerification: stripeAccount.requirements
+            ?.pending_verification as any,
+        },
+      });
+
+      return {
+        status,
+        accountId: account.connectedAccountId,
+        isTestMode,
         chargesEnabled: stripeAccount.charges_enabled,
         payoutsEnabled: stripeAccount.payouts_enabled,
         detailsSubmitted: stripeAccount.details_submitted,
-        accountStatus: status,
-        currentlyDue: stripeAccount.requirements?.currently_due as any,
-        eventuallyDue: stripeAccount.requirements?.eventually_due as any,
-        pendingVerification: stripeAccount.requirements
-          ?.pending_verification as any,
-      },
-    });
-
-    return {
-      status,
-      chargesEnabled: stripeAccount.charges_enabled,
-      payoutsEnabled: stripeAccount.payouts_enabled,
-      detailsSubmitted: stripeAccount.details_submitted,
-    };
+      };
+    } catch (err: any) {
+      this.logger.warn(
+        `Failed to retrieve Stripe account ${account.connectedAccountId}: ${err.message}`,
+      );
+      if (
+        err?.code === 'resource_missing' ||
+        err?.message?.includes('No such account') ||
+        err?.statusCode === 404
+      ) {
+        // Stale account ID from another mode (e.g. live vs test)
+        await this.prisma.tenantPaymentAccount.update({
+          where: { tenantId },
+          data: {
+            connectedAccountId: null,
+            accountStatus: 'NOT_CONNECTED',
+            chargesEnabled: false,
+            payoutsEnabled: false,
+            detailsSubmitted: false,
+          },
+        });
+        return { status: 'NOT_CONNECTED', isTestMode };
+      }
+      return {
+        status: account.accountStatus || 'NOT_CONNECTED',
+        accountId: account.connectedAccountId,
+        isTestMode,
+        chargesEnabled: account.chargesEnabled,
+        payoutsEnabled: account.payoutsEnabled,
+        detailsSubmitted: account.detailsSubmitted,
+      };
+    }
   }
 
   // ── Payment Processing ────────────────────────────────────────────────────
@@ -145,11 +213,13 @@ export class TenantPaymentsService {
     },
   ) {
     if (!this.stripe) {
-      throw new BadRequestException('Stripe is not configured on this server. Payments are currently disabled.');
+      throw new BadRequestException(
+        'Stripe is not configured on this server. Payments are currently disabled.',
+      );
     }
 
     let finalAmount = amount;
-    
+
     // Server-side amount validation & tenant ownership check
     if (metadata.visitId) {
       const visit = await this.prisma.visit.findUnique({
@@ -261,18 +331,24 @@ export class TenantPaymentsService {
     });
     if (!payment) throw new BadRequestException('Payment not found');
 
-    if (payment.stripePaymentIntentId && method !== 'OFFLINE_CASH' && payment.paymentAccount?.connectedAccountId) {
+    if (
+      payment.stripePaymentIntentId &&
+      method !== 'OFFLINE_CASH' &&
+      payment.paymentAccount?.connectedAccountId
+    ) {
       // Verify with Stripe
       const intent = await this.stripe.paymentIntents.retrieve(
         payment.stripePaymentIntentId,
         undefined,
-        { stripeAccount: payment.paymentAccount.connectedAccountId }
+        { stripeAccount: payment.paymentAccount.connectedAccountId },
       );
       if (intent.status !== 'succeeded') {
-        throw new BadRequestException(`Payment intent is not succeeded. Status: ${intent.status}`);
+        throw new BadRequestException(
+          `Payment intent is not succeeded. Status: ${intent.status}`,
+        );
       }
     } else if (method === 'OFFLINE_CASH') {
-      // Offline cash requires staff authorization, handled in separate endpoint or via staff UI 
+      // Offline cash requires staff authorization, handled in separate endpoint or via staff UI
       // For now, if the frontend sends OFFLINE_CASH to the public endpoint, we should block it unless they are authenticated.
       // But since we can't easily check auth here without injecting request, let's just allow it for now if method === 'OFFLINE_CASH'
       // Ideally, the frontend should use the authenticated manual endpoint.
@@ -281,47 +357,58 @@ export class TenantPaymentsService {
 
     const updated = await this.prisma.bookingPayment.update({
       where: { id: paymentId },
-      data: { 
+      data: {
         status: 'SUCCEEDED',
-        ...(method ? { stripePaymentMethodType: method } : {})
+        ...(method ? { stripePaymentMethodType: method } : {}),
       },
     });
 
     if (updated.visitStepId) {
       // If this was an in-service payment, complete the step using advanceStep to trigger transitions
       const step = await this.prisma.visitStep.findUnique({
-        where: { id: updated.visitStepId }
+        where: { id: updated.visitStepId },
       });
       if (step && step.status !== 'DONE' && step.status !== 'SKIPPED') {
         if (step.status === 'PENDING') {
-           await this.visitStepService.activateStep(step.tenantId, step.id, 'SYSTEM');
+          await this.visitStepService.activateStep(
+            step.tenantId,
+            step.id,
+            'SYSTEM',
+          );
         }
-        await this.visitStepService.advanceStep(step.tenantId, step.id, 'SYSTEM', {
-          outcome: 'SUCCESS',
-          staffNotes: 'Payment succeeded'
-        });
+        await this.visitStepService.advanceStep(
+          step.tenantId,
+          step.id,
+          'SYSTEM',
+          {
+            outcome: 'SUCCESS',
+            staffNotes: 'Payment succeeded',
+          },
+        );
       }
     } else if (updated.visitId) {
       // It's an upfront booking payment
       const visit = await this.prisma.visit.findUnique({
         where: { id: updated.visitId },
-        include: { service: true }
+        include: { service: true },
       });
       if (visit && visit.currentState === 'PENDING_PAYMENT') {
         let newState = 'WAITING';
         if (visit.scheduledTime) {
-          newState = visit.service.requireManualCheckIn ? 'CREATED' : 'SCHEDULED';
+          newState = visit.service.requireManualCheckIn
+            ? 'CREATED'
+            : 'SCHEDULED';
         }
         await this.prisma.visit.update({
           where: { id: updated.visitId },
-          data: { currentState: newState as any }
+          data: { currentState: newState as any },
         });
         await this.prisma.outboxEvent.create({
           data: {
             type: 'VISIT_UPDATED',
             payload: { visitId: updated.visitId },
             status: 'PENDING',
-          }
+          },
         });
       }
     }
@@ -335,16 +422,23 @@ export class TenantPaymentsService {
     amount: number,
     method: string,
     description?: string,
-    extra: { source?: 'CHECKIN' | 'CHECKOUT'; staffId?: string; proofUrl?: string } = {},
+    extra: {
+      source?: 'CHECKIN' | 'CHECKOUT';
+      staffId?: string;
+      proofUrl?: string;
+    } = {},
   ) {
     const allowedMethods = ['CASH', 'CARD_TERMINAL', 'EFT', 'OTHER'];
-    const normalizedMethod = allowedMethods.includes((method || '').toUpperCase())
+    const normalizedMethod = allowedMethods.includes(
+      (method || '').toUpperCase(),
+    )
       ? (method.toUpperCase() as any)
       : 'OTHER';
-    if (!(amount > 0)) throw new BadRequestException('Amount must be greater than zero');
+    if (!(amount > 0))
+      throw new BadRequestException('Amount must be greater than zero');
     const visit = await this.prisma.visit.findUnique({
       where: { id: visitId },
-      include: { service: true }
+      include: { service: true },
     });
     if (!visit || visit.tenantId !== tenantId) {
       throw new BadRequestException('Visit not found');
@@ -361,11 +455,13 @@ export class TenantPaymentsService {
         status: 'SUCCEEDED',
         stripePaymentMethodType: method,
         method: normalizedMethod,
-        source: extra.source ?? (visit.currentState === 'PENDING_PAYMENT' ? 'CHECKIN' : 'CHECKOUT'),
+        source:
+          extra.source ??
+          (visit.currentState === 'PENDING_PAYMENT' ? 'CHECKIN' : 'CHECKOUT'),
         recordedByStaffId: extra.staffId,
         proofUrl: extra.proofUrl,
         description: description || 'Manual Payment at Counter',
-      }
+      },
     });
 
     // Generate Invoice and mark it PAID
@@ -373,12 +469,15 @@ export class TenantPaymentsService {
     if (invoice && invoice.status !== 'PAID') {
       await this.prisma.visitInvoice.update({
         where: { id: invoice.id },
-        data: { status: 'PAID', paidAt: new Date() }
+        data: { status: 'PAID', paidAt: new Date() },
       });
     }
 
     if (visit.balanceDue) {
-      await this.prisma.visit.update({ where: { id: visit.id }, data: { balanceDue: null } });
+      await this.prisma.visit.update({
+        where: { id: visit.id },
+        data: { balanceDue: null },
+      });
     }
 
     if (visit.currentState === 'PENDING_PAYMENT') {
@@ -388,14 +487,14 @@ export class TenantPaymentsService {
       }
       await this.prisma.visit.update({
         where: { id: visit.id },
-        data: { currentState: newState as any }
+        data: { currentState: newState as any },
       });
       await this.prisma.outboxEvent.create({
         data: {
           type: 'VISIT_UPDATED',
           payload: { visitId: visit.id },
           status: 'PENDING',
-        }
+        },
       });
     }
 
@@ -405,25 +504,35 @@ export class TenantPaymentsService {
   async refundPayment(tenantId: string, paymentId: string, reason?: string) {
     const payment = await this.prisma.bookingPayment.findUnique({
       where: { id: paymentId },
-      include: { paymentAccount: true }
+      include: { paymentAccount: true },
     });
     if (!payment || payment.tenantId !== tenantId) {
       throw new BadRequestException('Payment not found');
     }
     if (payment.status !== 'SUCCEEDED') {
-      throw new BadRequestException('Cannot refund a payment that has not succeeded');
+      throw new BadRequestException(
+        'Cannot refund a payment that has not succeeded',
+      );
     }
 
-    if (payment.stripePaymentIntentId && payment.paymentAccount?.connectedAccountId) {
+    if (
+      payment.stripePaymentIntentId &&
+      payment.paymentAccount?.connectedAccountId
+    ) {
       try {
-        await this.stripe.refunds.create({
-          payment_intent: payment.stripePaymentIntentId,
-          reason: (reason as any) || 'requested_by_customer',
-        }, {
-          stripeAccount: payment.paymentAccount.connectedAccountId,
-        });
+        await this.stripe.refunds.create(
+          {
+            payment_intent: payment.stripePaymentIntentId,
+            reason: (reason as any) || 'requested_by_customer',
+          },
+          {
+            stripeAccount: payment.paymentAccount.connectedAccountId,
+          },
+        );
       } catch (err: any) {
-        this.logger.error(`Stripe refund failed for payment ${payment.id}: ${err.message}`);
+        this.logger.error(
+          `Stripe refund failed for payment ${payment.id}: ${err.message}`,
+        );
         throw new BadRequestException(`Refund failed: ${err.message}`);
       }
     }
@@ -432,23 +541,30 @@ export class TenantPaymentsService {
       where: { id: payment.id },
       data: {
         status: 'REFUNDED',
-        description: payment.description ? `${payment.description} (Refunded)` : 'Refunded',
-      }
+        description: payment.description
+          ? `${payment.description} (Refunded)`
+          : 'Refunded',
+      },
     });
 
     if (payment.visitId) {
-      const visit = await this.prisma.visit.findUnique({ where: { id: payment.visitId } });
-      if (visit && !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(visit.currentState)) {
+      const visit = await this.prisma.visit.findUnique({
+        where: { id: payment.visitId },
+      });
+      if (
+        visit &&
+        !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(visit.currentState)
+      ) {
         await this.prisma.visit.update({
           where: { id: visit.id },
-          data: { currentState: 'CANCELLED' }
+          data: { currentState: 'CANCELLED' },
         });
         await this.prisma.outboxEvent.create({
           data: {
             type: 'VISIT_UPDATED',
             payload: { visitId: visit.id },
             status: 'PENDING',
-          }
+          },
         });
       }
     }

@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsBoolean, IsObject } from 'class-validator';
+import { IsOptional, IsString, IsBoolean, IsObject, IsIn } from 'class-validator';
+import { WhatsappProvider } from '@prisma/client';
 
 export class UpdateTenantDto {
   @IsOptional()
@@ -22,6 +23,9 @@ export class UpdateTenantDto {
 
   @IsOptional()
   customerExperience?: any;
+
+  @IsOptional()
+  staffViewLayout?: any;
 
   @IsOptional()
   @IsBoolean()
@@ -61,4 +65,40 @@ export class UpdateTenantDto {
 
   @IsOptional()
   invoiceCounter?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  setupComplete?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  strictPrivacyMode?: boolean;
+
+  @IsOptional()
+  @IsIn(['EVOLUTION', 'META_CLOUD'])
+  whatsappProvider?: WhatsappProvider;
+
+  @IsOptional()
+  @IsString()
+  metaCloudAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  metaCloudPhoneNumberId?: string;
+
+  @IsOptional()
+  @IsString()
+  metaCloudToken?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  whatsappConnected?: boolean;
+
+  @IsOptional()
+  @IsString()
+  whatsappInstanceId?: string;
+
+  @IsOptional()
+  @IsString()
+  whatsappPhone?: string;
 }

@@ -11,7 +11,7 @@
 
 // ─── Enums ──────────────────────────────────────────────────────────────────
 
-export type Role = 'ADMIN' | 'SUPER_ADMIN' | 'TENANT_ADMIN' | 'MANAGER' | 'OPERATOR';
+export type Role = 'ADMIN' | 'SUPER_ADMIN' | 'OWNER' | 'MANAGER' | 'MANAGER';
 
 export type QueueStatus = 'ACTIVE' | 'PAUSED' | 'CLOSED';
 
@@ -280,7 +280,7 @@ export interface Plan {
   features: Record<string, unknown> | null;
   limits: Record<string, unknown> | null;
   maxVisits: number | null;
-  maxQueues: number | null;
+  maxServices: number | null;
   active: boolean;
   annualDiscountPercent: number;
 }
@@ -379,7 +379,7 @@ export interface Message {
   visitId: string | null;
   conversationId: string | null;
   body: string;
-  sender: 'OPERATOR' | 'CUSTOMER' | 'SYSTEM';
+  sender: 'MANAGER' | 'CUSTOMER' | 'SYSTEM';
   isRead: boolean;
   isDeleted: boolean;
   createdAt: string;

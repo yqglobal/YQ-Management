@@ -4,6 +4,11 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { RedisService } from '../src/redis/redis.service';
 import { WhatsappLogger } from '../src/whatsapp/whatsapp.logger';
 import { ConfigModule } from '@nestjs/config';
+import { QueueGateway } from '../src/queue/queue.gateway';
+import { ServiceService } from '../src/service/service.service';
+import { AppointmentService } from '../src/appointment/appointment.service';
+import { CommunicationLogService } from '../src/communication/logging/communication-log.service';
+import { WhatsappAiService } from '../src/whatsapp/whatsapp-ai.service';
 
 describe('WhatsappService (e2e)', () => {
   let service: WhatsappService;
@@ -38,6 +43,11 @@ describe('WhatsappService (e2e)', () => {
             },
           },
         },
+        { provide: QueueGateway, useValue: { server: { to: jest.fn().mockReturnValue({ emit: jest.fn() }) } } },
+        { provide: ServiceService, useValue: {} },
+        { provide: AppointmentService, useValue: {} },
+        { provide: CommunicationLogService, useValue: {} },
+        { provide: WhatsappAiService, useValue: {} },
       ],
     }).compile();
 

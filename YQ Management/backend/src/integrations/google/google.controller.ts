@@ -14,9 +14,13 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { GoogleService } from './google.service';
+import { RolesGuard } from '../../auth/roles.guard';
+import { Roles } from '../../auth/roles.decorator';
+import { Role } from '@prisma/client';
 
 @Controller('integrations/google')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
 export class GoogleController {
   constructor(
     private readonly googleService: GoogleService,

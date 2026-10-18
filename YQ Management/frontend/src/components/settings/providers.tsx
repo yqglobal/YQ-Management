@@ -16,13 +16,12 @@ type Provider = Staff & {
   location?: { id: string; name: string };
 };
 
-function ProviderAvatar({ name, color }: { name: string; color?: string }) {
+function ProviderAvatar({ name, color }: { name: string; color?: string | null }) {
   const initial = name ? name.charAt(0).toUpperCase() : '?';
   return (
     <div
-      className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0"
-      style={{ backgroundColor: color || '#0284C7' }}
-
+      className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 bg-primary"
+      style={color ? { backgroundColor: color } : undefined}
     >
       {initial}
     </div>
@@ -46,7 +45,7 @@ export default function ProvidersSettings() {
       const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
     
-  const isAdmin = user?.role === 'TENANT_ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'OWNER' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
   const canManageProviders = isAdmin || user?.role === 'MANAGER';
 
   React.useEffect(() => {
@@ -55,9 +54,9 @@ export default function ProvidersSettings() {
     }
   }, [user, router, isAdmin]);
 
-    const { data: providers = [], isLoading: isProvidersLoading } = useQuery<Provider[]>({
+  const { data: providers = [], isLoading: isProvidersLoading } = useQuery<Provider[]>({
     queryKey: ['staffList'],
-    queryFn: () => fetchApi('/staff'),
+    queryFn: () => fetchApi('/staff') as Promise<Provider[]>,
     enabled: !!(isAdmin || canManageProviders),
     staleTime: 30000,
   });
@@ -91,7 +90,7 @@ export default function ProvidersSettings() {
             {canManageProviders && (
               <button
                 onClick={() => { setEditingProvider(null); setIsProviderModalOpen(true); }}
-                className="flex items-center gap-2 px-4 h-9 bg-[#0284C7] hover:bg-[#0369A1] text-white text-sm font-semibold rounded-xl transition-colors"
+                className="flex items-center gap-2 px-4 h-9 bg-primary hover:bg-primary/90 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
               >
                 <Plus className="w-4 h-4" /> Add Provider
               </button>
@@ -100,19 +99,19 @@ export default function ProvidersSettings() {
 
           {isProvidersLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-[#0284C7]" />
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
           ) : providers.length === 0 ? (
             <div className="text-center py-12 bg-surface-container-lowest dark:bg-zinc-800/50 rounded-2xl border border-dashed border-border dark:border-dark-border">
-              <div className="w-12 h-12 rounded-xl bg-[#0284C7]/10 flex items-center justify-center mx-auto mb-3">
-                <Briefcase className="w-6 h-6 text-[#0284C7]" />
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                <Briefcase className="w-6 h-6 text-primary" />
               </div>
               <p className="font-semibold text-on-surface dark:text-white">No providers yet</p>
               <p className="text-sm text-on-surface-variant dark:text-zinc-400 mt-1">Add bookable providers to enable appointment scheduling</p>
               {canManageProviders && (
                 <button
                   onClick={() => { setEditingProvider(null); setIsProviderModalOpen(true); }}
-                  className="mt-4 px-4 h-9 bg-[#0284C7] hover:bg-[#0369A1] text-white text-sm font-semibold rounded-xl transition-colors inline-flex items-center gap-2"
+                  className="mt-4 px-4 h-9 bg-primary hover:bg-primary/90 text-white text-sm font-semibold rounded-xl transition-colors inline-flex items-center gap-2 shadow-sm"
                 >
                   <Plus className="w-4 h-4" /> Add First Provider
                 </button>

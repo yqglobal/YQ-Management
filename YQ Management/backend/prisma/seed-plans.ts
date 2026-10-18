@@ -16,7 +16,7 @@ async function main() {
       currency: 'USD',
       billingInterval: 'monthly',
       trialDays: 14,
-      maxQueues: 1,
+
       maxVisits: 500,
       active: true,
       sortOrder: 1,
@@ -26,7 +26,9 @@ async function main() {
         customBranding: true,
       },
       limits: {
-        maxQueues: 1,
+        maxServices: 1,
+        maxLocations: 1,
+        maxStaff: 1,
         maxVisits: 500,
       },
     },
@@ -45,7 +47,7 @@ async function main() {
       currency: 'USD',
       billingInterval: 'monthly',
       trialDays: 0,
-      maxQueues: 5,
+
       maxVisits: 2000,
       active: true,
       sortOrder: 2,
@@ -55,7 +57,9 @@ async function main() {
         customBranding: false,
       },
       limits: {
-        maxQueues: 5,
+        maxServices: 5,
+        maxLocations: 3,
+        maxStaff: 10,
         maxVisits: 2000,
       },
     },
@@ -74,7 +78,7 @@ async function main() {
       currency: 'USD',
       billingInterval: 'monthly',
       trialDays: 0,
-      maxQueues: 20,
+
       maxVisits: 10000,
       active: true,
       sortOrder: 3,
@@ -84,7 +88,9 @@ async function main() {
         customBranding: true,
       },
       limits: {
-        maxQueues: 20,
+        maxServices: 20,
+        maxLocations: 10,
+        maxStaff: 50,
         maxVisits: 10000,
       },
     },

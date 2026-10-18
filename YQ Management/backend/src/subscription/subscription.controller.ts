@@ -26,18 +26,18 @@ import type { AuthenticatedRequest } from '../auth/types/auth.types';
 
 @Controller('billing/subscriptions')
 @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-@Roles(Role.TENANT_ADMIN)
+@Roles(Role.OWNER)
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
   @Get('current')
-  @Roles(Role.TENANT_ADMIN, Role.ADMIN, Role.SUPER_ADMIN, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.ADMIN, Role.SUPER_ADMIN, Role.MANAGER)
   async getCurrent(@Req() req: AuthenticatedRequest) {
     return this.subscriptionService.getSubscription(req.user.tenantId);
   }
 
   @Post('')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async createSubscription(
     @Req() req: AuthenticatedRequest,
     @Body() dto: CreateSubscriptionDto,
@@ -46,7 +46,7 @@ export class SubscriptionController {
   }
 
   @Post('trial')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async startTrial(
     @Req() req: AuthenticatedRequest,
     @Body() body: CreateSubscriptionDto,
@@ -59,7 +59,7 @@ export class SubscriptionController {
   }
 
   @Put('upgrade')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async upgradeSubscription(
     @Req() req: AuthenticatedRequest,
     @Body() dto: UpgradeSubscriptionDto,
@@ -68,7 +68,7 @@ export class SubscriptionController {
   }
 
   @Put('downgrade')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async downgradeSubscription(
     @Req() req: AuthenticatedRequest,
     @Body() dto: DowngradeSubscriptionDto,
@@ -80,7 +80,7 @@ export class SubscriptionController {
   }
 
   @Post('cancel')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async cancelSubscription(
     @Req() req: AuthenticatedRequest,
     @Body() dto: CancelSubscriptionDto,
@@ -89,7 +89,7 @@ export class SubscriptionController {
   }
 
   @Post('resume')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async resumeSubscription(
     @Req() req: AuthenticatedRequest,
     @Body() dto: ResumeSubscriptionDto,
@@ -111,13 +111,13 @@ export class SubscriptionController {
   }
 
   @Post('expire-trial')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async expireTrial(@Req() req: AuthenticatedRequest) {
     return this.subscriptionService.expireTrial(req.user.tenantId);
   }
 
   @Post('renew')
-  @Roles(Role.TENANT_ADMIN)
+  @Roles(Role.OWNER)
   async renewSubscription(@Req() req: AuthenticatedRequest) {
     return this.subscriptionService.renewSubscription(req.user.tenantId);
   }

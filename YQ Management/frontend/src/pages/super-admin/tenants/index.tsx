@@ -71,7 +71,7 @@ export default function SuperAdminTenants() {
         <title>Businesses | Super Admin</title>
       </Head>
 
-      <div className="max-w-6xl mx-auto space-y-6 pb-24" onClick={() => setShowActions(null)}>
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-6 pb-24" onClick={() => setShowActions(null)}>
         <div>
           <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white uppercase">Businesses</h1>
           <p className="text-gray-500 dark:text-zinc-400 mt-2">Manage all tenants and subscriptions on the platform.</p>
@@ -193,7 +193,7 @@ export default function SuperAdminTenants() {
                             tenant.subscriptionStatus === 'TRIAL' || !tenant.subscriptionStatus ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400' :
                             'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400'
                           }`}>
-                            {tenant.subscriptions?.[0]?.plan?.name || tenant.subscriptionStatus || 'TRIAL'}
+                            {tenant.subscriptions?.plan?.name || tenant.subscriptions?.[0]?.plan?.name || tenant.subscriptionStatus || 'TRIAL'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-zinc-300 font-medium">

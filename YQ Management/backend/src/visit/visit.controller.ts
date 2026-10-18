@@ -44,8 +44,22 @@ export class VisitController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('serviceId') serviceId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.visitService.findAll(req.user, scope, locationId, queueId, tz, timeframe, startDate, endDate, serviceId);
+    return this.visitService.findAll(
+      req.user,
+      scope,
+      locationId,
+      queueId,
+      tz,
+      timeframe,
+      startDate,
+      endDate,
+      serviceId,
+      page,
+      limit,
+    );
   }
 
   @Get(':id')
@@ -63,7 +77,7 @@ export class VisitController {
   }
 
   @Delete(':id')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.visitService.remove(id, req.user.tenantId);
   }
@@ -75,20 +89,32 @@ export class VisitController {
 
   @Post(':id/start')
   startService(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.visitService.startService(id, req.user.tenantId, req.user.userId);
+    return this.visitService.startService(
+      id,
+      req.user.tenantId,
+      req.user.userId,
+    );
+  }
+
+  @Post(':id/announce')
+  announceVisit(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.visitService.announceVisit(id, req.user.tenantId);
   }
 
   @Post(':id/complete')
   completeService(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { allowUnpaid?: boolean } = {},
+    @Body() body: { allowUnpaid?: boolean; forceComplete?: boolean } = {},
   ) {
     return this.visitService.completeService(
       id,
       req.user.tenantId,
       req.user.userId,
-      { allowUnpaid: !!body?.allowUnpaid },
+      {
+        allowUnpaid: !!body?.allowUnpaid,
+        forceComplete: body?.forceComplete ?? true,
+      },
     );
   }
 
@@ -101,14 +127,42 @@ export class VisitController {
   cancelVisit(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { cancelledBy?: string; cancelReason?: string } = {},
+    @Body()
+    body: {
+      cancelledBy?: string;
+      cancelReason?: string;
+      reasonCategory?: string;
+      notes?: string;
+      refundApplicable?: boolean;
+      customMessage?: string;
+    } = {},
   ) {
     return this.visitService.cancelVisit(
       id,
       req.user.tenantId,
       req.user.userId,
-      body.cancelledBy || 'OPERATOR',
-      body.cancelReason,
+      body.cancelledBy || 'MANAGER',
+      body.cancelReason || body.notes,
+      {
+        reasonCategory: body.reasonCategory,
+        notes: body.notes,
+        refundApplicable: body.refundApplicable,
+        customMessage: body.customMessage,
+      },
+    );
+  }
+
+  @Post(':id/no-show')
+  markNoShow(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { reason?: string } = {},
+  ) {
+    return this.visitService.markNoShow(
+      id,
+      req.user.tenantId,
+      req.user.userId,
+      body.reason,
     );
   }
   @Post('validate')
@@ -150,7 +204,6 @@ export class VisitController {
     return this.visitService.updateNotes(id, req.user.tenantId, body.notes);
   }
 
-
   @Patch(':id/tags')
   updateTags(
     @Req() req: AuthenticatedRequest,
@@ -167,11 +220,13 @@ export class VisitController {
   @Post('staff-walkin')
   async staffWalkIn(
     @Req() req: AuthenticatedRequest,
-    @Body() body: {
+    @Body()
+    body: {
       customerName: string;
       phone?: string;
       email?: string;
       age?: number;
+      gender?: string;
       locationId: string;
       serviceId: string;
       queueId?: string;
@@ -185,5 +240,35 @@ export class VisitController {
       req.user.userId,
       body,
     );
+  }
+
+  @Get(':id/clinical-note')
+  getClinicalNote(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.visitService.getClinicalNote(id, req.user.tenantId);
+  }
+
+  @Post(':id/clinical-note')
+  createClinicalNote(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: any) {
+    return this.visitService.saveClinicalNote(id, req.user.tenantId, body, req.user.userId);
+  }
+
+  @Patch(':id/clinical-note')
+  updateClinicalNote(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: any) {
+    return this.visitService.saveClinicalNote(id, req.user.tenantId, body, req.user.userId);
+  }
+
+  @Get(':id/prescription')
+  getPrescription(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.visitService.getPrescription(id, req.user.tenantId);
+  }
+
+  @Post(':id/prescription')
+  createPrescription(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: any) {
+    return this.visitService.savePrescription(id, req.user.tenantId, body, req.user.userId);
+  }
+
+  @Patch(':id/prescription')
+  updatePrescription(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: any) {
+    return this.visitService.savePrescription(id, req.user.tenantId, body, req.user.userId);
   }
 }

@@ -60,6 +60,26 @@ export class CreatePlanDto {
   @IsNumber()
   @IsOptional()
   sortOrder?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  active?: boolean;
+
+  @IsString()
+  @IsOptional()
+  id?: string;
+
+  @IsOptional()
+  createdAt?: any;
+
+  @IsOptional()
+  updatedAt?: any;
+
+  @IsOptional()
+  maxVisits?: number;
+
+  @IsOptional()
+  maxQueues?: number;
 }
 
 export class UpdatePlanDto {
@@ -102,6 +122,30 @@ export class UpdatePlanDto {
   @IsNumber()
   @IsOptional()
   sortOrder?: number;
+
+  @IsString()
+  @IsOptional()
+  type?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  active?: boolean;
+
+  @IsString()
+  @IsOptional()
+  id?: string;
+
+  @IsOptional()
+  createdAt?: any;
+
+  @IsOptional()
+  updatedAt?: any;
+
+  @IsOptional()
+  maxVisits?: number;
+
+  @IsOptional()
+  maxQueues?: number;
 }
 
 export class ChangePlanStatusDto {

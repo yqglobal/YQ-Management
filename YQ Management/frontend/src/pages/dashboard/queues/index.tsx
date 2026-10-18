@@ -11,7 +11,6 @@ import { usePlan } from '../../../hooks/usePlan';
 import { QuotaExhaustedModal } from '../../../components/QuotaExhaustedModal';
 import Link from 'next/link';
 import { ServiceModal } from '../../../components/modals/ServiceModal';
-import { LinkServicesModal } from '../../../components/modals/LinkServicesModal';
 import PrintQRModal from '../../../components/PrintQRModal';
 import { useLocation } from '../../../components/LocationContext';
 import { useAuth } from '../../../components/AuthContext';
@@ -23,7 +22,6 @@ export default function QueuesList() {
   const { activeLocationId } = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
-  const [linkModalQueue, setLinkModalQueue] = useState<AnyFixMe>(null);
   const [newQueueName, setNewQueueName] = useState('');
   const [selectedLocationId, setSelectedLocationId] = useState('');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
@@ -42,7 +40,7 @@ export default function QueuesList() {
 
   const filteredQueues = React.useMemo(() => {
     let q = queues;
-    if (user && user.role === 'OPERATOR') {
+    if (user && user.role === 'MANAGER') {
       if (user.allowedServiceIds && user.allowedServiceIds.length > 0) {
         q = q.filter((queue: AnyFixMe) => {
           if (queue.services && queue.services.length > 0) {
@@ -65,38 +63,7 @@ export default function QueuesList() {
     queryFn: () => fetchApi('/service'),
   });
 
-  const createQueueMutation = useMutation({
-    mutationFn: (data: { name: string; locationId?: string; serviceIds?: string[] }) =>
-      fetchApi('/queue', { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => {
-      setIsModalOpen(false);
-      setNewQueueName('');
-      setSelectedLocationId('');
-      setSelectedServiceIds([]);
-      queryClient.invalidateQueries({ queryKey: ['queues'] });
-      toast.success('Queue created successfully');
-    },
-    onError: () => toast.error('Error creating queue'),
-  });
 
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newQueueName.trim() || selectedServiceIds.length === 0) {
-      toast.error('Please select at least one service');
-      return;
-    }
-    createQueueMutation.mutate({
-      name: newQueueName,
-      locationId: selectedLocationId || undefined,
-      serviceIds: selectedServiceIds,
-    });
-  };
-
-  const handleServiceToggle = (id: string) => {
-    setSelectedServiceIds(prev =>
-      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
-    );
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -133,7 +100,7 @@ export default function QueuesList() {
         <title>Queues | Qmova</title>
       </Head>
 
-      <div className="w-full mx-auto space-y-6">
+      <div className="w-full mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -150,21 +117,13 @@ export default function QueuesList() {
               <Printer strokeWidth={1.5} className="w-4 h-4" />
               Print QR
             </button>
-            <button
-              id="tour-create-queue-btn"
-              onClick={() => plan.isAtQueueLimit ? setShowQuotaModal(true) : setIsModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-container text-white rounded-xl font-semibold transition-all shadow-sm border border-primary/20 hover:-translate-y-0.5 w-fit"
-            >
-              <Plus strokeWidth={1.5} className="w-5 h-5" />
-              Create Queue
-            </button>
           </div>
         </div>
 
         <QuotaWarningBanner 
           resourceType="queues" 
           frozenCount={plan.frozenCounts.queues} 
-          limit={typeof plan.limits === 'string' ? JSON.parse(plan.limits).maxQueues : plan.limits.maxQueues} 
+          limit={plan.limits.maxQueues || plan.limits.maxServices} 
         />
 
         {/* List */}
@@ -199,14 +158,8 @@ export default function QueuesList() {
               ) : (
                 <>
                   <p className="text-sm text-on-surface-variant dark:text-zinc-400 max-w-sm">
-                    Create your first queue to start managing visitor flow.
+                    No queues have been auto-generated yet. Create a service to automatically generate a queue.
                   </p>
-                  <button
-                    onClick={() => plan.isAtQueueLimit ? setShowQuotaModal(true) : setIsModalOpen(true)}
-                    className="mt-6 flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-container transition-colors"
-                  >
-                    <Plus strokeWidth={1.5} className="w-4 h-4" /> Create Queue
-                  </button>
                 </>
               )}
             </div>
@@ -241,15 +194,6 @@ export default function QueuesList() {
                   </div>
 
                   <div className="flex items-center gap-2 self-start sm:self-auto">
-                    {queue.services?.length === 0 && (
-                      <button
-                        onClick={() => setLinkModalQueue(queue)}
-                        className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-lg text-sm font-medium transition-colors"
-                      >
-                        <Plus strokeWidth={1.5} className="w-4 h-4" />
-                        Link Services
-                      </button>
-                    )}
                     <button
                       onClick={() => router.push(`/dashboard/queues/${queue.id}`)}
                       className="flex items-center gap-2 px-4 py-2 bg-surface-container-low dark:bg-white/5 border border-border dark:border-dark-border hover:bg-surface-container dark:hover:bg-white/10 text-on-surface dark:text-white rounded-lg text-sm font-medium transition-colors"
@@ -266,103 +210,8 @@ export default function QueuesList() {
         </div>
       </div>
 
-      {/* Create Queue Modal */}
-      {isModalOpen && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
-            <div className="flex justify-between items-center p-6 border-b border-border dark:border-dark-border">
-              <h2 className="text-xl font-bold text-on-surface dark:text-white">Create New Queue</h2>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-2 hover:bg-surface-container-low dark:hover:bg-white/10 rounded-full transition-colors text-on-surface-variant"
-              >
-                <X strokeWidth={1.5} className="w-5 h-5" />
-              </button>
-            </div>
+      {/* Create Queue Modal Removed */}
 
-            <form onSubmit={handleCreate} className="p-6 space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-on-surface dark:text-white mb-2">Queue Name</label>
-                <input
-                  type="text"
-                  autoFocus
-                  value={newQueueName}
-                  onChange={(e) => setNewQueueName(e.target.value)}
-                  className="w-full bg-canvas dark:bg-black/50 border border-border dark:border-dark-border rounded-xl px-4 py-3 text-on-surface dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all placeholder:text-on-surface-variant"
-                  placeholder="e.g. Walk-ins, VIP Queue, General Consult"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-on-surface dark:text-white mb-2">Primary Location <span className="text-on-surface-variant font-normal">(optional)</span></label>
-                <select
-                  value={selectedLocationId}
-                  onChange={(e) => setSelectedLocationId(e.target.value)}
-                  className="w-full bg-canvas dark:bg-black/50 border border-border dark:border-dark-border rounded-xl px-4 py-3 text-on-surface dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all"
-                >
-                  <option value="">No specific location</option>
-                  {locations.map((loc: AnyFixMe) => (
-                    <option key={loc.id} value={loc.id}>{loc.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-on-surface dark:text-white mb-2">Supported Services <span className="text-red-500">*</span></label>
-                <div className="bg-surface-container-low dark:bg-black/30 border border-border dark:border-dark-border rounded-xl p-3 max-h-44 overflow-y-auto space-y-1">
-                  {services.length === 0 ? (
-                    <div className="p-4 text-center flex flex-col items-center">
-                       <p className="text-sm text-on-surface-variant mb-3">You need to create a service before creating a queue.</p>
-                       <button
-                         type="button"
-                         onClick={() => { setIsModalOpen(false); setIsServiceModalOpen(true); }}
-                         className="text-primary font-medium hover:underline focus:outline-none"
-                       >
-                         Create a Service
-                       </button>
-                    </div>
-                  ) : (
-                    services.map((service: AnyFixMe) => (
-                      <label key={service.id} className="flex items-center gap-3 p-2 hover:bg-surface-container dark:hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={selectedServiceIds.includes(service.id)}
-                          onChange={() => handleServiceToggle(service.id)}
-                          className="w-4 h-4 rounded border-border text-primary focus:ring-primary dark:border-dark-border dark:bg-dark-canvas"
-                        />
-                        <span className="text-sm font-medium text-on-surface dark:text-white">{service.name}</span>
-                        <span className="text-xs text-on-surface-variant ml-auto">{service.expectedDuration || 30} mins</span>
-                      </label>
-                    ))
-                  )}
-                </div>
-              </div>
-
-
-
-              <div className="pt-4 flex justify-end gap-3 border-t border-border dark:border-dark-border">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-white/5 rounded-xl font-medium transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={createQueueMutation.isPending || !newQueueName.trim() || selectedServiceIds.length === 0}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary-container text-white rounded-xl font-medium transition-colors disabled:opacity-50"
-                >
-                  {createQueueMutation.isPending && <Loader2 strokeWidth={1.5} className="w-4 h-4 animate-spin" />}
-                  {createQueueMutation.isPending ? 'Creating...' : 'Create Queue'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
 
       {showQuotaModal && (
         <QuotaExhaustedModal
@@ -370,16 +219,10 @@ export default function QueuesList() {
           isOpen={showQuotaModal}
           onClose={() => setShowQuotaModal(false)}
           usage={plan.usage.queues}
-          limit={plan.limits.maxQueues}
+          limit={plan.limits.maxQueues || plan.limits.maxServices}
           planName={plan.planName}
         />
       )}
-
-      <LinkServicesModal
-        isOpen={!!linkModalQueue}
-        onClose={() => setLinkModalQueue(null)}
-        queue={linkModalQueue}
-      />
 
       <ServiceModal 
         isOpen={isServiceModalOpen}

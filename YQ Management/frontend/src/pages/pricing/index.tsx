@@ -16,13 +16,11 @@ interface Plan {
   annualPrice: number;
   currency: string;
   interval: string;
-  features: {
-    whatsappNotifications?: boolean;
-    whatsappChat?: boolean;
-    whatsappChatbot?: boolean;
-  };
+  features: Record<string, boolean>;
   limits: {
-    maxQueues?: number;
+    maxServices?: number;
+    maxLocations?: number;
+    maxStaff?: number;
     maxTokens?: number;
   };
 }
@@ -169,7 +167,7 @@ export default function PricingPage({ plans }: PricingProps) {
                       
                       let label = '';
                       if (key === 'maxTokens') label = `Up to ${value} visits per month`;
-                      else if (key === 'maxQueues') label = `Up to ${value} Queues`;
+                      else if (key === 'maxServices') label = `Up to ${value} Services`;
                       else if (key === 'maxLocations') label = `Up to ${value} Locations`;
                       else if (key === 'maxStaff') label = `Up to ${value} Staff Members`;
                       else label = `${key}: ${value}`;
@@ -267,21 +265,21 @@ export const getServerSideProps: GetServerSideProps = async () => {
     plans = [
       {
         id: '1', name: 'Starter (14 Days Trial)', description: 'Perfect for small retail or single service point environments.',
-        price: 0, currency: 'ZAR', interval: 'monthly',
+        price: 0, annualPrice: 0, currency: 'ZAR', interval: 'monthly',
         features: { whatsappNotifications: false, whatsappChat: false, whatsappChatbot: false },
-        limits: { maxQueues: 1, maxTokens: 100 }
+        limits: { maxServices: 1, maxLocations: 1, maxStaff: 1, maxTokens: 100 }
       },
       {
         id: '2', name: 'Standard Plan', description: 'Ideal for busy clinics, restaurants, and customer service centers.',
-        price: 499, currency: 'ZAR', interval: 'monthly',
+        price: 499, annualPrice: 4990, currency: 'ZAR', interval: 'monthly',
         features: { whatsappNotifications: true, whatsappChat: true, whatsappChatbot: true },
-        limits: { maxQueues: 5, maxTokens: 1000 }
+        limits: { maxServices: 5, maxLocations: 3, maxStaff: 10, maxTokens: 1000 }
       },
       {
         id: '3', name: 'Premium Plan', description: 'Comprehensive solution for healthcare networks and large retail chains.',
-        price: 1499, currency: 'ZAR', interval: 'monthly',
+        price: 1499, annualPrice: 14990, currency: 'ZAR', interval: 'monthly',
         features: { whatsappNotifications: true, whatsappChat: true, whatsappChatbot: true },
-        limits: { maxQueues: 20, maxTokens: 10000 }
+        limits: { maxServices: 20, maxLocations: 10, maxStaff: 50, maxTokens: 10000 }
       }
     ];
   }

@@ -36,13 +36,10 @@ export default function PrivacySettings() {
 
   return (
     <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
-      {/* Decorative left edge accent */}
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#8b5cf6]"></div>
-      
       <div className="flex flex-col md:flex-row md:items-start justify-between mb-8 gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <span className="material-symbols-outlined text-[#8b5cf6]" style={{ fontVariationSettings: "'FILL' 1" }}>privacy_tip</span>
+            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>privacy_tip</span>
             <h2 className="font-headline-md text-headline-md text-on-surface dark:text-white tracking-tight font-semibold">Privacy Preferences</h2>
           </div>
           <p className="font-body-md text-body-md text-on-surface-variant dark:text-outline">Manage your accepted policies and personal data exports.</p>
@@ -72,13 +69,16 @@ export default function PrivacySettings() {
                     try {
                       await fetchApi('/policies/accept', { method: 'POST', body: JSON.stringify({ type: 'TERMS_OF_SERVICE', version: '1.0' }) });
                       await fetchApi('/policies/accept', { method: 'POST', body: JSON.stringify({ type: 'PRIVACY_POLICY', version: '1.0' }) });
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('qmova_policies_accepted_v1', 'true');
+                      }
                       toast.success('Policies accepted');
                       window.location.reload();
                     } catch (e) {
                       toast.error('Failed to accept policies');
                     }
                   }}
-                  className="px-4 py-2 bg-[#8b5cf6] text-white rounded-lg font-bold text-sm shadow-md"
+                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-bold text-sm shadow-md"
                 >
                   Accept Policies
                 </button>

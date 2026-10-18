@@ -60,7 +60,7 @@ export function QueueBlockOffs({ queueId, locationId }: { queueId: string, locat
     >
       <div className="bg-card dark:bg-dark-card rounded-2xl border border-border dark:border-dark-border p-6 shadow-sm mt-8">
         <div className="flex items-center gap-3 mb-6">
-          <Clock className="w-5 h-5 text-[#f59e0b]" />
+          <Clock className="w-5 h-5 text-primary" />
           <h3 className="font-headline-sm font-semibold text-on-surface dark:text-white">Queue Block-Offs & Breaks</h3>
         </div>
 
@@ -78,7 +78,7 @@ export function QueueBlockOffs({ queueId, locationId }: { queueId: string, locat
             <input type="text" value={reason} onChange={e => setReason(e.target.value)} placeholder="Lunch Break" className="w-full bg-white dark:bg-black/50 border border-border dark:border-dark-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
           </div>
           <div className="flex items-end">
-            <button type="submit" disabled={createMutation.isPending} className="w-full h-[38px] bg-[#f59e0b] hover:bg-[#d97706] text-white rounded-lg flex items-center justify-center gap-2 font-medium text-sm transition-colors disabled:opacity-50">
+            <button type="submit" disabled={createMutation.isPending} className="w-full h-[38px] bg-primary hover:bg-primary/90 text-white rounded-lg flex items-center justify-center gap-2 font-medium text-sm transition-colors disabled:opacity-50">
               <Plus className="w-4 h-4" /> Add Break
             </button>
           </div>

@@ -22,19 +22,31 @@ export class SubscriptionService {
   async getSubscription(
     tenantId: string,
   ): Promise<(Subscription & { plan: Plan }) | null> {
-    const sub = await this.prisma.subscription.findUnique({
+    let sub = await this.prisma.subscription.findUnique({
       where: { tenantId },
       include: {
         plan: true,
       },
     });
 
+    if (
+      sub &&
+      sub.status === SubscriptionStatus.TRIAL &&
+      sub.trialEndDate &&
+      new Date(sub.trialEndDate) <= new Date()
+    ) {
+      const expired = await this.expireTrial(tenantId);
+      if (expired) {
+        sub = expired as any;
+      }
+    }
+
     return sub;
   }
 
   async checkLimit(
     tenantId: string,
-    resource: 'queues' | 'locations' | 'visits',
+    resource: 'services' | 'locations' | 'visits' | 'queues' | 'staff' | 'members',
     currentCount: number,
   ): Promise<void> {
     const sub = await this.getSubscription(tenantId);
@@ -58,13 +70,16 @@ export class SubscriptionService {
     const subMeta = (sub.metadata as any) || {};
     const customLimits = subMeta.customLimits || {};
 
-    if (resource === 'queues') {
-      const maxQueues =
-        customLimits.maxQueues ?? parsedLimits?.maxQueues ?? sub.plan.maxQueues;
-      if (maxQueues !== undefined && maxQueues !== null) {
-        if (currentCount >= maxQueues) {
+    if (resource === 'services') {
+      const maxServices = customLimits.maxServices ?? parsedLimits?.maxServices ?? parsedLimits?.maxQueues;
+      if (
+        maxServices !== undefined &&
+        maxServices !== null &&
+        maxServices > 0
+      ) {
+        if (currentCount >= maxServices) {
           throw new BillingException(
-            `Queue limit reached (${maxQueues}) for your current plan. Please upgrade to add more queues.`,
+            `Service limit reached (${maxServices}) for your current plan. Please upgrade to add more services.`,
           );
         }
       }
@@ -73,7 +88,11 @@ export class SubscriptionService {
     if (resource === 'locations') {
       const maxLocations =
         customLimits.maxLocations ?? parsedLimits?.maxLocations;
-      if (maxLocations !== undefined && maxLocations !== null) {
+      if (
+        maxLocations !== undefined &&
+        maxLocations !== null &&
+        maxLocations > 0
+      ) {
         if (currentCount >= maxLocations) {
           throw new BillingException(
             `Location limit reached (${maxLocations}) for your current plan. Please upgrade to add more locations.`,
@@ -82,13 +101,37 @@ export class SubscriptionService {
       }
     }
 
+    if (resource === 'queues') {
+      const maxQueues =
+        customLimits.maxQueues ?? sub.plan.maxQueues ?? parsedLimits?.maxQueues ?? parsedLimits?.maxServices;
+      if (maxQueues !== undefined && maxQueues !== null && maxQueues > 0) {
+        if (currentCount >= maxQueues) {
+          throw new BillingException(
+            `Queue limit reached (${maxQueues}) for your current plan. Please upgrade to add more queues.`,
+          );
+        }
+      }
+    }
+
     if (resource === 'visits') {
       const maxVisits =
-        customLimits.maxVisits ?? sub.plan.maxVisits ?? parsedLimits?.maxTokens;
-      if (maxVisits !== undefined && maxVisits !== null) {
+        customLimits.maxVisits ?? sub.plan.maxVisits ?? parsedLimits?.maxTokens ?? parsedLimits?.maxVisits;
+      if (maxVisits !== undefined && maxVisits !== null && maxVisits > 0) {
         if (currentCount >= maxVisits) {
           throw new BillingException(
             `Visit limit reached (${maxVisits}) for your current plan. Please upgrade to allow more visits.`,
+          );
+        }
+      }
+    }
+
+    if (resource === 'staff' || resource === 'members') {
+      const maxStaff =
+        customLimits.maxStaff ?? customLimits.maxMembers ?? parsedLimits?.maxStaff ?? parsedLimits?.maxMembers;
+      if (maxStaff !== undefined && maxStaff !== null && maxStaff > 0) {
+        if (currentCount >= maxStaff) {
+          throw new BillingException(
+            `Staff limit reached (${maxStaff}) for your current plan. Please upgrade to invite more team members.`,
           );
         }
       }
@@ -212,7 +255,7 @@ export class SubscriptionService {
     // Send email
     try {
       const owner = await this.prisma.user.findFirst({
-        where: { tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+        where: { tenantId, role: { in: ['OWNER', 'ADMIN'] } },
         select: { email: true },
       });
       if (owner?.email) {
@@ -285,15 +328,15 @@ export class SubscriptionService {
 
     await this.applyQuotaFreeze(
       tenantId,
-      preview.queues.newLimit,
       preview.locations.newLimit,
       preview.services.newLimit,
+      preview.queues.newLimit,
     );
 
     // Send email
     try {
       const owner = await this.prisma.user.findFirst({
-        where: { tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+        where: { tenantId, role: { in: ['OWNER', 'ADMIN'] } },
         select: { email: true },
       });
       if (owner?.email) {
@@ -361,7 +404,7 @@ export class SubscriptionService {
 
     try {
       const owner = await this.prisma.user.findFirst({
-        where: { tenantId, role: { in: ['TENANT_ADMIN', 'ADMIN'] } },
+        where: { tenantId, role: { in: ['OWNER', 'ADMIN'] } },
         select: { email: true },
       });
       if (owner?.email && updated.plan?.name) {
@@ -487,7 +530,7 @@ export class SubscriptionService {
 
     try {
       const workspaceOwner = await this.prisma.user.findFirst({
-        where: { tenantId, role: 'TENANT_ADMIN' },
+        where: { tenantId, role: 'OWNER' },
         select: { email: true },
       });
       if (workspaceOwner?.email) {
@@ -523,22 +566,37 @@ export class SubscriptionService {
     }
 
     const plan = subscription.plan;
-    const billingInterval = subscription.billingInterval;
 
     const updated = await this.prisma.subscription.update({
       where: { tenantId },
       data: {
         status: SubscriptionStatus.EXPIRED,
-        trialStartDate: null,
-        trialEndDate: null,
-        currentPeriodStart: now,
-        currentPeriodEnd: this.calculatePeriodEnd(now, billingInterval),
-        nextBillingDate: this.calculatePeriodEnd(now, billingInterval),
+        endedAt: now,
+        nextBillingDate: null,
       },
       include: { plan: true },
     });
 
     this.logger.log(`Trial expired for workspace ${tenantId}`);
+
+    try {
+      const workspaceOwner = await this.prisma.user.findFirst({
+        where: { tenantId, role: { in: ['OWNER', 'ADMIN', 'SUPER_ADMIN'] } },
+        select: { email: true },
+      });
+      if (workspaceOwner?.email && plan?.name) {
+        await this.emailService.sendPlanExpiredEmail(
+          workspaceOwner.email,
+          plan.name,
+        );
+      }
+    } catch (e) {
+      this.logger.error(
+        `Failed to send trial expired email for workspace ${tenantId}`,
+        e,
+      );
+    }
+
     return updated;
   }
 
@@ -605,9 +663,9 @@ export class SubscriptionService {
       typeof plan.limits === 'string'
         ? JSON.parse(plan.limits)
         : plan.limits || {};
-    const maxQueues = parsedLimits?.maxQueues ?? plan.maxQueues ?? Infinity;
     const maxLocations = parsedLimits?.maxLocations ?? Infinity;
     const maxServices = parsedLimits?.maxServices ?? Infinity;
+    const maxQueues = parsedLimits?.maxQueues ?? parsedLimits?.maxServices ?? Infinity;
 
     const queues = await this.prisma.queue.findMany({
       where: { tenantId },
@@ -625,9 +683,9 @@ export class SubscriptionService {
       select: { id: true, name: true, createdAt: true },
     });
 
-    const qExcess = Math.max(0, queues.length - maxQueues);
     const lExcess = Math.max(0, locations.length - maxLocations);
     const sExcess = Math.max(0, services.length - maxServices);
+    const qExcess = Math.max(0, queues.length - maxQueues);
 
     return {
       queues: {
@@ -656,18 +714,20 @@ export class SubscriptionService {
 
   async applyQuotaFreeze(
     tenantId: string,
-    maxQueues: number,
     maxLocations: number,
     maxServices: number,
+    maxQueues?: number,
   ) {
+    const qLimit = maxQueues ?? maxServices;
+
     // Queues
     const queues = await this.prisma.queue.findMany({
       where: { tenantId },
       orderBy: { createdAt: 'asc' },
       select: { id: true },
     });
-    if (queues.length > maxQueues) {
-      const toFreeze = queues.slice(maxQueues).map((q: any) => q.id);
+    if (queues.length > qLimit) {
+      const toFreeze = queues.slice(qLimit).map((q: any) => q.id);
       await this.prisma.queue.updateMany({
         where: { id: { in: toFreeze } },
         data: { frozenByQuota: true, frozenAt: new Date() },
@@ -725,11 +785,11 @@ export class SubscriptionService {
       typeof sub.plan.limits === 'string'
         ? JSON.parse(sub.plan.limits)
         : sub.plan.limits || {};
-    const maxQueues = parsedLimits?.maxQueues ?? sub.plan.maxQueues ?? Infinity;
     const maxLocations = parsedLimits?.maxLocations ?? Infinity;
     const maxServices = parsedLimits?.maxServices ?? Infinity;
+    const maxQueues = parsedLimits?.maxQueues ?? parsedLimits?.maxServices ?? Infinity;
 
     await this.releaseQuotaFreeze(tenantId);
-    await this.applyQuotaFreeze(tenantId, maxQueues, maxLocations, maxServices);
+    await this.applyQuotaFreeze(tenantId, maxLocations, maxServices, maxQueues);
   }
 }

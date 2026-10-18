@@ -114,7 +114,7 @@ export default function SuperAdminBlogs() {
         <title>Blogs | Super Admin</title>
       </Head>
 
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Blog Manager</h1>

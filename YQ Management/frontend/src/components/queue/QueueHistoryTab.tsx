@@ -8,7 +8,7 @@ export function QueueHistoryTab({ queueId }: { queueId: string }) {
 
   const { data: visits = [], isLoading } = useQuery({
     queryKey: ['visits', 'history', queueId],
-    queryFn: () => fetchApi(`/visits?scope=history&queueId=${queueId}`),
+    queryFn: () => fetchApi(`/visits?scope=history&queueId=${queueId}`).then((res: any) => res.data || res),
   });
 
   if (isLoading) {

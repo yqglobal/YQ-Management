@@ -12,8 +12,10 @@ import { AdvanceStepDto } from './dto/advance-step.dto';
 import { RedeemEntitlementDto } from './dto/redeem-entitlement.dto';
 import { ScanStepDto } from './dto/scan-step.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePagePermission } from '../auth/permissions.decorator';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('visit-steps')
 export class VisitStepController {
   constructor(private readonly visitStepService: VisitStepService) {}
@@ -43,6 +45,7 @@ export class VisitStepController {
   }
 
   @Post(':stepId/advance')
+  @RequirePagePermission('flow:advance')
   advanceStep(
     @Req() req: any,
     @Param('stepId') stepId: string,
@@ -57,6 +60,7 @@ export class VisitStepController {
   }
 
   @Post(':stepId/redeem')
+  @RequirePagePermission('flow:redeem')
   redeemCollection(
     @Req() req: any,
     @Param('stepId') stepId: string,
@@ -85,6 +89,7 @@ export class VisitStepController {
   }
 
   @Post(':stepId/skip')
+  @RequirePagePermission('flow:skip')
   skipStep(@Req() req: any, @Param('stepId') stepId: string) {
     return this.visitStepService.skipStep(
       req.user.tenantId,
@@ -94,6 +99,7 @@ export class VisitStepController {
   }
 
   @Post(':stepId/revert')
+  @RequirePagePermission('flow:revert')
   revertStep(@Req() req: any, @Param('stepId') stepId: string) {
     return this.visitStepService.revertStep(
       req.user.tenantId,

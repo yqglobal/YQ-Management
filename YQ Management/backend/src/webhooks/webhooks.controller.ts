@@ -18,7 +18,7 @@ import type { AuthenticatedRequest } from '../auth/types/auth.types';
 
 @Controller('webhooks')
 @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-@Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN)
+@Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
 export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) {}
 

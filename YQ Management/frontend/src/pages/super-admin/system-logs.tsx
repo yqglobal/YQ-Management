@@ -37,7 +37,7 @@ export default function SystemLogs() {
         <title>System Logs | Super Admin</title>
       </Head>
 
-      <div className="max-w-7xl mx-auto space-y-6 pb-12 animate-in fade-in duration-500">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-6 pb-12 animate-in fade-in duration-500">
         <div className="flex flex-col sm:flex-row gap-4 bg-white dark:bg-zinc-900/50 p-4 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
           <div className="relative min-w-[200px]">
             <Filter className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

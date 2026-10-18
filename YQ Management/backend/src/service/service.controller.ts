@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Req,
+  Res,
   UseGuards,
   Query,
 } from '@nestjs/common';
@@ -51,7 +52,7 @@ export class ServiceController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   create(
     @Req() req: AuthenticatedRequest,
     @Body()
@@ -72,6 +73,17 @@ export class ServiceController {
       businessHoursOverride?: any;
       exceptionDatesOverride?: any;
       requiredSkills?: string[];
+      slaMode?: string;
+      warningThresholdMins?: number;
+      breachThresholdMins?: number;
+      escalationPhones?: string[];
+      slaPolicyId?: string | null;
+      basePrice?: number | null;
+      priceCurrency?: string;
+      paymentTiming?: any;
+      checkinPayMode?: string;
+      allowUnpaidCheckout?: boolean;
+      autoSendInvoice?: boolean;
     },
   ) {
     return this.serviceService.create(req.user.tenantId, body);
@@ -87,6 +99,35 @@ export class ServiceController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get(':id/deletion-impact')
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
+  getDeletionImpact(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.serviceService.getDeletionImpact(id, req.user.tenantId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/export')
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
+  async exportServiceData(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Res() res: any,
+  ) {
+    const { filename, buffer } =
+      await this.serviceService.exportServiceDataZip(id, req.user.tenantId);
+
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+    return res.end(buffer);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.serviceService.findOne(id, req.user.tenantId);
@@ -94,7 +135,7 @@ export class ServiceController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   update(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -116,6 +157,17 @@ export class ServiceController {
       businessHoursOverride?: any;
       exceptionDatesOverride?: any;
       requiredSkills?: string[];
+      slaMode?: string;
+      warningThresholdMins?: number;
+      breachThresholdMins?: number;
+      escalationPhones?: string[];
+      slaPolicyId?: string | null;
+      basePrice?: number | null;
+      priceCurrency?: string;
+      paymentTiming?: any;
+      checkinPayMode?: string;
+      allowUnpaidCheckout?: boolean;
+      autoSendInvoice?: boolean;
     },
   ) {
     return this.serviceService.update(id, req.user.tenantId, body);
@@ -123,14 +175,20 @@ export class ServiceController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN)
   remove(
-    @Req() req: AuthenticatedRequest, 
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Query('strategy') strategy?: string,
     @Query('reassignToId') reassignToId?: string,
-    @Query('keepHistory') keepHistory?: string
+    @Query('keepHistory') keepHistory?: string,
   ) {
-    return this.serviceService.remove(id, req.user.tenantId, strategy, reassignToId, keepHistory === 'true');
+    return this.serviceService.remove(
+      id,
+      req.user.tenantId,
+      strategy,
+      reassignToId,
+      keepHistory === 'true',
+    );
   }
 }

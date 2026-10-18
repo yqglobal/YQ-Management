@@ -30,7 +30,7 @@ export default function SuperAdminCommunication() {
   const [activeTab, setActiveTab] = useState<'email' | 'whatsapp' | 'qr' | 'payments'>('email');
   
   // Email & OTP Test States
-  const [testEmailTo, setTestEmailTo] = useState('yqbuddysa@gmail.com');
+  const [testEmailTo, setTestEmailTo] = useState('support@qmova.com');
   const [testEmailSubject, setTestEmailSubject] = useState('Qmova Account Verification Code');
   const [emailTestType, setEmailTestType] = useState<'standard' | 'otp'>('otp');
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
@@ -44,7 +44,7 @@ export default function SuperAdminCommunication() {
   const [lastSentWaOtp, setLastSentWaOtp] = useState<string | null>(null);
 
   // QR Test State
-  const [qrTestValue, setQrTestValue] = useState('https://qmova.yqbuddy.com/kiosk/demo-tenant-123');
+  const [qrTestValue, setQrTestValue] = useState(`https://${process.env.NEXT_PUBLIC_DOMAIN_BASE || 'qmova.com'}/kiosk/demo-tenant-123`);
   const [checkingConnection, setCheckingConnection] = useState(false);
 
   // Fetch Live System Status
@@ -141,7 +141,7 @@ export default function SuperAdminCommunication() {
         <title>Command &amp; Diagnostics | Super Admin</title>
       </Head>
 
-      <div className="max-w-7xl mx-auto space-y-8 pb-16">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8 pb-16">
         {/* Top Title Bar with Refresh Action */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-gray-900 via-zinc-900 to-black p-8 rounded-3xl border border-gray-800 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -182,7 +182,7 @@ export default function SuperAdminCommunication() {
             </div>
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Email Engine</h3>
             <p className="text-lg font-black text-gray-900 dark:text-white mt-1">Brevo SMTP Relay</p>
-            <p className="text-xs text-zinc-400 mt-2 truncate">Sender: <span className="font-mono text-indigo-400">{systemStatus?.email?.sender || 'yqbuddysa@gmail.com'}</span></p>
+            <p className="text-xs text-zinc-400 mt-2 truncate">Sender: <span className="font-mono text-indigo-400">{systemStatus?.email?.sender || 'support@qmova.com'}</span></p>
           </div>
 
           {/* Card 2: WhatsApp Evolution */}
@@ -342,7 +342,7 @@ export default function SuperAdminCommunication() {
                   </label>
                   <input
                     type="email"
-                    placeholder="yqbuddysa@gmail.com or customer@example.com"
+                    placeholder="support@qmova.com or customer@example.com"
                     value={testEmailTo}
                     onChange={(e) => setTestEmailTo(e.target.value)}
                     className="w-full bg-white dark:bg-zinc-950 border border-gray-300 dark:border-white/10 rounded-2xl py-3.5 px-5 text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-inner"
@@ -608,7 +608,7 @@ export default function SuperAdminCommunication() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => setQrTestValue('https://qmova.yqbuddy.com/kiosk/demo-tenant-123')}
+                    onClick={() => setQrTestValue(`https://${process.env.NEXT_PUBLIC_DOMAIN_BASE || 'qmova.com'}/kiosk/demo-tenant-123`)}
                     className="px-3 py-1.5 bg-indigo-900/40 hover:bg-indigo-900/70 text-indigo-300 rounded-lg text-xs font-mono transition-all"
                   >
                     Kiosk Demo

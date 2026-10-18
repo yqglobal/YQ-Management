@@ -28,28 +28,25 @@ export class PermissionsGuard implements CanActivate {
       return false; // Not authenticated
     }
 
-    // Admins and owners bypass page permissions usually, but let's check roles
+    // Admins and owners bypass page permissions
     if (
       userPayload.role === 'SUPER_ADMIN' ||
-      userPayload.role === 'TENANT_ADMIN' ||
-      userPayload.role === 'ADMIN' ||
-      userPayload.role === 'MANAGER'
+      userPayload.role === 'OWNER' ||
+      userPayload.role === 'ADMIN'
     ) {
       return true;
     }
 
-    if (userPayload.role === 'OPERATOR') {
-      if (
-        !userPayload.allowedPages ||
-        !userPayload.allowedPages.includes(requiredPageId)
-      ) {
-        throw new ForbiddenException(
-          `You do not have permission to access the '${requiredPageId}' feature.`,
-        );
-      }
-      return true;
+    // For roles like MANAGER or MANAGER, enforce granular page/action permissions
+    if (
+      !userPayload.allowedPages ||
+      !userPayload.allowedPages.includes(requiredPageId)
+    ) {
+      throw new ForbiddenException(
+        `You do not have permission to access the '${requiredPageId}' feature.`,
+      );
     }
 
-    return false;
+    return true;
   }
 }

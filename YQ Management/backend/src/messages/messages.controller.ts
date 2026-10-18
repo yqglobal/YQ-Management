@@ -19,7 +19,7 @@ import { SendMessageDto } from './dto/message.dto';
 
 @Controller('messages')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
-@Roles(Role.TENANT_ADMIN, Role.OPERATOR)
+@Roles(Role.OWNER, Role.MANAGER)
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 

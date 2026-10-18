@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   UseGuards,
   Req,
@@ -22,17 +23,16 @@ import { Throttle } from '@nestjs/throttler';
 @Controller('users')
 @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard, PermissionsGuard)
 @Roles(
-  Role.TENANT_ADMIN,
+  Role.OWNER,
   Role.SUPER_ADMIN,
   Role.ADMIN,
   Role.MANAGER,
-  Role.OPERATOR,
+  Role.STAFF,
 )
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @RequirePagePermission('settings-team')
   getUsers(@Req() req: AuthenticatedRequest) {
     return this.usersService.getUsersByTenant(req.user.tenantId);
   }
@@ -70,6 +70,9 @@ export class UsersController {
       allowedLocationIds?: string[];
       allowedServiceIds?: string[];
       allowedPages?: string[];
+      name?: string;
+      phone?: string;
+      description?: string;
     },
   ) {
     return this.usersService.updatePermissions(
@@ -81,9 +84,32 @@ export class UsersController {
     );
   }
 
+  @Post(':id/role')
+  @RequirePagePermission('settings-team')
+  async updateRole(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { role: Role },
+  ) {
+    return this.usersService.updateRole(
+      req.user.tenantId,
+      id,
+      body.role,
+      req.user.userId,
+    );
+  }
+
   @Get('me/export')
   async exportMyData(@Req() req: AuthenticatedRequest) {
     return this.usersService.exportUserData(req.user.tenantId, req.user.userId);
+  }
+
+  @Put('me')
+  async updateMe(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { name?: string; phone?: string; description?: string; password?: string }
+  ) {
+    return this.usersService.updateMe(req.user.userId, body);
   }
 
   @Delete('me')
@@ -103,7 +129,7 @@ export class UsersController {
   }
 
   @Post(':id/transfer-ownership')
-  @Roles(Role.TENANT_ADMIN) // Must be a TENANT_ADMIN (the actual owner logic is in the service)
+  @Roles(Role.OWNER) // Must be a OWNER (the actual owner logic is in the service)
   async transferOwnership(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string, // the target user to become owner

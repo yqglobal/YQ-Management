@@ -5,14 +5,23 @@ import BillingSettings from '../../../components/settings/billing';
 
 export default function billingSettingsPage() {
   return (
-    <SettingsLayout pageTitle="Billing & Usage" pageSubtitle="Manage your plan, payment methods, and monitor usage.">
+    <>
       <Head>
         <title>Billing & Usage | Settings</title>
       </Head>
 
-      <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto">
+      <div className="flex flex-col gap-8 w-full mx-auto">
         <BillingSettings />
       </div>
-    </SettingsLayout>
+    </>
   );
 }
+
+
+billingSettingsPage.getLayout = function getLayout(page: React.ReactElement) {
+  return (
+    <SettingsLayout pageTitle="Billing & Usage" pageSubtitle="Manage your plan, payment methods, and monitor usage.">
+      {page}
+    </SettingsLayout>
+  );
+};

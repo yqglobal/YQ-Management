@@ -54,9 +54,9 @@ export class AuthController {
 
     const isSuperAdmin =
       user.role === 'SUPER_ADMIN' ||
-      user.email?.toLowerCase() === 'yqbuddysa@gmail.com' ||
-      user.email?.toLowerCase() ===
-        process.env.SUPER_ADMIN_EMAIL?.toLowerCase();
+      (process.env.SUPER_ADMIN_EMAIL &&
+        user.email?.toLowerCase() ===
+          process.env.SUPER_ADMIN_EMAIL.toLowerCase());
     if (isSuperAdmin) {
       const { access_token } = await this.authService.login(
         user,
@@ -71,7 +71,7 @@ export class AuthController {
         domain:
           process.env.COOKIE_DOMAIN ||
           (process.env.NODE_ENV === 'production'
-            ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
+            ? process.env.FRONTEND_DOMAIN || '.qmova.yqbuddy.com'
             : undefined),
         maxAge: 30 * 24 * 60 * 60 * 1000,
       });
@@ -83,10 +83,20 @@ export class AuthController {
   }
 
   @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 requests per minute for resending OTPs
   @Post('resend-otp')
   async resendOtp(
     @Body() body: { email: string; purpose: 'signup' | 'login' | 'reset' },
   ) {
+    if (body.purpose === 'signup') {
+      const exists = await this.redisService.client.exists(`pending_signup:${body.email}`);
+      if (!exists) {
+        throw new UnauthorizedException('Signup session expired. Please register again.');
+      }
+      // Extend the pending signup session by another 15 minutes
+      await this.redisService.client.expire(`pending_signup:${body.email}`, 15 * 60);
+    }
+
     await this.authService.generateAndSendOTP(
       body.email,
       body.purpose || 'login',
@@ -122,7 +132,7 @@ export class AuthController {
       domain:
         process.env.COOKIE_DOMAIN ||
         (process.env.NODE_ENV === 'production'
-          ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
+          ? process.env.FRONTEND_DOMAIN || '.qmova.yqbuddy.com'
           : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
@@ -145,7 +155,7 @@ export class AuthController {
       domain:
         process.env.COOKIE_DOMAIN ||
         (process.env.NODE_ENV === 'production'
-          ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
+          ? process.env.FRONTEND_DOMAIN || '.qmova.yqbuddy.com'
           : undefined),
     });
     return { success: true, message: 'Logged out successfully' };
@@ -159,15 +169,22 @@ export class AuthController {
       throw new UnauthorizedException('Email already in use');
     }
 
-    const newUser = await this.authService.registerUser(
-      body.email,
-      body.password,
-      body.fullName,
+    const pendingSignup = {
+      email: body.email,
+      password: body.password,
+      fullName: body.fullName,
+    };
+
+    await this.redisService.client.set(
+      `pending_signup:${body.email}`,
+      JSON.stringify(pendingSignup),
+      'EX',
+      15 * 60
     );
 
-    await this.authService.generateAndSendOTP(newUser.email, 'signup');
+    await this.authService.generateAndSendOTP(body.email, 'signup');
 
-    return { success: true, requiresOtp: true, email: newUser.email };
+    return { success: true, requiresOtp: true, email: body.email };
   }
 
   @UseGuards(ThrottlerGuard)
@@ -178,11 +195,61 @@ export class AuthController {
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
   ) {
-    const user = await this.authService.verifyOTP(
+    const pendingSignupRaw = await this.redisService.client.get(`pending_signup:${body.email}`);
+    if (!pendingSignupRaw) {
+      throw new UnauthorizedException('Signup session expired. Please register again.');
+    }
+    const pendingSignup = JSON.parse(pendingSignupRaw);
+
+    await this.authService.verifyOTP(
       body.email,
       body.otp,
       'signup',
     );
+
+    let user = await this.usersService.findOneByEmail(body.email);
+    if (!user) {
+      user = await this.authService.registerUser(
+        body.email,
+        pendingSignup.password,
+        pendingSignup.fullName,
+      );
+
+      // Record agreed terms & privacy acceptance from signup form
+      try {
+        const prisma = this.usersService['prisma'];
+        const tos = await prisma.policy.upsert({
+          where: { type_version: { type: 'TERMS_OF_SERVICE', version: '1.0' } },
+          update: {},
+          create: { type: 'TERMS_OF_SERVICE', version: '1.0', content: 'Terms of Service v1.0', active: true },
+        });
+        const privacy = await prisma.policy.upsert({
+          where: { type_version: { type: 'PRIVACY_POLICY', version: '1.0' } },
+          update: {},
+          create: { type: 'PRIVACY_POLICY', version: '1.0', content: 'Privacy Policy v1.0', active: true },
+        });
+        await prisma.policyAcceptance.createMany({
+          data: [
+            { userId: user.id, policyId: tos.id, ipAddress: ip, userAgent },
+            { userId: user.id, policyId: privacy.id, ipAddress: ip, userAgent },
+          ],
+          skipDuplicates: true,
+        });
+      } catch (e) {
+        new Logger(AuthController.name).warn('Failed to auto-record policy acceptance on signup', e);
+      }
+    }
+
+    await this.redisService.client.del(`pending_signup:${body.email}`);
+
+    this.emailService
+      .sendWelcomeEmail(user.email, pendingSignup.fullName || '')
+      .catch((err) =>
+        new Logger(AuthController.name).error(
+          'Failed to send welcome email',
+          err,
+        ),
+      );
 
     this.emailService
       .addContactToMarketingList(user.email)
@@ -203,7 +270,7 @@ export class AuthController {
       domain:
         process.env.COOKIE_DOMAIN ||
         (process.env.NODE_ENV === 'production'
-          ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
+          ? process.env.FRONTEND_DOMAIN || '.qmova.yqbuddy.com'
           : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
@@ -255,16 +322,16 @@ export class AuthController {
       domain:
         process.env.COOKIE_DOMAIN ||
         (process.env.NODE_ENV === 'production'
-          ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
+          ? process.env.FRONTEND_DOMAIN || '.qmova.yqbuddy.com'
           : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
     const isSuperAdmin =
       req.user?.role === 'SUPER_ADMIN' ||
-      req.user?.email?.toLowerCase() === 'yqbuddysa@gmail.com' ||
-      req.user?.email?.toLowerCase() ===
-        process.env.SUPER_ADMIN_EMAIL?.toLowerCase();
+      (process.env.SUPER_ADMIN_EMAIL &&
+        req.user?.email?.toLowerCase() ===
+          process.env.SUPER_ADMIN_EMAIL.toLowerCase());
     const personalSettings =
       (req.user?.personalSettings as Record<string, any>) || {};
     const isNewUser =
@@ -296,7 +363,12 @@ export class AuthController {
     if (req.user?.userId) {
       const user = await this.usersService['prisma'].user.findUnique({
         where: { id: req.user.userId },
-        include: { tenant: true },
+        include: {
+          tenant: true,
+          policyAcceptances: {
+            include: { policy: true },
+          },
+        },
       });
       return { ...req.user, ...user };
     }
@@ -415,7 +487,7 @@ export class AuthController {
       (body.companyName || body.subdomain) &&
       (req.user.role === 'ADMIN' ||
         req.user.role === 'SUPER_ADMIN' ||
-        req.user.role === 'TENANT_ADMIN')
+        req.user.role === 'OWNER')
     ) {
       if (req.user.tenantId) {
         try {
@@ -562,6 +634,11 @@ export class AuthController {
     return { success: true, user: updatedUser };
   }
 
+  @Get('invite-preview/:code')
+  previewInvite(@Param('code') code: string) {
+    return this.authService.previewInvite(code);
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Post('join-with-invite')
   async joinWithInvite(
@@ -590,7 +667,7 @@ export class AuthController {
       domain:
         process.env.COOKIE_DOMAIN ||
         (process.env.NODE_ENV === 'production'
-          ? (process.env.FRONTEND_DOMAIN || ".qmova.yqbuddy.com")
+          ? process.env.FRONTEND_DOMAIN || '.qmova.yqbuddy.com'
           : undefined),
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });

@@ -42,7 +42,7 @@ export default function InquiriesPage() {
         <title>Enterprise Inquiries | Super Admin</title>
       </Head>
 
-      <div className="p-8 max-w-7xl mx-auto space-y-8">
+      <div className="p-8 w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div>
           <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Enterprise Inquiries</h1>
           <p className="text-gray-500 dark:text-zinc-400 mt-2">Manage incoming requests for enterprise plans.</p>

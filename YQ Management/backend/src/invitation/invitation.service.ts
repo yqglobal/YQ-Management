@@ -2,14 +2,21 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { randomBytes } from 'crypto';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class InvitationService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => SubscriptionService))
+    private subscriptionService: SubscriptionService,
+  ) {}
 
   private generateCode(): string {
     return randomBytes(6).toString('hex').toUpperCase().substring(0, 8);
@@ -27,6 +34,18 @@ export class InvitationService {
       allowedPages?: string[];
     },
   ) {
+    const [currentUsersCount, pendingInvitesCount] = await Promise.all([
+      this.prisma.user.count({ where: { tenantId } }),
+      this.prisma.invitation.count({
+        where: { tenantId, used: false, ...(data.email ? { email: { not: data.email } } : {}) },
+      }),
+    ]);
+    await this.subscriptionService.checkLimit(
+      tenantId,
+      'staff',
+      currentUsersCount + pendingInvitesCount,
+    );
+
     const code = this.generateCode();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + (data.expiresInDays || 7));
@@ -36,7 +55,7 @@ export class InvitationService {
         tenantId,
         code,
         email: data.email ?? null,
-        role: (data.role as Role) || Role.OPERATOR,
+        role: (data.role as Role) || Role.MANAGER,
         maxUses: data.maxUses || 1,
         expiresAt,
         allowedLocationIds: data.allowedLocationIds ?? [],
@@ -46,7 +65,7 @@ export class InvitationService {
     });
   }
 
-  async createJoinCode(tenantId: string, role: Role = Role.OPERATOR) {
+  async createJoinCode(tenantId: string, role: Role = Role.MANAGER) {
     const code = this.generateCode();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);

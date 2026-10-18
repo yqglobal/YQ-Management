@@ -30,6 +30,7 @@ export class WhatsappConsumer extends WorkerHost {
           visitId: payload.visitId as string,
           tenantId: payload.tenantId as string,
           displayId: payload.displayId as string | undefined,
+          ...payload,
         },
       );
       this.logger.debug(`Successfully processed WhatsApp job ${job.id}`);

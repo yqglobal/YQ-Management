@@ -2,9 +2,11 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Req,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CustomerService } from './customer.service';
@@ -25,12 +27,25 @@ export class CustomerController {
   }
 
   @Get()
-  findAll(@Req() req: AuthenticatedRequest) {
-    return this.customerService.findAll(req.user.tenantId);
+  findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.customerService.findAll(req.user.tenantId, cursor, limit ? parseInt(limit, 10) : undefined);
   }
 
   @Get(':id')
   findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.customerService.findOne(id, req.user.tenantId);
+  }
+
+  @Patch(':id')
+  update(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { isVip?: boolean; isBlocked?: boolean; notes?: string; name?: string; phone?: string; email?: string }
+  ) {
+    return this.customerService.update(id, req.user.tenantId, body);
   }
 }

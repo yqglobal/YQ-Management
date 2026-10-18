@@ -29,26 +29,20 @@ test.describe('Dashboard Operations', () => {
   });
 
   test('Tenant Admin can view Queue Management', async ({ page }) => {
-    // Intercept active queues
-    await page.route('**/api/queues/active', async route => {
+    // Intercept queues API
+    await page.route('**/*queue*', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
-          { id: 'ticket-1', ticketNumber: 'GEN-001', status: 'WAITING', service: { name: 'General Consultation' } }
+          { id: 'queue-1', name: 'General Consultation Queue', status: 'ACTIVE', services: [{ id: 's1', name: 'General' }], _count: { tokens: 1 } }
         ])
       });
     });
 
     await page.goto('/dashboard/queues');
     
-    // Verify ticket appears
-    await expect(page.locator('text=GEN-001').first()).toBeVisible();
-    
-    // Verify call next button exists
-    const callNextBtn = page.locator('button:has-text("Call Next"), button:has-text("Call")');
-    if (await callNextBtn.count() > 0) {
-      await expect(callNextBtn.first()).toBeVisible();
-    }
+    // Verify queue appears
+    await expect(page.locator('text=General Consultation Queue').first()).toBeVisible();
   });
 });

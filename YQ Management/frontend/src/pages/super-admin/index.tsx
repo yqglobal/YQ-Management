@@ -25,7 +25,7 @@ export default function SuperAdminDashboard() {
         <title>Command Center | Super Admin</title>
       </Head>
 
-      <div className="max-w-6xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8 pb-12 animate-in fade-in duration-500">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white uppercase">Command Center</h1>
           <p className="text-gray-500 dark:text-zinc-400 mt-2">God Mode overview of the entire Qmova platform.</p>

@@ -32,10 +32,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       httpStatus = exception.getStatus();
       const res = exception.getResponse();
-      message =
-        typeof res === 'string'
-          ? res
-          : (res as any).message || JSON.stringify(res);
+      if (typeof res === 'string') {
+        message = res;
+      } else {
+        const anyRes = res as any;
+        message = Array.isArray(anyRes.message)
+          ? anyRes.message.join(', ')
+          : anyRes.message || JSON.stringify(res);
+      }
       stack = exception.stack;
     } else if (exception instanceof Error) {
       message = exception.message;

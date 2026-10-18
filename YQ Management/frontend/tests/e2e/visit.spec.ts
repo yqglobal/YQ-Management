@@ -1,59 +1,47 @@
 import { test, expect } from '@playwright/test';
+import { loginAsAdmin } from './test-utils';
 
 test.describe('Visit Management Flow', () => {
-  // Use a unique suffix for this test run to avoid collisions
   const runId = Math.floor(Math.random() * 10000);
   const customerName = `E2E Customer ${runId}`;
 
   test.beforeEach(async ({ page }) => {
-    // Navigate to login
-    await page.goto('/login');
-    await page.fill('input[type="email"]', 'test-admin@test.com');
-    await page.fill('input[type="password"]', 'password123');
-    await Promise.all([
-      page.waitForNavigation(),
-      page.click('button[type="submit"]')
-    ]);
-    
-    // Ensure we are logged in by checking for the dashboard title
-    await expect(page).toHaveURL(/\/dashboard/);
+    await loginAsAdmin(page);
   });
 
-  test('should create a new walk-in visit and manage its lifecycle', async ({ page }) => {
-    // Go to Check-in page
-    await page.click('text=Check-In');
-    await expect(page).toHaveURL(/\/dashboard\/check-in/);
+  test('should create a new walk-in visit and manage customer records', async ({ page }) => {
+    // 1. Navigate to Customer Records page
+    await page.goto('/dashboard/people');
+    await expect(page.locator('h1', { hasText: 'Customer Records' })).toBeVisible({ timeout: 15000 });
 
-    // Fill in walk-in form
-    await page.fill('input[name="customerName"]', customerName);
-    await page.fill('input[name="customerPhone"]', '5551234567');
-    await page.click('button[type="submit"]');
+    // 2. Open Add Customer / Booking Modal
+    const addBtn = page.locator('button', { hasText: 'Add Customer' });
+    await expect(addBtn).toBeVisible();
+    await addBtn.click();
 
-    // Should see success message or be redirected to People/Queue board
-    // Wait for the new visit to appear on the People board
-    await page.click('text=People');
-    await expect(page).toHaveURL(/\/dashboard\/people/);
+    // 3. Verify modal opens
+    await expect(page.locator('h2', { hasText: 'Reception Service Booking' })).toBeVisible();
 
-    // Verify the customer is in the waiting list
-    const visitCard = page.locator(`text=${customerName}`);
-    await expect(visitCard).toBeVisible({ timeout: 10000 });
+    // 4. Fill customer details
+    await page.fill('input[placeholder="e.g. John Doe"]', customerName);
 
-    // Transition to In Service (Start Service)
-    const startButton = page.locator(`tr:has-text("${customerName}") button:has-text("Start")`);
-    // Alternatively, if it's a kanban board or cards
-    // This depends on the exact UI of /dashboard/people. 
-    // Assuming there is a "Start" action button in the list row
-    if (await startButton.count() > 0) {
-      await startButton.click();
-      
-      // Optionally wait for status change confirmation
-      await expect(page.locator(`text=${customerName} - IN_SERVICE`).or(page.locator(`text=${customerName} (Serving)`))).toBeVisible({ timeout: 5000 });
-      
-      // Complete Service
-      const completeButton = page.locator(`tr:has-text("${customerName}") button:has-text("Complete")`);
-      if (await completeButton.count() > 0) {
-         await completeButton.click();
-      }
-    }
+    // 5. Select location and service
+    const locationSelect = page.locator('select').filter({ hasText: 'Select location...' });
+    await expect(locationSelect).toBeVisible();
+    await expect(locationSelect.locator('option')).not.toHaveCount(1, { timeout: 10000 });
+    await locationSelect.selectOption({ index: 1 });
+
+    const serviceSelect = page.locator('select').filter({ hasText: 'Select service...' });
+    await expect(serviceSelect).toBeVisible();
+    await expect(serviceSelect.locator('option')).not.toHaveCount(1, { timeout: 10000 });
+    await serviceSelect.selectOption({ index: 1 });
+
+    // 6. Submit the form
+    const submitBtn = page.locator('button[type="submit"]', { hasText: 'Add to Queue' });
+    await expect(submitBtn).toBeEnabled();
+    await submitBtn.click();
+
+    // 7. Verify modal closes
+    await expect(page.locator('h2', { hasText: 'Reception Service Booking' })).toBeHidden({ timeout: 10000 });
   });
 });

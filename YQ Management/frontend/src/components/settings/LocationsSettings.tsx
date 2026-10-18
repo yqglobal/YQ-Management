@@ -4,6 +4,7 @@ import { fetchApi } from '../../lib/api';
 import { MapPin, Plus, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { LocationModal } from '../modals/LocationModal';
+import { DeleteLocationModal } from '../modals/DeleteLocationModal';
 import { QuotaFreezeGuard } from '../QuotaFreezeGuard';
 import { QuotaWarningBanner } from '../QuotaWarningBanner';
 import { usePlan } from '../../hooks/usePlan';
@@ -14,6 +15,7 @@ export function LocationsSettings() {
   
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [selectedLocationForEdit, setSelectedLocationForEdit] = useState<unknown>(null);
+  const [selectedLocationForDelete, setSelectedLocationForDelete] = useState<any>(null);
 
   const { data: locations = [], isLoading: locationsLoading } = useQuery({
     queryKey: ['locations'],
@@ -33,12 +35,10 @@ export function LocationsSettings() {
   return (
     <>
       <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden mb-8">
-        <div className="absolute left-0 top-0 bottom-0 w-2 bg-emerald-500" />
-
         <div className="flex flex-col md:flex-row md:items-start justify-between mb-6 gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <MapPin className="w-5 h-5 text-emerald-500" />
+              <MapPin className="w-5 h-5 text-primary" />
               <h2 className="font-headline-sm text-headline-sm font-semibold text-on-surface dark:text-white">Business Locations</h2>
             </div>
             <p className="text-on-surface-variant dark:text-zinc-400 font-body-sm text-body-sm">
@@ -51,7 +51,7 @@ export function LocationsSettings() {
             </span>
             <div className="w-32 h-2 bg-surface-container-low dark:bg-zinc-800 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                className="h-full bg-primary rounded-full transition-all duration-500"
                 style={{ width: plan.limits.maxLocations > 0 ? `${Math.min((locations.length / plan.limits.maxLocations) * 100, 100)}%` : '100%' }}
               />
             </div>
@@ -61,7 +61,7 @@ export function LocationsSettings() {
         <QuotaWarningBanner 
           resourceType="locations" 
           frozenCount={plan.frozenCounts?.locations || 0} 
-          limit={typeof plan.limits === 'string' ? JSON.parse(plan.limits).maxLocations : plan.limits?.maxLocations} 
+          limit={plan.limits?.maxLocations}
         />
 
         {locationsLoading ? (
@@ -72,7 +72,13 @@ export function LocationsSettings() {
               <button
                 type="button"
                 onClick={() => { setSelectedLocationForEdit(null); setIsLocationModalOpen(true); }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all shadow-sm"
+                disabled={plan.limits.maxLocations > 0 && locations.length >= plan.limits.maxLocations}
+                className={`px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all shadow-sm ${
+                  plan.limits.maxLocations > 0 && locations.length >= plan.limits.maxLocations
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-500'
+                    : 'bg-primary hover:bg-primary/90 text-white'
+                }`}
+                title={plan.limits.maxLocations > 0 && locations.length >= plan.limits.maxLocations ? 'Location limit reached on current plan' : ''}
               >
                 <Plus className="w-4 h-4" strokeWidth={2.5} />
                 Create Location
@@ -89,8 +95,8 @@ export function LocationsSettings() {
                 <QuotaFreezeGuard key={loc.id} isFrozen={loc.frozenByQuota} resourceName="location">
                 <div className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-zinc-800 rounded-xl gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shrink-0">
-                      <MapPin className="w-5 h-5 text-emerald-500" />
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
+                      <MapPin className="w-5 h-5 text-primary" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-sm text-on-surface dark:text-white">{loc.name}</p>
@@ -100,11 +106,11 @@ export function LocationsSettings() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => { setSelectedLocationForEdit(loc); setIsLocationModalOpen(true); }} className="p-2 text-on-surface-variant hover:text-indigo-500 hover:bg-indigo-500/10 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium" title="Edit Location">
+                    <button onClick={() => { setSelectedLocationForEdit(loc); setIsLocationModalOpen(true); }} className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium" title="Edit Location">
                       <Pencil className="w-4 h-4" /> Edit
                     </button>
-                    <button onClick={() => { if (confirm(`Delete "${loc.name}"? Queues linked to this location will be unlinked.`)) deleteLocationMutation.mutate(loc.id); }}
-                      className="p-2 text-on-surface-variant hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Delete">
+                    <button onClick={() => setSelectedLocationForDelete(loc)}
+                      className="p-2 text-on-surface-variant hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer" title="Delete Location">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -124,6 +130,14 @@ export function LocationsSettings() {
             setSelectedLocationForEdit(null);
           }}
           location={selectedLocationForEdit}
+        />
+      )}
+
+      {selectedLocationForDelete && (
+        <DeleteLocationModal
+          isOpen={!!selectedLocationForDelete}
+          onClose={() => setSelectedLocationForDelete(null)}
+          location={selectedLocationForDelete}
         />
       )}
     </>

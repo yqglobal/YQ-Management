@@ -48,7 +48,7 @@ export class PlansService {
             whatsappChatbot: true,
             customBranding: true,
           },
-          limits: { maxQueues: 1, maxTokens: 100 },
+          limits: { maxServices: 1, maxLocations: 1, maxStaff: 1, maxTokens: 100 },
         });
         await this.createPlan({
           name: 'Standard Plan',
@@ -67,7 +67,7 @@ export class PlansService {
             whatsappChatbot: false,
             customBranding: false,
           },
-          limits: { maxQueues: 5, maxTokens: 1000 },
+          limits: { maxServices: 5, maxLocations: 3, maxStaff: 10, maxTokens: 1000 },
         });
         await this.createPlan({
           name: 'Premium Plan',
@@ -86,7 +86,7 @@ export class PlansService {
             whatsappChatbot: true,
             customBranding: true,
           },
-          limits: { maxQueues: 20, maxTokens: 10000 },
+          limits: { maxServices: 20, maxLocations: 10, maxStaff: 50, maxTokens: 10000 },
         });
         await this.createPlan({
           name: 'Enterprise Plan',
@@ -108,7 +108,7 @@ export class PlansService {
             advancedAnalytics: true,
             multiLocation: true,
           },
-          limits: { maxQueues: 100, maxTokens: 50000 },
+          limits: { maxServices: 100, maxLocations: 50, maxStaff: 500, maxTokens: 50000 },
         });
         plans = await this.prisma.plan.findMany({
           where,

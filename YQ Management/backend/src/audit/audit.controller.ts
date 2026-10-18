@@ -59,7 +59,7 @@ export class AuditController {
 
   @Get()
   @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN) // Only admins can view audit logs
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN) // Only admins can view audit logs
   async getAuditLogs(
     @Req() request: AuthenticatedRequest,
     @Query('skip') skip?: string,

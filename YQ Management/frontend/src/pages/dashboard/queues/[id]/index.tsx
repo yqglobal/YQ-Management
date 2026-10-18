@@ -164,7 +164,7 @@ export default function QueueDetails() {
     mutationFn: ({ tokenId, reason, notes }: { tokenId: string; reason: string; notes: string }) =>
       fetchApi(`/visits/${tokenId}/cancel`, {
         method: 'POST',
-        body: JSON.stringify({ cancelledBy: 'OPERATOR', cancelReason: `${reason}${notes ? ': ' + notes : ''}` }),
+        body: JSON.stringify({ cancelledBy: 'MANAGER', cancelReason: `${reason}${notes ? ': ' + notes : ''}` }),
       }),
     onSuccess: () => {
       toast.success('Booking cancelled');
@@ -234,7 +234,7 @@ export default function QueueDetails() {
         <title>{queue.name} Settings | Qmova</title>
       </Head>
 
-      <div className="max-w-5xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8 font-body-md text-on-surface dark:text-white">
+      <div className="w-full mx-auto space-y-6 p-4 sm:p-6 lg:p-8 font-body-md text-on-surface dark:text-white">
         
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -498,7 +498,7 @@ export default function QueueDetails() {
                   />
                 </div>
 
-                {(user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN' || user?.role === 'ADMIN') && (
+                {(user?.role === 'SUPER_ADMIN' || user?.role === 'OWNER' || user?.role === 'ADMIN') && (
                   <div>
                     <label className="block font-body-md font-medium text-on-surface dark:text-white mb-2">Linked Service(s)</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

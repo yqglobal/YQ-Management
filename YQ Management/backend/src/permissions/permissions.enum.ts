@@ -51,17 +51,16 @@ const ADMIN_PERMISSIONS: Permission[] = [
 export const rolePermissions: Record<string, readonly Permission[]> = {
   ADMIN: ADMIN_PERMISSIONS,
   SUPER_ADMIN: ADMIN_PERMISSIONS,
-  TENANT_ADMIN: ADMIN_PERMISSIONS,
+  OWNER: ADMIN_PERMISSIONS,
   MANAGER: [
     Permission.QUEUE_READ,
     Permission.QUEUE_OPERATE,
     Permission.SETTINGS_READ,
     Permission.USER_READ,
   ],
-  OPERATOR: [
+  STAFF: [
     Permission.QUEUE_READ,
     Permission.QUEUE_OPERATE,
-    Permission.SETTINGS_READ,
   ],
 };
 

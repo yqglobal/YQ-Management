@@ -6,7 +6,11 @@ import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { QueueModule } from '../queue/queue.module';
 
 @Module({
-  imports: [forwardRef(() => NotificationsModule), WhatsappModule, forwardRef(() => QueueModule)],
+  imports: [
+    forwardRef(() => NotificationsModule),
+    WhatsappModule,
+    forwardRef(() => QueueModule),
+  ],
   controllers: [MessagesController],
   providers: [MessagesService],
 })

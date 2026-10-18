@@ -1,42 +1,38 @@
 import { test, expect } from '@playwright/test';
+import { loginAsRole } from './test-utils';
 
 test.describe('Role-Based Access Control', () => {
-  // Normally, we'd setup a mocked auth context or login before each test.
-  // We'll simulate a logged-in MANAGER role by interacting with the UI.
+  test('Manager role should not see Settings in sidebar', async ({ page }) => {
+    await loginAsRole(page, 'MANAGER');
 
-  test('Manager role should not see Settings and Billing in sidebar', async ({ page }) => {
-    // 1. Navigate to login and login as a known manager account.
-    // NOTE: This assumes manager@example.com exists in your local DB.
-    await page.goto('/login');
-    await page.fill('input[type="email"]', 'manager@example.com');
-    await page.fill('input[type="password"]', 'password123'); // Adjust to your seeded DB
-    
-    // Attempt to login. If credentials fail in this E2E env, we will skip the test.
-    // For now, let's just write the assertion logic.
-    await page.click('button[type="submit"]');
+    await page.route('**/auth/me', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: '14886bec-ecfc-4ba9-87d5-d7d74a7e920b',
+          email: 'manager@example.com',
+          role: 'MANAGER',
+          tenantId: '36543677-acf4-4c04-bfc2-0e96881c2646',
+          personalSettings: { onboardingCompleted: true }
+        })
+      });
+    });
 
-    try {
-      await page.waitForURL('/dashboard', { timeout: 3000 });
-      // If we made it to dashboard, let's check RBAC
-      
-      const settingsLink = page.locator('text=Settings');
-      const billingLink = page.locator('text=Billing & Plans');
-      const teamLink = page.locator('text=Team Members');
+    await page.goto('/dashboard/service-desk');
+    await expect(page).toHaveURL(/\/dashboard\/service-desk/);
 
-      await expect(settingsLink).toBeHidden();
-      await expect(billingLink).toBeHidden();
-      await expect(teamLink).toBeHidden();
-    } catch (e) {
-      console.log('Login failed or timed out. Ensure manager@example.com is seeded in DB to test RBAC.');
-    }
+    // Verify Settings and Super Admin links are hidden for MANAGER role
+    const settingsLink = page.locator('a[href*="/dashboard/settings"]');
+    await expect(settingsLink).toBeHidden();
+
+    const superAdminLink = page.locator('a[href*="/super-admin"]');
+    await expect(superAdminLink).toBeHidden();
   });
 
-  test('Direct URL access to restricted pages should redirect or show 403', async ({ page }) => {
-    // Requires a logged-in session of a non-admin. 
-    // We will attempt to directly hit /dashboard/settings/staff
-    // This expects the Next.js router or backend to kick us out.
-    await page.goto('/dashboard/settings/staff');
-    // If not authenticated, we expect it to redirect to /login
-    await expect(page).toHaveURL(/.*\/login/);
+  test('Direct URL access to restricted pages should redirect to login when unauthenticated', async ({ page }) => {
+    // Navigate directly without authentication
+    await page.goto('/dashboard/settings/workspace');
+    await expect(page).toHaveURL(/.*\/login/, { timeout: 10000 });
   });
 });

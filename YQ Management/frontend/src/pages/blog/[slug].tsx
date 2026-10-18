@@ -17,6 +17,8 @@ interface BlogPost {
   publishedAt?: string;
   authorName?: string;
   excerpt?: string;
+  seoTitle?: string;
+  seoDescription?: string;
 }
 
 export default function BlogPost({ blog }: { blog: BlogPost }) {

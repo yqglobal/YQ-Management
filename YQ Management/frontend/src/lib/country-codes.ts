@@ -3,7 +3,7 @@ import { getCountries, getCountryCallingCode } from 'react-phone-number-input/in
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
 export const countryCodes = getCountries().map(country => {
-  let name = country;
+  let name: string = country;
   try {
     name = regionNames.of(country) || country;
   } catch (e) {
@@ -78,31 +78,130 @@ export const detectCountryByTimezone = (): string => {
       'America/Santiago': 'CL',
       'America/Bogota': 'CO',
       'America/Lima': 'PE',
-      'Asia/Calcutta': 'IN',
+      'America/Montreal': 'CA',
+      'Australia/Sydney': 'AU',
+      'Australia/Melbourne': 'AU',
+      'Australia/Brisbane': 'AU',
+      'Australia/Perth': 'AU',
+      'Australia/Adelaide': 'AU',
+      'Pacific/Auckland': 'NZ',
+      'Europe/Dublin': 'IE',
+      'Europe/Vienna': 'AT',
+      'Europe/Brussels': 'BE',
+      'Europe/Kyiv': 'UA',
+      'Europe/Kiev': 'UA',
+      'Asia/Karachi': 'PK',
+      'Asia/Dhaka': 'BD',
+      'Asia/Colombo': 'LK',
+      'Asia/Kathmandu': 'NP',
+      'Asia/Qatar': 'QA',
+      'Asia/Bahrain': 'BH',
+      'Asia/Kuwait': 'KW',
+      'Asia/Muscat': 'OM',
+      'Africa/Harare': 'ZW',
+      'Africa/Gaborone': 'BW',
+      'Africa/Windhoek': 'NA',
+      'Africa/Accra': 'GH',
+      'Africa/Casablanca': 'MA',
     };
     
     // First try the custom map for common ones
     if (tzMap[timezone]) return tzMap[timezone];
     
-    // Attempt to extract country from timezone (e.g. 'Europe/Paris')
+    // Pattern match by continent/region prefix
+    if (timezone.startsWith('Australia/')) return 'AU';
+    if (timezone.startsWith('Pacific/Auckland') || timezone.startsWith('Pacific/Chatham')) return 'NZ';
+    if (timezone.startsWith('America/Argentina/')) return 'AR';
+    
     return 'US';
   } catch {
     return 'US';
   }
 };
 
-export const detectCountryCode = async () => {
-  try {
-    const res = await fetch('https://get.geojs.io/v1/ip/country.json');
-    const data = await res.json();
-    if (data && data.country) {
-      const countryObj = getCountryByAbbr(data.country);
-      if (countryObj) return countryObj;
+let cachedCountryObj: { code: string; country: string; name: string } | null = null;
+let inFlightDetectionPromise: Promise<{ code: string; country: string; name: string }> | null = null;
+
+export const getInitialCountryIso = (): string => {
+  if (typeof window !== 'undefined') {
+    try {
+      const userChoice = localStorage.getItem('qmova_scanner_country');
+      if (userChoice) return userChoice;
+      const cached = sessionStorage.getItem('yq_detected_country');
+      if (cached) return cached;
+    } catch {
+      // Storage restricted
     }
-  } catch (e) {
-    // Ignore geojs failure
   }
-  const abbr = detectCountryByTimezone();
-  const countryObj = getCountryByAbbr(abbr);
-  return countryObj || countryCodes[0];
+  return detectCountryByTimezone();
 };
+
+export const detectCountryCode = async (): Promise<{ code: string; country: string; name: string }> => {
+  if (cachedCountryObj) return cachedCountryObj;
+  if (inFlightDetectionPromise) return inFlightDetectionPromise;
+
+  inFlightDetectionPromise = (async () => {
+    // 1. Check user choice or session storage
+    if (typeof window !== 'undefined') {
+      try {
+        const userChoice = localStorage.getItem('qmova_scanner_country');
+        if (userChoice) {
+          const found = getCountryByAbbr(userChoice);
+          if (found) {
+            cachedCountryObj = found;
+            return found;
+          }
+        }
+        const cached = sessionStorage.getItem('yq_detected_country');
+        if (cached) {
+          const found = getCountryByAbbr(cached);
+          if (found) {
+            cachedCountryObj = found;
+            return found;
+          }
+        }
+      } catch {
+        // Storage restricted
+      }
+    }
+
+    // 2. Fetch IP with a strict 2500ms timeout
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2500);
+      const res = await fetch('https://get.geojs.io/v1/ip/country.json', { signal: controller.signal });
+      clearTimeout(timer);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.country) {
+          const countryObj = getCountryByAbbr(data.country);
+          if (countryObj) {
+            cachedCountryObj = countryObj;
+            if (typeof window !== 'undefined') {
+              try {
+                sessionStorage.setItem('yq_detected_country', countryObj.country);
+              } catch {}
+            }
+            return countryObj;
+          }
+        }
+      }
+    } catch {
+      // GeoJS network failure, adblocker, or timeout
+    }
+
+    // 3. Fallback to timezone
+    const abbr = detectCountryByTimezone();
+    const countryObj = getCountryByAbbr(abbr) || countryCodes[0];
+    cachedCountryObj = countryObj;
+    return countryObj;
+  })();
+
+  try {
+    const result = await inFlightDetectionPromise;
+    return result;
+  } finally {
+    inFlightDetectionPromise = null;
+  }
+};
+

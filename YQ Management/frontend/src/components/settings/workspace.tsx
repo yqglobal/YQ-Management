@@ -11,20 +11,20 @@ import {
   CheckCircle2,
   ArrowRight,
   Sparkles,
+  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import { fetchApi } from "../../lib/api";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SelectServiceModal } from "../modals/SelectServiceModal";
-import { ALL_INDUSTRY_CONFIGS } from "../../lib/industryConfig";
+import { ChangeIndustryModal } from "../modals/ChangeIndustryModal";
 import {
   INDUSTRY_GROUPS,
+  findSubIndustry,
   type IndustryGroup,
   type SubIndustry,
 } from "../../lib/subIndustries";
-import { Dialog, DialogTitle, DialogDescription } from "../ui/dialog";
-import { Button } from "../ui/button";
 import PhoneInput from "../PhoneInput";
 
 export default function WorkspaceSettingsPage() {
@@ -40,15 +40,23 @@ export default function WorkspaceSettingsPage() {
   const [isTvModalOpen, setIsTvModalOpen] = useState(false);
   const [businessType, setBusinessType] = useState("general");
   const [savingIndustry, setSavingIndustry] = useState(false);
+  const [isChangeIndustryModalOpen, setIsChangeIndustryModalOpen] = useState(false);
+
+  const activeSub = findSubIndustry(businessType);
+  const activeGroup = INDUSTRY_GROUPS.find(
+    (g) =>
+      g.id === businessType ||
+      g.subIndustries.some((s) => s.id === businessType),
+  );
+  const isCategoryConfigured = Boolean(businessType && businessType.trim() !== "");
 
   const [supportEmail, setSupportEmail] = useState("");
   const [supportPhone, setSupportPhone] = useState("");
   const [showSupportInfo, setShowSupportInfo] = useState(true);
-
   const isAdmin =
     user?.role === "ADMIN" ||
     user?.role === "SUPER_ADMIN" ||
-    user?.role === "TENANT_ADMIN";
+    user?.role === "OWNER";
 
   const { data: queues = [] } = useQuery({
     queryKey: ["queues"],
@@ -96,6 +104,7 @@ export default function WorkspaceSettingsPage() {
             showSupportInfo,
           }),
         });
+        queryClient.invalidateQueries({ queryKey: ["tenant", "me"] });
         await refetch();
         toast.success("Workspace settings saved successfully");
       }
@@ -138,9 +147,6 @@ export default function WorkspaceSettingsPage() {
     <div className="space-y-8">
       {/* Workspace config card */}
       <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden">
-        {/* Decorative left edge accent */}
-        <div className="absolute left-0 top-0 bottom-0 w-2 bg-primary"></div>
-
         <div className="flex items-start justify-between mb-8">
           <div>
             <div className="flex items-center gap-3 mb-1">
@@ -313,6 +319,44 @@ export default function WorkspaceSettingsPage() {
               </div>
             </div>
           </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide">
+                Business Category & Template
+              </label>
+              <div className="w-full bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-dark-border rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-2xl shrink-0 border border-primary/20">
+                    {activeSub?.icon || activeGroup?.icon || "🏢"}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-sm text-on-surface dark:text-white capitalize flex items-center gap-2">
+                      {activeSub?.label || businessType.replace(/_/g, " ")}
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
+                        Active
+                      </span>
+                    </div>
+                    <p className="text-xs text-on-surface-variant dark:text-zinc-400 mt-0.5">
+                      {activeGroup?.label ? `${activeGroup.label} • ` : ""}Flow Blueprint: {activeSub?.blueprintKey || "standard"}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsChangeIndustryModalOpen(true)}
+                  className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-bold transition-all shadow-sm shrink-0"
+                >
+                  <ShieldAlert className="w-4 h-4 text-amber-500" />
+                  Change Template
+                </button>
+              </div>
+              <p className="text-[12px] text-outline mt-2">
+                Your workspace layout, customer portal terminology, and service routing are calibrated for this business type. Changing templates is restricted to prevent queue disruption.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="mt-8 pt-6 border-t border-border dark:border-dark-border flex justify-end">
@@ -333,10 +377,9 @@ export default function WorkspaceSettingsPage() {
 
       {/* Customer-Facing Links */}
       <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden">
-        <div className="absolute left-0 top-0 bottom-0 w-2 bg-emerald-500" />
         <div className="flex items-center gap-3 mb-2">
           <span
-            className="material-symbols-outlined text-emerald-500"
+            className="material-symbols-outlined text-primary"
             style={{ fontVariationSettings: "'FILL' 1" }}
           >
             link
@@ -394,12 +437,27 @@ export default function WorkspaceSettingsPage() {
         }}
       />
 
-      {/* Business Category / Industry Template Selector */}
-      <IndustryTemplateCard
-        businessType={businessType}
-        setBusinessType={setBusinessType}
+      {/* Business Category / Industry Template Selector (hidden once category is selected) */}
+      {!isCategoryConfigured && (
+        <IndustryTemplateCard
+          businessType={businessType}
+          setBusinessType={setBusinessType}
+          tenantId={tenantId || user?.tenantId || ""}
+          queryClient={queryClient}
+        />
+      )}
+
+      {/* Change Industry Confirmation Modal */}
+      <ChangeIndustryModal
+        isOpen={isChangeIndustryModalOpen}
+        onClose={() => setIsChangeIndustryModalOpen(false)}
         tenantId={tenantId || user?.tenantId || ""}
-        queryClient={queryClient}
+        currentBusinessType={businessType}
+        onSuccess={(newType) => {
+          setBusinessType(newType);
+          queryClient.invalidateQueries({ queryKey: ["tenant"] });
+          queryClient.invalidateQueries({ queryKey: ["tenant", "me"] });
+        }}
       />
     </div>
   );
@@ -486,8 +544,8 @@ function IndustryTemplateCard({
       setSelectedGroup(null);
       setPendingSub(null);
 
-      // Automatically navigate to flows page to configure
-      router.push("/dashboard/settings/flows");
+      // Automatically navigate to operations page to configure services
+      router.push("/dashboard/settings/operations?tab=services");
     } catch (err: any) {
       toast.error(err.message || "Failed to update business type");
     } finally {
@@ -497,12 +555,10 @@ function IndustryTemplateCard({
 
   return (
     <div className="bg-card dark:bg-dark-card rounded-[24px] border border-border dark:border-dark-border shadow-sm p-8 relative overflow-hidden">
-      <div className="absolute left-0 top-0 bottom-0 w-2 bg-emerald-500" />
-
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <span className="material-symbols-outlined text-emerald-500 text-[22px]">
+          <span className="material-symbols-outlined text-primary text-[22px]">
             category
           </span>
           <div className="flex items-center gap-2 flex-1">
@@ -510,7 +566,7 @@ function IndustryTemplateCard({
               Business Category
             </h2>
             {saving && (
-              <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
             )}
           </div>
           {/* Breadcrumb */}
@@ -521,7 +577,7 @@ function IndustryTemplateCard({
                 setSelectedGroup(null);
                 setPendingSub(null);
               }}
-              className={`font-semibold transition-colors ${step === 1 ? "text-emerald-600 dark:text-emerald-400" : "hover:text-on-surface dark:hover:text-white cursor-pointer"}`}
+              className={`font-semibold transition-colors ${step === 1 ? "text-primary dark:text-sky-400" : "hover:text-on-surface dark:hover:text-white cursor-pointer"}`}
             >
               Industry
             </button>
@@ -683,7 +739,7 @@ function IndustryTemplateCard({
                           onChange={(e) =>
                             setProvisionServices(e.target.checked)
                           }
-                          className="w-4 h-4 rounded text-emerald-600"
+                          className="w-4 h-4 rounded text-primary focus:ring-primary"
                         />
                         <div>
                           <div className="text-sm font-semibold text-on-surface dark:text-white">

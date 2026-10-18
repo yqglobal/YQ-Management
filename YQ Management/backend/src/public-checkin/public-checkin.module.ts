@@ -6,7 +6,11 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { VisitStepModule } from '../visit-step/visit-step.module';
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => NotificationsModule), VisitStepModule],
+  imports: [
+    PrismaModule,
+    forwardRef(() => NotificationsModule),
+    VisitStepModule,
+  ],
   controllers: [PublicCheckinController],
   providers: [PublicCheckinService],
   exports: [PublicCheckinService],

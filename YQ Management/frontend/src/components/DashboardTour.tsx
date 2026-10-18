@@ -51,31 +51,31 @@ export function DashboardTour({ canStart = true }: { canStart?: boolean }) {
     }
   }, [canStart]);
 
-
+  // Scroll to element only if it exists on the current page, without hijacking route changes
   useEffect(() => {
     if (!isOpen) return;
-
     const step = STEPS[currentStep];
-    if (step && step.route && router.pathname !== step.route) {
-      router.push(step.route).then(() => {
-        setTimeout(() => {
-          const element = document.getElementById(step.elementId);
-          if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 500);
-      });
-    } else {
-      const element = document.getElementById(step?.elementId);
+    if (!step) return;
+
+    const timer = setTimeout(() => {
+      const element = document.getElementById(step.elementId);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
-    }
-  }, [currentStep, isOpen, router]);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [currentStep, isOpen, router.pathname]);
 
   const handleNext = () => {
     if (currentStep < STEPS.length - 1) {
       const next = currentStep + 1;
       setCurrentStep(next);
       sessionStorage.setItem('yq_tour_step', next.toString());
+      const nextStep = STEPS[next];
+      if (nextStep?.route && router.pathname !== nextStep.route) {
+        router.push(nextStep.route);
+      }
     } else {
       handleClose();
     }
@@ -90,15 +90,25 @@ export function DashboardTour({ canStart = true }: { canStart?: boolean }) {
   if (!isOpen) return null;
 
   const step = STEPS[currentStep];
+  if (!step) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-[90] flex items-end justify-end p-4 pointer-events-none">
       <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] w-full max-w-sm p-6 pointer-events-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">{step.title}</h3>
-          <span className="text-xs text-gray-500 dark:text-zinc-400">
-            {currentStep + 1}/{STEPS.length}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-zinc-400">
+              {currentStep + 1}/{STEPS.length}
+            </span>
+            <button
+              onClick={handleClose}
+              className="w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+              title="Close tour"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
         </div>
         <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6">{step.description}</p>
         <div className="flex items-center justify-end gap-3">

@@ -13,7 +13,9 @@ export default function Register() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [otp, setOtp] = useState('');
   
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -33,7 +35,7 @@ export default function Register() {
       const trimmed = code.trim().toUpperCase();
       localStorage.setItem('qmova_invite_code', trimmed);
       document.cookie = `qmova_invite_code=${trimmed}; path=/; max-age=86400; SameSite=Lax`;
-      fetchApi(`/workspace/invite-preview/${trimmed}`)
+      fetchApi(`/auth/invite-preview/${trimmed}`)
         .then((res: AnyFixMe) => {
           if (res?.valid) {
             setInvitePreview({ workspaceName: res.workspaceName, role: res.role, code: res.code });
@@ -49,9 +51,9 @@ export default function Register() {
       if (err === 'ALREADY_LINKED_GOOGLE') {
         setError('Account with this email already exists via Google.'); // eslint-disable-line react-hooks/set-state-in-effect
       } else if (err === 'EMAIL_PWD_ACCOUNT') {
-        setError('Account with this email already exists.'); // eslint-disable-line react-hooks/set-state-in-effect
+        setError('Account with this email already exists.');  
       } else {
-        setError(err); // eslint-disable-line react-hooks/set-state-in-effect
+        setError(err);  
       }
       
       // Clean up the URL
@@ -62,8 +64,12 @@ export default function Register() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
     setLoading(true);
-    setError(''); // eslint-disable-line react-hooks/set-state-in-effect
+    setError('');  
 
     try {
       const data = await fetchApi('/auth/register', {
@@ -74,10 +80,13 @@ export default function Register() {
       if (data?.requiresOtp) {
         setStep('otp');
       } else {
+        if (data?.access_token) {
+          AuthStorage.set(data.access_token);
+        }
         router.push('/onboarding');
       }
     } catch (err: AnyFixMe) {
-      setError(err.message || 'Registration failed'); // eslint-disable-line react-hooks/set-state-in-effect
+      setError(err.message || 'Registration failed');  
     } finally {
       setLoading(false);
     }
@@ -85,7 +94,7 @@ export default function Register() {
 
   const handleResendOtp = async () => {
     setResending(true);
-    setError(''); // eslint-disable-line react-hooks/set-state-in-effect
+    setError('');  
     setResendSuccess('');
     try {
       await fetchApi('/auth/resend-otp', {
@@ -95,7 +104,7 @@ export default function Register() {
       });
       setResendSuccess('A new verification code has been sent to your email.');
     } catch (err: AnyFixMe) {
-      setError(err.message || 'Failed to resend OTP'); // eslint-disable-line react-hooks/set-state-in-effect
+      setError(err.message || 'Failed to resend OTP');  
     } finally {
       setResending(false);
     }
@@ -104,7 +113,7 @@ export default function Register() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(''); // eslint-disable-line react-hooks/set-state-in-effect
+    setError('');  
 
     try {
       const data = await fetchApi('/auth/verify-signup', {
@@ -114,10 +123,13 @@ export default function Register() {
 
       if (data?.access_token) {
         AuthStorage.set(data.access_token);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('qmova_policies_accepted_v1', 'true');
+        }
       }
       router.push('/onboarding');
     } catch (err: AnyFixMe) {
-      setError(err.message || 'Invalid OTP'); // eslint-disable-line react-hooks/set-state-in-effect
+      setError(err.message || 'Invalid OTP');  
     } finally {
       setLoading(false);
     }
@@ -155,14 +167,14 @@ export default function Register() {
           transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
         />
 
-        <div className="relative z-10 max-w-md p-12">
-          <div className="mb-12">
+        <div className="relative z-10 max-w-md p-8 lg:p-12">
+          <div className="mb-8 lg:mb-12">
             <Logo width={150} height={24} href="/" forceTheme="dark" />
           </div>
           <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-6 leading-tight text-white glow-text">
             Start orchestrating your spaces <span className="gradient-text">today.</span>
           </h2>
-          <p className="text-lg text-zinc-400 font-medium mb-12">
+          <p className="text-lg text-zinc-400 font-medium mb-8">
             Join hundreds of businesses delivering seamless waiting experiences to their customers.
           </p>
           
@@ -188,9 +200,9 @@ export default function Register() {
       </div>
 
       {/* Right Panel - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 relative z-10">
-        <div className="w-full max-w-md glass-ui p-8 rounded-2xl relative">
-          <div className="lg:hidden mb-8 flex justify-center">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 relative z-10">
+        <div className="w-full max-w-md glass-ui p-6 sm:p-8 rounded-2xl relative">
+          <div className="lg:hidden mb-6 flex justify-center">
              <Logo width={150} height={24} href="/" forceTheme="dark" />
           </div>
           
@@ -269,6 +281,28 @@ export default function Register() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors focus:outline-none"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">Confirm Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+                  <input 
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full h-11 bg-white/5 border border-white/10 rounded-lg px-4 pl-10 pr-12 text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all font-medium"
+                    placeholder="Confirm your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors focus:outline-none"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>

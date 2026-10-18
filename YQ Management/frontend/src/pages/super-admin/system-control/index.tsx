@@ -95,7 +95,7 @@ export default function SystemControlPage() {
   const queryClient = useQueryClient();
 
   // Test Email State
-  const [emailTo, setEmailTo] = useState('yqbuddysa@gmail.com');
+  const [emailTo, setEmailTo] = useState('support@qmova.com');
   const [emailSubject, setEmailSubject] = useState('Qmova Authentication Code');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailOtpResult, setEmailOtpResult] = useState<string | null>(null);
@@ -120,9 +120,9 @@ export default function SystemControlPage() {
       setRedirectStatusMsg({ type: 'success', text: '✅ Ozow Payment verification completed successfully! The gateway redirect test succeeded.' }); // eslint-disable-line react-hooks/set-state-in-effect
       toast.success('Test payment redirect completed successfully!');
     } else if (router.query.payment_status === 'cancelled') {
-      setRedirectStatusMsg({ type: 'cancelled', text: '⚠️ Payment test redirect was cancelled at the Ozow bank interface.' }); // eslint-disable-line react-hooks/set-state-in-effect
+      setRedirectStatusMsg({ type: 'cancelled', text: '⚠️ Payment test redirect was cancelled at the Ozow bank interface.' });  
     } else if (router.query.payment_status === 'error') {
-      setRedirectStatusMsg({ type: 'error', text: '❌ An error was returned by the Ozow payment gateway during redirect verification.' }); // eslint-disable-line react-hooks/set-state-in-effect
+      setRedirectStatusMsg({ type: 'error', text: '❌ An error was returned by the Ozow payment gateway during redirect verification.' });  
     }
   }, [router.query.payment_status]);
 
@@ -258,7 +258,7 @@ export default function SystemControlPage() {
         <title>System Control &amp; Testing | Super Admin</title>
       </Head>
 
-      <div className="max-w-7xl mx-auto space-y-10 pb-20">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-10 pb-20">
         {/* Banner */}
         <div className="bg-gradient-to-r from-zinc-900 via-gray-900 to-black p-8 sm:p-10 rounded-3xl border border-gray-800 shadow-2xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -299,7 +299,7 @@ export default function SystemControlPage() {
             </div>
             <button
               onClick={() => {
-                setRedirectStatusMsg(null); // eslint-disable-line react-hooks/set-state-in-effect
+                setRedirectStatusMsg(null);  
                 router.replace('/super-admin/system-control', undefined, { shallow: true });
               }}
               className="px-4 py-2 bg-black/40 hover:bg-black/60 rounded-xl text-xs font-bold text-white transition-colors"
@@ -520,7 +520,7 @@ export default function SystemControlPage() {
                       type="email"
                       value={emailTo}
                       onChange={(e) => setEmailTo(e.target.value)}
-                      placeholder="yqbuddysa@gmail.com"
+                      placeholder="support@qmova.com"
                       className="w-full bg-gray-50 dark:bg-zinc-950 border border-gray-300 dark:border-white/10 rounded-xl py-3 px-4 font-medium text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                     />
                   </div>

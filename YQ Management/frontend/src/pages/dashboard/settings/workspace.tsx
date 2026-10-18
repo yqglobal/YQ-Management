@@ -9,7 +9,7 @@ export default function WorkspaceSettingsWrapper() {
   const [activeTab, setActiveTab] = useState<'identity' | 'customer' | 'info'>('identity');
 
   return (
-    <SettingsLayout pageTitle="Workspace & Identity" pageSubtitle="Manage your organization's core settings and branding.">
+    <>
       <Head>
         <title>Workspace & Identity | Settings</title>
       </Head>
@@ -19,7 +19,7 @@ export default function WorkspaceSettingsWrapper() {
           onClick={() => setActiveTab('identity')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'identity'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              ? 'border-primary text-primary'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
@@ -29,7 +29,7 @@ export default function WorkspaceSettingsWrapper() {
           onClick={() => setActiveTab('customer')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'customer'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              ? 'border-primary text-primary'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
@@ -39,7 +39,7 @@ export default function WorkspaceSettingsWrapper() {
           onClick={() => setActiveTab('info')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'info'
-              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+              ? 'border-primary text-primary'
               : 'border-transparent text-on-surface-variant dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-300'
           }`}
         >
@@ -47,11 +47,20 @@ export default function WorkspaceSettingsWrapper() {
         </button>
       </div>
 
-      <div className="flex flex-col gap-8 w-full max-w-4xl mx-auto">
+      <div className="flex flex-col gap-8 w-full mx-auto">
         {activeTab === 'identity' && <WorkspaceSettingsPage />}
         {activeTab === 'customer' && <CustomerExperienceSettings />}
         {activeTab === 'info' && <QRCodesSettings />}
       </div>
-    </SettingsLayout>
+    </>
   );
 }
+
+
+WorkspaceSettingsWrapper.getLayout = function getLayout(page: React.ReactElement) {
+  return (
+    <SettingsLayout pageTitle="Workspace & Identity" pageSubtitle="Manage your organization's core settings and branding.">
+      {page}
+    </SettingsLayout>
+  );
+};

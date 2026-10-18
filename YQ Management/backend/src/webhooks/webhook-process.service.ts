@@ -198,7 +198,7 @@ export class WebhookProcessService {
               const owner = await tx.user.findFirst({
                 where: {
                   tenantId: transaction.tenantId,
-                  role: { in: ['TENANT_ADMIN', 'ADMIN'] },
+                  role: { in: ['OWNER', 'ADMIN'] },
                 },
               });
 

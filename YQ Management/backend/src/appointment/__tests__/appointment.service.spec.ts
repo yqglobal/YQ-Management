@@ -42,7 +42,13 @@ describe('AppointmentService', () => {
         { provide: WhatsappService, useValue: mockWhatsappService },
         { provide: RedisService, useValue: mockRedisService },
         { provide: GoogleService, useValue: mockGoogleService },
-        { provide: QueueGateway, useValue: { broadcastTenantUpdate: jest.fn(), server: { to: jest.fn().mockReturnThis(), emit: jest.fn() } } },
+        {
+          provide: QueueGateway,
+          useValue: {
+            broadcastTenantUpdate: jest.fn(),
+            server: { to: jest.fn().mockReturnThis(), emit: jest.fn() },
+          },
+        },
       ],
     }).compile();
 

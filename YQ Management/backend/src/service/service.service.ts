@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 import { fromZonedTime, toZonedTime, format } from 'date-fns-tz';
 import {
   addMinutes,
@@ -16,6 +17,8 @@ import {
   startOfDay,
   endOfDay,
 } from 'date-fns';
+import JSZip from 'jszip';
+import { objectsToCsv } from '../utils/csv.helper';
 
 @Injectable()
 export class ServiceService {
@@ -23,6 +26,8 @@ export class ServiceService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => QueueService))
     private queueService: QueueService,
+    @Inject(forwardRef(() => SubscriptionService))
+    private subscriptionService: SubscriptionService,
   ) {}
 
   async create(
@@ -42,49 +47,105 @@ export class ServiceService {
       useLocationHours?: boolean;
       businessHoursOverride?: any;
       exceptionDatesOverride?: any;
+      slaPolicyId?: string | null;
+      requiredSkills?: string[];
+      basePrice?: number | null;
+      priceCurrency?: string;
+      paymentMode?: string;
+      paymentTiming?: any;
+      checkinPayMode?: string;
+      allowUnpaidCheckout?: boolean;
+      autoSendInvoice?: boolean;
+      slaMode?: string;
+      warningThresholdMins?: number;
+      breachThresholdMins?: number;
+      escalationPhones?: string[];
     },
   ) {
+    if (!data.locationId) {
+      throw new BadRequestException('A location must be provided to create a service.');
+    }
+
     const servicesCount = await this.prisma.extendedClient.service.count({
       where: {
         tenantId,
-        locationId: data.locationId || null,
       },
     });
 
-    if (servicesCount >= 20) {
-      throw new BadRequestException(
-        `Maximum number of services (20) reached for this ${data.locationId ? 'location' : 'tenant'}.`,
-      );
+    await this.subscriptionService.checkLimit(tenantId, 'services', servicesCount);
+
+    const createData: any = {
+      tenantId,
+      name: data.name,
+      description: data.description,
+      expectedDuration: data.expectedDuration,
+      locationId: data.locationId,
+      allowAppointments: data.allowAppointments,
+      allowProviderSelection: data.allowProviderSelection,
+      requireManualCheckIn: data.requireManualCheckIn,
+      appointmentGranularityMins: data.appointmentGranularityMins,
+      dateSelectionType: data.dateSelectionType,
+      maxDaysInAdvance: data.maxDaysInAdvance,
+      formConfig: data.formConfig,
+      useLocationHours: data.useLocationHours,
+      businessHoursOverride: data.businessHoursOverride,
+      exceptionDatesOverride: data.exceptionDatesOverride,
+      requiredSkills: data.requiredSkills || [],
+      basePrice: data.basePrice,
+      priceCurrency: data.priceCurrency,
+      paymentMode: data.paymentMode,
+    };
+
+    if (data.slaMode && data.slaMode !== 'Disabled') {
+      const slaPolicy = await this.prisma.extendedClient.slaPolicy.create({
+        data: {
+          tenantId,
+          name: `${data.name} SLA Policy`,
+          warningThresholdMins: data.warningThresholdMins || 15,
+          breachThresholdMins: data.breachThresholdMins || 30,
+          escalationPhones: data.escalationPhones || [],
+        },
+      });
+      createData.slaPolicy = { connect: { id: slaPolicy.id } };
+    } else if (data.slaPolicyId) {
+      createData.slaPolicy = { connect: { id: data.slaPolicyId } };
     }
 
     const service = await this.prisma.extendedClient.service.create({
-      data: {
-        tenantId,
-        name: data.name,
-        description: data.description,
-        expectedDuration: data.expectedDuration,
-        locationId: data.locationId,
-        allowAppointments: data.allowAppointments,
-        requireManualCheckIn: data.requireManualCheckIn,
-        appointmentGranularityMins: data.appointmentGranularityMins,
-        dateSelectionType: data.dateSelectionType,
-        maxDaysInAdvance: data.maxDaysInAdvance,
-        formConfig: data.formConfig,
-      },
+      data: createData,
     });
 
     // Auto-create a default queue for the new service
     try {
       await this.queueService.createQueue(
         tenantId,
-        `${data.name} Queue`,
+        `${data.name}'s queue`,
         undefined,
         undefined,
         data.locationId,
         [service.id],
+        true,
       );
     } catch (error) {
       console.error('Failed to auto-create queue for service:', error);
+    }
+
+    // Auto-create a default service flow to manage payment settings
+    try {
+      await this.prisma.extendedClient.serviceFlow.create({
+        data: {
+          tenantId,
+          serviceId: service.id,
+          name: `${data.name} Default Flow`,
+          isActive: true,
+          paymentTiming: data.paymentTiming || 'NONE',
+          checkinPayMode: data.checkinPayMode || 'BOTH',
+          allowUnpaidCheckout: data.allowUnpaidCheckout || false,
+          autoSendInvoice: data.autoSendInvoice || false,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to auto-create service flow for service:', error);
     }
 
     return service;
@@ -99,7 +160,7 @@ export class ServiceService {
 
     if (
       reqUser &&
-      (reqUser.role === 'OPERATOR' || reqUser.role === 'MANAGER')
+      (reqUser.role === 'MANAGER' || reqUser.role === 'MANAGER')
     ) {
       const dbUser = await this.prisma.user.findUnique({
         where: { id: reqUser.userId || reqUser.sub },
@@ -121,7 +182,12 @@ export class ServiceService {
 
     return this.prisma.extendedClient.service.findMany({
       where,
-      include: { location: true, queues: true },
+      include: {
+        location: true,
+        queues: true,
+        slaPolicy: true,
+        serviceFlow: { include: { steps: true } },
+      },
     });
   }
 
@@ -144,6 +210,17 @@ export class ServiceService {
         basePrice: true,
         priceCurrency: true,
         paymentMode: true,
+        dateSelectionType: true,
+        maxDaysInAdvance: true,
+        serviceFlow: {
+          select: {
+            isActive: true,
+            paymentTiming: true,
+            checkinPayMode: true,
+            allowUnpaidCheckout: true,
+            autoSendInvoice: true,
+          },
+        },
         location: {
           select: {
             timezone: true,
@@ -187,7 +264,7 @@ export class ServiceService {
   async findOne(id: string, tenantId: string) {
     const service = await this.prisma.extendedClient.service.findFirst({
       where: { id, tenantId },
-      include: { location: true },
+      include: { location: true, slaPolicy: true, serviceFlow: true },
     });
     if (!service) throw new NotFoundException('Service not found');
     return service;
@@ -288,9 +365,22 @@ export class ServiceService {
       useLocationHours?: boolean;
       businessHoursOverride?: any;
       exceptionDatesOverride?: any;
+      slaPolicyId?: string | null;
+      requiredSkills?: string[];
+      basePrice?: number | null;
+      priceCurrency?: string;
+      paymentMode?: string;
+      slaMode?: string;
+      warningThresholdMins?: number;
+      breachThresholdMins?: number;
+      escalationPhones?: string[];
+      paymentTiming?: any;
+      checkinPayMode?: string;
+      allowUnpaidCheckout?: boolean;
+      autoSendInvoice?: boolean;
     },
   ) {
-    const { queueIds, ...restData } = data;
+    const { queueIds, paymentTiming, checkinPayMode, allowUnpaidCheckout, autoSendInvoice, ...restData } = data;
     const updateData: any = { ...restData };
 
     if (queueIds !== undefined) {
@@ -300,29 +390,94 @@ export class ServiceService {
     }
 
     if (restData.locationId !== undefined) {
-      if (restData.locationId === null) {
-        updateData.location = { disconnect: true };
+      if (!restData.locationId) {
+        throw new BadRequestException('A service must have a location. Cannot remove location.');
       } else {
         updateData.location = { connect: { id: restData.locationId } };
       }
       delete updateData.locationId;
     }
 
-    return this.prisma.extendedClient.service
+    if (restData.slaMode !== undefined) {
+      if (restData.slaMode === 'Disabled' || restData.slaMode === 'disabled') {
+        updateData.slaPolicy = { disconnect: true };
+      } else {
+        const slaPolicy = await this.prisma.extendedClient.slaPolicy.create({
+          data: {
+            tenantId,
+            name: `${restData.name || data.name || 'Service'} SLA Policy`,
+            warningThresholdMins: restData.warningThresholdMins || 15,
+            breachThresholdMins: restData.breachThresholdMins || 30,
+            escalationPhones: restData.escalationPhones || [],
+          },
+        });
+        updateData.slaPolicy = { connect: { id: slaPolicy.id } };
+      }
+      delete updateData.slaMode;
+      delete updateData.warningThresholdMins;
+      delete updateData.breachThresholdMins;
+      delete updateData.escalationPhones;
+    } else if ('slaPolicyId' in updateData) {
+      if (updateData.slaPolicyId) {
+        updateData.slaPolicy = { connect: { id: updateData.slaPolicyId } };
+      } else {
+        updateData.slaPolicy = { disconnect: true };
+      }
+      delete updateData.slaPolicyId;
+    }
+
+    const result = await this.prisma.extendedClient.service
       .update({
         where: { id_tenantId: { id, tenantId } },
         data: updateData,
+        include: { queues: true },
       })
       .catch(async () => {
         const exists = await this.findOne(id, tenantId);
         return this.prisma.extendedClient.service.update({
           where: { id: exists.id },
           data: updateData,
+          include: { queues: true },
         });
       });
+
+    // Sync queue name if service name was updated
+    if (data.name && result.queues && result.queues.length > 0) {
+      const firstQueue = result.queues[0];
+      await this.prisma.queue.update({
+        where: { id: firstQueue.id },
+        data: { name: `${data.name}'s queue` },
+      });
+    }
+
+    if (
+      paymentTiming !== undefined ||
+      checkinPayMode !== undefined ||
+      allowUnpaidCheckout !== undefined ||
+      autoSendInvoice !== undefined
+    ) {
+      const flowUpdateData: any = {};
+      if (paymentTiming !== undefined) flowUpdateData.paymentTiming = paymentTiming;
+      if (checkinPayMode !== undefined) flowUpdateData.checkinPayMode = checkinPayMode;
+      if (allowUnpaidCheckout !== undefined) flowUpdateData.allowUnpaidCheckout = allowUnpaidCheckout;
+      if (autoSendInvoice !== undefined) flowUpdateData.autoSendInvoice = autoSendInvoice;
+
+      await this.prisma.serviceFlow.updateMany({
+        where: { serviceId: id, tenantId },
+        data: flowUpdateData,
+      });
+    }
+
+    return result;
   }
 
-  async remove(id: string, tenantId: string, strategy?: string, reassignToId?: string, keepHistory?: boolean) {
+  async remove(
+    id: string,
+    tenantId: string,
+    strategy?: string,
+    reassignToId?: string,
+    keepHistory?: boolean,
+  ) {
     const exists = await this.findOne(id, tenantId);
 
     return this.prisma.$transaction(async (tx) => {
@@ -331,12 +486,14 @@ export class ServiceService {
           where: { id: reassignToId, tenantId },
         });
         if (!targetService) {
-          throw new NotFoundException('Target service not found for reassignment');
+          throw new NotFoundException(
+            'Target service not found for reassignment',
+          );
         }
 
         const queuesToReassign = await tx.queue.findMany({
           where: { services: { some: { id } } },
-          include: { services: true }
+          include: { services: true },
         });
 
         for (const queue of queuesToReassign) {
@@ -345,68 +502,84 @@ export class ServiceService {
             data: {
               services: {
                 disconnect: { id },
-                connect: { id: reassignToId }
-              }
-            }
+                connect: { id: reassignToId },
+              },
+            },
           });
         }
 
         await tx.serviceFlow.updateMany({
           where: { serviceId: id },
-          data: { serviceId: reassignToId }
+          data: { serviceId: reassignToId },
         });
 
         await tx.visit.updateMany({
           where: { serviceId: id },
-          data: { serviceId: reassignToId }
-        });
-        
-        await tx.appointment.updateMany({
-          where: { serviceId: id },
-          data: { serviceId: reassignToId }
+          data: { serviceId: reassignToId },
         });
 
+        await tx.appointment.updateMany({
+          where: { serviceId: id },
+          data: { serviceId: reassignToId },
+        });
       } else if (strategy === 'delete_all') {
         const relatedQueues = await tx.queue.findMany({
-          where: { services: { some: { id } } }
+          where: { services: { some: { id } } },
+          include: { services: true },
         });
-        
+
         const relatedWorkflows = await tx.serviceFlow.findMany({
-          where: { serviceId: id }
+          where: { serviceId: id },
         });
 
         if (keepHistory) {
           let archiveService = await tx.service.findFirst({
-            where: { name: 'Archived Services', tenantId }
+            where: { name: 'Archived Services', tenantId },
           });
-          
+
           if (!archiveService) {
             archiveService = await tx.service.create({
               data: {
                 name: 'Archived Services',
                 tenantId,
-                description: 'Container for historical data of deleted services.'
-              }
+                description:
+                  'Container for historical data of deleted services.',
+              },
             });
           }
-          
+
           await tx.visit.updateMany({
             where: { serviceId: id },
-            data: { serviceId: archiveService.id, queueId: null, flowId: null }
+            data: { serviceId: archiveService.id, queueId: null, flowId: null },
           });
-          
+
           await tx.appointment.updateMany({
             where: { serviceId: id },
-            data: { serviceId: archiveService.id }
+            data: { serviceId: archiveService.id },
           });
         }
-        
+
         for (const flow of relatedWorkflows) {
-           await tx.serviceFlow.delete({ where: { id: flow.id } });
+          await tx.serviceFlow.delete({ where: { id: flow.id } });
         }
-        
+
+        // Only delete queues exclusive to this service; for shared queues, disconnect this service
         for (const queue of relatedQueues) {
-           await tx.queue.delete({ where: { id: queue.id } });
+          if (queue.services.length <= 1) {
+            await tx.blockOff.deleteMany({ where: { queueId: queue.id } });
+            await tx.visit.updateMany({
+              where: { queueId: queue.id },
+              data: { queueId: null },
+            });
+            await tx.queue.delete({ where: { id: queue.id } });
+          } else {
+            await tx.queue.update({
+              where: { id: queue.id },
+              data: {
+                services: { disconnect: { id } },
+              },
+            });
+          }
         }
       }
 
@@ -415,6 +588,180 @@ export class ServiceService {
         where: { id: exists.id },
       });
     });
+  }
+
+  async getDeletionImpact(id: string, tenantId: string) {
+    const service = await this.findOne(id, tenantId);
+
+    const queues = await this.prisma.queue.findMany({
+      where: {
+        tenantId,
+        services: { some: { id } },
+      },
+      include: {
+        services: true,
+      },
+    });
+
+    const activeVisitsCount = await this.prisma.visit.count({
+      where: {
+        serviceId: id,
+        tenantId,
+        currentState: {
+          in: ['WAITING', 'CHECKED_IN', 'CALLED', 'IN_SERVICE'],
+        },
+      },
+    });
+
+    const totalVisitsCount = await this.prisma.visit.count({
+      where: { serviceId: id, tenantId },
+    });
+
+    const upcomingAppointmentsCount = await this.prisma.appointment.count({
+      where: {
+        serviceId: id,
+        tenantId,
+        status: { in: ['SCHEDULED', 'CONFIRMED', 'PENDING_APPROVAL'] },
+      },
+    });
+
+    const totalAppointmentsCount = await this.prisma.appointment.count({
+      where: { serviceId: id, tenantId },
+    });
+
+    const serviceFlow = await this.prisma.serviceFlow.findUnique({
+      where: { serviceId: id },
+      include: { steps: true },
+    });
+
+    const queueDetails = queues.map((q) => ({
+      id: q.id,
+      name: q.name,
+      exclusiveToService: q.services.length <= 1,
+      totalLinkedServices: q.services.length,
+      otherServiceNames: q.services
+        .filter((s) => s.id !== id)
+        .map((s) => s.name),
+    }));
+
+    return {
+      service: {
+        id: service.id,
+        name: service.name,
+        locationId: service.locationId,
+      },
+      counts: {
+        queues: queues.length,
+        exclusiveQueues: queueDetails.filter((q) => q.exclusiveToService).length,
+        sharedQueues: queueDetails.filter((q) => !q.exclusiveToService).length,
+        activeVisits: activeVisitsCount,
+        totalVisits: totalVisitsCount,
+        upcomingAppointments: upcomingAppointmentsCount,
+        totalAppointments: totalAppointmentsCount,
+        flowStepsCount: serviceFlow?.steps.length || 0,
+      },
+      queues: queueDetails,
+    };
+  }
+
+  async exportServiceDataZip(id: string, tenantId: string) {
+    const service = await this.prisma.service.findFirst({
+      where: { id, tenantId },
+      include: {
+        location: true,
+        queues: true,
+        serviceFlow: { include: { steps: true } },
+      },
+    });
+
+    if (!service) throw new NotFoundException('Service not found');
+
+    const visits = await this.prisma.visit.findMany({
+      where: { serviceId: id, tenantId },
+      include: { customer: true, queue: true, staff: true, location: true },
+      take: 10000,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const appointments = await this.prisma.appointment.findMany({
+      where: { serviceId: id, tenantId },
+      include: { customer: true, staff: true, location: true },
+      take: 10000,
+      orderBy: { scheduledStart: 'desc' },
+    });
+
+    const zip = new JSZip();
+
+    // 1. Metadata & Service JSON
+    const fullDump = {
+      exportedAt: new Date().toISOString(),
+      service,
+      visitsCount: visits.length,
+      appointmentsCount: appointments.length,
+    };
+    zip.file('metadata.json', JSON.stringify(fullDump, null, 2));
+    zip.file('service.json', JSON.stringify(service, null, 2));
+
+    // 2. Queues CSV
+    const queuesRows = service.queues.map((q) => ({
+      id: q.id,
+      name: q.name,
+      status: q.status,
+      maxCapacity: q.maxCapacity || '',
+      createdAt: q.createdAt,
+    }));
+    zip.file('queues.csv', objectsToCsv(queuesRows));
+
+    // 3. Visits CSV
+    const visitsRows = visits.map((v) => ({
+      id: v.id,
+      displayId: v.displayId || '',
+      customerName: v.customer?.name || '',
+      customerPhone: v.customer?.phone || '',
+      customerEmail: v.customer?.email || '',
+      queueName: v.queue?.name || '',
+      locationName: v.location?.name || '',
+      staffName: v.staff?.name || '',
+      status: v.currentState,
+      source: v.source,
+      priority: v.priority,
+      checkInTime: v.checkInTime || '',
+      serviceStart: v.serviceStart || '',
+      serviceEnd: v.serviceEnd || '',
+      completedAt: v.completedAt || '',
+      createdAt: v.createdAt,
+    }));
+    zip.file('visits.csv', objectsToCsv(visitsRows));
+
+    // 4. Appointments CSV
+    const appointmentsRows = appointments.map((a) => ({
+      id: a.id,
+      customerName: a.customer?.name || '',
+      customerPhone: a.customer?.phone || '',
+      customerEmail: a.customer?.email || '',
+      locationName: a.location?.name || '',
+      staffName: a.staff?.name || '',
+      status: a.status,
+      bookingSource: a.bookingSource,
+      scheduledStart: a.scheduledStart,
+      scheduledEnd: a.scheduledEnd,
+      paymentStatus: a.paymentStatus,
+      customerNotes: a.customerNotes || '',
+      createdAt: a.createdAt,
+    }));
+    zip.file('appointments.csv', objectsToCsv(appointmentsRows));
+
+    const buffer = await zip.generateAsync({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
+    });
+
+    const safeName = service.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `service_${safeName}_backup_${dateStr}.zip`;
+
+    return { filename, buffer };
   }
 
   /**
@@ -610,7 +957,12 @@ export class ServiceService {
     }
 
     const nowMs = Date.now();
-    const result: Array<{ time: string; available: boolean }> = [];
+    const result: Array<{
+      time: string;
+      available: boolean;
+      localTime?: string;
+      displayTime?: string;
+    }> = [];
     let currentMs = startOfDayUTC.getTime();
     const endOfDayMs = endOfDayUTC.getTime();
     const totalSlotDurationMs = (durationMins + bufferMins) * 60000;
@@ -628,9 +980,12 @@ export class ServiceService {
       }
 
       const isBlocked = overlaps >= concurrentSlots;
+      const slotZoned = toZonedTime(new Date(currentMs), timezone);
 
       result.push({
         time: new Date(currentMs).toISOString(),
+        localTime: format(slotZoned, 'HH:mm'),
+        displayTime: format(slotZoned, 'hh:mm a'),
         available: !isPast && !isBlocked,
       });
 

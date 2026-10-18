@@ -12,6 +12,7 @@ import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { RedisService } from '../redis/redis.service';
 import { GoogleService } from '../integrations/google/google.service';
 import { QueueGateway } from '../queue/queue.gateway';
+import { VisitSource } from '@prisma/client';
 
 @Injectable()
 export class AppointmentService {
@@ -26,6 +27,9 @@ export class AppointmentService {
   ) {}
 
   async create(createAppointmentDto: CreateAppointmentDto) {
+    const scheduledStart = new Date(createAppointmentDto.scheduledStart);
+    const scheduledEnd = new Date(createAppointmentDto.scheduledEnd);
+
     // Basic Availability Engine Check (Prevent double booking for same staff at same time)
     if (createAppointmentDto.staffId) {
       const conflict = await this.prisma.appointment.findFirst({
@@ -34,8 +38,8 @@ export class AppointmentService {
           status: { notIn: ['CANCELLED', 'NO_SHOW', 'MISSED'] },
           OR: [
             {
-              scheduledStart: { lt: createAppointmentDto.scheduledEnd },
-              scheduledEnd: { gt: createAppointmentDto.scheduledStart },
+              scheduledStart: { lt: scheduledEnd },
+              scheduledEnd: { gt: scheduledStart },
             },
           ],
         },
@@ -47,8 +51,43 @@ export class AppointmentService {
       }
     }
 
+    const tenantId = createAppointmentDto.tenantId!;
+
+    let customerId = createAppointmentDto.customerId;
+    if (
+      !customerId &&
+      (createAppointmentDto.phone ||
+        createAppointmentDto.email ||
+        createAppointmentDto.customerName)
+    ) {
+      let existingCustomer: any = null;
+      if (createAppointmentDto.phone) {
+        existingCustomer = await this.prisma.customer.findFirst({
+          where: { tenantId, phone: createAppointmentDto.phone },
+        });
+      } else if (createAppointmentDto.email) {
+        existingCustomer = await this.prisma.customer.findFirst({
+          where: { tenantId, email: createAppointmentDto.email },
+        });
+      }
+
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+      } else if (createAppointmentDto.customerName) {
+        const newCustomer = await this.prisma.customer.create({
+          data: {
+            tenantId,
+            name: createAppointmentDto.customerName,
+            phone: createAppointmentDto.phone || null,
+            email: createAppointmentDto.email || null,
+          },
+        });
+        customerId = newCustomer.id;
+      }
+    }
+
     const tenant = await this.prisma.tenant.findUnique({
-      where: { id: createAppointmentDto.tenantId },
+      where: { id: tenantId },
       select: { appointmentApprovalMode: true },
     });
 
@@ -57,11 +96,40 @@ export class AppointmentService {
         ? 'PENDING_APPROVAL'
         : 'SCHEDULED';
 
+    const {
+      customerName: _customerName,
+      phone: _phone,
+      email: _email,
+      queueId: _queueId,
+      notes,
+      ...appointmentData
+    } = createAppointmentDto;
+
+    let normalizedBookingSource: VisitSource = VisitSource.APPOINTMENT;
+    if (appointmentData.bookingSource) {
+      if ((appointmentData.bookingSource as string) === 'RECEPTION_MANUAL') {
+        normalizedBookingSource = VisitSource.RECEPTION;
+      } else {
+        normalizedBookingSource = appointmentData.bookingSource;
+      }
+    }
+
     const appointment = await this.prisma.appointment.create({
       data: {
-        ...createAppointmentDto,
-        tenantId: createAppointmentDto.tenantId!,
-        status: createAppointmentDto.status || status,
+        ...appointmentData,
+        tenantId,
+        customerId: customerId || appointmentData.customerId || null,
+        customerNotes: appointmentData.customerNotes || notes || null,
+        bookingSource: normalizedBookingSource,
+        status: appointmentData.status || status,
+        scheduledStart,
+        scheduledEnd,
+      },
+      include: {
+        customer: true,
+        service: true,
+        staff: true,
+        location: true,
       },
     });
 
@@ -90,7 +158,7 @@ export class AppointmentService {
       where.locationId = locationId;
     }
 
-    if (userTokenPayload.role === 'OPERATOR') {
+    if (userTokenPayload.role === 'MANAGER') {
       const user = await this.prisma.user.findUnique({
         where: { id: userTokenPayload.userId },
       });
@@ -246,6 +314,62 @@ export class AppointmentService {
             .catch((e) => console.error('Failed to send checkin whatsapp', e));
         }
       }
+    } else if (
+      existing.status !== 'CANCELLED' &&
+      updated.status === 'CANCELLED'
+    ) {
+      const reason =
+        (updateAppointmentDto as any).cancelReason ||
+        updateAppointmentDto.notes ||
+        'Cancelled by staff';
+      const formattedDate = new Intl.DateTimeFormat('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }).format(new Date(updated.scheduledStart));
+      if (updated.customer) {
+        const refundNote = (updateAppointmentDto as any).refundApplicable
+          ? ' A refund is being processed.'
+          : '';
+        const message = `Hello ${updated.customer.name}, your appointment scheduled for ${formattedDate} has been cancelled. Reason: ${reason}.${refundNote} Please contact us if you have any questions.`;
+        if (updated.customer.phone) {
+          await this.whatsappService
+            .sendToTenant(updated.tenantId, updated.customer.phone, message)
+            .catch((e) =>
+              console.error('Failed to send cancellation whatsapp', e),
+            );
+        }
+      }
+
+      await this.prisma.visit.updateMany({
+        where: {
+          appointmentId: id,
+          currentState: { notIn: ['COMPLETED', 'CANCELLED', 'NO_SHOW'] },
+        },
+        data: {
+          currentState: 'CANCELLED',
+          completedAt: new Date(),
+          cancelReason: reason,
+        },
+      }).catch((e) => console.error('Failed to cascade cancel visit', e));
+    } else if (
+      existing.status !== 'NO_SHOW' &&
+      updated.status === 'NO_SHOW'
+    ) {
+      await this.prisma.visit.updateMany({
+        where: {
+          appointmentId: id,
+          currentState: { notIn: ['COMPLETED', 'CANCELLED', 'NO_SHOW'] },
+        },
+        data: {
+          currentState: 'NO_SHOW',
+          completedAt: new Date(),
+          cancelReason: 'Customer did not show up (No-Show)',
+        },
+      }).catch((e) => console.error('Failed to cascade no-show visit', e));
     }
 
     // Sync to Google Calendar
@@ -306,31 +430,40 @@ export class AppointmentService {
       orderBy: { scheduledStart: 'asc' },
     });
 
-    // Fetch all visits for the day (walkins + appointment-linked)
+    // Fetch all visits for the day (walkins + scheduled appointments)
     const visits = await this.prisma.visit.findMany({
       where: {
         tenantId,
         ...(locationId ? { locationId } : {}),
-        createdAt: { gte: dayStart, lte: dayEnd },
         currentState: { notIn: ['NO_SHOW', 'CANCELLED'] },
+        OR: [
+          { scheduledTime: { gte: dayStart, lte: dayEnd } },
+          { scheduledTime: null, createdAt: { gte: dayStart, lte: dayEnd } },
+          { checkInTime: { gte: dayStart, lte: dayEnd } },
+          { actualArrival: { gte: dayStart, lte: dayEnd } },
+          { serviceStart: { gte: dayStart, lte: dayEnd } },
+        ],
       },
       include: { customer: true, service: true, staff: true },
       orderBy: { createdAt: 'asc' },
     });
 
-    // Fetch services to get duration data
+    // Fetch services to get duration and operating hours data
     const services = await this.prisma.service.findMany({
       where: { tenantId },
-      select: {
-        id: true,
-        name: true,
-        expectedDuration: true,
-        bufferDuration: true,
-        concurrentSlots: true,
-        allowAppointments: true,
-        appointmentGranularityMins: true,
-        avgActualDurationMins: true,
-        locationId: true,
+      include: {
+        location: true,
+        queues: { select: { id: true, name: true, status: true } },
+      },
+    });
+
+    // Fetch block-offs (scheduled breaks and downtime) for the day
+    const blockOffs = await this.prisma.blockOff.findMany({
+      where: {
+        tenantId,
+        ...(locationId ? { locationId } : {}),
+        startTime: { lte: dayEnd },
+        endTime: { gte: dayStart },
       },
     });
 
@@ -381,6 +514,7 @@ export class AppointmentService {
       visits,
       services,
       serviceStats,
+      blockOffs,
     };
   }
 

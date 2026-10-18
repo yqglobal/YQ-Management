@@ -47,7 +47,17 @@ const CheckoutForm = ({ onSuccess, onBack, onSkip, primaryColor, paymentId }: { 
       setError(confirmError.message || 'Payment failed.');
       setProcessing(false);
     } else {
-      onSuccess(paymentId);
+      // Notify the backend that Stripe has confirmed the payment
+      try {
+        await fetchApi(`/tenant-payments/public/payment/${paymentId}/complete`, {
+          method: 'POST',
+          body: JSON.stringify({ method: 'CARD' })
+        });
+        onSuccess(paymentId);
+      } catch (err: any) {
+        setError(err.message || 'Payment succeeded with Stripe, but failed to update booking status.');
+        setProcessing(false);
+      }
     }
   };
 

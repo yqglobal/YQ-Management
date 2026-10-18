@@ -1,43 +1,66 @@
 import { Page } from '@playwright/test';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'v8499S7TYaCt2MY/Q/jRGCAgVAJolBdO7/iZ/D18foc=';
+
+export function getRoleToken(role: string = 'OWNER', email: string = 'abhimanyu.25bcs10330@sst.scaler.com') {
+  return jwt.sign(
+    {
+      sub: '14886bec-ecfc-4ba9-87d5-d7d74a7e920b',
+      email,
+      role,
+      tenantId: '36543677-acf4-4c04-bfc2-0e96881c2646',
+    },
+    JWT_SECRET,
+    { expiresIn: '30d' }
+  );
+}
+
+export function getAdminToken() {
+  return getRoleToken('OWNER');
+}
 
 /**
- * Mocks the authentication state for a user by setting a JWT cookie.
- * In a real application, you might hit a dedicated /api/test/login endpoint
- * that returns a valid token for the test user.
+ * Pre-authenticates the Playwright page session with a specific role,
+ * injecting it into local storage and cookies, and bypassing modals/cookie consent.
  */
-export async function loginAsAdmin(page: Page) {
-  // Option 1: Navigate to login and fill out the form
-  // await page.goto('/login');
-  // await page.fill('input[name="email"]', 'admin@e2etest.com');
-  // await page.fill('input[name="password"]', 'password123');
-  // await page.click('button[type="submit"]');
-  // await page.waitForURL('/dashboard');
-  
-  // Option 2: Fast auth via setting the cookie directly
-  // This requires knowing the exact cookie name (e.g. 'jwt' or 'Authentication')
-  // We'll simulate standard login for robustness in E2E since testing the login 
-  // flow itself is valuable.
-  
-  await page.goto('/login');
-  // We assume the test user is seeded, but since we didn't seed a hashed password
-  // in global setup, we will mock the API response for login to always succeed for E2E.
-  
-  await page.route('**/api/auth/login', async route => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        user: { id: 'test-admin', email: 'admin@e2etest.com', role: 'ADMIN', tenantId: 'test-tenant' },
-        tenant: { id: 'test-tenant', subdomain: 'e2etest' },
-        token: 'fake-jwt-token'
-      })
-    });
-  });
+export async function loginAsRole(page: Page, role: string = 'OWNER') {
+  const token = getRoleToken(role);
 
-  await page.fill('input[type="email"]', 'admin@e2etest.com');
-  await page.fill('input[type="password"]', 'any-password');
-  await page.click('button[type="submit"]');
-  
-  // Wait for the dashboard to load
-  await page.waitForURL('**/dashboard**');
+  await page.context().addCookies([
+    {
+      name: 'token',
+      value: token,
+      domain: 'localhost',
+      path: '/',
+    }
+  ]);
+
+  // Prime local storage with auth token and modal dismissals
+  await page.addInitScript(({ token }) => {
+    localStorage.setItem('qmover_auth_token', token);
+    localStorage.setItem('token', token);
+    localStorage.setItem('qmova_cookie_consent', JSON.stringify({ necessary: true, analytics: true, functional: true, marketing: true }));
+    localStorage.setItem('qmova_policies_accepted_v1', 'true');
+    localStorage.setItem('qmova_policies_accepted_14886bec-ecfc-4ba9-87d5-d7d74a7e920b', 'true');
+    localStorage.setItem('qmova_plan_welcome_dismissed', 'true');
+    localStorage.setItem('qmova_welcome_seen', 'true');
+    localStorage.setItem('qmova_welcome_seen_v1', 'true');
+    localStorage.setItem('hasSeenIntro', 'true');
+    localStorage.setItem('yq_has_seen_tour', 'true');
+    document.cookie = `token=${token}; path=/; SameSite=Lax`;
+
+    const originalGet = localStorage.getItem.bind(localStorage);
+    localStorage.getItem = (key: string) => {
+      if (typeof key === 'string' && (key.startsWith('plan_welcomed_') || key.includes('welcome') || key.includes('hasSeen') || key.includes('Intro') || key.includes('tour') || key.includes('Tour'))) {
+        return 'true';
+      }
+      return originalGet(key);
+    };
+  }, { token });
 }
+
+export async function loginAsAdmin(page: Page) {
+  return loginAsRole(page, 'OWNER');
+}
+

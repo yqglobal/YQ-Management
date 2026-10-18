@@ -5,10 +5,10 @@ import { fetchApi } from '../lib/api';
 export type PlanStatus = 'TRIAL' | 'ACTIVE' | 'PENDING_PAYMENT' | 'CANCELLED' | 'EXPIRED' | 'PAST_DUE';
 
 export interface PlanLimits {
+  maxServices: number;
   maxQueues: number;
   maxTokens: number; // per month
   maxLocations: number;
-  maxServices: number;
   maxMembers: number;
 }
 
@@ -39,9 +39,13 @@ export interface UsePlanResult {
   trialPermanentlyUsed: boolean;
   isFeatureEnabled: (key: keyof PlanFeatures) => boolean;
   isAtQueueLimit: boolean;
+  isAtServiceLimit: boolean;
+  isAtLocationLimit: boolean;
   isAtTokenLimit: boolean;
   isAtMemberLimit: boolean;
   queueUsagePct: number;
+  serviceUsagePct: number;
+  locationUsagePct: number;
   tokenUsagePct: number;
   memberUsagePct: number;
   subscriptionEndDate: Date | null;
@@ -50,7 +54,7 @@ export interface UsePlanResult {
   hasNoPlan: boolean; // true when status === null and user has a tenantId (needs to pick a plan)
 }
 
-const DEFAULT_LIMITS: PlanLimits = { maxQueues: 1, maxTokens: 100, maxLocations: 1, maxServices: 1, maxMembers: 2 };
+const DEFAULT_LIMITS: PlanLimits = { maxTokens: 100, maxLocations: 1, maxServices: 5, maxQueues: 5, maxMembers: 2 };
 const DEFAULT_FEATURES: PlanFeatures = { whatsappNotifications: false };
 
 function guessTier(planName?: string): UsePlanResult['planTier'] {
@@ -78,7 +82,7 @@ export function usePlan(): UsePlanResult {
 
   const { data: visits = [] } = useQuery({
     queryKey: ['visits'],
-    queryFn: () => fetchApi('/visits').catch(() => []),
+    queryFn: () => fetchApi('/visits').then((res: any) => res.data || res).catch(() => []),
     staleTime: 30_000,
   });
 
@@ -101,18 +105,84 @@ export function usePlan(): UsePlanResult {
   });
 
   return useMemo((): UsePlanResult => {
-    const status = (sub?.status as PlanStatus) ?? null;
-    const canAccess = status === null || status === 'TRIAL' || status === 'ACTIVE' || status === 'PAST_DUE' || status === 'PENDING_PAYMENT';
+    const rawStatus = (sub?.status as PlanStatus) ?? null;
+    const isTrialExpired =
+      rawStatus === 'TRIAL' &&
+      Boolean(sub?.trialEndDate && new Date(sub.trialEndDate) <= new Date());
+    const status: PlanStatus | null = isTrialExpired ? 'EXPIRED' : rawStatus;
+    const canAccess =
+      (status === null ||
+        status === 'TRIAL' ||
+        status === 'ACTIVE' ||
+        status === 'PAST_DUE' ||
+        status === 'PENDING_PAYMENT') &&
+      !isTrialExpired;
     const plan = sub?.plan;
     const planNameRaw: string | null = plan?.name ?? null;
     const planName: string | null = canAccess ? planNameRaw : 'Free';
     const planTier = guessTier(planName ?? undefined);
     const rawLimits = plan?.limits;
-    const parsedLimits = typeof rawLimits === 'string' ? JSON.parse(rawLimits) : rawLimits;
-    const limits: PlanLimits = { ...DEFAULT_LIMITS, ...(parsedLimits as Partial<PlanLimits> ?? {}) };
+    const parsedLimitsRaw = typeof rawLimits === 'string' ? JSON.parse(rawLimits) : rawLimits;
+    
+    // Parse backend limits accurately without stomping on distinct fields
+    const parsedLimits: Partial<PlanLimits> = {};
+    if (parsedLimitsRaw) {
+      if (parsedLimitsRaw.maxServices !== undefined) {
+        parsedLimits.maxServices = Number(parsedLimitsRaw.maxServices);
+      } else if (parsedLimitsRaw.maxQueues !== undefined) {
+        parsedLimits.maxServices = Number(parsedLimitsRaw.maxQueues);
+      }
+
+      if (parsedLimitsRaw.maxQueues !== undefined) {
+        parsedLimits.maxQueues = Number(parsedLimitsRaw.maxQueues);
+      } else if (parsedLimitsRaw.maxServices !== undefined) {
+        parsedLimits.maxQueues = Number(parsedLimitsRaw.maxServices);
+      }
+
+      if (parsedLimitsRaw.maxLocations !== undefined) {
+        parsedLimits.maxLocations = Number(parsedLimitsRaw.maxLocations);
+      }
+
+      if (parsedLimitsRaw.maxStaff !== undefined) {
+        parsedLimits.maxMembers = Number(parsedLimitsRaw.maxStaff);
+      } else if (parsedLimitsRaw.maxMembers !== undefined) {
+        parsedLimits.maxMembers = Number(parsedLimitsRaw.maxMembers);
+      }
+
+      if (parsedLimitsRaw.maxTokens !== undefined) {
+        parsedLimits.maxTokens = Number(parsedLimitsRaw.maxTokens);
+      } else if (parsedLimitsRaw.maxVisits !== undefined) {
+        parsedLimits.maxTokens = Number(parsedLimitsRaw.maxVisits);
+      }
+    }
+    
+    // Super Admin overrides from metadata take precedence
+    const customLimits = (sub?.metadata as any)?.customLimits || {};
+    const normalizedCustomLimits: Partial<PlanLimits> = {};
+    if (customLimits.maxServices !== undefined) normalizedCustomLimits.maxServices = Number(customLimits.maxServices);
+    if (customLimits.maxQueues !== undefined) normalizedCustomLimits.maxQueues = Number(customLimits.maxQueues);
+    if (customLimits.maxLocations !== undefined) normalizedCustomLimits.maxLocations = Number(customLimits.maxLocations);
+    if (customLimits.maxStaff !== undefined) normalizedCustomLimits.maxMembers = Number(customLimits.maxStaff);
+    if (customLimits.maxMembers !== undefined) normalizedCustomLimits.maxMembers = Number(customLimits.maxMembers);
+    if (customLimits.maxTokens !== undefined) normalizedCustomLimits.maxTokens = Number(customLimits.maxTokens);
+    if (customLimits.maxVisits !== undefined) normalizedCustomLimits.maxTokens = Number(customLimits.maxVisits);
+
+    const limits: PlanLimits = { 
+      ...DEFAULT_LIMITS, 
+      ...parsedLimits,
+      ...normalizedCustomLimits 
+    };
+
     const rawFeatures = plan?.features;
     const parsedFeatures = typeof rawFeatures === 'string' ? JSON.parse(rawFeatures) : rawFeatures;
-    const features: PlanFeatures = { ...DEFAULT_FEATURES, ...(parsedFeatures as Partial<PlanFeatures> ?? {}) };
+    
+    // Super Admin overrides from metadata take precedence
+    const customFeatures = (sub?.metadata as any)?.customFeatures || {};
+    const features: PlanFeatures = { 
+      ...DEFAULT_FEATURES, 
+      ...(parsedFeatures as Partial<PlanFeatures> ?? {}),
+      ...customFeatures 
+    };
 
     const isTrialActive = status === 'TRIAL';
     // Use trialEndDate for trial days (not currentPeriodEnd which may be overwritten on activation)
@@ -148,20 +218,19 @@ export function usePlan(): UsePlanResult {
       : 0;
 
     const queueUsagePct = limits.maxQueues > 0 ? Math.min(100, (queueCount / Math.max(1, limits.maxQueues)) * 100) : 0;
+    const serviceUsagePct = limits.maxServices > 0 ? Math.min(100, (serviceCount / Math.max(1, limits.maxServices)) * 100) : 0;
+    const locationUsagePct = limits.maxLocations > 0 ? Math.min(100, (locationCount / Math.max(1, limits.maxLocations)) * 100) : 0;
     const tokenUsagePct = limits.maxTokens > 0 ? Math.min(100, (tokensThisMonth / Math.max(1, limits.maxTokens)) * 100) : 0;
     const memberUsagePct = limits.maxMembers > 0 ? Math.min(100, (memberCount / Math.max(1, limits.maxMembers)) * 100) : 0;
 
     const isAtQueueLimit = queueCount >= limits.maxQueues && limits.maxQueues > 0;
+    const isAtServiceLimit = serviceCount >= limits.maxServices && limits.maxServices > 0;
+    const isAtLocationLimit = locationCount >= limits.maxLocations && limits.maxLocations > 0;
     const isAtTokenLimit = tokensThisMonth >= limits.maxTokens && limits.maxTokens > 0;
     const isAtMemberLimit = memberCount >= limits.maxMembers && limits.maxMembers > 0;
 
     // If status is null (no subscription found — e.g. SUPER_ADMIN or API error), grant access by default.
     // Only block access when we explicitly know the subscription is EXPIRED or CANCELLED.
-    // (canAccess is computed earlier to correctly determine planName)
-    
-    // hasNoPlan is true when there is genuinely no subscription record (status null),
-    // which means the user hasn't started a trial or purchased yet.
-    // Super admins will never have a sub, so callers must guard that separately.
     const hasNoPlan = status === null;
 
     return {
@@ -177,9 +246,13 @@ export function usePlan(): UsePlanResult {
       trialPermanentlyUsed,
       isFeatureEnabled: (key: keyof PlanFeatures) => Boolean(features[key] && canAccess),
       isAtQueueLimit,
+      isAtServiceLimit,
+      isAtLocationLimit,
       isAtTokenLimit,
       isAtMemberLimit,
       queueUsagePct,
+      serviceUsagePct,
+      locationUsagePct,
       tokenUsagePct,
       memberUsagePct,
       subscriptionEndDate,

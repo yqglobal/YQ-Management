@@ -94,7 +94,7 @@ async function fetchWithRetry(
 }
 
 export function getBackendUrl() {
-  let baseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.qmova.yqbuddy.com';
+  let baseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NEXT_PUBLIC_DOMAIN_BASE ? 'https://api.' + process.env.NEXT_PUBLIC_DOMAIN_BASE : 'https://api.qmova.com');
   try {
     if (typeof window !== 'undefined') {
       if (window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1')) {
@@ -164,7 +164,7 @@ export const fetchApi = async <T = AnyFixMe>(endpoint: string, options: RequestI
         console.warn(`[API Auth Error] [${requestId}] ${options.method || 'GET'} ${endpoint} → 401 Unauthorized`);
         if (router && !redirecting) {
           const publicPaths = ['/login', '/register', '/auth/', '/_tenant', '/t/', '/404'];
-          const isPublic = publicPaths.some(p => router.pathname.startsWith(p));
+          const isPublic = publicPaths.some(p => router?.pathname?.startsWith(p));
           if (!isPublic) {
             redirecting = true;
             router.push('/login');

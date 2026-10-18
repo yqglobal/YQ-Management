@@ -10,6 +10,7 @@ import { SocketProvider } from './SocketProvider';
 import { LocationProvider } from './LocationContext';
 import { MaintenanceOverlay } from './MaintenanceOverlay';
 import { ErrorBoundary } from './ErrorBoundary';
+import { UIProvider } from "./UIContext";
 import { setApiRouter } from '../lib/api';
 import CookieConsent from './CookieConsent';
 import dynamic from 'next/dynamic';
@@ -45,7 +46,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && ('workbox' in window) && (window as unknown as { workbox: unknown }).workbox !== undefined) {
-      const wb = (window as unknown as { workbox: unknown }).workbox as { messageSkipWaiting: () => void, addEventListener: (event: string, cb: () => void) => void };
+      const wb = (window as unknown as { workbox: unknown }).workbox as { messageSkipWaiting: () => void, addEventListener: (event: string, cb: () => void) => void, removeEventListener?: (event: string, cb: () => void) => void };
       const handleUpdate = () => {
         toast('A new version of the app is available.', {
           duration: Infinity,
@@ -67,7 +68,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       };
       wb.addEventListener('waiting', handleUpdate);
       return () => {
-        wb.removeEventListener('waiting', handleUpdate);
+        wb.removeEventListener?.('waiting', handleUpdate);
       };
     }
   }, []);
@@ -80,10 +81,12 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
             <LocationProvider>
               <SocketProvider>
                 <TrackingProvider>
-                  <AppRouterSetter />
-                  {children}
-                  <CookieConsent />
-                  <GlobalCommandPalette />
+                  <UIProvider>
+                    <AppRouterSetter />
+                    {children}
+                    <CookieConsent />
+                    <GlobalCommandPalette />
+                  </UIProvider>
                 </TrackingProvider>
               </SocketProvider>
             </LocationProvider>

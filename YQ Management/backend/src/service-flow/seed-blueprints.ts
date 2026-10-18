@@ -36,18 +36,30 @@ async function main() {
         where: { blueprintId: f.id },
       });
 
-      const hasPaymentAtCheckout = tpl.steps.some(s => s.type === 'PAYMENT' && s.stepOrder > tpl.steps.length / 2);
-      const hasPaymentAtCheckin = tpl.steps.some(s => s.type === 'PAYMENT' && s.stepOrder <= tpl.steps.length / 2);
-      const paymentTiming = hasPaymentAtCheckout ? 'CHECKOUT' : hasPaymentAtCheckin ? 'CHECKIN' : 'NONE';
+      const hasPaymentAtCheckout = tpl.steps.some(
+        (s) => s.type === 'PAYMENT' && s.stepOrder > tpl.steps.length / 2,
+      );
+      const hasPaymentAtCheckin = tpl.steps.some(
+        (s) => s.type === 'PAYMENT' && s.stepOrder <= tpl.steps.length / 2,
+      );
+      const paymentTiming = hasPaymentAtCheckout
+        ? 'CHECKOUT'
+        : hasPaymentAtCheckin
+          ? 'CHECKIN'
+          : 'NONE';
 
       await tx.blueprintFlow.update({
         where: { id: f.id },
-        data: { paymentTiming, checkinPayMode: paymentTiming === 'CHECKIN' ? 'ONLINE_OR_COUNTER' : null }
+        data: {
+          paymentTiming,
+          checkinPayMode:
+            paymentTiming === 'CHECKIN' ? 'BOTH' : null,
+        },
       });
 
       // Filter out PAYMENT
-      let newSteps = tpl.steps.filter(s => s.type !== 'PAYMENT');
-      
+      let newSteps = tpl.steps.filter((s) => s.type !== 'PAYMENT');
+
       newSteps.unshift({
         stepOrder: 0,
         name: 'Check-in (Booking)',
@@ -98,6 +110,9 @@ async function main() {
           outcomeOptions: step.outcomeOptions || [],
           stepPrice: step.stepPrice,
           isPriceVariable: step.isPriceVariable || false,
+          expectedDuration: step.expectedDuration,
+          bufferDuration: step.bufferDuration,
+          concurrentSlots: step.concurrentSlots,
         })),
       });
 

@@ -54,7 +54,7 @@ export class WhatsappController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
   @Post('connect')
   async connect(
     @Req() req: AuthenticatedRequest,
@@ -70,7 +70,7 @@ export class WhatsappController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
   @Post('generate-validation-code')
   async generateValidationCode(@Req() req: AuthenticatedRequest) {
     const targetId =
@@ -82,7 +82,7 @@ export class WhatsappController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
   @Post('pairing-code')
   async generatePairingCode(
     @Req() req: AuthenticatedRequest,
@@ -97,7 +97,7 @@ export class WhatsappController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
   @Post('connect-with-code')
   connectWithCode(
     @Req() req: AuthenticatedRequest,
@@ -114,7 +114,7 @@ export class WhatsappController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
   @Post('disconnect')
   disconnect(@Req() req: AuthenticatedRequest) {
     const targetId =
@@ -125,7 +125,7 @@ export class WhatsappController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
   @Post('test')
   testMessage(
     @Req() req: AuthenticatedRequest,
@@ -230,7 +230,7 @@ export class WhatsappController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
   @Post('settings')
   saveChatbotSettings(@Req() req: AuthenticatedRequest, @Body() body: any) {
     const targetId =
