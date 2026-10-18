@@ -1,15 +1,27 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 import {
-  ScanLine, CheckCircle2, Check, XCircle, RefreshCcw, PlayCircle, StopCircle, Loader2, X
-} from 'lucide-react';
-import { fetchApi } from '../lib/api';
-import PhoneInput from 'react-phone-number-input';
-import 'react-phone-number-input/style.css';
-import { useLocation } from './LocationContext';
-import { toast } from 'sonner';
+  ScanLine,
+  CheckCircle2,
+  Check,
+  XCircle,
+  RefreshCcw,
+  PlayCircle,
+  StopCircle,
+  Loader2,
+  X,
+  CameraOff,
+  AlertCircle,
+} from "lucide-react";
+import { fetchApi } from "../lib/api";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+import { detectCountryCode, getInitialCountryIso } from "../lib/country-codes";
+import { useLocation } from "./LocationContext";
+import { toast } from "sonner";
 
-type ScannerStatus = 'idle' | 'scanning' | 'processing' | 'approved' | 'rejected' | 'error';
+type ScannerStatus =
+  "idle" | "scanning" | "processing" | "approved" | "rejected" | "error";
 
 interface ValidationResult {
   valid: boolean;
@@ -28,7 +40,11 @@ interface ValidationResult {
   isAppointment?: boolean;
   scheduledFor?: string;
   checkedIn?: boolean;
-  activeStep?: any;
+  activeStep?: AnyFixMe;
+  completedSteps?: AnyFixMe[];
+  lastCompletedStep?: AnyFixMe;
+  allSteps?: AnyFixMe[];
+  isCompleted?: boolean;
 }
 
 const SCANNER_CONFIG = {
@@ -41,47 +57,51 @@ const SCANNER_CONFIG = {
   rememberLastUsedCamera: true,
 };
 
-export function ScannerInterface({ 
-  mode = 'modal',
+export function ScannerInterface({
+  mode = "modal",
   onClose,
-  onScanSuccess 
-}: { 
-  mode?: 'modal' | 'page';
+  onScanSuccess,
+}: {
+  mode?: "modal" | "page";
   onClose?: () => void;
   onScanSuccess: (data: AnyFixMe) => void;
 }) {
-
   const { activeLocationId } = useLocation();
   const [continuousMode, setContinuousMode] = useState(true); // Default ON
-  const [scannerStatus, setScannerStatus] = useState<ScannerStatus>('idle');
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [scannerStatus, setScannerStatus] = useState<ScannerStatus>("idle");
+  const [validationResult, setValidationResult] =
+    useState<ValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCamera, setSelectedCamera] = useState<string>('');
-  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCamera, setSelectedCamera] = useState<string>("");
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>(
+    [],
+  );
   const [isProcessing, setIsProcessing] = useState(false);
   const [useFrontCamera, setUseFrontCamera] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
-  const [manualTokenId, setManualTokenId] = useState('');
+  const [hasCheckedCameras, setHasCheckedCameras] = useState(false);
+  const [manualTokenId, setManualTokenId] = useState("");
   const [manualProcessing, setManualProcessing] = useState(false);
-  const [lookupTab, setLookupTab] = useState<'token' | 'phone'>('token');
+  const [outcomePrompt, setOutcomePrompt] = useState<string | null>(null);
+  const [lookupTab, setLookupTab] = useState<"token" | "phone">("token");
 
-  const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>('US');
+  const [defaultCountry, setDefaultCountry] = useState<AnyFixMe>(() =>
+    getInitialCountryIso(),
+  );
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('qmova_scanner_country');
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("qmova_scanner_country");
       if (saved) {
         setDefaultCountry(saved);
-      } else {
-        import('../lib/country-codes').then(({ detectCountryCode }) => {
-          detectCountryCode().then((country: any) => {
-             if (country) setDefaultCountry(country.country);
-          });
-        });
+        return;
       }
     }
+    detectCountryCode().then((country: any) => {
+      if (country) setDefaultCountry(country.country);
+    });
   }, []);
-  const [manualPhone, setManualPhone] = useState('');
+  const [manualPhone, setManualPhone] = useState("");
   const [phoneProcessing, setPhoneProcessing] = useState(false);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -105,46 +125,83 @@ export function ScannerInterface({
         }
         scannerRef.current = null;
       }
-      setScannerStatus('idle');
+      setScannerStatus("idle");
     }, IDLE_TIMEOUT_MS);
   };
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const handler = (event: PromiseRejectionEvent) => {
-      const message = event.reason instanceof Error ? event.reason.message : String(event.reason);
-      if (message.includes('play()') && message.includes('removed from the document')) {
+      const message =
+        event.reason instanceof Error
+          ? event.reason.message
+          : String(event.reason);
+      if (
+        message.includes("play()") &&
+        message.includes("removed from the document")
+      ) {
         event.preventDefault();
       }
     };
-    window.addEventListener('unhandledrejection', handler);
-    return () => window.removeEventListener('unhandledrejection', handler);
+    window.addEventListener("unhandledrejection", handler);
+    return () => window.removeEventListener("unhandledrejection", handler);
   }, []);
 
-   const getCameras = useCallback(async () => {
+  const getCameras = useCallback(async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-        setError('Camera API not supported in this browser or over insecure HTTP.');
+        setError(
+          "Camera API not supported in this browser or over insecure connection.",
+        );
+        setHasCheckedCameras(true);
         return;
       }
 
-      let devices = await navigator.mediaDevices.enumerateDevices();
-      let videoDevices = devices.filter((device) => device.kind === 'videoinput');
+      let devices: MediaDeviceInfo[] = [];
+      try {
+        devices = await navigator.mediaDevices.enumerateDevices();
+      } catch (enumErr) {
+        console.warn("Error enumerating devices:", enumErr);
+      }
+      let videoDevices = devices.filter(
+        (device) => device.kind === "videoinput",
+      );
 
-      if (videoDevices.length === 0 || (videoDevices.length > 0 && !videoDevices[0].label)) {
+      if (
+        videoDevices.length === 0 ||
+        (videoDevices.length > 0 && !videoDevices[0].label)
+      ) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          stream.getTracks().forEach(track => track.stop());
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          stream.getTracks().forEach((track) => track.stop());
           devices = await navigator.mediaDevices.enumerateDevices();
-          videoDevices = devices.filter((device) => device.kind === 'videoinput');
-        } catch (e) {
-          console.warn('Initial silent camera permission request failed or denied:', e);
+          videoDevices = devices.filter(
+            (device) => device.kind === "videoinput",
+          );
+        } catch (e: any) {
+          const isNotFound =
+            e?.name === "NotFoundError" ||
+            String(e?.message || e).includes("Requested device not found");
+          if (isNotFound) {
+            setError(
+              "No camera device detected on this system. You can enter ticket IDs manually.",
+            );
+            setAvailableCameras([]);
+            setHasCheckedCameras(true);
+            return;
+          }
+          console.warn(
+            "Initial camera permission request failed or denied:",
+            e,
+          );
         }
       }
 
       const sortedCameras = [...videoDevices].sort((a, b) => {
-        const aIsFront = a.label.toLowerCase().includes('front');
-        const bIsFront = b.label.toLowerCase().includes('front');
+        const aIsFront = a.label.toLowerCase().includes("front");
+        const bIsFront = b.label.toLowerCase().includes("front");
         return aIsFront === bIsFront ? 0 : aIsFront ? 1 : -1;
       });
 
@@ -152,14 +209,31 @@ export function ScannerInterface({
 
       if (sortedCameras.length > 0) {
         const defaultCamera = useFrontCamera
-          ? sortedCameras.find(c => c.label.toLowerCase().includes('front')) || sortedCameras[0]
-          : sortedCameras.find(c => !c.label.toLowerCase().includes('front')) || sortedCameras[0];
+          ? sortedCameras.find((c) =>
+              c.label.toLowerCase().includes("front"),
+            ) || sortedCameras[0]
+          : sortedCameras.find(
+              (c) => !c.label.toLowerCase().includes("front"),
+            ) || sortedCameras[0];
         setSelectedCamera(defaultCamera?.deviceId || sortedCameras[0].deviceId);
       } else {
-        setError('No camera devices found. Please connect a camera and check permissions.');
+        setError(
+          "No camera device detected on this system. You can enter ticket IDs manually.",
+        );
       }
-    } catch {
-      setError('Unable to access camera. Please check permissions.');
+    } catch (err: any) {
+      const isNotFound =
+        err?.name === "NotFoundError" ||
+        String(err?.message || err).includes("Requested device not found");
+      if (isNotFound) {
+        setError(
+          "No camera device detected on this system. You can enter ticket IDs manually.",
+        );
+      } else {
+        setError("Unable to access camera. Please check permissions.");
+      }
+    } finally {
+      setHasCheckedCameras(true);
     }
   }, [useFrontCamera]);
 
@@ -167,21 +241,39 @@ export function ScannerInterface({
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       await getCameras();
-    } catch {
-      setError('Camera permission denied. Please allow camera access and try again.');
+    } catch (e: any) {
+      const isNotFound =
+        e?.name === "NotFoundError" ||
+        String(e?.message || e).includes("Requested device not found");
+      if (isNotFound) {
+        setError(
+          "No camera device detected on this system. You can enter ticket IDs manually.",
+        );
+      } else {
+        setError(
+          "Camera permission denied. Please allow camera access and try again.",
+        );
+      }
     }
   }, [getCameras]);
 
   const initializeScanner = useCallback(async () => {
     if (scannerRef.current || manualStopRef.current) return;
 
+    if (hasCheckedCameras && availableCameras.length === 0 && !selectedCamera) {
+      setError(
+        "No camera device detected on this system. You can enter ticket IDs manually.",
+      );
+      return;
+    }
+
     setIsInitializing(true);
     setError(null);
 
     try {
-      const html5QrCode = new Html5Qrcode('reader');
+      const html5QrCode = new Html5Qrcode("reader");
       const config = { ...SCANNER_CONFIG };
 
       const onScanSuccess = async (decodedText: string) => {
@@ -191,7 +283,7 @@ export function ScannerInterface({
 
         if (isProcessing) return;
         setIsProcessing(true);
-        setScannerStatus('processing');
+        setScannerStatus("processing");
 
         try {
           await html5QrCode.pause();
@@ -202,15 +294,16 @@ export function ScannerInterface({
           }
 
           if (!decodedText || decodedText.length < 5) {
-            throw new Error('Invalid QR code format');
+            throw new Error("Invalid QR code format");
           }
 
-          const result = await fetchApi('/visits/validate', {
-            method: 'POST',
-            body: JSON.stringify({ 
+          const result = await fetchApi("/visits/validate", {
+            method: "POST",
+            body: JSON.stringify({
               tokenId: decodedText,
-              locationId: activeLocationId === 'all' ? undefined : activeLocationId
-            })
+              locationId:
+                activeLocationId === "all" ? undefined : activeLocationId,
+            }),
           });
 
           const validationResult: ValidationResult = {
@@ -233,20 +326,23 @@ export function ScannerInterface({
           };
 
           setValidationResult(validationResult);
-          setScannerStatus(validationResult.valid ? 'approved' : 'rejected');
+          setScannerStatus(validationResult.valid ? "approved" : "rejected");
 
           setTimeout(() => {
-            setScannerStatus('scanning');
-            try { html5QrCode.resume(); } catch (e) { console.error(e); }
+            setScannerStatus("scanning");
+            try {
+              html5QrCode.resume();
+            } catch (e) {
+              console.error(e);
+            }
             resetIdleTimer();
           }, 3000);
-
         } catch (e: unknown) {
-          let status = 'Invalid QR Code';
-          let reason = 'Unknown error';
+          let status = "Invalid QR Code";
+          let reason = "Unknown error";
           if (e instanceof Error) {
             reason = e.message;
-            status = 'Rejected';
+            status = "Rejected";
           }
 
           setValidationResult({
@@ -255,14 +351,17 @@ export function ScannerInterface({
             reason,
             tokenId: decodedText,
           });
-          setScannerStatus('rejected');
+          setScannerStatus("rejected");
 
           setTimeout(() => {
-            setScannerStatus('scanning');
-            try { html5QrCode.resume(); } catch (e) { console.error(e); }
+            setScannerStatus("scanning");
+            try {
+              html5QrCode.resume();
+            } catch (e) {
+              console.error(e);
+            }
             resetIdleTimer();
           }, 3000);
-
         } finally {
           setIsProcessing(false);
         }
@@ -274,37 +373,86 @@ export function ScannerInterface({
 
       try {
         if (selectedCamera) {
-          await html5QrCode.start(selectedCamera, config, onScanSuccess, onScanFailure);
-        } else {
-          throw new Error('No selected camera ID, trying facingMode fallback');
-        }
-      } catch (primaryErr) {
-        console.warn('Failed starting with selectedCamera ID, falling back to facingMode:', primaryErr);
-        try {
           await html5QrCode.start(
-            { facingMode: useFrontCamera ? 'user' : 'environment' },
+            selectedCamera,
             config,
             onScanSuccess,
-            onScanFailure
+            onScanFailure,
           );
-        } catch (secondaryErr) {
-          console.warn('Failed starting with environment facingMode, trying user/default webcam:', secondaryErr);
-          await html5QrCode.start({ facingMode: 'user' }, config, onScanSuccess, onScanFailure);
+        } else {
+          throw new Error("No selected camera ID, trying facingMode fallback");
+        }
+      } catch (primaryErr: any) {
+        const isNotFound =
+          primaryErr?.name === "NotFoundError" ||
+          String(primaryErr?.message || primaryErr).includes(
+            "Requested device not found",
+          );
+        if (isNotFound) {
+          throw primaryErr;
+        }
+        console.warn(
+          "Failed starting with selectedCamera ID, falling back to facingMode:",
+          primaryErr,
+        );
+        try {
+          await html5QrCode.start(
+            { facingMode: useFrontCamera ? "user" : "environment" },
+            config,
+            onScanSuccess,
+            onScanFailure,
+          );
+        } catch (secondaryErr: any) {
+          const isSecNotFound =
+            secondaryErr?.name === "NotFoundError" ||
+            String(secondaryErr?.message || secondaryErr).includes(
+              "Requested device not found",
+            );
+          if (isSecNotFound) {
+            throw secondaryErr;
+          }
+          console.warn(
+            "Failed starting with environment facingMode, trying user/default webcam:",
+            secondaryErr,
+          );
+          await html5QrCode.start(
+            { facingMode: "user" },
+            config,
+            onScanSuccess,
+            onScanFailure,
+          );
         }
       }
 
       scannerRef.current = html5QrCode;
-      setScannerStatus('scanning');
+      setScannerStatus("scanning");
       resetIdleTimer();
-
     } catch (err: AnyFixMe) {
-      console.error('Final scanner initialization error:', err);
-      setError('Failed to initialize camera scanner. Please check permissions or select a different camera.');
-      setScannerStatus('error');
+      const isNotFound =
+        err?.name === "NotFoundError" ||
+        String(err?.message || err).includes("Requested device not found");
+      if (isNotFound) {
+        setError(
+          "No camera device detected on this system. You can enter ticket IDs manually.",
+        );
+        setScannerStatus("idle");
+      } else {
+        console.error("Final scanner initialization error:", err);
+        setError(
+          "Failed to initialize camera scanner. Please check permissions or select a different camera.",
+        );
+        setScannerStatus("error");
+      }
     } finally {
       setIsInitializing(false);
     }
-  }, [selectedCamera, isProcessing, useFrontCamera]);
+  }, [
+    selectedCamera,
+    isProcessing,
+    useFrontCamera,
+    hasCheckedCameras,
+    availableCameras.length,
+  ]);
 
   const cleanupScanner = useCallback(async () => {
     if (scannerRef.current) {
@@ -329,15 +477,38 @@ export function ScannerInterface({
     }
     setError(null);
     setValidationResult(null);
+
+    if (hasCheckedCameras && availableCameras.length === 0 && !selectedCamera) {
+      setError(
+        "No camera device detected on this system. You can enter ticket IDs manually.",
+      );
+      return;
+    }
+
     if (!selectedCamera && availableCameras.length === 0) {
       try {
         await requestCameraPermission();
-      } catch (e) {
-        console.warn('Camera request failed:', e);
+      } catch (e: any) {
+        const isNotFound =
+          e?.name === "NotFoundError" ||
+          String(e?.message || e).includes("Requested device not found");
+        if (isNotFound) {
+          setError(
+            "No camera device detected on this system. You can enter ticket IDs manually.",
+          );
+          return;
+        }
+        console.warn("Camera request failed:", e);
       }
     }
     await initializeScanner();
-  }, [selectedCamera, availableCameras, initializeScanner, requestCameraPermission]);
+  }, [
+    selectedCamera,
+    availableCameras,
+    initializeScanner,
+    requestCameraPermission,
+    hasCheckedCameras,
+  ]);
 
   const stopScanning = useCallback(async () => {
     setIsInitializing(false);
@@ -347,26 +518,26 @@ export function ScannerInterface({
       idleTimerRef.current = null;
     }
     await cleanupScanner();
-    setScannerStatus('idle');
+    setScannerStatus("idle");
   }, [cleanupScanner]);
 
   const validateManualToken = useCallback(async () => {
     if (!manualTokenId.trim()) {
-      setError('Please enter a token ID');
+      setError("Please enter a token ID");
       return;
     }
 
     setManualProcessing(true);
     setError(null);
     setValidationResult(null);
-    setScannerStatus('processing');
+    setScannerStatus("processing");
 
     try {
-      const result = await fetchApi('/visits/validate', {
-        method: 'POST',
-        body: JSON.stringify({ 
+      const result = await fetchApi("/visits/validate", {
+        method: "POST",
+        body: JSON.stringify({
           tokenId: manualTokenId.trim(),
-          locationId: activeLocationId === 'all' ? undefined : activeLocationId
+          locationId: activeLocationId === "all" ? undefined : activeLocationId,
         }),
       });
 
@@ -390,14 +561,14 @@ export function ScannerInterface({
       };
 
       setValidationResult(validationResult);
-      setScannerStatus(validationResult.valid ? 'approved' : 'rejected');
+      setScannerStatus(validationResult.valid ? "approved" : "rejected");
     } catch (e: unknown) {
-      let status = 'Invalid Token';
-      let reason = 'Unknown error';
+      let status = "Invalid Token";
+      let reason = "Unknown error";
 
       if (e instanceof Error) {
         reason = e.message;
-        status = 'Rejected';
+        status = "Rejected";
       }
 
       setValidationResult({
@@ -406,7 +577,7 @@ export function ScannerInterface({
         reason,
         tokenId: manualTokenId.trim(),
       });
-      setScannerStatus('rejected');
+      setScannerStatus("rejected");
     } finally {
       setManualProcessing(false);
     }
@@ -415,96 +586,149 @@ export function ScannerInterface({
   const handleCheckIn = useCallback(async () => {
     if (!validationResult?.tokenId) return;
     try {
-      await fetchApi(`/visits/${validationResult.tokenId}/checkin`, { method: 'POST' });
-      setValidationResult((prev) => prev ? { ...prev, checkedIn: true, status: 'WAITING' } : prev);
-      
+      await fetchApi(`/visits/${validationResult.tokenId}/checkin`, {
+        method: "POST",
+      });
+      setValidationResult((prev) =>
+        prev ? { ...prev, checkedIn: true, status: "WAITING" } : prev,
+      );
+
       if (continuousMode) {
-        toast.success(`Checked in ${validationResult.customerName || 'customer'} successfully!`);
+        toast.success(
+          `Checked in ${validationResult.customerName || "customer"} successfully!`,
+        );
         // Reset scanner after 1.5s
         setTimeout(() => {
           setValidationResult(null);
-          setScannerStatus('scanning');
+          setScannerStatus("scanning");
         }, 1500);
       } else {
-        onScanSuccess({ ...validationResult, checkedIn: true, status: 'WAITING' });
+        onScanSuccess({
+          ...validationResult,
+          checkedIn: true,
+          status: "WAITING",
+        });
       }
     } catch (e: AnyFixMe) {
-      alert(e.message || 'Failed to check in');
+      toast.error(e.message || "Failed to check in");
     }
   }, [validationResult, onScanSuccess, continuousMode]);
 
+  const executeAdvanceStep = useCallback(
+    async (outcome: string) => {
+      if (!validationResult?.activeStep?.id) return;
+      try {
+        // If it's a CHECKPOINT, we first activate it, then advance it.
+        await fetchApi(
+          `/visit-steps/${validationResult.activeStep.id}/activate`,
+          { method: "POST" },
+        );
+        await fetchApi(
+          `/visit-steps/${validationResult.activeStep.id}/advance`,
+          { method: "POST", body: JSON.stringify({ outcome }) },
+        );
+        setValidationResult((prev) =>
+          prev ? { ...prev, status: "Advanced" } : prev,
+        );
+        onScanSuccess({
+          ...validationResult,
+          checkedIn: true,
+          status: "Advanced",
+        });
+      } catch (e: AnyFixMe) {
+        toast.error(e.message || "Failed to advance step");
+      } finally {
+        setOutcomePrompt(null);
+      }
+    },
+    [validationResult, onScanSuccess],
+  );
+
   const handleAdvanceStep = useCallback(async () => {
-    if (!validationResult?.activeStep?.id) return;
-    try {
-      // If it's a CHECKPOINT, we first activate it, then advance it.
-      await fetchApi(`/visit-steps/${validationResult.activeStep.id}/activate`, { method: 'POST' });
-      await fetchApi(`/visit-steps/${validationResult.activeStep.id}/advance`, { method: 'POST', body: JSON.stringify({ outcome: 'Cleared' }) });
-      setValidationResult((prev) => prev ? { ...prev, status: 'Advanced' } : prev);
-      onScanSuccess({ ...validationResult, checkedIn: true, status: 'Advanced' });
-    } catch (e: AnyFixMe) {
-      alert(e.message || 'Failed to advance step');
+    const options =
+      validationResult?.activeStep?.templateStep?.outcomeOptions || [];
+    if (options.length > 0 && validationResult?.activeStep?.id) {
+      setOutcomePrompt(validationResult.activeStep.id);
+    } else {
+      executeAdvanceStep("Cleared");
     }
-  }, [validationResult, onScanSuccess]);
+  }, [validationResult, executeAdvanceStep]);
 
   const handleSkipStep = useCallback(async () => {
     if (!validationResult?.activeStep?.id) return;
-    if (!confirm('Are you sure you want to skip this step?')) return;
+    if (!confirm("Are you sure you want to skip this step?")) return;
     try {
-      await fetchApi(`/visit-steps/${validationResult.activeStep.id}/skip`, { method: 'POST' });
-      setValidationResult((prev) => prev ? { ...prev, status: 'Skipped' } : prev);
-      onScanSuccess({ ...validationResult, checkedIn: true, status: 'Skipped' });
+      await fetchApi(`/visit-steps/${validationResult.activeStep.id}/skip`, {
+        method: "POST",
+      });
+      setValidationResult((prev) =>
+        prev ? { ...prev, status: "Skipped" } : prev,
+      );
+      onScanSuccess({
+        ...validationResult,
+        checkedIn: true,
+        status: "Skipped",
+      });
     } catch (e: AnyFixMe) {
-      alert(e.message || 'Failed to skip step');
+      toast.error(e.message || "Failed to skip step");
     }
   }, [validationResult, onScanSuccess]);
 
-  const handleRedeem = useCallback(async (quantity: number) => {
-    if (!validationResult?.activeStep?.id) return;
-    try {
-      await fetchApi(`/visit-steps/${validationResult.activeStep.id}/redeem`, { 
-        method: 'POST',
-        body: JSON.stringify({ quantity, notes: 'Redeemed via scanner' })
-      });
-      // Re-validate to get updated state
-      validateManualToken(); 
-    } catch (e: AnyFixMe) {
-      alert(e.message || 'Failed to redeem');
-    }
-  }, [validationResult?.activeStep?.id, validateManualToken]);
+  const handleRedeem = useCallback(
+    async (quantity: number) => {
+      if (!validationResult?.activeStep?.id) return;
+      try {
+        await fetchApi(
+          `/visit-steps/${validationResult.activeStep.id}/redeem`,
+          {
+            method: "POST",
+            body: JSON.stringify({ quantity, notes: "Redeemed via scanner" }),
+          },
+        );
+        // Re-validate to get updated state
+        validateManualToken();
+      } catch (e: AnyFixMe) {
+        toast.error(e.message || "Failed to redeem");
+      }
+    },
+    [validationResult?.activeStep?.id, validateManualToken],
+  );
 
   const lookupByPhone = useCallback(async () => {
     if (!manualPhone.trim()) {
-      setError('Please enter a phone number');
+      setError("Please enter a phone number");
       return;
     }
     setPhoneProcessing(true);
     setError(null);
     setValidationResult(null);
-    setScannerStatus('processing');
+    setScannerStatus("processing");
     try {
-      const result = await fetchApi(`/customers/by-phone?phone=${encodeURIComponent(manualPhone.trim())}`);
-      if (!result) throw new Error('No customer found with this phone number');
+      const result = await fetchApi(
+        `/customers/by-phone?phone=${encodeURIComponent(manualPhone.trim())}`,
+      );
+      if (!result) throw new Error("No customer found with this phone number");
       // Build a pseudo validation result from customer record
       const latest = result.visits?.[0];
       setValidationResult({
         valid: true,
-        status: 'FOUND',
+        status: "FOUND",
         tokenId: latest?.id || result.id,
-        customerName: result.name || 'Unknown',
-        queueName: latest?.queue?.name || '—',
+        customerName: result.name || "Unknown",
+        queueName: latest?.queue?.name || "—",
         phone: result.phone,
         joinedAt: latest?.createdAt,
         queueId: latest?.queueId,
       });
-      setScannerStatus('approved');
+      setScannerStatus("approved");
     } catch (e: AnyFixMe) {
       setValidationResult({
         valid: false,
-        status: 'Not Found',
-        reason: e?.message || 'No customer found with this phone number.',
+        status: "Not Found",
+        reason: e?.message || "No customer found with this phone number.",
         tokenId: manualPhone.trim(),
       });
-      setScannerStatus('rejected');
+      setScannerStatus("rejected");
     } finally {
       setPhoneProcessing(false);
     }
@@ -519,24 +743,40 @@ export function ScannerInterface({
 
   useEffect(() => {
     if (validationResult && resultContainerRef.current) {
-      resultContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      resultContainerRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     }
   }, [validationResult]);
 
   useEffect(() => {
-    if (scannerStatus === 'idle' && !manualStopRef.current) {
+    if (
+      hasCheckedCameras &&
+      (availableCameras.length > 0 || selectedCamera) &&
+      scannerStatus === "idle" &&
+      !manualStopRef.current
+    ) {
       const timer = setTimeout(() => {
         startScanning();
       }, 400);
       return () => clearTimeout(timer);
     }
-  }, [scannerStatus, startScanning]);
+  }, [
+    hasCheckedCameras,
+    availableCameras.length,
+    selectedCamera,
+    scannerStatus,
+    startScanning,
+  ]);
 
   useEffect(() => {
     if (availableCameras.length > 0) {
       const newCamera = useFrontCamera
-        ? availableCameras.find(c => c.label.toLowerCase().includes('front'))
-        : availableCameras.find(c => !c.label.toLowerCase().includes('front'));
+        ? availableCameras.find((c) => c.label.toLowerCase().includes("front"))
+        : availableCameras.find(
+            (c) => !c.label.toLowerCase().includes("front"),
+          );
 
       if (newCamera && newCamera.deviceId !== selectedCamera) {
         setSelectedCamera(newCamera.deviceId);
@@ -545,8 +785,10 @@ export function ScannerInterface({
   }, [useFrontCamera, availableCameras, selectedCamera]);
 
   const innerContent = (
-    <div className={`bg-surface dark:bg-dark-surface w-full overflow-hidden flex flex-col border border-border dark:border-dark-border ${mode === 'page' ? 'h-full min-h-[700px] rounded-2xl shadow-sm' : 'max-w-5xl max-h-full rounded-2xl shadow-2xl'}`}>
-        
+    <>
+      <div
+        className={`bg-surface dark:bg-dark-surface w-full overflow-hidden flex flex-col border border-border dark:border-dark-border ${mode === "page" ? "h-full min-h-[700px] rounded-2xl shadow-sm" : "max-w-5xl max-h-full rounded-2xl shadow-2xl"}`}
+      >
         <div className="flex items-center justify-between p-4 border-b border-border dark:border-dark-border bg-surface-container-low dark:bg-inverse-surface">
           <h2 className="text-xl font-bold text-on-surface dark:text-white flex items-center gap-2">
             <ScanLine className="w-5 h-5 text-primary" />
@@ -554,14 +796,27 @@ export function ScannerInterface({
           </h2>
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer bg-surface dark:bg-dark-surface px-3 py-1.5 rounded-full border border-border dark:border-dark-border shadow-sm">
-              <span className="text-xs font-bold text-gray-700 dark:text-zinc-300">Continuous Mode</span>
+              <span className="text-xs font-bold text-gray-700 dark:text-zinc-300">
+                Continuous Mode
+              </span>
               <div className="relative inline-block w-8 mr-2 align-middle select-none transition duration-200 ease-in">
-                <input type="checkbox" checked={continuousMode} onChange={(e) => setContinuousMode(e.target.checked)} className="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300 checked:border-primary checked:right-0 checked:bg-primary transition-all" />
+                <input
+                  type="checkbox"
+                  checked={continuousMode}
+                  onChange={(e) => setContinuousMode(e.target.checked)}
+                  className="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300 checked:border-primary checked:right-0 checked:bg-primary transition-all"
+                />
                 <label className="toggle-label block overflow-hidden h-4 rounded-full bg-gray-300 cursor-pointer"></label>
               </div>
             </label>
             {onClose && (
-              <button onClick={() => { stopScanning(); onClose(); }} className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors">
+              <button
+                onClick={() => {
+                  stopScanning();
+                  onClose();
+                }}
+                className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors"
+              >
                 <X className="w-5 h-5" />
               </button>
             )}
@@ -573,28 +828,50 @@ export function ScannerInterface({
             {/* Left Column (Scanner) */}
             <div className="flex flex-col gap-6">
               <div className="bg-card dark:bg-dark-card rounded-2xl border border-border dark:border-dark-border p-6 shadow-sm flex-1 flex flex-col">
-                
                 <div className="aspect-square max-h-[340px] w-full mx-auto rounded-xl bg-zinc-950 relative overflow-hidden mb-6 shadow-inner flex items-center justify-center">
-                  <div id="reader" className="absolute inset-0 w-full h-full flex items-center justify-center"></div>
-                  
+                  <div
+                    id="reader"
+                    className="absolute inset-0 w-full h-full flex items-center justify-center"
+                  ></div>
+
                   {isInitializing && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-white bg-black/50">
-                      <Loader2 strokeWidth={1.5} className="w-8 h-8 animate-spin mb-2" />
+                      <Loader2
+                        strokeWidth={1.5}
+                        className="w-8 h-8 animate-spin mb-2"
+                      />
                       <span className="text-sm">Initializing Camera...</span>
                     </div>
                   )}
-                  
+
+                  {hasCheckedCameras &&
+                    availableCameras.length === 0 &&
+                    !isInitializing && (
+                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-zinc-400 bg-zinc-900/90 p-4 text-center">
+                        <CameraOff className="w-10 h-10 mb-2 opacity-60 text-zinc-400" />
+                        <span className="text-sm font-semibold text-zinc-200">
+                          No Camera Detected
+                        </span>
+                        <span className="text-xs text-zinc-400 mt-1 max-w-[240px]">
+                          No video camera was found on this system. You can look
+                          up tickets manually below.
+                        </span>
+                      </div>
+                    )}
+
                   <div className="absolute top-8 left-8 w-8 h-8 border-t-2 border-l-2 border-white/80 rounded-tl-lg pointer-events-none z-10"></div>
                   <div className="absolute top-8 right-8 w-8 h-8 border-t-2 border-r-2 border-white/80 rounded-tr-lg pointer-events-none z-10"></div>
                   <div className="absolute bottom-8 left-8 w-8 h-8 border-b-2 border-l-2 border-white/80 rounded-bl-lg pointer-events-none z-10"></div>
                   <div className="absolute bottom-8 right-8 w-8 h-8 border-b-2 border-r-2 border-white/80 rounded-br-lg pointer-events-none z-10"></div>
-                  
+
                   {availableCameras.length > 1 && (
                     <div className="absolute top-4 right-4 z-20">
                       <button
                         onClick={() => {
                           setUseFrontCamera(!useFrontCamera);
-                          stopScanning().then(() => setTimeout(() => startScanning(), 100));
+                          stopScanning().then(() =>
+                            setTimeout(() => startScanning(), 100),
+                          );
                         }}
                         className="bg-black/60 backdrop-blur-sm text-white p-2 rounded-full border border-white/20 hover:bg-black/80 transition-colors shadow-lg"
                       >
@@ -602,50 +879,91 @@ export function ScannerInterface({
                       </button>
                     </div>
                   )}
-                  
-                  {scannerStatus === 'scanning' && (
+
+                  {scannerStatus === "scanning" && (
                     <div className="absolute left-[12.5%] top-1/2 -translate-y-1/2 h-0.5 w-3/4 bg-primary/80 shadow-[0_0_15px_rgba(0,97,148,0.5)] z-10 pointer-events-none"></div>
                   )}
-                  
+
                   <div className="absolute bottom-4 z-10 w-full flex justify-between px-4 items-center">
                     <span className="text-white text-xs font-data-mono tracking-widest uppercase bg-black/50 px-2 py-1 rounded">
-                      {scannerStatus === 'scanning' ? 'Awaiting QR...' : scannerStatus === 'processing' ? 'Validating...' : 'Stopped'}
+                      {availableCameras.length === 0
+                        ? "Manual Mode"
+                        : scannerStatus === "scanning"
+                          ? "Awaiting QR..."
+                          : scannerStatus === "processing"
+                            ? "Validating..."
+                            : "Stopped"}
                     </span>
-                    {scannerStatus === 'scanning' ? (
-                       <button onClick={stopScanning} className="bg-red-500 text-white p-1 rounded-full"><StopCircle className="w-5 h-5"/></button>
-                    ) : (
-                       <button onClick={startScanning} className="bg-primary text-white p-1 rounded-full"><PlayCircle className="w-5 h-5"/></button>
-                    )}
+                    {availableCameras.length > 0 &&
+                      (scannerStatus === "scanning" ? (
+                        <button
+                          onClick={stopScanning}
+                          className="bg-red-500 text-white p-1 rounded-full"
+                        >
+                          <StopCircle className="w-5 h-5" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={startScanning}
+                          className="bg-primary text-white p-1 rounded-full"
+                        >
+                          <PlayCircle className="w-5 h-5" />
+                        </button>
+                      ))}
                   </div>
                 </div>
 
+                {error && (
+                  <div className="p-3 mb-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
                 <div className="mt-auto">
                   <div className="flex items-center gap-1 bg-surface-container-low dark:bg-dark-canvas border border-border dark:border-dark-border rounded-xl p-1 mb-4">
-                    {(['token', 'phone'] as const).map(t => (
+                    {(["token", "phone"] as const).map((t) => (
                       <button
                         key={t}
-                        onClick={() => { setLookupTab(t); setError(null); }}
+                        onClick={() => {
+                          setLookupTab(t);
+                          setError(null);
+                        }}
                         className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all capitalize ${
-                          lookupTab === t ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant'
+                          lookupTab === t
+                            ? "bg-primary text-white shadow-sm"
+                            : "text-on-surface-variant"
                         }`}
                       >
-                        {t === 'token' ? 'Token ID' : 'Phone Number'}
+                        {t === "token" ? "Token ID" : "Phone Number"}
                       </button>
                     ))}
                   </div>
 
-                  {lookupTab === 'token' ? (
+                  {lookupTab === "token" ? (
                     <div className="flex flex-col gap-3">
                       <input
                         type="text"
                         value={manualTokenId}
                         onChange={(e) => setManualTokenId(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') validateManualToken(); }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") validateManualToken();
+                        }}
                         className="h-12 w-full rounded-xl bg-surface-container dark:bg-dark-canvas border border-border dark:border-dark-border px-4 font-data-mono focus:ring-1 focus:ring-primary outline-none"
                         placeholder="Enter Token ID"
                       />
-                      <button onClick={validateManualToken} disabled={manualProcessing || manualTokenId.trim().length < 5} className="h-12 bg-primary text-white rounded-xl font-semibold flex items-center justify-center">
-                        {manualProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Lookup by Token'}
+                      <button
+                        onClick={validateManualToken}
+                        disabled={
+                          manualProcessing || manualTokenId.trim().length < 5
+                        }
+                        className="h-12 bg-primary text-white rounded-xl font-semibold flex items-center justify-center"
+                      >
+                        {manualProcessing ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          "Lookup by Token"
+                        )}
                       </button>
                     </div>
                   ) : (
@@ -653,15 +971,29 @@ export function ScannerInterface({
                       <PhoneInput
                         international
                         defaultCountry={defaultCountry}
-                        onCountryChange={(country) => { if (country) setDefaultCountry(country); }}
+                        onCountryChange={(country) => {
+                          if (country) setDefaultCountry(country);
+                        }}
                         value={manualPhone}
-                        onChange={(value) => setManualPhone(value || '')}
-                        onKeyDown={(e: AnyFixMe) => { if (e.key === 'Enter') lookupByPhone(); }}
+                        onChange={(value) => setManualPhone(value || "")}
+                        onKeyDown={(e: AnyFixMe) => {
+                          if (e.key === "Enter") lookupByPhone();
+                        }}
                         className="h-12 w-full rounded-xl bg-surface-container dark:bg-dark-canvas border border-border dark:border-dark-border px-4 focus-within:ring-1 focus-within:ring-primary outline-none"
                         placeholder="e.g. +91 98765 43210"
                       />
-                      <button onClick={lookupByPhone} disabled={phoneProcessing || manualPhone.trim().length < 7} className="h-12 bg-primary text-white rounded-xl font-semibold flex items-center justify-center">
-                        {phoneProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Lookup by Phone'}
+                      <button
+                        onClick={lookupByPhone}
+                        disabled={
+                          phoneProcessing || manualPhone.trim().length < 7
+                        }
+                        className="h-12 bg-primary text-white rounded-xl font-semibold flex items-center justify-center"
+                      >
+                        {phoneProcessing ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          "Lookup by Phone"
+                        )}
                       </button>
                     </div>
                   )}
@@ -672,16 +1004,17 @@ export function ScannerInterface({
             {/* Right Column (Verification) */}
             <div className="flex flex-col" ref={resultContainerRef}>
               <div className="bg-card dark:bg-dark-card rounded-2xl border border-border dark:border-dark-border p-6 shadow-sm flex-1 flex flex-col">
-                
-                {!validationResult && scannerStatus !== 'processing' && (
+                {!validationResult && scannerStatus !== "processing" && (
                   <div className="flex-1 flex flex-col items-center justify-center text-outline text-center space-y-4">
                     <ScanLine className="w-10 h-10 opacity-50" />
-                    <h3 className="text-lg font-semibold text-on-surface dark:text-white">Awaiting Scan</h3>
+                    <h3 className="text-lg font-semibold text-on-surface dark:text-white">
+                      Awaiting Scan
+                    </h3>
                     <p className="text-sm">Scan a QR or use manual lookup</p>
                   </div>
                 )}
 
-                {scannerStatus === 'processing' && (
+                {scannerStatus === "processing" && (
                   <div className="flex-1 flex flex-col items-center justify-center text-primary text-center space-y-4">
                     <Loader2 className="w-12 h-12 animate-spin" />
                     <h3 className="text-lg font-semibold">Verifying...</h3>
@@ -691,56 +1024,148 @@ export function ScannerInterface({
                 {validationResult && (
                   <>
                     <div className="flex items-start gap-4 mb-6 pb-6 border-b border-border dark:border-dark-border">
-                      <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold border-2 ${validationResult.valid ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-red-100 text-red-700 border-red-200'}`}>
-                        {validationResult.customerName ? validationResult.customerName.substring(0, 2).toUpperCase() : (validationResult.valid ? <Check/> : <XCircle/>)}
+                      <div
+                        className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold border-2 ${validationResult.valid ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-red-100 text-red-700 border-red-200"}`}
+                      >
+                        {validationResult.customerName ? (
+                          validationResult.customerName
+                            .substring(0, 2)
+                            .toUpperCase()
+                        ) : validationResult.valid ? (
+                          <Check />
+                        ) : (
+                          <XCircle />
+                        )}
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-on-surface dark:text-white">{validationResult.customerName || 'Unknown'}</h3>
-                        <p className="text-outline font-data-mono text-sm">{validationResult.phone || validationResult.tokenId}</p>
-                        <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold ${validationResult.valid ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                          {validationResult.valid ? 'Access Granted' : 'Access Denied'}
+                        <h3 className="text-xl font-bold text-on-surface dark:text-white">
+                          {validationResult.customerName || "Unknown"}
+                        </h3>
+                        <p className="text-outline font-data-mono text-sm">
+                          {validationResult.phone || validationResult.tokenId}
+                        </p>
+                        <span
+                          className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold ${validationResult.valid ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
+                        >
+                          {validationResult.valid
+                            ? "Access Granted"
+                            : "Access Denied"}
                         </span>
                       </div>
                     </div>
 
                     <div className="space-y-3 mb-6 flex-1 text-sm">
                       {!validationResult.valid && validationResult.reason && (
-                        <div className="p-4 bg-red-50 text-red-800 rounded-xl">{validationResult.reason}</div>
+                        <div className="p-4 bg-red-50 text-red-800 rounded-xl">
+                          {validationResult.reason}
+                        </div>
                       )}
                       {validationResult.valid && (
                         <div className="p-4 bg-surface-container rounded-xl space-y-2">
                           <div className="flex justify-between">
-                            <span className="text-outline">Queue / Service:</span>
-                            <span className="font-medium text-on-surface">{validationResult.queueName || validationResult.serviceBooked || 'General'}</span>
+                            <span className="text-outline">
+                              Queue / Service:
+                            </span>
+                            <span className="font-medium text-on-surface">
+                              {validationResult.queueName ||
+                                validationResult.serviceBooked ||
+                                "General"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-outline">Status:</span>
-                            <span className="font-medium font-data-mono">{validationResult.status}</span>
+                            <span className="font-medium font-data-mono">
+                              {validationResult.status}
+                            </span>
                           </div>
                           {validationResult.isAppointment && (
                             <div className="flex justify-between">
                               <span className="text-outline">Appointment:</span>
-                              <span className="font-medium">{validationResult.scheduledFor ? new Date(validationResult.scheduledFor).toLocaleTimeString() : 'Yes'}</span>
+                              <span className="font-medium">
+                                {validationResult.scheduledFor
+                                  ? new Date(
+                                      validationResult.scheduledFor,
+                                    ).toLocaleTimeString()
+                                  : "Yes"}
+                              </span>
                             </div>
                           )}
+                          {/* Active Stage Details */}
                           {validationResult.activeStep && (
                             <div className="mt-4 pt-4 border-t border-border">
                               <div className="flex justify-between font-bold text-on-surface mb-2">
                                 <span>Active Stage:</span>
                                 <span>{validationResult.activeStep.name}</span>
                               </div>
-                              {validationResult.activeStep.templateStep?.type === 'COLLECTION' && (
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-outline">Entitlement:</span>
-                                    <span className="font-medium text-on-surface">{validationResult.activeStep.quantityAllocated} {validationResult.activeStep.templateStep?.entitlementUnit}</span>
+                              {validationResult.activeStep.templateStep
+                                ?.type === "COLLECTION" && (
+                                <div className="mt-3 p-3.5 rounded-xl border border-indigo-100 dark:border-zinc-800 bg-surface-container-low dark:bg-zinc-800/40 space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <div className="font-semibold text-xs text-on-surface dark:text-white flex items-center gap-1.5">
+                                      <span>📦</span>
+                                      <span>
+                                        {validationResult.activeStep
+                                          .templateStep?.entitlementUnit ||
+                                          "Item"}{" "}
+                                        Fulfillment
+                                      </span>
+                                    </div>
+                                    <span
+                                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                        (validationResult.activeStep
+                                          .quantityRedeemed || 0) > 0
+                                          ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                                          : "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"
+                                      }`}
+                                    >
+                                      {(validationResult.activeStep
+                                        .quantityRedeemed || 0) > 0
+                                        ? "Partial Pickup"
+                                        : "Awaiting Pickup"}
+                                    </span>
                                   </div>
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-outline">Redeemed:</span>
-                                    <span className="font-medium text-primary">{validationResult.activeStep.quantityRedeemed || 0}</span>
+
+                                  <div className="grid grid-cols-3 gap-2 text-center py-2 bg-surface dark:bg-zinc-900/80 rounded-lg border border-border dark:border-zinc-800">
+                                    <div>
+                                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">
+                                        Entitled
+                                      </div>
+                                      <div className="text-base font-bold text-on-surface dark:text-white">
+                                        {validationResult.activeStep
+                                          .quantityAllocated ?? 1}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">
+                                        Given
+                                      </div>
+                                      <div className="text-base font-bold text-primary">
+                                        {validationResult.activeStep
+                                          .quantityRedeemed || 0}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">
+                                        Remaining
+                                      </div>
+                                      <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                                        {Math.max(
+                                          0,
+                                          (validationResult.activeStep
+                                            .quantityAllocated || 1) -
+                                            (validationResult.activeStep
+                                              .quantityRedeemed || 0),
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
-                                  {(validationResult.activeStep.quantityAllocated || 0) <= (validationResult.activeStep.quantityRedeemed || 0) && (
-                                    <div className="mt-2 p-2 bg-red-100 text-red-700 font-bold rounded text-center">
+
+                                  {(validationResult.activeStep
+                                    .quantityAllocated || 0) <=
+                                    (validationResult.activeStep
+                                      .quantityRedeemed || 0) && (
+                                    <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-semibold rounded-lg text-center text-xs border border-emerald-200 dark:border-emerald-800 flex items-center justify-center gap-1.5">
+                                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />{" "}
                                       Fully Redeemed / Collected
                                     </div>
                                   )}
@@ -748,54 +1173,170 @@ export function ScannerInterface({
                               )}
                             </div>
                           )}
+
+                          {/* Completed Stage / Collection Historical Notification */}
+                          {(!validationResult.activeStep ||
+                            validationResult.isCompleted) &&
+                            validationResult.lastCompletedStep?.templateStep
+                              ?.type === "COLLECTION" && (
+                              <div className="mt-4 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/70 dark:bg-emerald-950/30 space-y-2">
+                                <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-300 font-bold text-sm">
+                                  <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                  <span>
+                                    All{" "}
+                                    {validationResult.lastCompletedStep
+                                      .templateStep?.entitlementUnit ||
+                                      "Items"}{" "}
+                                    Already Collected
+                                  </span>
+                                </div>
+                                <div className="text-xs text-emerald-800 dark:text-emerald-400">
+                                  Full allocation fulfilled:{" "}
+                                  <span className="font-semibold">
+                                    {
+                                      validationResult.lastCompletedStep
+                                        .quantityRedeemed
+                                    }{" "}
+                                    of{" "}
+                                    {
+                                      validationResult.lastCompletedStep
+                                        .quantityAllocated
+                                    }{" "}
+                                    {validationResult.lastCompletedStep
+                                      .templateStep?.entitlementUnit || "items"}
+                                  </span>
+                                  .
+                                </div>
+                                {validationResult.lastCompletedStep
+                                  .lastRedeemedAt && (
+                                  <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                    Collected at:{" "}
+                                    {new Date(
+                                      validationResult.lastCompletedStep
+                                        .lastRedeemedAt,
+                                    ).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </div>
+                                )}
+                                <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800/40 text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
+                                  🛡️ Double-redemption blocked. Do not issue
+                                  duplicate portions.
+                                </div>
+                              </div>
+                            )}
                         </div>
                       )}
                     </div>
 
                     <div className="mt-auto pt-4 border-t border-border flex flex-col gap-3">
                       {validationResult.valid ? (
-                         validationResult.activeStep ? (
-                           // SEF Step Actions
-                           <div className="w-full flex flex-col gap-2">
-                             {validationResult.activeStep.templateStep?.type === 'CHECKPOINT' ? (
-                               <button onClick={handleAdvanceStep} className="w-full h-12 bg-emerald-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">
-                                 <CheckCircle2 className="w-5 h-5"/> Check In / Clear
-                               </button>
-                             ) : validationResult.activeStep.templateStep?.type === 'COLLECTION' && ((validationResult.activeStep.quantityAllocated || 0) > (validationResult.activeStep.quantityRedeemed || 0)) ? (
-                               <div className="flex flex-col gap-2 w-full">
-                                 <button onClick={() => handleRedeem(1)} className="w-full h-12 bg-primary/10 text-primary hover:bg-primary/20 font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors">
-                                   <CheckCircle2 className="w-5 h-5"/> Redeem 1 {validationResult.activeStep.templateStep?.entitlementUnit}
-                                 </button>
-                                 {((validationResult.activeStep.quantityAllocated || 0) - (validationResult.activeStep.quantityRedeemed || 0)) > 1 && (
-                                   <button onClick={() => handleRedeem((validationResult.activeStep.quantityAllocated || 0) - (validationResult.activeStep.quantityRedeemed || 0))} className="w-full h-12 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors">
-                                     <CheckCircle2 className="w-5 h-5"/> Redeem All {((validationResult.activeStep.quantityAllocated || 0) - (validationResult.activeStep.quantityRedeemed || 0))}
-                                   </button>
-                                 )}
-                               </div>
-                             ) : (
-                               <button onClick={() => { stopScanning(); onScanSuccess(validationResult); }} className="w-full h-12 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2">
-                                 Open Record
-                               </button>
-                             )}
-                             <button onClick={handleSkipStep} className="w-full h-10 bg-surface text-on-surface border border-border font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-surface-container transition-colors mt-2">
-                               Skip Step
-                             </button>
-                           </div>
-                         ) : (
-                           // Legacy Fallback Actions
-                           validationResult.isAppointment && !validationResult.checkedIn ? (
-                             <button onClick={handleCheckIn} className="w-full h-12 bg-emerald-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">
-                               <CheckCircle2 className="w-5 h-5"/> Check In
-                             </button>
-                           ) : (
-                             <button onClick={() => { stopScanning(); onScanSuccess(validationResult); }} className="w-full h-12 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2">
-                               Open Record
-                             </button>
-                           )
-                         )
+                        validationResult.activeStep ? (
+                          // SEF Step Actions
+                          <div className="w-full flex flex-col gap-2">
+                            {validationResult.activeStep.templateStep?.type ===
+                            "CHECKPOINT" ? (
+                              <button
+                                onClick={handleAdvanceStep}
+                                className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
+                              >
+                                <CheckCircle2 className="w-5 h-5" /> Check In /
+                                Clear Attendance
+                              </button>
+                            ) : validationResult.activeStep.templateStep
+                                ?.type === "COLLECTION" &&
+                              (validationResult.activeStep.quantityAllocated ||
+                                0) >
+                                (validationResult.activeStep.quantityRedeemed ||
+                                  0) ? (
+                              <div className="flex flex-col gap-2 w-full">
+                                {/* Give All Remaining */}
+                                <button
+                                  onClick={() =>
+                                    handleRedeem(
+                                      (validationResult.activeStep
+                                        .quantityAllocated || 0) -
+                                        (validationResult.activeStep
+                                          .quantityRedeemed || 0),
+                                    )
+                                  }
+                                  className="w-full h-12 bg-primary text-white hover:bg-primary/90 font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
+                                >
+                                  <CheckCircle2 className="w-5 h-5" /> Give All
+                                  Remaining (
+                                  {(validationResult.activeStep
+                                    .quantityAllocated || 0) -
+                                    (validationResult.activeStep
+                                      .quantityRedeemed || 0)}{" "}
+                                  {validationResult.activeStep.templateStep
+                                    ?.entitlementUnit || "plates"}
+                                  )
+                                </button>
+                                {/* Give 1 only if remaining > 1 */}
+                                {(validationResult.activeStep
+                                  .quantityAllocated || 0) -
+                                  (validationResult.activeStep
+                                    .quantityRedeemed || 0) >
+                                  1 && (
+                                  <button
+                                    onClick={() => handleRedeem(1)}
+                                    className="w-full h-10 bg-surface-container-high dark:bg-zinc-800 text-on-surface dark:text-zinc-200 hover:bg-surface-container-highest font-medium rounded-xl flex items-center justify-center gap-2 transition-colors border border-border dark:border-zinc-700 text-xs"
+                                  >
+                                    Give 1{" "}
+                                    {validationResult.activeStep.templateStep
+                                      ?.entitlementUnit || "plate"}{" "}
+                                    Only
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  stopScanning();
+                                  onScanSuccess(validationResult);
+                                }}
+                                className="w-full h-12 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2"
+                              >
+                                Open Record
+                              </button>
+                            )}
+                            <button
+                              onClick={handleSkipStep}
+                              className="w-full h-10 bg-surface text-on-surface border border-border font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-surface-container transition-colors mt-2"
+                            >
+                              Skip Step
+                            </button>
+                          </div>
+                        ) : // Legacy Fallback / Completed Actions
+                        validationResult.isAppointment &&
+                          !validationResult.checkedIn ? (
+                          <button
+                            onClick={handleCheckIn}
+                            className="w-full h-12 bg-emerald-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle2 className="w-5 h-5" /> Check In
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              stopScanning();
+                              onScanSuccess(validationResult);
+                            }}
+                            className="w-full h-12 bg-surface text-on-surface border border-border font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-surface-container transition-colors"
+                          >
+                            View Full Record
+                          </button>
+                        )
                       ) : null}
-                      <button onClick={() => { setValidationResult(null); startScanning(); }} className="w-full h-12 bg-surface-container text-on-surface font-semibold rounded-xl flex items-center justify-center gap-2">
-                        <RefreshCcw className="w-5 h-5"/> Scan Next
+                      <button
+                        onClick={() => {
+                          setValidationResult(null);
+                          startScanning();
+                        }}
+                        className="w-full h-12 bg-surface-container text-on-surface font-semibold rounded-xl flex items-center justify-center gap-2"
+                      >
+                        <RefreshCcw className="w-5 h-5" /> Scan Next
                       </button>
                     </div>
                   </>
@@ -805,11 +1346,41 @@ export function ScannerInterface({
           </div>
         </div>
       </div>
-    );
 
-  return mode === 'modal' ? (
+      {outcomePrompt && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-2xl p-6 w-full max-w-sm border border-border shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold mb-4">Select Outcome</h3>
+            <div className="flex flex-col gap-3">
+              {validationResult?.activeStep?.templateStep?.outcomeOptions?.map(
+                (opt: string) => (
+                  <button
+                    key={opt}
+                    onClick={() => executeAdvanceStep(opt)}
+                    className="w-full py-3 bg-surface-container hover:bg-primary/10 border border-border rounded-xl font-semibold transition-colors text-on-surface"
+                  >
+                    {opt}
+                  </button>
+                ),
+              )}
+              <button
+                onClick={() => setOutcomePrompt(null)}
+                className="w-full py-3 mt-2 text-outline hover:text-on-surface font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  return mode === "modal" ? (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-zinc-950/80 backdrop-blur-sm animate-in fade-in duration-200">
       {innerContent}
     </div>
-  ) : innerContent;
+  ) : (
+    innerContent
+  );
 }

@@ -81,18 +81,21 @@ export class VisitService {
       phone?: string;
       email?: string;
       age?: number;
+      gender?: string;
       locationId: string;
       serviceId: string;
       queueId?: string;
       accompanyingGuests?: number;
       notes?: string;
       priority?: number;
+      metadata?: Record<string, any>;
+      formResponses?: Record<string, any>;
     },
   ) {
     // 1. Resolve queue: use provided queueId or find the first active queue at location that serves this service
     let resolvedQueueId = dto.queueId;
     if (!resolvedQueueId) {
-      const queue = await this.prisma.queue.findFirst({
+      let queue = await this.prisma.queue.findFirst({
         where: {
           tenantId,
           locationId: dto.locationId,
@@ -102,7 +105,20 @@ export class VisitService {
         orderBy: { createdAt: 'asc' },
       });
       if (!queue) {
-        throw new Error('No open queue found for this location and service. Please open a queue first or specify one manually.');
+        queue = await this.prisma.queue.findFirst({
+          where: {
+            tenantId,
+            locationId: dto.locationId,
+            status: { not: 'CLOSED' },
+            services: { some: { id: dto.serviceId } },
+          },
+          orderBy: { createdAt: 'asc' },
+        });
+      }
+      if (!queue) {
+        throw new Error(
+          'No open queue found for this location and service. Please open a queue first or specify one manually.',
+        );
       }
       resolvedQueueId = queue.id;
     }
@@ -113,24 +129,30 @@ export class VisitService {
       phone: dto.phone || null,
       serviceId: dto.serviceId,
       accompanyingGuests: dto.accompanyingGuests ?? 0,
+      metadata: dto.metadata,
+      formResponses: dto.formResponses,
     });
 
-    // 3. Patch additional staff-only fields: email, age, notes, priority, operatorId
+    // 3. Patch additional staff-only fields: email, age, gender, notes, priority, operatorId
     const updates: any = { operatorId };
     if (dto.notes) updates.notes = dto.notes;
     if (dto.priority !== undefined) updates.priority = dto.priority;
-    if (dto.email || dto.age) {
-      const metaUpdate: any = {};
+    if (dto.email || dto.age || dto.gender) {
+      const existingMeta = (result.metadata as Record<string, any>) || {};
+      const metaUpdate: any = { ...existingMeta };
       if (dto.age) metaUpdate.age = dto.age;
+      if (dto.gender) metaUpdate.gender = dto.gender;
       updates.metadata = metaUpdate;
     }
 
     if (dto.email) {
       // Update customer email separately (joinQueue only takes phone)
-      await this.prisma.customer.update({
-        where: { id: result.customerId },
-        data: { email: dto.email },
-      }).catch(() => {}); // Non-critical, don't fail the walk-in
+      await this.prisma.customer
+        .update({
+          where: { id: result.customerId },
+          data: { email: dto.email },
+        })
+        .catch(() => {}); // Non-critical, don't fail the walk-in
     }
 
     if (Object.keys(updates).length > 0) {
@@ -153,6 +175,8 @@ export class VisitService {
     startDate?: string,
     endDate?: string,
     serviceId?: string,
+    page?: string,
+    limit?: string,
   ) {
     const where: any = { tenantId: userTokenPayload.tenantId };
     if (locationId) {
@@ -165,7 +189,7 @@ export class VisitService {
       where.serviceId = serviceId;
     }
     if (
-      userTokenPayload.role === 'OPERATOR' ||
+      userTokenPayload.role === 'MANAGER' ||
       userTokenPayload.role === 'MANAGER'
     ) {
       const user = await this.prisma.user.findUnique({
@@ -193,36 +217,124 @@ export class VisitService {
       zonedEnd.setHours(23, 59, 59, 999);
       const end = fromZonedTime(zonedEnd, tz);
 
-      where.createdAt = { gte: start, lte: end };
+      // A visit belongs to today's operational view if:
+      // 1. It is scheduled for today
+      // 2. OR it is a walk-in created today without a scheduledTime
+      // 3. OR it checked in, arrived, started, or completed today
+      // 4. OR it is actively waiting or in service right now
+      where.OR = [
+        { scheduledTime: { gte: start, lte: end } },
+        { scheduledTime: null, createdAt: { gte: start, lte: end } },
+        { checkInTime: { gte: start, lte: end } },
+        { actualArrival: { gte: start, lte: end } },
+        { serviceStart: { gte: start, lte: end } },
+        { completedAt: { gte: start, lte: end } },
+        {
+          currentState: {
+            in: [
+              'WAITING',
+              'IN_SERVICE',
+              'CALLED',
+              'CHECKED_IN',
+              'ON_HOLD',
+              'PENDING_PAYMENT',
+            ],
+          },
+        },
+      ];
+
+      // Exclude future scheduled appointments that have not yet arrived
+      where.NOT = {
+        AND: [
+          { currentState: { in: ['SCHEDULED', 'CREATED'] } },
+          { scheduledTime: { gt: end } },
+        ],
+      };
     } else if (scope === 'history' || scope === 'analytics') {
       if (scope === 'history') {
         where.currentState = { in: ['COMPLETED', 'NO_SHOW', 'CANCELLED'] };
       }
       if (startDate && endDate) {
-        where.createdAt = { gte: new Date(startDate), lte: new Date(endDate) };
+        where.OR = [
+          { completedAt: { gte: new Date(startDate), lte: new Date(endDate) } },
+          { checkInTime: { gte: new Date(startDate), lte: new Date(endDate) } },
+          {
+            scheduledTime: { gte: new Date(startDate), lte: new Date(endDate) },
+          },
+          { createdAt: { gte: new Date(startDate), lte: new Date(endDate) } },
+        ];
       } else if (startDate) {
-        where.createdAt = { gte: new Date(startDate) };
-      } else if (timeframe === '7d') {
+        where.OR = [
+          { completedAt: { gte: new Date(startDate) } },
+          { checkInTime: { gte: new Date(startDate) } },
+          { scheduledTime: { gte: new Date(startDate) } },
+          { createdAt: { gte: new Date(startDate) } },
+        ];
+      } else if (
+        timeframe === '7d' ||
+        timeframe === '30d' ||
+        timeframe === 'today'
+      ) {
+        const daysAgo = timeframe === 'today' ? 0 : timeframe === '7d' ? 7 : 30;
         const d = new Date();
-        d.setDate(d.getDate() - 7);
-        where.createdAt = { gte: d };
-      } else if (timeframe === '30d') {
-        const d = new Date();
-        d.setDate(d.getDate() - 30);
-        where.createdAt = { gte: d };
-      } else if (timeframe === 'today') {
-        const tz = tzParam || 'UTC';
-        const zonedNow = require('date-fns-tz').toZonedTime(new Date(), tz);
-        zonedNow.setHours(0, 0, 0, 0);
-        where.createdAt = { gte: require('date-fns-tz').fromZonedTime(zonedNow, tz) };
+        d.setDate(d.getDate() - daysAgo);
+        d.setHours(0, 0, 0, 0);
+        where.OR = [
+          { completedAt: { gte: d } },
+          { checkInTime: { gte: d } },
+          { scheduledTime: { gte: d } },
+          { createdAt: { gte: d } },
+        ];
       }
     }
-    return this.prisma.visit.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
+
+    const pageNum = parseInt(page || '1', 10) || 1;
+    // Set a very high default limit if pagination is implicitly bypassed (e.g. legacy frontend calls)
+    // To protect DB, max limit 1000.
+    const limitNum =
+      parseInt(limit || (scope === 'analytics' ? '1000' : '100'), 10) || 100;
+    const skip = (pageNum - 1) * limitNum;
+
+    const [total, data] = await Promise.all([
+      this.prisma.visit.count({ where }),
+      this.prisma.visit.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limitNum,
+        include: {
+          customer: true,
+          service: { include: { serviceFlow: true } },
+          location: true,
+          bookingPayments: true,
+          clinicalNotes: true,
+          prescriptions: true,
+          visitSteps: {
+            include: { templateStep: true },
+            orderBy: { stepOrder: 'asc' },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    };
+  }
+
+  async findOne(id: string, tenantId: string) {
+    const visit = await this.prisma.visit.findFirst({
+      where: { id, tenantId },
       include: {
         customer: true,
-        service: true,
+        service: { include: { serviceFlow: true } },
+        queue: { include: { location: true } },
         location: true,
         bookingPayments: true,
         visitSteps: {
@@ -231,14 +343,8 @@ export class VisitService {
         },
       },
     });
-  }
-
-  async findOne(id: string, tenantId: string) {
-    const visit = await this.prisma.visit.findFirst({
-      where: { id, tenantId },
-      include: { customer: true, service: true, location: true },
-    });
     if (!visit) throw new NotFoundException(`Visit with ID ${id} not found`);
+    (visit as any).steps = (visit as any).visitSteps;
     return visit;
   }
 
@@ -261,8 +367,10 @@ export class VisitService {
   }
 
   async findOnePublic(accessToken: string) {
-    const visit = await this.prisma.visit.findUnique({
-      where: { accessToken },
+    const visit = await this.prisma.visit.findFirst({
+      where: {
+        OR: [{ accessToken }, { id: accessToken }],
+      },
       select: {
         id: true,
         queueId: true,
@@ -272,23 +380,48 @@ export class VisitService {
         currentState: true,
         waitingStart: true,
         createdAt: true,
+        rating: true,
+        feedbackText: true,
         customer: { select: { name: true } },
         service: {
           select: {
             name: true,
             expectedDuration: true,
             requireManualCheckIn: true,
+            basePrice: true,
+            priceCurrency: true,
+            serviceFlow: {
+              select: {
+                isActive: true,
+                paymentTiming: true,
+                checkinPayMode: true,
+                autoSendInvoice: true,
+                allowUnpaidCheckout: true,
+              },
+            },
           },
         },
         queue: { select: { name: true, status: true } },
         location: { select: { name: true, address: true } },
+        bookingPayments: {
+          select: {
+            id: true,
+            status: true,
+            amount: true,
+            currency: true,
+            method: true,
+            createdAt: true,
+          },
+        },
         scheduledTime: true,
         language: true,
         tenant: {
           select: {
             id: true,
             name: true,
-            paymentAccount: { select: { connectedAccountId: true } },
+            paymentAccount: {
+              select: { connectedAccountId: true, chargesEnabled: true },
+            },
           },
         },
         visitSteps: {
@@ -296,15 +429,23 @@ export class VisitService {
             id: true,
             stepOrder: true,
             name: true,
+            type: true,
             status: true,
+            formData: true,
             templateStep: {
               select: {
                 type: true,
+                isOptional: true,
                 customerInstruction: true,
                 locationDescription: true,
+                floorNumber: true,
+                roomNumber: true,
+                buildingWing: true,
                 stepPrice: true,
                 stepPriceCurrency: true,
                 isPriceVariable: true,
+                customerView: true,
+                notifyCustomerOnActivation: true,
               },
             },
             amountCharged: true,
@@ -352,12 +493,17 @@ export class VisitService {
         scheduledFor: visit.scheduledTime,
         checkedIn: visit.currentState !== 'SCHEDULED',
         queue: {
+          name: visit.queue?.name,
+          status: visit.queue?.status,
           requireManualCheckIn: visit.service?.requireManualCheckIn || false,
         },
       },
       position,
       estimatedWaitTime: ewt,
       isScheduled: !!visit.scheduledTime,
+      isQueuePaused:
+        visit.queue?.status === 'PAUSED' ||
+        visit.queue?.status === 'PAUSED_FOR_EMERGENCY',
     };
   }
 
@@ -465,6 +611,8 @@ export class VisitService {
       phone?: string | null;
       serviceId?: string;
       accompanyingGuests?: number;
+      metadata?: Record<string, any>;
+      formResponses?: Record<string, any>;
     },
   ) {
     const queue = await this.prisma.queue.findUnique({
@@ -476,8 +624,8 @@ export class VisitService {
     if (!queue.services || queue.services.length === 0) {
       throw new BadRequestException('Queue has no linked services');
     }
-    
-    if (queue.status === 'CLOSED' || queue.status === 'PAUSED') {
+
+    if (queue.status === 'CLOSED') {
       throw new BadRequestException('QUEUE_CLOSED');
     }
 
@@ -573,7 +721,9 @@ export class VisitService {
           metadata: {
             customerName: customerData.name,
             phone: customerData.phone,
+            ...(customerData.metadata || {}),
           },
+          formResponses: customerData.formResponses || undefined,
         },
       });
 
@@ -594,7 +744,12 @@ export class VisitService {
           visit.tenantId,
           visit.id,
           visit.serviceId,
-          { accompanyingGuests: visit.accompanyingGuests || 0 },
+          {
+            accompanyingGuests: visit.accompanyingGuests || 0,
+            metadata: (visit.metadata as Record<string, any>) || undefined,
+            formResponses:
+              (visit.formResponses as Record<string, any>) || undefined,
+          },
           tx,
         );
       }
@@ -719,20 +874,32 @@ export class VisitService {
           scheduledTime = new Date(booking.scheduledFor);
           currentState = service.requireManualCheckIn ? 'CREATED' : 'SCHEDULED';
         }
-        
+
         // Flow-level payment timing (CHECKIN | CHECKOUT | NONE) overrides the
         // legacy service-level payment mode when an active flow exists.
         const bookingFlow = await tx.serviceFlow.findUnique({
           where: { serviceId: service.id },
-          select: { isActive: true, paymentTiming: true },
+          select: { isActive: true, paymentTiming: true, checkinPayMode: true },
         });
+        const paymentAccount = await tx.tenantPaymentAccount.findUnique({
+          where: { tenantId: service.tenantId },
+          select: { chargesEnabled: true, connectedAccountId: true },
+        });
+        const stripeActive =
+          !!paymentAccount?.chargesEnabled &&
+          !!paymentAccount?.connectedAccountId;
+        const payMode = bookingFlow?.checkinPayMode ?? 'BOTH';
+
         const holdForCheckinPayment = bookingFlow?.isActive
           ? bookingFlow.paymentTiming === 'CHECKIN' &&
-            service.paymentMode !== 'NONE' &&
-            (service.basePrice ?? 0) > 0
-          : service.paymentMode === 'PREPAY' ||
-            service.paymentMode === 'OPTIONAL_PREPAY' ||
-            service.paymentMode === 'PAY_AT_SERVICE';
+            (service.basePrice ?? 0) > 0 &&
+            payMode !== 'COUNTER_ONLY' &&
+            stripeActive
+          : (service.paymentMode === 'PREPAY' ||
+              service.paymentMode === 'OPTIONAL_PREPAY' ||
+              service.paymentMode === 'PAY_AT_SERVICE') &&
+            (service.basePrice ?? 0) > 0 &&
+            stripeActive;
 
         if (holdForCheckinPayment && !(data as any).paymentId) {
           currentState = 'PENDING_PAYMENT';
@@ -814,6 +981,7 @@ export class VisitService {
             queueId,
             serviceId: service.id,
             displayId,
+            source: scheduledTime ? 'APPOINTMENT' : 'WALK_IN',
             assignedStaffId: booking.providerId || null,
             currentState: currentState as any,
             scheduledTime,
@@ -853,7 +1021,16 @@ export class VisitService {
           );
         }
 
-        visits.push(visit);
+        visits.push({
+          ...visit,
+          flow: bookingFlow
+            ? {
+                paymentTiming: bookingFlow.paymentTiming,
+                checkinPayMode: bookingFlow.checkinPayMode,
+                stripeEnabled: stripeActive,
+              }
+            : null,
+        });
       }
 
       return visits;
@@ -883,7 +1060,11 @@ export class VisitService {
       const waitingVisits = await tx.visit.findMany({
         where: { queueId, currentState: { in: ['WAITING', 'CHECKED_IN'] } },
         orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
-        include: { service: { select: { requiredSkills: true } } },
+        include: {
+          service: { select: { requiredSkills: true, name: true } },
+          customer: { select: { name: true } },
+          queue: { select: { name: true } },
+        },
       });
 
       if (waitingVisits.length === 0) return null; // Queue is empty
@@ -911,7 +1092,11 @@ export class VisitService {
         },
       });
       // Contextual Flow Support: activate the first pending step
-      await this.visitStepService.activateFirstPendingStep(visit.tenantId, visit.id, operatorId);
+      await this.visitStepService.activateFirstPendingStep(
+        visit.tenantId,
+        visit.id,
+        operatorId,
+      );
 
       await tx.outboxEvent.create({
         data: {
@@ -921,12 +1106,144 @@ export class VisitService {
             queueId,
             tenantId: visit.tenantId,
             displayId: visit.displayId,
+            customerName: selectedVisit.customer?.name,
+            serviceName: selectedVisit.service?.name,
+            queueName: selectedVisit.queue?.name,
           },
         },
       });
 
       return visit;
     });
+  }
+
+  async checkInAppointment(appointmentId: string, tenantId: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId, tenantId },
+      include: { customer: true, location: true },
+    });
+
+    if (!appointment) throw new NotFoundException('Appointment not found');
+
+    if (
+      appointment.status === 'CHECKED_IN' ||
+      appointment.status === 'COMPLETED'
+    ) {
+      throw new ConflictException(
+        `Appointment is already ${appointment.status}`,
+      );
+    }
+
+    let visit = await this.prisma.visit.findFirst({
+      where: { appointmentId: appointment.id },
+    });
+
+    if (!visit) {
+      const service = await this.prisma.service.findUnique({
+        where: { id: appointment.serviceId },
+        include: { queues: true },
+      });
+
+      const activeQueues =
+        service?.queues.filter((q: any) => q.status === 'ACTIVE') || [];
+      if (activeQueues.length === 0) {
+        throw new BadRequestException(
+          'No active queue found for this service to check-in.',
+        );
+      }
+      const queueId = activeQueues[0].id;
+
+      const q = await this.prisma.queue.findUnique({
+        where: { id: queueId },
+        include: { location: true },
+      });
+      const config = (q?.tokenDisplayConfig as any) || {};
+      const prefix = config.prefix || 'Q';
+      const displayId = await this.generateNextToken(
+        q?.locationId || 'unknown',
+        prefix,
+        q?.location?.timezone || 'UTC',
+      );
+
+      let customerId = appointment.customerId;
+      if (!customerId) {
+        const newCust = await this.prisma.customer.create({
+          data: { tenantId, name: 'Walk-in / Guest' },
+        });
+        customerId = newCust.id;
+      }
+
+      visit = await this.prisma.$transaction(async (tx) => {
+        const v = await tx.visit.create({
+          data: {
+            tenantId,
+            customerId: customerId!,
+            appointmentId: appointment.id,
+            locationId: appointment.locationId,
+            queueId,
+            serviceId: appointment.serviceId,
+            displayId,
+            assignedStaffId: appointment.staffId,
+            currentState: 'CHECKED_IN',
+            scheduledTime: appointment.scheduledStart,
+            checkInTime: new Date(),
+            waitingStart: new Date(),
+            priority: 10,
+            source: 'APPOINTMENT',
+            language: 'en',
+            metadata: {
+              customerName: appointment.customer?.name,
+              phone: appointment.customer?.phone,
+            },
+          },
+        });
+
+        await tx.outboxEvent.create({
+          data: {
+            type: 'VISIT_CREATED',
+            payload: { visitId: v.id, queueId, tenantId, displayId },
+          },
+        });
+
+        await tx.outboxEvent.create({
+          data: {
+            type: 'VISIT_CHECKED_IN',
+            payload: {
+              visitId: v.id,
+              queueId: v.queueId,
+              tenantId: v.tenantId,
+              source: 'RECEPTIONIST',
+            },
+          },
+        });
+
+        if (v.serviceId) {
+          await this.visitStepService.instantiateStepsForVisit(
+            v.tenantId,
+            v.id,
+            v.serviceId,
+            { accompanyingGuests: 0 },
+            tx,
+          );
+        }
+
+        return v;
+      });
+
+      this.redisService.client
+        .publish('outbox_events', 'WAKE_UP')
+        .catch((e: any) =>
+          console.error('Failed to publish outbox wake-up event', e),
+        );
+    } else {
+      await this.checkIn(visit.id, tenantId);
+    }
+
+    await this.appointmentService.update(appointment.id, tenantId, {
+      status: 'CHECKED_IN',
+    });
+
+    return visit;
   }
 
   async checkIn(id: string, tenantId: string) {
@@ -1009,7 +1326,7 @@ export class VisitService {
           (fullVisit?.service?.emaExpectedDuration ||
             fullVisit?.service?.expectedDuration ||
             5);
-        const statusUrl = `${process.env.NEXT_PUBLIC_APP_URL || `${process.env.NEXT_PUBLIC_APP_URL || "https://app.qmova.yqbuddy.com"}`}/status/${updated.accessToken}`;
+        const statusUrl = `${process.env.NEXT_PUBLIC_APP_URL || `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.qmova.yqbuddy.com'}`}/customer/status/${updated.accessToken}`;
         const msg =
           `✅ Reception confirmed your arrival at *${fullVisit?.location?.name || fullVisit?.tenant?.name}*!\n\n` +
           `📋 Booking: *${fullVisit?.service?.name}*\n` +
@@ -1030,7 +1347,15 @@ export class VisitService {
   }
 
   async startService(id: string, tenantId: string, operatorId?: string) {
-    const visit = await this.findOne(id, tenantId);
+    const visit = await this.prisma.visit.findFirst({
+      where: { id, tenantId },
+      include: {
+        customer: { select: { name: true } },
+        service: { select: { name: true } },
+        queue: { select: { name: true } },
+      },
+    });
+    if (!visit) throw new NotFoundException(`Visit with ID ${id} not found`);
     if (
       visit.currentState === 'IN_SERVICE' ||
       visit.currentState === 'COMPLETED'
@@ -1043,24 +1368,98 @@ export class VisitService {
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.visit.update({
         where: { id },
-        data: { currentState: 'IN_SERVICE', serviceStart: new Date(), operatorId: operatorId || undefined },
+        data: {
+          currentState: 'IN_SERVICE',
+          serviceStart: new Date(),
+          operatorId: operatorId || undefined,
+        },
       });
       // Contextual Flow Support: activate the first pending step
-      await this.visitStepService.activateFirstPendingStep(updated.tenantId, updated.id, operatorId);
+      await this.visitStepService.activateFirstPendingStep(
+        updated.tenantId,
+        updated.id,
+        operatorId,
+      );
 
       await tx.outboxEvent.create({
         data: {
-          type: 'VISIT_CALLED',
+          type: 'VISIT_STARTED',
           payload: {
             visitId: updated.id,
             queueId: updated.queueId,
             tenantId: updated.tenantId,
+            displayId: updated.displayId,
+            customerName: visit.customer?.name,
+            serviceName: visit.service?.name,
+            queueName: visit.queue?.name,
+            currentState: 'IN_SERVICE',
           },
         },
       });
 
       return updated;
     });
+  }
+
+  /**
+   * Announce-only: fires a VISIT_CALLED outbox event (TV display + WhatsApp
+   * "It's your turn" notification) WITHOUT changing the visit state.
+   * Receptionist uses this to call a customer to the desk before formally
+   * starting service (e.g., to verify ID or scan QR first).
+   */
+  async announceVisit(id: string, tenantId: string) {
+    const visit = await this.prisma.visit.findFirst({
+      where: { id, tenantId },
+      include: {
+        customer: { select: { name: true, phone: true } },
+        service: { select: { name: true } },
+        queue: { select: { name: true } },
+        tenant: {
+          select: {
+            id: true,
+            whatsappConnected: true,
+            whatsappInstanceId: true,
+          },
+        },
+      },
+    });
+    if (!visit) throw new NotFoundException(`Visit with ID ${id} not found`);
+    if (['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(visit.currentState)) {
+      throw new ConflictException(
+        `Cannot announce a ${visit.currentState} visit`,
+      );
+    }
+
+    await this.prisma.outboxEvent.create({
+      data: {
+        type: 'VISIT_CALLED',
+        payload: {
+          visitId: visit.id,
+          queueId: visit.queueId,
+          tenantId: visit.tenantId,
+          displayId: visit.displayId,
+          customerName: visit.customer?.name,
+          serviceName: visit.service?.name,
+          queueName: visit.queue?.name,
+          announceOnly: true,
+        },
+      },
+    });
+
+    const isWhatsappConnected = Boolean(
+      visit.tenant?.whatsappConnected && visit.tenant?.whatsappInstanceId,
+    );
+
+    return {
+      success: true,
+      announced: true,
+      visitId: id,
+      displayId: visit.displayId,
+      customerName: visit.customer?.name,
+      whatsappConnected: isWhatsappConnected,
+      hasCustomerPhone: Boolean(visit.customer?.phone),
+      whatsappSent: isWhatsappConnected && Boolean(visit.customer?.phone),
+    };
   }
 
   /**
@@ -1072,14 +1471,22 @@ export class VisitService {
       where: { id },
       include: {
         service: true,
-        flow: { select: { paymentTiming: true, autoSendInvoice: true, allowUnpaidCheckout: true } },
+        flow: {
+          select: {
+            paymentTiming: true,
+            autoSendInvoice: true,
+            allowUnpaidCheckout: true,
+          },
+        },
       },
     });
     if (!visit || (tenantId && visit.tenantId !== tenantId)) {
       throw new NotFoundException('Visit not found');
     }
 
-    const snapshot = Array.isArray(visit.lineItems) ? (visit.lineItems as any[]) : [];
+    const snapshot = Array.isArray(visit.lineItems)
+      ? (visit.lineItems as any[])
+      : [];
     const items = snapshot.length
       ? snapshot.map((i) => ({
           name: String(i.name),
@@ -1087,7 +1494,13 @@ export class VisitService {
           unitPrice: Number(i.unitPrice ?? 0),
         }))
       : (visit.service.basePrice ?? 0) > 0
-        ? [{ name: visit.service.name, quantity: 1, unitPrice: visit.service.basePrice as number }]
+        ? [
+            {
+              name: visit.service.name,
+              quantity: 1,
+              unitPrice: visit.service.basePrice as number,
+            },
+          ]
         : [];
 
     const total = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
@@ -1095,7 +1508,10 @@ export class VisitService {
       where: { visitId: id, status: 'SUCCEEDED' },
       select: { amount: true, refundedAmount: true },
     });
-    const paid = payments.reduce((s, p) => s + p.amount - (p.refundedAmount || 0), 0);
+    const paid = payments.reduce(
+      (s, p) => s + p.amount - (p.refundedAmount || 0),
+      0,
+    );
 
     return {
       visitId: id,
@@ -1114,18 +1530,18 @@ export class VisitService {
     id: string,
     tenantId?: string,
     operatorId?: string,
-    opts: { allowUnpaid?: boolean } = {},
+    opts: { allowUnpaid?: boolean; forceComplete?: boolean } = {},
   ) {
     // 1. Pre-flight check: Is this a SEF (Service Execution Flow) visit?
     const visitPreCheck = await this.prisma.visit.findUnique({
       where: { id },
-      include: { 
-        visitSteps: { 
+      include: {
+        visitSteps: {
           where: { status: { in: ['ACTIVE', 'PENDING', 'DEFERRED'] } },
-          orderBy: { stepOrder: 'asc' } 
+          orderBy: { stepOrder: 'asc' },
         },
         flow: { select: { paymentTiming: true, allowUnpaidCheckout: true } },
-      }
+      },
     });
 
     if (!visitPreCheck) throw new NotFoundException('Visit not found');
@@ -1138,7 +1554,9 @@ export class VisitService {
       visitPreCheck.currentState === 'MISSED' ||
       visitPreCheck.currentState === 'CANCELLED'
     ) {
-      throw new BadRequestException(`Visit is already ${visitPreCheck.currentState.toLowerCase()}`);
+      throw new BadRequestException(
+        `Visit is already ${visitPreCheck.currentState.toLowerCase()}`,
+      );
     }
 
     // 1b. Checkout payment gate: only on the final step of a CHECKOUT-payment flow.
@@ -1151,7 +1569,12 @@ export class VisitService {
             opts.allowUnpaid && visitPreCheck.flow.allowUnpaidCheckout;
           if (!unpaidAllowed) {
             throw new HttpException(
-              { statusCode: 402, code: 'PAYMENT_REQUIRED', message: 'Payment pending', bill },
+              {
+                statusCode: 402,
+                code: 'PAYMENT_REQUIRED',
+                message: 'Payment pending',
+                bill,
+              },
               402,
             );
           }
@@ -1163,26 +1586,51 @@ export class VisitService {
       }
     }
 
-    // 2. If it is a SEF visit, delegate completely to visitStepService
-    if (visitPreCheck.visitSteps && visitPreCheck.visitSteps.length > 0) {
+    // 2. If it is a SEF visit and explicitly requested to advance only (forceComplete === false)
+    if (
+      opts.forceComplete === false &&
+      visitPreCheck.visitSteps &&
+      visitPreCheck.visitSteps.length > 0
+    ) {
       // Find the first active/actionable step and advance it
-      const activeStep = visitPreCheck.visitSteps.find(s => s.status === 'ACTIVE') || visitPreCheck.visitSteps[0];
+      const activeStep =
+        visitPreCheck.visitSteps.find((s) => s.status === 'ACTIVE') ||
+        visitPreCheck.visitSteps[0];
       if (activeStep) {
         // This handles completion, transition, and visit updates automatically
         await this.visitStepService.advanceStep(
           visitPreCheck.tenantId,
           activeStep.id,
           operatorId || 'SYSTEM',
-          {}
+          {},
         );
         return this.prisma.visit.findUnique({ where: { id } });
       }
     }
 
-    // 3. Legacy (Itinerary/Basic Queue) path
+    // 3. Complete the visit (and resolve any pending SEF steps)
     const result = await this.prisma.$transaction(async (tx) => {
-      const visit = await tx.visit.findUnique({ 
-        where: { id }
+      if (visitPreCheck.visitSteps && visitPreCheck.visitSteps.length > 0) {
+        // Complete any active steps
+        await tx.visitStep.updateMany({
+          where: { visitId: id, status: 'ACTIVE' },
+          data: { status: 'DONE', completedAt: new Date() },
+        });
+        // Skip any remaining uncompleted steps
+        await tx.visitStep.updateMany({
+          where: {
+            visitId: id,
+            status: { in: ['PENDING', 'QUEUED', 'DEFERRED', 'LOCKED'] },
+          },
+          data: {
+            status: 'SKIPPED',
+            staffNotes: 'Visit completed early by staff',
+          },
+        });
+      }
+
+      const visit = await tx.visit.findUnique({
+        where: { id },
       });
       if (!visit) throw new NotFoundException('Visit not found');
 
@@ -1197,13 +1645,23 @@ export class VisitService {
         if (currentIdx !== -1)
           (visit.itinerary[currentIdx] as any).status = 'COMPLETED';
 
-        const nextIdx = visit.itinerary.findIndex(
-          (i: any) => i.status === 'PENDING',
-        );
-        if (nextIdx !== -1) {
-          (visit.itinerary[nextIdx] as any).status = 'ACTIVE';
-          nextQueueId = (visit.itinerary[nextIdx] as any).queueId;
-          nextState = 'WAITING';
+        if (opts.forceComplete === false) {
+          const nextIdx = visit.itinerary.findIndex(
+            (i: any) => i.status === 'PENDING',
+          );
+          if (nextIdx !== -1) {
+            (visit.itinerary[nextIdx] as any).status = 'ACTIVE';
+            nextQueueId = (visit.itinerary[nextIdx] as any).queueId;
+            nextState = 'WAITING';
+          }
+        } else {
+          // Conclude all stages in itinerary
+          for (let i = 0; i < visit.itinerary.length; i++) {
+            if ((visit.itinerary[i] as any).status === 'PENDING') {
+              (visit.itinerary[i] as any).status = 'SKIPPED';
+            }
+          }
+          nextState = 'COMPLETED';
         }
         nextItinerary = visit.itinerary;
       }
@@ -1219,6 +1677,7 @@ export class VisitService {
           serviceStart: visit.serviceStart || new Date(),
           itinerary: nextItinerary as any,
           queueId: nextQueueId,
+          currentStepId: nextState === 'COMPLETED' ? null : visit.currentStepId,
         },
       });
 
@@ -1248,6 +1707,16 @@ export class VisitService {
         await tx.outboxEvent.create({
           data: {
             type: 'VISIT_COMPLETED',
+            payload: {
+              visitId: updated.id,
+              queueId: updated.queueId,
+              tenantId: updated.tenantId,
+            },
+          },
+        });
+        await tx.outboxEvent.create({
+          data: {
+            type: 'VISIT_UPDATED',
             payload: {
               visitId: updated.id,
               queueId: updated.queueId,
@@ -1316,9 +1785,18 @@ export class VisitService {
     operatorId?: string,
     cancelledBy?: string,
     cancelReason?: string,
+    options?: {
+      reasonCategory?: string;
+      notes?: string;
+      refundApplicable?: boolean;
+      customMessage?: string;
+    },
   ) {
     return this.prisma.$transaction(async (tx) => {
-      const visit = await tx.visit.findUnique({ where: { id: visitId } });
+      const visit = await tx.visit.findUnique({
+        where: { id: visitId },
+        include: { customer: true, queue: true, service: true, location: true },
+      });
       if (!visit) throw new NotFoundException('Visit not found');
 
       if (tenantId && visit.tenantId !== tenantId) {
@@ -1335,15 +1813,38 @@ export class VisitService {
         );
       }
 
+      const formattedReason =
+        cancelReason ||
+        options?.notes ||
+        options?.customMessage ||
+        'Cancelled by staff';
+
+      const existingMeta =
+        typeof visit.metadata === 'object' && visit.metadata !== null
+          ? (visit.metadata as Record<string, any>)
+          : {};
+
       const updated = await tx.visit.update({
         where: { id: visitId },
         data: {
           currentState: 'CANCELLED',
           completedAt: new Date(),
           operatorId: operatorId || visit.operatorId,
-          cancelledBy: cancelledBy || 'SYSTEM',
-          cancelReason: cancelReason || null,
+          cancelledBy: cancelledBy || 'MANAGER',
+          cancelReason: formattedReason,
+          metadata: {
+            ...existingMeta,
+            cancellation: {
+              reason: formattedReason,
+              category: options?.reasonCategory || 'OTHER',
+              notes: options?.notes || null,
+              refundApplicable: !!options?.refundApplicable,
+              cancelledAt: new Date().toISOString(),
+              cancelledBy: cancelledBy || 'MANAGER',
+            },
+          },
         },
+        include: { customer: true, queue: true, service: true, location: true },
       });
 
       await tx.outboxEvent.create({
@@ -1355,6 +1856,98 @@ export class VisitService {
             tenantId: updated.tenantId,
             cancelledBy: updated.cancelledBy,
             cancelReason: updated.cancelReason,
+            reasonCategory: options?.reasonCategory,
+            refundApplicable: !!options?.refundApplicable,
+            customMessage: options?.customMessage || options?.notes,
+          },
+        },
+      });
+
+      // Also dispatch to communicationService for multi-channel messaging
+      try {
+        await this.communicationService.publish(
+          CommunicationEvent.QUEUE_CANCELLED,
+          {
+            tenantId: updated.tenantId,
+            visitId: updated.id,
+            oldState: visit.currentState,
+            newState: 'CANCELLED',
+            customerPhone: updated.customer?.phone,
+            customerName: updated.customer?.name,
+            queueName: updated.queue?.name || updated.service?.name,
+            cancelReason: formattedReason,
+            refundApplicable: !!options?.refundApplicable,
+          },
+        );
+      } catch (e) {
+        // Communication failures should not block transaction
+      }
+
+      return updated;
+    });
+  }
+
+  async markNoShow(
+    visitId: string,
+    tenantId?: string,
+    operatorId?: string,
+    reason?: string,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const visit = await tx.visit.findUnique({
+        where: { id: visitId },
+        include: { customer: true, queue: true, service: true, location: true },
+      });
+      if (!visit) throw new NotFoundException('Visit not found');
+
+      if (tenantId && visit.tenantId !== tenantId) {
+        throw new NotFoundException('Visit not found in this workspace');
+      }
+
+      if (
+        visit.currentState === 'COMPLETED' ||
+        visit.currentState === 'CANCELLED' ||
+        visit.currentState === 'NO_SHOW'
+      ) {
+        throw new BadRequestException(
+          `Visit is already ${visit.currentState.toLowerCase()}`,
+        );
+      }
+
+      const noShowReason = reason || 'Customer did not show up (No-Show)';
+
+      const existingMeta =
+        typeof visit.metadata === 'object' && visit.metadata !== null
+          ? (visit.metadata as Record<string, any>)
+          : {};
+
+      const updated = await tx.visit.update({
+        where: { id: visitId },
+        data: {
+          currentState: 'NO_SHOW',
+          completedAt: new Date(),
+          operatorId: operatorId || visit.operatorId,
+          cancelReason: noShowReason,
+          metadata: {
+            ...existingMeta,
+            noShow: {
+              markedAt: new Date().toISOString(),
+              operatorId: operatorId || visit.operatorId,
+              reason: noShowReason,
+            },
+          },
+        },
+        include: { customer: true, queue: true, service: true, location: true },
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          type: 'VISIT_MISSED',
+          payload: {
+            visitId: updated.id,
+            queueId: updated.queueId,
+            tenantId: updated.tenantId,
+            reason: noShowReason,
           },
         },
       });
@@ -1410,14 +2003,42 @@ export class VisitService {
       };
     }
 
+    const completedSteps =
+      visit.visitSteps?.filter(
+        (s) => s.status === 'DONE' || s.status === 'SKIPPED',
+      ) || [];
+    const collectionStep = completedSteps.find(
+      (s) => s.templateStep?.type === 'COLLECTION',
+    );
+    const lastCompletedStep =
+      collectionStep ||
+      (completedSteps.length > 0
+        ? completedSteps[completedSteps.length - 1]
+        : null);
+
     if (
       visit.currentState === 'COMPLETED' ||
       visit.currentState === 'CANCELLED' ||
       visit.currentState === 'MISSED'
     ) {
       return {
-        valid: false,
+        valid: true,
+        isCompleted: true,
+        status: visit.currentState,
         reason: `Visit is already ${visit.currentState.toLowerCase()}`,
+        tokenId: visit.id,
+        customerName: visit.customer?.name || 'Unknown',
+        queueName: visit.queue?.name || 'Unknown Queue',
+        locationName: visit.queue?.location?.name || 'Unknown Location',
+        serviceBooked: visit.service?.name || 'Unknown Service',
+        scheduledFor: visit.scheduledTime,
+        checkedIn: true,
+        checkInTime: visit.checkInTime,
+        completedAt: visit.completedAt,
+        activeStep: null,
+        completedSteps,
+        lastCompletedStep,
+        allSteps: visit.visitSteps || [],
       };
     }
 
@@ -1432,6 +2053,7 @@ export class VisitService {
 
     return {
       valid: true,
+      isCompleted: false,
       status: visit.currentState,
       tokenId: visit.id,
       customerName: visit.customer?.name || 'Unknown',
@@ -1445,13 +2067,22 @@ export class VisitService {
         visit.checkInTime !== null,
       checkInTime: visit.checkInTime,
       activeStep,
+      completedSteps,
+      lastCompletedStep,
+      allSteps: visit.visitSteps || [],
     };
   }
 
   async cancelPublicVisit(accessToken: string) {
-    const visit = await this.prisma.visit.findUnique({
-      where: { accessToken },
-      include: { queue: { include: { location: true } }, customer: true, tenant: true },
+    const visit = await this.prisma.visit.findFirst({
+      where: {
+        OR: [{ accessToken }, { id: accessToken }],
+      },
+      include: {
+        queue: { include: { location: true } },
+        customer: true,
+        tenant: true,
+      },
     });
 
     if (!visit) throw new NotFoundException('Visit not found');
@@ -1471,7 +2102,9 @@ export class VisitService {
     });
     if (hasPayment) {
       const tenantEmail = visit.tenant.supportEmail || 'the business directly';
-      throw new BadRequestException(`This ticket has an active payment. Please contact ${tenantEmail} for assistance with cancellations and refunds.`);
+      throw new BadRequestException(
+        `This ticket has an active payment. Please contact ${tenantEmail} for assistance with cancellations and refunds.`,
+      );
     }
 
     const updated = await this.prisma.visit.update({
@@ -1527,20 +2160,27 @@ export class VisitService {
       if (!nextQueue) throw new NotFoundException('Target queue not found');
 
       if (['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(visit.currentState)) {
-        throw new BadRequestException(`Cannot transfer a visit that is already ${visit.currentState}`);
+        throw new BadRequestException(
+          `Cannot transfer a visit that is already ${visit.currentState}`,
+        );
       }
 
       // Unify Routing: Prevent manual transfer from breaking the ServiceFlow state machine
       const activeSteps = await tx.visitStep.count({
-        where: { visitId, status: { in: ['PENDING', 'ACTIVE'] } }
+        where: { visitId, status: { in: ['PENDING', 'ACTIVE'] } },
       });
-      
+
       if (activeSteps > 0) {
-        throw new BadRequestException('Cannot manually transfer a ticket that is active in a Service Flow. Please use the workflow actions (Complete/Skip) to progress this visit.');
+        throw new BadRequestException(
+          'Cannot manually transfer a ticket that is active in a Service Flow. Please use the workflow actions (Complete/Skip) to progress this visit.',
+        );
       }
 
       // Unify Routing: Update the serviceId if the target queue is dedicated to a single service.
-      const serviceUpdate = nextQueue.services.length === 1 ? nextQueue.services[0].id : visit.serviceId;
+      const serviceUpdate =
+        nextQueue.services.length === 1
+          ? nextQueue.services[0].id
+          : visit.serviceId;
 
       const updated = await tx.visit.update({
         where: { id: visitId },
@@ -1572,8 +2212,10 @@ export class VisitService {
    * Looks up the visit by its unique accessToken UUID.
    */
   async rateVisit(accessToken: string, rating: number, feedbackText?: string) {
-    const visit = await this.prisma.visit.findUnique({
-      where: { accessToken },
+    const visit = await this.prisma.visit.findFirst({
+      where: {
+        OR: [{ accessToken }, { id: accessToken }],
+      },
       select: { id: true, rating: true, currentState: true },
     });
 
@@ -1641,5 +2283,91 @@ export class VisitService {
       .publish('outbox_events', 'WAKE_UP')
       .catch(() => {});
     return updated;
+  }
+
+  async getClinicalNote(visitId: string, tenantId: string) {
+    return this.prisma.extendedClient.clinicalNote.findFirst({
+      where: { visitId, tenantId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async saveClinicalNote(
+    visitId: string,
+    tenantId: string,
+    data: any,
+    authorId?: string,
+  ) {
+    const visit = await this.findOne(visitId, tenantId);
+    let note = await this.prisma.extendedClient.clinicalNote.findFirst({
+      where: { visitId, tenantId },
+    });
+
+    if (note) {
+      note = await this.prisma.extendedClient.clinicalNote.update({
+        where: { id: note.id },
+        data: {
+          symptoms: data.symptoms,
+          vitals: data.vitals,
+          diagnosis: data.diagnosis,
+          plan: data.plan,
+        },
+      });
+    } else {
+      note = await this.prisma.extendedClient.clinicalNote.create({
+        data: {
+          tenantId,
+          visitId,
+          customerId: visit.customerId,
+          authorId,
+          symptoms: data.symptoms,
+          vitals: data.vitals,
+          diagnosis: data.diagnosis,
+          plan: data.plan,
+        },
+      });
+    }
+    return note;
+  }
+
+  async getPrescription(visitId: string, tenantId: string) {
+    return this.prisma.extendedClient.prescription.findFirst({
+      where: { visitId, tenantId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async savePrescription(
+    visitId: string,
+    tenantId: string,
+    data: any,
+    authorId?: string,
+  ) {
+    const visit = await this.findOne(visitId, tenantId);
+    let rx = await this.prisma.extendedClient.prescription.findFirst({
+      where: { visitId, tenantId },
+    });
+
+    if (rx) {
+      rx = await this.prisma.extendedClient.prescription.update({
+        where: { id: rx.id },
+        data: {
+          medications: data.medications,
+          notes: data.notes,
+        },
+      });
+    } else {
+      rx = await this.prisma.extendedClient.prescription.create({
+        data: {
+          tenantId,
+          visitId,
+          customerId: visit.customerId,
+          authorId,
+          medications: data.medications,
+          notes: data.notes,
+        },
+      });
+    }
+    return rx;
   }
 }
