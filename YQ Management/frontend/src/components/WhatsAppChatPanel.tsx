@@ -3,6 +3,7 @@ import { Send, Loader2, PhoneOff, MessageSquare, RefreshCw, Trash2, X } from 'lu
 import { fetchApi } from '../lib/api';
 import { toast } from 'sonner';
 import { useSocket } from './SocketProvider';
+import { ConfirmModal } from './modals/ConfirmModal';
 
 interface Message {
   id: string;
@@ -113,6 +114,8 @@ export function WhatsAppChatPanel({
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -176,17 +179,25 @@ export function WhatsAppChatPanel({
     };
   }, [socket, fetchMessages]);
 
-  const handleDelete = async (msgId: string) => {
-    if (!window.confirm('Delete this message for everyone?')) return;
-    
+  const handleDelete = (msgId: string) => {
+    setMessageToDelete(msgId);
+  };
+
+  const confirmDelete = async () => {
+    if (!messageToDelete) return;
+    const msgId = messageToDelete;
     const previous = [...messages];
     setMessages(prev => prev.filter(m => m.id !== msgId));
-    
+    setIsDeleting(true);
+
     try {
       await fetchApi(`/messages/inbox/${msgId}`, { method: 'DELETE' });
+      setMessageToDelete(null);
     } catch (e: AnyFixMe) {
       toast.error(e?.message || 'Failed to delete message');
       setMessages(previous);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -402,6 +413,17 @@ export function WhatsAppChatPanel({
           </button>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={!!messageToDelete}
+        onClose={() => setMessageToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Delete Message"
+        description="Are you sure you want to delete this message for everyone? This action cannot be undone."
+        confirmText="Delete for Everyone"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

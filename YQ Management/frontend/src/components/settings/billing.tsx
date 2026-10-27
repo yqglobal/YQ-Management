@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePlan } from '../../hooks/usePlan';
 import { PlanSelectModal } from '../billing/PlanSelectModal';
 import { DowngradeWarningModal } from '../billing/DowngradeWarningModal';
+import { ConfirmModal } from '../modals/ConfirmModal';
 import { Button } from '../ui/button';
 interface OzowPaymentData {
   paymentUrl?: string;
@@ -102,6 +103,7 @@ export default function BillingSettings() {
 
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isDowngradeModalOpen, setIsDowngradeModalOpen] = useState(false);
+  const [cancelConfirmModal, setCancelConfirmModal] = useState<{ isOpen: boolean; immediate: boolean; title: string; description: string; confirmText: string } | null>(null);
   const [selectedPlanForDowngrade, setSelectedPlanForDowngrade] = useState<AnyFixMe>(null);
   const [selectedBillingInterval, setSelectedBillingInterval] = useState('monthly');
 
@@ -153,7 +155,7 @@ export default function BillingSettings() {
     return null;
   }, [paymentStatus]);
 
-  const { usage, limits, queueUsagePct, serviceUsagePct, locationUsagePct, tokenUsagePct } = usePlan();
+  const { usage, limits, queueUsagePct, serviceUsagePct, locationUsagePct, tokenUsagePct, trialPermanentlyUsed } = usePlan();
 
   const handleUpgradeClick = (plan: AnyFixMe) => {
     // If it's a downgrade
@@ -308,6 +310,22 @@ export default function BillingSettings() {
         targetPlan={selectedPlanForDowngrade}
       />
 
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!cancelConfirmModal?.isOpen}
+        onClose={() => setCancelConfirmModal(null)}
+        onConfirm={() => {
+          if (cancelConfirmModal) {
+            handleCancelSubscription(cancelConfirmModal.immediate);
+            setCancelConfirmModal(null);
+          }
+        }}
+        title={cancelConfirmModal?.title || 'Confirm Action'}
+        description={cancelConfirmModal?.description || ''}
+        confirmText={cancelConfirmModal?.confirmText || 'Confirm'}
+        variant="danger"
+      />
+
 
 
       {isSubLoading || isPlansLoading ? (
@@ -360,11 +378,13 @@ export default function BillingSettings() {
                   )}
                   {!currentSub?.cancellationDate && !isTrial && (
                     <button 
-                      onClick={() => {
-                        if (confirm('Are you sure you want to cancel your subscription? You will retain access until the end of your billing cycle.')) {
-                          handleCancelSubscription(false);
-                        }
-                      }}
+                      onClick={() => setCancelConfirmModal({
+                        isOpen: true,
+                        immediate: false,
+                        title: 'Cancel Subscription',
+                        description: 'Are you sure you want to cancel your subscription? You will retain access until the end of your billing cycle.',
+                        confirmText: 'Cancel Subscription',
+                      })}
                       className="px-6 h-14 text-zinc-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all text-sm font-semibold"
                     >
                       Cancel Subscription
@@ -372,7 +392,13 @@ export default function BillingSettings() {
                   )}
                   {isTrial && (
                     <button
-                      onClick={() => { if (confirm('Are you sure you want to cancel your trial? You will lose access immediately.')) handleCancelSubscription(true); }}
+                      onClick={() => setCancelConfirmModal({
+                        isOpen: true,
+                        immediate: true,
+                        title: 'End Trial Early',
+                        description: 'Are you sure you want to cancel your trial early? You will immediately lose access to queuing operations.',
+                        confirmText: 'End Trial',
+                      })}
                       className="px-6 h-14 text-zinc-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all text-sm font-semibold"
                     >
                       End Trial Early
@@ -637,56 +663,120 @@ export default function BillingSettings() {
       ) : (
         <div>
           {/* PRE-PURCHASE VIEW: Pricing Grid (Trial / Expired / New users) */}
+          {/* ── Eligible for Free Trial Banner ── */}
+          {!trialPermanentlyUsed && !isExpired && !isTrialActive && !isPaid && (
+            (() => {
+              const trialPlan = (plans as any[]).find(p => p.price === 0 || p.type === 'TRIAL' || (p.name as string).toLowerCase().includes('trial'));
+              if (!trialPlan) return null;
+              return (
+                <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/5 border border-indigo-500/30 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 text-indigo-500 flex items-center justify-center shrink-0 border border-indigo-500/20">
+                      <Zap className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-lg text-on-surface dark:text-white">Start 14-Day Free Trial</h3>
+                        <span className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/20 uppercase tracking-wider">No Card Required</span>
+                      </div>
+                      <p className="text-sm text-on-surface-variant dark:text-zinc-400 max-w-xl leading-relaxed">
+                        Explore all Qmova capabilities with full access for 14 days, including multi-channel queues, audio calls, visitor tracking, and analytics.
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="lg" 
+                    onClick={() => trialMutation.mutate({ planId: trialPlan.id })}
+                    disabled={trialMutation.isPending}
+                    className="px-6 h-11 shrink-0 font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/20 flex items-center gap-2"
+                  >
+                    {trialMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                    Activate Free Trial
+                  </Button>
+                </div>
+              );
+            })()
+          )}
+
           {/* ── Current Plan Banner (Trial, Expired, Past Due, Pending) ── */}
           {(isTrial || isExpired || isPastDue || isPendingPayment) && currentSub && (
-            <div className={`rounded-2xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border relative overflow-hidden ${
+            <div className={`rounded-2xl p-5 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border relative overflow-hidden ${
               isExpired
-                ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900'
+                ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/60 shadow-sm'
                 : isPastDue
                 ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900'
                 : isPendingPayment
                 ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900'
                 : 'bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30'
             }`}>
-              <div className="flex items-center gap-4">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                  isExpired ? 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400' :
-                  isPastDue ? 'bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400' :
-                  isPendingPayment ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' :
-                  'bg-primary/10 dark:bg-primary/20 text-primary'
+              <div className="flex items-start md:items-center gap-4">
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
+                  isExpired 
+                    ? 'bg-rose-500/10 dark:bg-rose-500/20 border-rose-500/30 text-rose-600 dark:text-rose-400' 
+                    : isPastDue 
+                    ? 'bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400 border-amber-300' 
+                    : isPendingPayment 
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 border-blue-300' 
+                    : 'bg-primary/10 dark:bg-primary/20 text-primary border-primary/20'
                 }`}>
-                  <span className="material-symbols-outlined text-[18px]">
-                    {isExpired ? 'error' : isPastDue ? 'credit_card_off' : isPendingPayment ? 'pending' : 'hourglass_empty'}
+                  <span className="material-symbols-outlined text-[22px]">
+                    {isExpired ? 'lock_clock' : isPastDue ? 'credit_card_off' : isPendingPayment ? 'pending' : 'hourglass_empty'}
                   </span>
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-on-surface dark:text-white">
-                    {currentSub?.plan?.name || 'Starter'} — <span className={
-                      isExpired ? 'text-red-600 dark:text-red-400' :
-                      isPastDue ? 'text-amber-600 dark:text-amber-400' :
-                      isPendingPayment ? 'text-blue-600 dark:text-blue-400' :
-                      'text-primary dark:text-sky-400'
-                    }>
-                      {isExpired ? 'Expired' : isPastDue ? 'Grace Period Active' : isPendingPayment ? 'Payment Processing' : `${trialDaysLeft} days left`}
+                  <div className="flex items-center gap-2.5">
+                    <p className="font-bold text-base text-on-surface dark:text-white">
+                      {currentSub?.plan?.name || 'Starter Plan'}
+                    </p>
+                    <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                      isExpired 
+                        ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30' 
+                        : isPastDue 
+                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' 
+                        : isPendingPayment 
+                        ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30' 
+                        : 'bg-primary/15 text-primary border-primary/30'
+                    }`}>
+                      {isExpired ? 'Plan Expired' : isPastDue ? 'Grace Period Active' : isPendingPayment ? 'Payment Processing' : `${trialDaysLeft} days left`}
                     </span>
-                  </p>
-                  <p className="text-xs text-on-surface-variant dark:text-outline mt-0.5">
-                    {isTrialActive ? `Trial started ${formatBillingDate(currentSub?.trialStartDate)}${currentSub?.trialEndDate ? ` · Ends ${formatBillingDate(currentSub?.trialEndDate)}` : ''}` :
-                     isExpired ? `Trial ended on ${formatBillingDate(currentSub?.trialEndDate || currentSub?.endedAt)} · Please choose a plan below to restore access.` :
-                     isPastDue ? 'Your payment failed. Please update your payment method.' :
-                     isPendingPayment ? 'Please wait while we verify your payment.' :
-                     'Action required on your subscription.'}
+                  </div>
+                  <p className="text-xs text-on-surface-variant dark:text-zinc-400 mt-1 max-w-2xl leading-relaxed">
+                    {isTrialActive 
+                      ? `Trial active since ${formatBillingDate(currentSub?.trialStartDate)}${currentSub?.trialEndDate ? ` · Ends ${formatBillingDate(currentSub?.trialEndDate)}` : ''}` 
+                      : isExpired 
+                      ? `Access expired on ${formatBillingDate(currentSub?.trialEndDate || currentSub?.endedAt)}. Live queues and visitor admissions are currently paused in read-only mode. Select an active plan below to resume operations immediately.` 
+                      : isPastDue 
+                      ? 'Your payment failed. Please update your payment method to restore access.' 
+                      : isPendingPayment 
+                      ? 'Please wait while we verify your payment.' 
+                      : 'Action required on your subscription.'}
                   </p>
                 </div>
               </div>
-              {isTrialActive && (
-                <button
-                  onClick={() => { if (confirm('Are you sure you want to cancel your trial? You will lose access immediately.')) handleCancelSubscription(true); }}
-                  className="text-xs font-semibold text-on-surface-variant dark:text-outline border border-border dark:border-dark-border px-4 h-9 rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors shrink-0"
-                >
-                  Cancel Trial
-                </button>
-              )}
+              <div className="flex items-center gap-3 shrink-0">
+                {isTrialActive && (
+                  <button
+                    onClick={() => setCancelConfirmModal({
+                      isOpen: true,
+                      immediate: true,
+                      title: 'Cancel Trial',
+                      description: 'Are you sure you want to cancel your trial? You will immediately lose access to live queuing operations.',
+                      confirmText: 'Cancel Trial',
+                    })}
+                    className="text-xs font-semibold text-on-surface-variant dark:text-outline border border-border dark:border-dark-border px-4 h-9 rounded-lg hover:bg-surface-container-low dark:hover:bg-white/5 transition-colors shrink-0"
+                  >
+                    Cancel Trial
+                  </button>
+                )}
+                {isExpired && (
+                  <Button 
+                    onClick={() => setIsPlanModalOpen(true)}
+                    className="h-10 px-5 text-xs font-bold bg-primary hover:bg-primary/90 text-white shadow-md shadow-primary/20 shrink-0"
+                  >
+                    Choose a Paid Plan
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
@@ -791,8 +881,23 @@ export default function BillingSettings() {
               <div className="flex justify-between items-center mb-6">
                 <span className="font-body-md text-on-surface-variant dark:text-outline">Billed {billingInterval}</span>
                 <div className="text-right">
-                  <span className="font-data-mono-lg text-3xl text-on-surface dark:text-white font-bold">{checkoutPlan.currency === 'ZAR' ? 'R' : '$'}{billingInterval === 'yearly' && checkoutPlan.billingInterval === 'monthly' ? Math.floor(checkoutPlan.price * 12 * (1 - (checkoutPlan.annualDiscountPercent || 10) / 100)) : checkoutPlan.price}</span>
-                  <span className="font-body-sm text-on-surface-variant ml-1">/{billingInterval === 'yearly' ? 'yr' : 'mo'}</span>
+                  {(() => {
+                    const rawPrice = checkoutPlan.price >= 1000 ? Math.round(checkoutPlan.price / 100) : checkoutPlan.price;
+                    const rawAnnual = checkoutPlan.annualPrice && checkoutPlan.annualPrice >= 1000 ? Math.round(checkoutPlan.annualPrice / 100) : (checkoutPlan.annualPrice || 0);
+                    const displayAmt = billingInterval === 'yearly' && rawAnnual > 0
+                      ? rawAnnual
+                      : billingInterval === 'yearly'
+                        ? Math.floor(rawPrice * 12 * (1 - (checkoutPlan.annualDiscountPercent || 10) / 100))
+                        : rawPrice;
+                    return (
+                      <>
+                        <span className="font-data-mono-lg text-3xl text-on-surface dark:text-white font-bold">
+                          {checkoutPlan.currency === 'ZAR' ? 'R' : '$'}{displayAmt.toLocaleString('en-ZA')}
+                        </span>
+                        <span className="font-body-sm text-on-surface-variant ml-1">/{billingInterval === 'yearly' ? 'yr' : 'mo'}</span>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 

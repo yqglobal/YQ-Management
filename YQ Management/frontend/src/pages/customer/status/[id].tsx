@@ -27,6 +27,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { PaymentStep } from '../../../components/booking/PaymentStep';
+import { ConfirmModal } from '../../../components/modals/ConfirmModal';
 
 interface TemplateStep {
   type: string;
@@ -111,6 +112,26 @@ export default function CustomerLiveStatus() {
   // Skip Step state
   const [isSkippingStep, setIsSkippingStep] = useState<boolean>(false);
   const [confirmSkipStepId, setConfirmSkipStepId] = useState<string | null>(null);
+
+  // Cancel Appointment state
+  const [showCancelAppointmentConfirm, setShowCancelAppointmentConfirm] = useState(false);
+  const [isCancellingAppointment, setIsCancellingAppointment] = useState(false);
+
+  const handleCancelAppointment = async () => {
+    setIsCancellingAppointment(true);
+    try {
+      await fetch(`${getBackendUrl()}/public-visit/${accessToken}/cancel`, {
+        method: 'POST',
+      });
+      toast.success('Appointment cancelled');
+      setShowCancelAppointmentConfirm(false);
+      refetchRef.current();
+    } catch {
+      toast.error('Failed to cancel appointment. Please try again.');
+    } finally {
+      setIsCancellingAppointment(false);
+    }
+  };
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['visit-status', accessToken],
@@ -483,19 +504,7 @@ export default function CustomerLiveStatus() {
 
                 <div className="mt-3 pt-3 border-t border-purple-200/60 dark:border-purple-900/40">
                   <button
-                    onClick={async () => {
-                      if (confirm('Are you sure you want to cancel this appointment?')) {
-                        try {
-                          await fetch(`${getBackendUrl()}/public-visit/${accessToken}/cancel`, {
-                            method: 'POST',
-                          });
-                          toast.success('Appointment cancelled');
-                          triggerRefetch();
-                        } catch (e) {
-                          toast.error('Failed to cancel appointment. Please try again.');
-                        }
-                      }
-                    }}
+                    onClick={() => setShowCancelAppointmentConfirm(true)}
                     className="text-xs font-semibold text-red-500 hover:text-red-600 dark:text-red-400 transition-colors"
                   >
                     Cancel Appointment
@@ -1032,6 +1041,17 @@ export default function CustomerLiveStatus() {
           </div>
         </div>
       </main>
+
+      <ConfirmModal
+        isOpen={showCancelAppointmentConfirm}
+        onClose={() => setShowCancelAppointmentConfirm(false)}
+        onConfirm={handleCancelAppointment}
+        title="Cancel Appointment"
+        description="Are you sure you want to cancel this appointment? This action cannot be undone."
+        confirmText="Yes, Cancel Appointment"
+        variant="danger"
+        isLoading={isCancellingAppointment}
+      />
     </div>
   );
 }

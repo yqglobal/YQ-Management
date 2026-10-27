@@ -12,6 +12,11 @@ import { join } from 'path';
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
+// Ensure BigInt values from database raw queries serialize safely to JSON
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 

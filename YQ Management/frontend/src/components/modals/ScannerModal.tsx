@@ -9,6 +9,7 @@ import 'react-phone-number-input/style.css';
 import { detectCountryCode, getInitialCountryIso } from '../../lib/country-codes';
 import { useLocation } from '../LocationContext';
 import { toast } from 'sonner';
+import { ConfirmModal } from './ConfirmModal';
 
 type ScannerStatus = 'idle' | 'scanning' | 'processing' | 'approved' | 'rejected' | 'error';
 
@@ -75,6 +76,8 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
   }, []);
   const [manualPhone, setManualPhone] = useState('');
   const [phoneProcessing, setPhoneProcessing] = useState(false);
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const lastScanTimeRef = useRef<number>(0);
@@ -495,13 +498,16 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
 
   const handleSkipStep = useCallback(async () => {
     if (!validationResult?.activeStep?.id) return;
-    if (!confirm('Are you sure you want to skip this step?')) return;
+    setIsSkipping(true);
     try {
       await fetchApi(`/visit-steps/${validationResult.activeStep.id}/skip`, { method: 'POST' });
       setValidationResult((prev) => prev ? { ...prev, status: 'Skipped' } : prev);
       onScanSuccess({ ...validationResult, checkedIn: true, status: 'Skipped' });
+      setShowSkipConfirm(false);
     } catch (e: AnyFixMe) {
       toast.error(e.message || 'Failed to skip step');
+    } finally {
+      setIsSkipping(false);
     }
   }, [validationResult, onScanSuccess]);
 
@@ -848,7 +854,7 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
                                  Open Record
                                </button>
                              )}
-                             <button onClick={handleSkipStep} className="w-full h-10 bg-surface text-on-surface border border-border font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-surface-container transition-colors mt-2">
+                             <button onClick={() => setShowSkipConfirm(true)} className="w-full h-10 bg-surface text-on-surface border border-border font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-surface-container transition-colors mt-2">
                                Skip Step
                              </button>
                            </div>
@@ -876,6 +882,17 @@ export function ScannerModal({ isOpen, onClose, onScanSuccess }: { isOpen: boole
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showSkipConfirm}
+        onClose={() => setShowSkipConfirm(false)}
+        onConfirm={handleSkipStep}
+        title="Skip Journey Step"
+        description="Are you sure you want to skip this journey step? The step will be marked as skipped and the customer will advance to the next step."
+        confirmText="Skip Step"
+        variant="warning"
+        isLoading={isSkipping}
+      />
     </div>
   );
 }

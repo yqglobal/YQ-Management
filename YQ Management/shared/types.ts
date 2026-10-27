@@ -344,11 +344,24 @@ export interface AnalyticsServicePerformance {
   }>;
 }
 
+export interface CustomerReviewRecord {
+  id: string;
+  displayId?: string | null;
+  customerName: string;
+  serviceName: string;
+  queueName: string;
+  operatorName: string;
+  rating: number;
+  feedbackText?: string | null;
+  date: string;
+}
+
 export interface AnalyticsResponse {
   kpis: AnalyticsKpis;
   chartData: AnalyticsChartPoint[];
   staffPerformance: AnalyticsStaffPerformance[];
   servicePerformance: AnalyticsServicePerformance[];
+  customerReviews?: CustomerReviewRecord[];
 }
 
 // ─── Invitation & Auth ───────────────────────────────────────────────────────

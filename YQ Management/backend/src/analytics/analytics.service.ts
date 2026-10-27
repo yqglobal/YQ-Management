@@ -22,19 +22,57 @@ export class AnalyticsService {
     let startDate: Date;
     let endDate: Date | undefined = undefined;
 
-    if (startDateInput && endDateInput) {
-      startDate = new Date(startDateInput);
-      endDate = new Date(endDateInput);
-      endDate.setHours(23, 59, 59, 999);
+    if (startDateInput) {
+      const startParsed = new Date(startDateInput);
+      const endParsed = new Date(endDateInput || startDateInput);
+
+      const zonedStart = toZonedTime(startParsed, tz);
+      zonedStart.setHours(0, 0, 0, 0);
+      startDate = fromZonedTime(zonedStart, tz);
+
+      const zonedEnd = toZonedTime(endParsed, tz);
+      zonedEnd.setHours(23, 59, 59, 999);
+      endDate = fromZonedTime(zonedEnd, tz);
     } else {
-      if (timeframe === '7d') {
-        zonedNow.setDate(zonedNow.getDate() - 7);
-      } else if (timeframe === '30d') {
-        zonedNow.setDate(zonedNow.getDate() - 30);
+      if (timeframe === '7d' || timeframe === 'week') {
+        zonedNow.setDate(zonedNow.getDate() - 6);
+        startDate = fromZonedTime(zonedNow, tz);
+      } else if (timeframe === '30d' || timeframe === 'month') {
+        zonedNow.setDate(zonedNow.getDate() - 29);
+        startDate = fromZonedTime(zonedNow, tz);
+      } else if (timeframe === 'year' || timeframe === '1y') {
+        const zonedStartOfYear = toZonedTime(new Date(), tz);
+        zonedStartOfYear.setMonth(zonedStartOfYear.getMonth() - 11, 1);
+        zonedStartOfYear.setHours(0, 0, 0, 0);
+        startDate = fromZonedTime(zonedStartOfYear, tz);
       } else if (timeframe === 'all') {
-        zonedNow.setFullYear(2020); // Arbitrary old date for "All Time"
+        const [tenant, earliestVisit] = await Promise.all([
+          this.prisma.tenant.findUnique({
+            where: { id: tenantId },
+            select: { createdAt: true },
+          }),
+          this.prisma.visit.findFirst({
+            where: { tenantId },
+            orderBy: { createdAt: 'asc' },
+            select: { createdAt: true },
+          }),
+        ]);
+
+        let accountCreated = tenant?.createdAt || new Date();
+        if (
+          earliestVisit?.createdAt &&
+          earliestVisit.createdAt < accountCreated
+        ) {
+          accountCreated = earliestVisit.createdAt;
+        }
+
+        const zonedAccountCreated = toZonedTime(accountCreated, tz);
+        zonedAccountCreated.setHours(0, 0, 0, 0);
+        startDate = fromZonedTime(zonedAccountCreated, tz);
+      } else {
+        startDate = fromZonedTime(zonedNow, tz);
       }
-      startDate = fromZonedTime(zonedNow, tz);
+
       if (timeframe === 'today') {
         const zonedEnd = toZonedTime(new Date(), tz);
         zonedEnd.setHours(23, 59, 59, 999);
@@ -77,6 +115,8 @@ export class AnalyticsService {
         },
       },
       select: {
+        id: true,
+        displayId: true,
         currentState: true,
         createdAt: true,
         scheduledTime: true,
@@ -86,6 +126,8 @@ export class AnalyticsService {
         serviceStart: true,
         completedAt: true,
         rating: true,
+        feedbackText: true,
+        customer: { select: { id: true, name: true, phone: true } },
         service: { select: { id: true, name: true } },
         queue: { select: { id: true, name: true } },
         operatorUser: {
@@ -101,46 +143,48 @@ export class AnalyticsService {
         COUNT(CASE WHEN "currentState" IN ('NO_SHOW', 'CANCELLED', 'MISSED') THEN 1 END)::int as total_missed,
         COUNT(CASE WHEN "currentState" = 'CANCELLED' THEN 1 END)::int as total_cancelled,
         COUNT(CASE WHEN "currentState" = 'NO_SHOW' THEN 1 END)::int as total_no_show,
-        SUM(EXTRACT(EPOCH FROM ("serviceStart" - COALESCE("waitingStart", "checkInTime", "createdAt")))) as total_wait_time_secs,
-        SUM(CASE WHEN "serviceStart" IS NOT NULL AND ("currentState" NOT IN ('NO_SHOW', 'CANCELLED', 'MISSED')) THEN 1 ELSE 0 END)::int as wait_time_count,
+        COALESCE(SUM(EXTRACT(EPOCH FROM ("serviceStart" - COALESCE("waitingStart", "checkInTime", "createdAt")))), 0)::float as total_wait_time_secs,
+        COALESCE(SUM(CASE WHEN "serviceStart" IS NOT NULL AND ("currentState" NOT IN ('NO_SHOW', 'CANCELLED', 'MISSED')) THEN 1 ELSE 0 END), 0)::int as wait_time_count,
         COUNT(CASE WHEN "serviceStart" IS NOT NULL AND ("serviceStart" - COALESCE("waitingStart", "checkInTime", "createdAt")) > INTERVAL '15 minutes' THEN 1 END)::int as sla_violations,
-        SUM(EXTRACT(EPOCH FROM ("completedAt" - "serviceStart"))) as total_service_time_secs,
-        SUM(CASE WHEN "completedAt" IS NOT NULL THEN 1 ELSE 0 END)::int as service_time_count,
-        SUM(rating) as total_rating,
+        COALESCE(SUM(EXTRACT(EPOCH FROM ("completedAt" - "serviceStart"))), 0)::float as total_service_time_secs,
+        COALESCE(SUM(CASE WHEN "completedAt" IS NOT NULL THEN 1 ELSE 0 END), 0)::int as service_time_count,
+        COALESCE(SUM(rating), 0)::float as total_rating,
         COUNT(rating)::int as rating_count
       FROM "Visit"
       WHERE "tenantId" = ${tenantId}
+        ${locationId && locationId !== 'all' ? Prisma.sql`AND "locationId" = ${locationId}` : Prisma.empty}
         AND COALESCE("checkInTime", "actualArrival", "serviceStart", "scheduledTime", "createdAt") >= ${startDate}
         ${endDate ? Prisma.sql`AND COALESCE("checkInTime", "actualArrival", "serviceStart", "scheduledTime", "createdAt") <= ${endDate}` : Prisma.empty}
         AND NOT ("currentState" IN ('SCHEDULED', 'CREATED') AND "scheduledTime" > ${endDate || new Date()})
     `;
 
     const rawStats = kpiRaw[0] || {};
-    const totalCompleted = rawStats.total_completed || 0;
-    const totalMissed = rawStats.total_missed || 0;
-    const totalCancelled = rawStats.total_cancelled || 0;
-    const totalNoShow = rawStats.total_no_show || 0;
-    const waitTimeCount = rawStats.wait_time_count || 0;
-    const serviceTimeCount = rawStats.service_time_count || 0;
-    const ratingCount = rawStats.rating_count || 0;
+    const totalVisitsCount = Number(rawStats.total_visits ?? 0);
+    const totalCompleted = Number(rawStats.total_completed ?? 0);
+    const totalMissed = Number(rawStats.total_missed ?? 0);
+    const totalCancelled = Number(rawStats.total_cancelled ?? 0);
+    const totalNoShow = Number(rawStats.total_no_show ?? 0);
+    const totalWaitTimeSecs = Number(rawStats.total_wait_time_secs ?? 0);
+    const waitTimeCount = Number(rawStats.wait_time_count ?? 0);
+    const slaViolations = Number(rawStats.sla_violations ?? 0);
+    const totalServiceTimeSecs = Number(rawStats.total_service_time_secs ?? 0);
+    const serviceTimeCount = Number(rawStats.service_time_count ?? 0);
+    const totalRating = Number(rawStats.total_rating ?? 0);
+    const ratingCount = Number(rawStats.rating_count ?? 0);
 
-    const totalVisitsCount = rawStats.total_visits || 0;
-    const totalServed = rawStats.wait_time_count || 0;
+    const totalServed = waitTimeCount;
     const averageWaitTimeMins =
       waitTimeCount > 0
-        ? Math.floor((rawStats.total_wait_time_secs || 0) / waitTimeCount / 60)
+        ? Math.floor(totalWaitTimeSecs / waitTimeCount / 60)
         : 0;
     const averageServiceTimeMins =
       serviceTimeCount > 0
-        ? Math.floor(
-            (rawStats.total_service_time_secs || 0) / serviceTimeCount / 60,
-          )
+        ? Math.floor(totalServiceTimeSecs / serviceTimeCount / 60)
         : 0;
     const csatScore =
       ratingCount > 0
-        ? Number(((rawStats.total_rating || 0) / ratingCount).toFixed(1))
+        ? Number((totalRating / ratingCount).toFixed(1))
         : 0;
-    const slaViolations = rawStats.sla_violations || 0;
     const dropOffRate =
       totalCompleted + totalMissed > 0
         ? Math.round((totalMissed / (totalCompleted + totalMissed)) * 100)
@@ -349,10 +393,24 @@ export class AnalyticsService {
       maxValue: Math.max(1, ...heatmapMatrix.flat()),
     };
 
-    // 2. Chart Data - if timeframe is today, show hourly. If 7d or 30d, show daily.
+    // 2. Chart Data - dynamically format based on timeframe:
+    // - Today / 1-day custom: Hourly (8:00 - 20:00)
+    // - Year / large ranges (> 90 days): Monthly (e.g. "Nov 2025")
+    // - Week / Month / <= 90 days: Daily (e.g. "Mon 19" or "Oct 19")
     let chartData = [];
+    const endCalcDate = endDate || new Date();
+    const diffTime = Math.abs(endCalcDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const isSingleDay =
+      timeframe === 'today' || diffTime <= 24 * 60 * 60 * 1000 + 1000;
+    const isMonthlyView =
+      timeframe === 'year' ||
+      timeframe === '1y' ||
+      (timeframe === 'all' && diffDays > 90) ||
+      (timeframe === 'custom' && diffDays > 90);
 
-    if (timeframe === 'today') {
+    if (isSingleDay) {
+      // 1. Hourly Breakdown (8:00 - 20:00)
       const hourlyDataMap = new Map<
         number,
         {
@@ -393,8 +451,62 @@ export class AnalyticsService {
         avgWaitTime:
           d.waitCount > 0 ? Math.floor(d.waitTimeSum / d.waitCount) : 0,
       }));
+    } else if (isMonthlyView) {
+      // 2. Monthly Breakdown (MMM yyyy)
+      const monthlyDataMap = new Map<
+        string,
+        {
+          timeLabel: string;
+          volume: number;
+          waitTimeSum: number;
+          waitCount: number;
+        }
+      >();
+
+      const curMonth = toZonedTime(startDate, tz);
+      curMonth.setDate(1);
+      curMonth.setHours(0, 0, 0, 0);
+
+      const endMonth = toZonedTime(endCalcDate, tz);
+      endMonth.setDate(1);
+      endMonth.setHours(0, 0, 0, 0);
+
+      while (curMonth <= endMonth) {
+        const key = format(curMonth, 'yyyy-MM', { timeZone: tz });
+        const label = format(curMonth, 'MMM yyyy', { timeZone: tz });
+        monthlyDataMap.set(key, {
+          timeLabel: label,
+          volume: 0,
+          waitTimeSum: 0,
+          waitCount: 0,
+        });
+        curMonth.setMonth(curMonth.getMonth() + 1);
+      }
+
+      tokens.forEach((t: any) => {
+        const opTime = getVisitOperationalTime(t);
+        const key = format(opTime, 'yyyy-MM', { timeZone: tz });
+        if (monthlyDataMap.has(key)) {
+          const entry = monthlyDataMap.get(key)!;
+          entry.volume++;
+          if (t.serviceStart) {
+            entry.waitTimeSum +=
+              (t.serviceStart.getTime() -
+                (t.waitingStart?.getTime() || opTime.getTime())) /
+              60000;
+            entry.waitCount++;
+          }
+        }
+      });
+
+      chartData = Array.from(monthlyDataMap.values()).map((d) => ({
+        timeLabel: d.timeLabel,
+        volume: d.volume,
+        avgWaitTime:
+          d.waitCount > 0 ? Math.floor(d.waitTimeSum / d.waitCount) : 0,
+      }));
     } else {
-      // Group by day for 7d/30d/custom
+      // 3. Daily Breakdown (EEE d for 7d/week, MMM d for 30d/month)
       const dailyDataMap = new Map<
         string,
         {
@@ -405,22 +517,25 @@ export class AnalyticsService {
         }
       >();
 
-      // Initialize days
-      const endCalcDate = endDate || new Date();
-      const diffTime = Math.abs(endCalcDate.getTime() - startDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const daysCount = diffDays > 0 ? diffDays : 1;
+      const cur = toZonedTime(startDate, tz);
+      cur.setHours(0, 0, 0, 0);
+      const endZoned = toZonedTime(endCalcDate, tz);
+      endZoned.setHours(0, 0, 0, 0);
 
-      for (let i = daysCount - 1; i >= 0; i--) {
-        const d = new Date(endCalcDate);
-        d.setDate(d.getDate() - i);
-        const key = format(d, 'yyyy-MM-dd', { timeZone: tz });
+      const showDayOfWeek = timeframe === '7d' || timeframe === 'week';
+
+      while (cur <= endZoned) {
+        const key = format(cur, 'yyyy-MM-dd', { timeZone: tz });
+        const label = showDayOfWeek
+          ? format(cur, 'EEE d', { timeZone: tz })
+          : format(cur, 'MMM d', { timeZone: tz });
         dailyDataMap.set(key, {
-          timeLabel: key,
+          timeLabel: label,
           volume: 0,
           waitTimeSum: 0,
           waitCount: 0,
         });
+        cur.setDate(cur.getDate() + 1);
       }
 
       tokens.forEach((t: any) => {
@@ -477,6 +592,26 @@ export class AnalyticsService {
       })),
     }));
 
+    const customerReviews = tokens
+      .filter((t: any) => t.rating !== null && t.rating !== undefined)
+      .map((t: any) => ({
+        id: t.id,
+        displayId: t.displayId,
+        customerName: t.customer?.name || 'Guest',
+        serviceName: t.service?.name || 'General Service',
+        queueName: t.queue?.name || 'Queue',
+        operatorName:
+          t.operatorUser?.personalSettings?.name ||
+          t.operatorUser?.email?.split('@')[0] ||
+          'Unassigned',
+        rating: t.rating,
+        feedbackText: t.feedbackText,
+        date: t.completedAt || t.createdAt,
+      }))
+      .sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      );
+
     return {
       kpis: {
         totalVisits: totalVisitsCount,
@@ -494,6 +629,7 @@ export class AnalyticsService {
       heatmapData,
       staffPerformance,
       servicePerformance,
+      customerReviews,
     };
   }
 
@@ -555,6 +691,17 @@ export class AnalyticsService {
         `"${(s.name || 'Service').replace(/"/g, '""')}",${s.count || 0},${s.avgMins ?? 0}`,
       );
     });
+    lines.push('');
+
+    if (data.customerReviews && data.customerReviews.length > 0) {
+      lines.push('--- Customer Reviews & Feedback ---');
+      lines.push('Date,Ticket,Customer,Service,Operator,Rating,Feedback');
+      data.customerReviews.forEach((r: any) => {
+        lines.push(
+          `"${new Date(r.date).toISOString()}","${r.displayId || ''}","${(r.customerName || '').replace(/"/g, '""')}","${(r.serviceName || '').replace(/"/g, '""')}","${(r.operatorName || '').replace(/"/g, '""')}",${r.rating},"${(r.feedbackText || '').replace(/"/g, '""')}"`,
+        );
+      });
+    }
 
     return lines.join('\n');
   }

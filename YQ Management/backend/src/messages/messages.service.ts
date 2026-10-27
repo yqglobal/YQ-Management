@@ -121,16 +121,30 @@ export class MessagesService {
       return this.prisma.customerConversation
         .findMany({
           where: { tenantId, customerPhone: { in: phones } },
+          include: {
+            messages: {
+              where: { isDeleted: false },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
           orderBy: { lastMessageAt: 'desc' },
-          take: 50,
+          take: 100,
         })
         .then((convos) => this.attachCustomerDetails(tenantId, convos));
     }
 
     const convos = await this.prisma.customerConversation.findMany({
       where: { tenantId },
+      include: {
+        messages: {
+          where: { isDeleted: false },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
       orderBy: { lastMessageAt: 'desc' },
-      take: 50,
+      take: 100,
     });
     return this.attachCustomerDetails(tenantId, convos);
   }
@@ -159,8 +173,11 @@ export class MessagesService {
       const cust = customerMap.get(cleanPhone);
       return {
         ...c,
+        customerId: cust?.id || null,
         customerName: cust?.name || null,
+        customerEmail: cust?.email || null,
         customerAvatar: cust?.avatarUrl || null,
+        lastMessage: c.messages?.[0] || null,
       };
     });
   }

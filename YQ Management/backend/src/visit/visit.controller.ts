@@ -36,7 +36,7 @@ export class VisitController {
   @Get()
   findAll(
     @Req() req: AuthenticatedRequest,
-    @Query('scope') scope?: 'today' | 'history' | 'analytics',
+    @Query('scope') scope?: 'today' | 'history' | 'analytics' | 'records',
     @Query('locationId') locationId?: string,
     @Query('queueId') queueId?: string,
     @Query('tz') tz?: string,
@@ -44,8 +44,11 @@ export class VisitController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('serviceId') serviceId?: string,
+    @Query('search') search?: string,
+    @Query('rating') rating?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('status') status?: string,
   ) {
     return this.visitService.findAll(
       req.user,
@@ -59,6 +62,9 @@ export class VisitController {
       serviceId,
       page,
       limit,
+      search,
+      rating,
+      status,
     );
   }
 
@@ -168,12 +174,18 @@ export class VisitController {
   @Post('validate')
   async validateToken(
     @Req() req: AuthenticatedRequest,
-    @Body() body: { tokenId: string; locationId?: string },
+    @Body()
+    body: {
+      tokenId: string;
+      locationId?: string;
+      allowEarlyCheckIn?: boolean;
+    },
   ) {
     return this.visitService.validateToken(
       body.tokenId,
       req.user.tenantId,
       body.locationId,
+      { allowEarlyCheckIn: body.allowEarlyCheckIn },
     );
   }
 

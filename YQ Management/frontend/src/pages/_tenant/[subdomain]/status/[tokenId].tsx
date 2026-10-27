@@ -10,6 +10,7 @@ import { t } from '../../../../lib/i18n';
 import { MapPin, Clock, Info, XCircle, CalendarCheck, Star, CheckCircle, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
+import { ConfirmModal } from '../../../../components/modals/ConfirmModal';
 
 // ── Inline CSAT Rating Widget ─────────────────────────────────────────────────
 function RatingWidget({ accessToken, lang }: { accessToken: string; lang: string }) {
@@ -122,6 +123,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe, tokenId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const isBrandingEnabled = tenant?.planFeatures?.customBranding !== false && tenant?.branding?.enabled !== false;
   const primaryColor = isBrandingEnabled ? (tenant.branding?.primaryColor || '#4f46e5') : '#4f46e5';
 
@@ -270,24 +272,26 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
       <div className="w-full max-w-md mx-auto z-10 flex-1 flex flex-col">
         
         {/* Header */}
-        <header className="flex items-center justify-between py-4 mb-6">
-          <div className="flex items-center gap-2">
+        <header className="flex items-center justify-between py-3 mb-6">
+          <div className="flex items-center gap-2.5">
             {!isBrandingEnabled ? (
-              <>
-                <Image src="/qmova-light-logo.png" alt="Qmova" width={140} height={32} className="h-8 w-auto max-w-[140px] object-contain dark:hidden" priority />
-                <Image src="/qmova-dark-logo.png" alt="Qmova" width={140} height={32} className="h-8 w-auto max-w-[140px] object-contain hidden dark:block" priority />
-              </>
+              <div className="flex items-center shrink-0">
+                <Image src="/qmova-light-logo.webp" alt="Qmova" width={80} height={18} className="h-[18px] sm:h-5 w-auto object-contain dark:hidden" priority />
+                <Image src="/qmova-dark-logo.webp" alt="Qmova" width={80} height={18} className="h-[18px] sm:h-5 w-auto object-contain hidden dark:block" priority />
+              </div>
             ) : tenant.branding?.logoUrl ? (
-              <Image src={tenant.branding.logoUrl} alt={tenant.name} width={140} height={32} className="h-8 w-auto max-w-[140px] object-contain" priority />
+              <div className="flex items-center shrink-0">
+                <Image src={tenant.branding.logoUrl} alt={tenant.name} width={80} height={18} className="h-[18px] sm:h-5 max-w-[100px] w-auto object-contain" priority />
+              </div>
             ) : (
               <div 
-                className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-xs shadow-lg shrink-0"
+                className="w-6 h-6 rounded-md flex items-center justify-center font-bold text-white text-xs shadow-sm shrink-0"
                 style={{ backgroundColor: primaryColor }}
               >
                 {tenant.name.substring(0, 2).toUpperCase()}
               </div>
             )}
-            <span className="font-bold text-gray-900 tracking-wide">Live Status</span>
+            <span className="font-bold text-gray-900 dark:text-white tracking-wide text-sm sm:text-base">Live Status</span>
           </div>
         </header>
 
@@ -608,11 +612,7 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
               className="mt-6 flex justify-center"
             >
               <button 
-                onClick={() => {
-                  if (confirm(t(lang, 'cancelConfirm') as string)) {
-                    cancelMutation.mutate();
-                  }
-                }}
+                onClick={() => setShowCancelModal(true)}
                 disabled={cancelMutation.isPending}
                 className="flex items-center gap-2 text-red-500 hover:text-red-400 font-medium transition-colors"
               >
@@ -632,11 +632,25 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
         <div className="mt-8 pb-4 text-center z-10 relative">
           <a href="https://qmova.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
             <span>Powered by</span>
-            <Image src="/qmova-light-logo.png" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain dark:hidden" />
-            <Image src="/qmova-dark-logo.png" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain hidden dark:block" />
+            <Image src="/qmova-light-logo.webp" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain dark:hidden" />
+            <Image src="/qmova-dark-logo.webp" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain hidden dark:block" />
           </a>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={async () => {
+          await cancelMutation.mutateAsync();
+          setShowCancelModal(false);
+        }}
+        title="Leave Queue"
+        description={t(lang, 'cancelConfirm') as string}
+        confirmText="Leave Queue"
+        variant="danger"
+        isLoading={cancelMutation.isPending}
+      />
     </div>
   );
 }

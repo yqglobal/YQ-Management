@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
 import { Save, Plus, GripVertical, Trash2, MessagesSquare, FormInput, PhoneCall, LayoutTemplate, Loader2, Upload } from 'lucide-react';
 import { FeatureNudge } from '../FeatureNudge';
 import { usePlan } from '../../hooks/usePlan';
+import { PlanSelectModal } from '../billing/PlanSelectModal';
 
 interface FormField {
   id: string;
@@ -40,14 +42,21 @@ const PRESET_TEMPLATES = [
 ];
 
 export default function CustomerExperienceSettings() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const plan = usePlan();
   const [activeTab, setActiveTab] = useState<'portal' | 'intake' | 'feedback'>('portal');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const { data: tenant = null, isLoading } = useQuery({
     queryKey: ['tenant', 'me'],
     queryFn: () => fetchApi('/tenant/me'),
   });
+
+  const isCustomBrandingAllowed = Boolean(
+    tenant?.planFeatures?.customBranding !== false &&
+    (plan.isTrialActive || plan.isFeatureEnabled('customBranding'))
+  );
 
   const [config, setConfig] = useState<AnyFixMe>({
     portal: { welcomeTitle: '', welcomeMessage: '', supportContact: '' },
@@ -56,7 +65,7 @@ export default function CustomerExperienceSettings() {
   });
 
   const [brandingConfig, setBrandingConfig] = useState<AnyFixMe>({
-    enabled: true,
+    enabled: false,
     logoUrl: '',
     primaryColor: '#4f46e5'
   });
@@ -70,13 +79,17 @@ export default function CustomerExperienceSettings() {
           feedback: tenant.customerExperience.feedback || { enabled: false, questions: [] },
         });
       }
+      const canBrand = Boolean(
+        tenant.planFeatures?.customBranding !== false &&
+        (plan.isTrialActive || plan.isFeatureEnabled('customBranding'))
+      );
       setBrandingConfig({
-        enabled: tenant.branding?.enabled !== false,
+        enabled: canBrand && Boolean(tenant.branding?.enabled),
         logoUrl: tenant.branding?.logoUrl || '',
         primaryColor: tenant.branding?.primaryColor || '#4f46e5'
       });
     }
-  }, [tenant]);
+  }, [tenant, plan]);
 
   const saveSettingsMutation = useMutation({
     mutationFn: (data: { newConfig: AnyFixMe, branding: AnyFixMe }) => fetchApi(`/tenant/${tenant.id}`, {
@@ -114,7 +127,10 @@ export default function CustomerExperienceSettings() {
       ...(typeof tenant?.customerExperience === 'object' ? tenant.customerExperience : {}),
       ...config
     };
-    saveSettingsMutation.mutate({ newConfig, branding: brandingConfig });
+    const finalBranding = isCustomBrandingAllowed
+      ? brandingConfig
+      : { ...brandingConfig, enabled: false };
+    saveSettingsMutation.mutate({ newConfig, branding: finalBranding });
   };
 
   const handleAddField = (path: 'globalIntakeForm' | 'feedback.questions') => {
@@ -331,29 +347,71 @@ export default function CustomerExperienceSettings() {
               <h3 className="font-body-lg text-body-lg font-semibold text-on-surface dark:text-white mb-6 border-b border-border dark:border-dark-border pb-4">Custom Branding</h3>
               
               <div className="space-y-6">
-                <label className="flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-dark-border rounded-xl cursor-pointer hover:border-outline transition-colors h-[72px]">
+                <div 
+                  onClick={() => {
+                    if (!isCustomBrandingAllowed) {
+                      setShowUpgradeModal(true);
+                    }
+                  }}
+                  className={`flex items-center justify-between p-4 bg-surface-container-low dark:bg-zinc-900/50 border border-border dark:border-dark-border rounded-xl transition-all h-[72px] ${
+                    !isCustomBrandingAllowed 
+                      ? 'cursor-pointer hover:border-amber-500/50 hover:bg-amber-500/5' 
+                      : 'hover:border-outline'
+                  }`}
+                >
                   <div className="flex flex-col justify-center">
                     <div className="flex items-center gap-2">
                       <span className="font-body-md text-on-surface dark:text-white font-medium leading-none">Enable Custom Branding</span>
-                      {tenant?.planFeatures?.customBranding === false && (
-                        <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded font-bold">PREMIUM REQUIRED</span>
+                      {!isCustomBrandingAllowed && (
+                        <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded font-bold tracking-wide">
+                          PREMIUM REQUIRED
+                        </span>
                       )}
                     </div>
-                    <span className="text-[12px] text-outline mt-1 leading-none">Use your logo and colors on customer pages.</span>
+                    <span className="text-[12px] text-outline mt-1 leading-none">
+                      {!isCustomBrandingAllowed 
+                        ? 'Upgrade to Premium to customize your logo and colors on customer pages.' 
+                        : 'Use your logo and colors on customer pages.'}
+                    </span>
                   </div>
-                  <div className="relative inline-flex items-center">
-                    <input 
-                      type="checkbox" 
-                      checked={brandingConfig.enabled} 
-                      disabled={tenant?.planFeatures?.customBranding === false}
-                      onChange={e => setBrandingConfig({ ...brandingConfig, enabled: e.target.checked })} 
-                      className="sr-only peer" 
-                    />
-                    <div className={`w-11 h-6 bg-surface-variant rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary ${tenant?.planFeatures?.customBranding === false ? 'opacity-50' : ''}`}></div>
-                  </div>
-                </label>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-center gap-3">
+                    {!isCustomBrandingAllowed && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowUpgradeModal(true);
+                        }}
+                        className="text-xs font-semibold text-primary hover:underline hidden sm:inline-flex items-center gap-0.5"
+                      >
+                        Upgrade Plan
+                      </button>
+                    )}
+                    <div className="relative inline-flex items-center">
+                      <input 
+                        type="checkbox" 
+                        checked={isCustomBrandingAllowed && Boolean(brandingConfig.enabled)} 
+                        disabled={!isCustomBrandingAllowed}
+                        onChange={e => {
+                          if (!isCustomBrandingAllowed) {
+                            setShowUpgradeModal(true);
+                            return;
+                          }
+                          setBrandingConfig({ ...brandingConfig, enabled: e.target.checked });
+                        }} 
+                        className="sr-only peer" 
+                      />
+                      <div className={`w-11 h-6 rounded-full transition-all peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                        !isCustomBrandingAllowed 
+                          ? 'bg-zinc-200 dark:bg-zinc-700/60 opacity-60 cursor-pointer' 
+                          : 'bg-surface-variant peer-checked:bg-primary cursor-pointer'
+                      }`}></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 transition-opacity ${!isCustomBrandingAllowed || !brandingConfig.enabled ? 'opacity-50 pointer-events-none' : ''}`}>
                   <div>
                     <label className="block font-label-caps text-label-caps text-on-surface-variant dark:text-outline mb-2 uppercase tracking-wide flex items-center justify-between">
                       <span>Logo URL</span>
@@ -467,6 +525,15 @@ export default function CustomerExperienceSettings() {
           </div>
         )}
       </div>
+
+      <PlanSelectModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onSelectPlan={() => {
+          setShowUpgradeModal(false);
+          router.push('/dashboard/settings/billing');
+        }}
+      />
     </div>
   );
 }

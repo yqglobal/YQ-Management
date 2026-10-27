@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { Box, Plus, Loader2, Pencil, Trash2, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { ConfirmModal } from '../modals/ConfirmModal';
 
 export function ResourcesSettings() {
   const queryClient = useQueryClient();
@@ -15,6 +16,7 @@ export function ResourcesSettings() {
   const [editResourceName, setEditResourceName] = useState('');
   const [editResourceType, setEditResourceType] = useState('Counter');
   const [editResourceServiceIds, setEditResourceServiceIds] = useState<string[]>([]);
+  const [resourceToDelete, setResourceToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { data: services = [] } = useQuery({
     queryKey: ['services'],
@@ -234,7 +236,7 @@ export function ResourcesSettings() {
                       <button onClick={() => startEditResource(res)} className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Edit">
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button onClick={() => { if (confirm(`Delete ${res.name}?`)) deleteResourceMutation.mutate(res.id); }}
+                      <button onClick={() => setResourceToDelete({ id: res.id, name: res.name })}
                         className="p-2 text-on-surface-variant hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Delete resource">
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -246,6 +248,22 @@ export function ResourcesSettings() {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!resourceToDelete}
+        onClose={() => setResourceToDelete(null)}
+        onConfirm={() => {
+          if (resourceToDelete) {
+            deleteResourceMutation.mutate(resourceToDelete.id);
+            setResourceToDelete(null);
+          }
+        }}
+        title="Delete Resource"
+        description={`Are you sure you want to delete ${resourceToDelete?.name}?`}
+        confirmText="Delete"
+        variant="danger"
+        isLoading={deleteResourceMutation.isPending}
+      />
     </div>
   );
 }

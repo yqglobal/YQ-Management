@@ -165,9 +165,139 @@ export class VisitService {
     return result;
   }
 
+  async autoSweepStaleVisits(
+    tenantId: string,
+    locationId?: string,
+    tzParam: string = 'UTC',
+  ) {
+    try {
+      const zonedNow = toZonedTime(new Date(), tzParam);
+      zonedNow.setHours(0, 0, 0, 0);
+      const startOfDay = fromZonedTime(zonedNow, tzParam);
+
+      const baseWhere: any = {
+        tenantId,
+      };
+      if (locationId && locationId !== 'all') {
+        baseWhere.locationId = locationId;
+      }
+
+      // 1. Stale WAITING / CHECKED_IN / ON_HOLD / CALLED visits created or waiting before today's start
+      const staleVisits = await this.prisma.visit.findMany({
+        where: {
+          ...baseWhere,
+          currentState: {
+            in: [
+              'WAITING',
+              'CHECKED_IN',
+              'ON_HOLD',
+              'PENDING_PAYMENT',
+              'CALLED',
+            ],
+          },
+          AND: [
+            { createdAt: { lt: startOfDay } },
+            {
+              OR: [
+                { scheduledTime: null },
+                { scheduledTime: { lt: startOfDay } },
+              ],
+            },
+          ],
+        },
+        select: { id: true },
+        take: 500,
+      });
+
+      if (staleVisits.length > 0) {
+        const ids = staleVisits.map((v) => v.id);
+        await this.prisma.visit.updateMany({
+          where: { id: { in: ids } },
+          data: {
+            currentState: 'NO_SHOW',
+            completedAt: null,
+            cancelReason: 'Day Rollover / Unattended (Auto-closed)',
+          },
+        });
+        this.logger.log(
+          `[JIT Sweep] Auto-closed ${staleVisits.length} stale visits for tenant ${tenantId}`,
+        );
+      }
+
+      // 2. Lingering IN_SERVICE visits created before today's start
+      const lingeringInService = await this.prisma.visit.findMany({
+        where: {
+          ...baseWhere,
+          currentState: 'IN_SERVICE',
+          AND: [
+            { createdAt: { lt: startOfDay } },
+            {
+              OR: [
+                { serviceStart: null },
+                { serviceStart: { lt: startOfDay } },
+              ],
+            },
+          ],
+        },
+        select: { id: true },
+        take: 100,
+      });
+
+      if (lingeringInService.length > 0) {
+        const ids = lingeringInService.map((v) => v.id);
+        await this.prisma.visit.updateMany({
+          where: { id: { in: ids } },
+          data: {
+            currentState: 'COMPLETED',
+            completedAt: startOfDay,
+            cancelReason: 'Day Rollover Auto-Complete',
+          },
+        });
+        this.logger.log(
+          `[JIT Sweep] Auto-completed ${lingeringInService.length} lingering in-service visits for tenant ${tenantId}`,
+        );
+      }
+
+      // 3. Past un-arrived SCHEDULED appointments
+      const pastScheduledAppointments = await this.prisma.appointment.findMany({
+        where: {
+          ...baseWhere,
+          status: 'SCHEDULED',
+          scheduledEnd: { lt: startOfDay },
+        },
+        select: { id: true },
+        take: 200,
+      });
+
+      if (pastScheduledAppointments.length > 0) {
+        const apptIds = pastScheduledAppointments.map((a) => a.id);
+        await this.prisma.appointment.updateMany({
+          where: { id: { in: apptIds } },
+          data: { status: 'NO_SHOW' },
+        });
+        await this.prisma.visit.updateMany({
+          where: {
+            appointmentId: { in: apptIds },
+            currentState: { in: ['SCHEDULED', 'CREATED'] },
+          },
+          data: {
+            currentState: 'NO_SHOW',
+            completedAt: null,
+            cancelReason: 'Appointment expired (No-Show)',
+          },
+        });
+        this.logger.log(
+          `[JIT Sweep] Auto-marked ${pastScheduledAppointments.length} past appointments as NO_SHOW for tenant ${tenantId}`,
+        );
+      }
+    } catch (e) {
+      this.logger.warn(`Failed during JIT auto-sweep for tenant ${tenantId}: ${e}`);
+    }
+  }
+
   async findAll(
     userTokenPayload: any,
-    scope?: 'today' | 'history' | 'analytics',
+    scope?: 'today' | 'history' | 'analytics' | 'records',
     locationId?: string,
     queueId?: string,
     tzParam?: string,
@@ -177,6 +307,9 @@ export class VisitService {
     serviceId?: string,
     page?: string,
     limit?: string,
+    search?: string,
+    rating?: string,
+    status?: string,
   ) {
     const where: any = { tenantId: userTokenPayload.tenantId };
     if (locationId) {
@@ -187,6 +320,15 @@ export class VisitService {
     }
     if (serviceId) {
       where.serviceId = serviceId;
+    }
+    if (status) {
+      if (status === 'ACTIVE') {
+        where.currentState = {
+          in: ['WAITING', 'IN_SERVICE', 'CALLED', 'CHECKED_IN', 'ON_HOLD'],
+        };
+      } else {
+        where.currentState = status;
+      }
     }
     if (
       userTokenPayload.role === 'MANAGER' ||
@@ -209,6 +351,13 @@ export class VisitService {
     }
     if (scope === 'today') {
       const tz = tzParam || 'UTC';
+      // Trigger JIT lazy auto-sweep to clean up any past days' lingering visits or appointments
+      await this.autoSweepStaleVisits(
+        userTokenPayload.tenantId,
+        locationId,
+        tz,
+      );
+
       const zonedNow = toZonedTime(new Date(), tz);
       zonedNow.setHours(0, 0, 0, 0);
       const start = fromZonedTime(zonedNow, tz);
@@ -221,14 +370,23 @@ export class VisitService {
       // 1. It is scheduled for today
       // 2. OR it is a walk-in created today without a scheduledTime
       // 3. OR it checked in, arrived, started, or completed today
-      // 4. OR it is actively waiting or in service right now
+      // 4. OR it is actively waiting or in service AND originated or checked in within today's window
       where.OR = [
         { scheduledTime: { gte: start, lte: end } },
         { scheduledTime: null, createdAt: { gte: start, lte: end } },
         { checkInTime: { gte: start, lte: end } },
         { actualArrival: { gte: start, lte: end } },
         { serviceStart: { gte: start, lte: end } },
-        { completedAt: { gte: start, lte: end } },
+        {
+          completedAt: { gte: start, lte: end },
+          currentState: 'COMPLETED',
+          OR: [
+            { createdAt: { gte: start, lte: end } },
+            { checkInTime: { gte: start, lte: end } },
+            { serviceStart: { gte: start, lte: end } },
+            { scheduledTime: { gte: start, lte: end } },
+          ],
+        },
         {
           currentState: {
             in: [
@@ -240,6 +398,12 @@ export class VisitService {
               'PENDING_PAYMENT',
             ],
           },
+          OR: [
+            { waitingStart: { gte: start, lte: end } },
+            { checkInTime: { gte: start, lte: end } },
+            { scheduledTime: { gte: start, lte: end } },
+            { createdAt: { gte: start, lte: end } },
+          ],
         },
       ];
 
@@ -250,49 +414,116 @@ export class VisitService {
           { scheduledTime: { gt: end } },
         ],
       };
-    } else if (scope === 'history' || scope === 'analytics') {
+    } else {
       if (scope === 'history') {
         where.currentState = { in: ['COMPLETED', 'NO_SHOW', 'CANCELLED'] };
       }
+
+      const tz = tzParam || 'UTC';
+      let start: Date | undefined;
+      let end: Date | undefined;
+
       if (startDate && endDate) {
-        where.OR = [
-          { completedAt: { gte: new Date(startDate), lte: new Date(endDate) } },
-          { checkInTime: { gte: new Date(startDate), lte: new Date(endDate) } },
-          {
-            scheduledTime: { gte: new Date(startDate), lte: new Date(endDate) },
-          },
-          { createdAt: { gte: new Date(startDate), lte: new Date(endDate) } },
-        ];
+        const startParsed = new Date(startDate);
+        const endParsed = new Date(endDate);
+        const zonedStart = toZonedTime(startParsed, tz);
+        zonedStart.setHours(0, 0, 0, 0);
+        start = fromZonedTime(zonedStart, tz);
+
+        const zonedEnd = toZonedTime(endParsed, tz);
+        zonedEnd.setHours(23, 59, 59, 999);
+        end = fromZonedTime(zonedEnd, tz);
       } else if (startDate) {
+        const startParsed = new Date(startDate);
+        const zonedStart = toZonedTime(startParsed, tz);
+        zonedStart.setHours(0, 0, 0, 0);
+        start = fromZonedTime(zonedStart, tz);
+
+        const zonedEnd = toZonedTime(startParsed, tz);
+        zonedEnd.setHours(23, 59, 59, 999);
+        end = fromZonedTime(zonedEnd, tz);
+      } else if (timeframe) {
+        const zonedNow = toZonedTime(new Date(), tz);
+        zonedNow.setHours(0, 0, 0, 0);
+
+        if (timeframe === 'today') {
+          start = fromZonedTime(zonedNow, tz);
+          const zonedEnd = toZonedTime(new Date(), tz);
+          zonedEnd.setHours(23, 59, 59, 999);
+          end = fromZonedTime(zonedEnd, tz);
+        } else if (timeframe === '7d' || timeframe === 'week') {
+          zonedNow.setDate(zonedNow.getDate() - 6);
+          start = fromZonedTime(zonedNow, tz);
+        } else if (timeframe === '30d' || timeframe === 'month') {
+          zonedNow.setDate(zonedNow.getDate() - 29);
+          start = fromZonedTime(zonedNow, tz);
+        } else if (timeframe === 'year' || timeframe === '1y') {
+          const zonedStartOfYear = toZonedTime(new Date(), tz);
+          zonedStartOfYear.setMonth(zonedStartOfYear.getMonth() - 11, 1);
+          zonedStartOfYear.setHours(0, 0, 0, 0);
+          start = fromZonedTime(zonedStartOfYear, tz);
+        }
+      }
+
+      if (start && end) {
         where.OR = [
-          { completedAt: { gte: new Date(startDate) } },
-          { checkInTime: { gte: new Date(startDate) } },
-          { scheduledTime: { gte: new Date(startDate) } },
-          { createdAt: { gte: new Date(startDate) } },
+          { completedAt: { gte: start, lte: end } },
+          { checkInTime: { gte: start, lte: end } },
+          { serviceStart: { gte: start, lte: end } },
+          { scheduledTime: { gte: start, lte: end } },
+          { createdAt: { gte: start, lte: end } },
         ];
-      } else if (
-        timeframe === '7d' ||
-        timeframe === '30d' ||
-        timeframe === 'today'
-      ) {
-        const daysAgo = timeframe === 'today' ? 0 : timeframe === '7d' ? 7 : 30;
-        const d = new Date();
-        d.setDate(d.getDate() - daysAgo);
-        d.setHours(0, 0, 0, 0);
+      } else if (start) {
         where.OR = [
-          { completedAt: { gte: d } },
-          { checkInTime: { gte: d } },
-          { scheduledTime: { gte: d } },
-          { createdAt: { gte: d } },
+          { completedAt: { gte: start } },
+          { checkInTime: { gte: start } },
+          { serviceStart: { gte: start } },
+          { scheduledTime: { gte: start } },
+          { createdAt: { gte: start } },
         ];
       }
     }
 
+    if (search && search.trim()) {
+      const q = search.trim();
+      const searchConditions = [
+        { displayId: { contains: q, mode: 'insensitive' } },
+        { customer: { name: { contains: q, mode: 'insensitive' } } },
+        { customer: { phone: { contains: q, mode: 'insensitive' } } },
+        { customer: { email: { contains: q, mode: 'insensitive' } } },
+      ];
+      if (where.OR) {
+        where.AND = [
+          ...(where.AND || []),
+          { OR: where.OR },
+          { OR: searchConditions },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = searchConditions;
+      }
+    }
+
+    if (rating) {
+      if (rating === 'reviewed') {
+        where.rating = { not: null };
+      } else if (rating === 'has_comment') {
+        where.feedbackText = { not: null };
+      } else {
+        const star = parseInt(rating, 10);
+        if (!isNaN(star) && star >= 1 && star <= 5) {
+          where.rating = star;
+        }
+      }
+    }
+
     const pageNum = parseInt(page || '1', 10) || 1;
-    // Set a very high default limit if pagination is implicitly bypassed (e.g. legacy frontend calls)
-    // To protect DB, max limit 1000.
+    // Set a high default limit if pagination is implicitly bypassed (records or analytics)
     const limitNum =
-      parseInt(limit || (scope === 'analytics' ? '1000' : '100'), 10) || 100;
+      parseInt(
+        limit || (scope === 'analytics' || scope === 'records' ? '1000' : '100'),
+        10,
+      ) || 100;
     const skip = (pageNum - 1) * limitNum;
 
     const [total, data] = await Promise.all([
@@ -306,6 +537,10 @@ export class VisitService {
           customer: true,
           service: { include: { serviceFlow: true } },
           location: true,
+          queue: true,
+          operatorUser: {
+            select: { id: true, email: true, personalSettings: true },
+          },
           bookingPayments: true,
           clinicalNotes: true,
           prescriptions: true,
@@ -1960,6 +2195,7 @@ export class VisitService {
     tokenString: string,
     tenantId: string,
     locationId?: string,
+    options?: { allowEarlyCheckIn?: boolean },
   ) {
     let tokenValue = tokenString;
     try {
@@ -2040,6 +2276,91 @@ export class VisitService {
         lastCompletedStep,
         allSteps: visit.visitSteps || [],
       };
+    }
+
+    if (visit.currentState === 'NO_SHOW') {
+      return {
+        valid: false,
+        status: 'NO_SHOW',
+        isPast: true,
+        reason: visit.cancelReason
+          ? `Visit was marked as no-show (${visit.cancelReason})`
+          : 'Visit was marked as no-show / expired',
+        tokenId: visit.id,
+        customerName: visit.customer?.name || 'Unknown',
+        queueName: visit.queue?.name || 'Unknown Queue',
+        locationName: visit.queue?.location?.name || 'Unknown Location',
+        serviceBooked: visit.service?.name || 'Unknown Service',
+        scheduledFor: visit.scheduledTime,
+      };
+    }
+
+    // Temporal date boundary guards: calculate today's start and end for the location timezone
+    const locTz = visit.queue?.location?.timezone || 'UTC';
+    let zonedNow: Date;
+    try {
+      zonedNow = toZonedTime(new Date(), locTz);
+    } catch {
+      zonedNow = toZonedTime(new Date(), 'UTC');
+    }
+
+    const zonedStart = new Date(zonedNow);
+    zonedStart.setHours(0, 0, 0, 0);
+    const startOfDay = fromZonedTime(zonedStart, locTz);
+
+    const zonedEnd = new Date(zonedNow);
+    zonedEnd.setHours(23, 59, 59, 999);
+    const endOfDay = fromZonedTime(zonedEnd, locTz);
+
+    // 1. Scheduled appointments date validation
+    if (visit.scheduledTime) {
+      const schedTime = new Date(visit.scheduledTime);
+      if (schedTime < startOfDay) {
+        return {
+          valid: false,
+          isPast: true,
+          status: visit.currentState,
+          scheduledFor: visit.scheduledTime,
+          reason: `This appointment was scheduled for a past date (${schedTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}). It cannot be checked in today.`,
+          tokenId: visit.id,
+          customerName: visit.customer?.name || 'Unknown',
+          queueName: visit.queue?.name || 'Unknown Queue',
+          locationName: visit.queue?.location?.name || 'Unknown Location',
+          serviceBooked: visit.service?.name || 'Unknown Service',
+        };
+      }
+
+      if (schedTime > endOfDay && !options?.allowEarlyCheckIn) {
+        return {
+          valid: false,
+          isFuture: true,
+          canOverride: true,
+          status: visit.currentState,
+          scheduledFor: visit.scheduledTime,
+          reason: `This appointment is scheduled for a future date (${schedTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}). Early check-in is not permitted today without staff override.`,
+          tokenId: visit.id,
+          customerName: visit.customer?.name || 'Unknown',
+          queueName: visit.queue?.name || 'Unknown Queue',
+          locationName: visit.queue?.location?.name || 'Unknown Location',
+          serviceBooked: visit.service?.name || 'Unknown Service',
+        };
+      }
+    } else {
+      // 2. Walk-in created prior to today that was not serviced today
+      const createdTime = new Date(visit.createdAt);
+      if (createdTime < startOfDay && !visit.checkInTime && visit.currentState !== 'IN_SERVICE') {
+        return {
+          valid: false,
+          isPast: true,
+          status: visit.currentState,
+          reason: `This walk-in ticket was issued on a previous date (${createdTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}) and has expired.`,
+          tokenId: visit.id,
+          customerName: visit.customer?.name || 'Unknown',
+          queueName: visit.queue?.name || 'Unknown Queue',
+          locationName: visit.queue?.location?.name || 'Unknown Location',
+          serviceBooked: visit.service?.name || 'Unknown Service',
+        };
+      }
     }
 
     const actionableSteps = visit.visitSteps?.filter(

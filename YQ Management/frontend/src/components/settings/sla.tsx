@@ -3,10 +3,12 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ConfirmModal } from '../modals/ConfirmModal';
 
 export default function SlaPoliciesPage() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState<string | null>(null);
+  const [policyToDelete, setPolicyToDelete] = useState<{ id: string; name: string } | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     warningThresholdMins: 15,
@@ -78,10 +80,8 @@ export default function SlaPoliciesPage() {
     setIsEditing(policy.id);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this policy? Any services using it will no longer have SLA monitoring.')) {
-      deleteMutation.mutate(id);
-    }
+  const handleDelete = (policy: { id: string; name: string }) => {
+    setPolicyToDelete(policy);
   };
 
   return (
@@ -224,7 +224,7 @@ export default function SlaPoliciesPage() {
                 <button onClick={() => handleEdit(policy)} className="p-2 text-outline hover:bg-surface-container hover:text-primary rounded-lg transition-colors" title="Edit">
                   <Edit2 className="w-4 h-4" />
                 </button>
-                <button onClick={() => handleDelete(policy.id)} className="p-2 text-outline hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors" title="Delete">
+                <button onClick={() => handleDelete({ id: policy.id, name: policy.name })} className="p-2 text-outline hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors" title="Delete">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -232,6 +232,22 @@ export default function SlaPoliciesPage() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!policyToDelete}
+        onClose={() => setPolicyToDelete(null)}
+        onConfirm={() => {
+          if (policyToDelete) {
+            deleteMutation.mutate(policyToDelete.id);
+            setPolicyToDelete(null);
+          }
+        }}
+        title="Delete SLA Policy"
+        description={`Are you sure you want to delete "${policyToDelete?.name}"? Any services using it will no longer have SLA monitoring.`}
+        confirmText="Delete Policy"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

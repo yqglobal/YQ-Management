@@ -8,6 +8,7 @@ import { useAuth } from '../AuthContext';
 import { useRouter } from 'next/router';
 import { toast } from 'sonner';
 import { ProviderModal } from '../modals/ProviderModal';
+import { ConfirmModal } from '../modals/ConfirmModal';
 
 import type { Staff } from '@yq/shared';
 
@@ -42,8 +43,9 @@ export default function ProvidersSettings() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-      const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
+  const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
+  const [providerToDelete, setProviderToDelete] = useState<{ id: string; name: string } | null>(null);
     
   const isAdmin = user?.role === 'OWNER' || user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
   const canManageProviders = isAdmin || user?.role === 'MANAGER';
@@ -172,8 +174,9 @@ export default function ProvidersSettings() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => { if (confirm(`Remove provider ${provider.name}?`)) deleteProviderMutation.mutate(provider.id); }}
+                        onClick={() => setProviderToDelete({ id: provider.id, name: provider.name })}
                         className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-red-400 transition-colors"
+                        title="Remove provider"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -189,6 +192,22 @@ export default function ProvidersSettings() {
         isOpen={isProviderModalOpen}
         onClose={() => { setIsProviderModalOpen(false); setEditingProvider(null); }}
         provider={editingProvider}
+      />
+
+      <ConfirmModal
+        isOpen={!!providerToDelete}
+        onClose={() => setProviderToDelete(null)}
+        onConfirm={() => {
+          if (providerToDelete) {
+            deleteProviderMutation.mutate(providerToDelete.id);
+            setProviderToDelete(null);
+          }
+        }}
+        title="Remove Provider"
+        description={`Are you sure you want to remove ${providerToDelete?.name}?`}
+        confirmText="Remove"
+        variant="danger"
+        isLoading={deleteProviderMutation.isPending}
       />
     </div>
   );

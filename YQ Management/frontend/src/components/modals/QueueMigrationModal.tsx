@@ -4,6 +4,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
 import { AlertCircle, Link as LinkIcon, Plus, Trash2, X, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { ConfirmModal } from './ConfirmModal';
 
 interface QueueMigrationModalProps {
   unlinkedQueues: any[];
@@ -19,6 +20,8 @@ export function QueueMigrationModal({ unlinkedQueues, services, onComplete, tena
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingQueueId, setDeletingQueueId] = useState<string | null>(null);
   const [isPurgingAll, setIsPurgingAll] = useState(false);
+  const [queueToDelete, setQueueToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
 
   const updateQueueMutation = useMutation({
     mutationFn: async ({ queueId, serviceId }: { queueId: string, serviceId: string }) => {
@@ -29,10 +32,13 @@ export function QueueMigrationModal({ unlinkedQueues, services, onComplete, tena
     }
   });
 
-  const handleDeleteSingleQueue = async (queueId: string, queueName: string) => {
-    if (!confirm(`Are you sure you want to permanently delete the queue "${queueName}"?`)) {
-      return;
-    }
+  const handleDeleteSingleQueue = (queueId: string, queueName: string) => {
+    setQueueToDelete({ id: queueId, name: queueName });
+  };
+
+  const confirmDeleteSingleQueue = async () => {
+    if (!queueToDelete) return;
+    const { id: queueId, name: queueName } = queueToDelete;
     setDeletingQueueId(queueId);
     try {
       await fetchApi(`/queue/${queueId}`, { method: 'DELETE' });
@@ -48,19 +54,22 @@ export function QueueMigrationModal({ unlinkedQueues, services, onComplete, tena
       toast.error(err.message || 'Failed to delete queue');
     } finally {
       setDeletingQueueId(null);
+      setQueueToDelete(null);
     }
   };
 
-  const handlePurgeAll = async () => {
-    if (!confirm(`Are you sure you want to delete all ${unlinkedQueues.length} orphaned queues? This action cannot be undone.`)) {
-      return;
-    }
+  const handlePurgeAll = () => {
+    setShowPurgeConfirm(true);
+  };
+
+  const confirmPurgeAll = async () => {
     setIsPurgingAll(true);
     try {
       const res = await fetchApi('/queue/unlinked/purge', { method: 'DELETE' });
       toast.success(`Successfully purged ${res.deletedCount || unlinkedQueues.length} orphaned queues.`);
       queryClient.invalidateQueries({ queryKey: ['tenant'] });
       queryClient.invalidateQueries({ queryKey: ['queues'] });
+      setShowPurgeConfirm(false);
       onComplete();
     } catch (err: any) {
       toast.error(err.message || 'Failed to purge orphaned queues');
@@ -240,6 +249,28 @@ export function QueueMigrationModal({ unlinkedQueues, services, onComplete, tena
           </div>
         </motion.div>
       </div>
+
+      <ConfirmModal
+        isOpen={!!queueToDelete}
+        onClose={() => setQueueToDelete(null)}
+        onConfirm={confirmDeleteSingleQueue}
+        title="Delete Queue"
+        description={`Are you sure you want to permanently delete the queue "${queueToDelete?.name}"?`}
+        confirmText="Delete Queue"
+        variant="danger"
+        isLoading={!!deletingQueueId}
+      />
+
+      <ConfirmModal
+        isOpen={showPurgeConfirm}
+        onClose={() => setShowPurgeConfirm(false)}
+        onConfirm={confirmPurgeAll}
+        title="Purge All Orphaned Queues"
+        description={`Are you sure you want to delete all ${unlinkedQueues.length} orphaned queues? This action cannot be undone.`}
+        confirmText="Purge All Queues"
+        variant="danger"
+        isLoading={isPurgingAll}
+      />
     </AnimatePresence>
   );
 }

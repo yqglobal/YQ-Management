@@ -71,8 +71,9 @@ export class PaymentsService {
       finalAmount = plan.annualPrice;
     }
 
-    // Ensure amount has 2 decimal places for Ozow
-    const formattedAmount = finalAmount.toFixed(2);
+    // If price is stored in cents (>= 1000), convert to Rands for processor
+    const amountInCurrency = finalAmount >= 1000 ? finalAmount / 100 : finalAmount;
+    const formattedAmount = amountInCurrency.toFixed(2);
 
     // 1. Create a pending transaction
     const transaction = await this.prisma.transaction.create({
@@ -81,7 +82,7 @@ export class PaymentsService {
         planId,
         billingInterval,
         transactionRef: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        amount: finalAmount,
+        amount: amountInCurrency,
         currency: plan.currency || 'ZAR',
       },
     });

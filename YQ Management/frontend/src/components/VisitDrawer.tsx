@@ -18,6 +18,7 @@ import {
   UserX,
   XCircle,
   ShieldAlert,
+  Star,
 } from 'lucide-react';
 import { fetchApi } from '../lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -518,6 +519,37 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
               </div>
             )}
           </div>
+
+          {/* Customer Rating & Review */}
+          {visit.rating !== null && visit.rating !== undefined && (
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                  <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                    Customer Rating: {visit.rating} / 5
+                  </span>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star
+                      key={s}
+                      className={`w-3 h-3 ${
+                        s <= visit.rating
+                          ? 'fill-amber-400 text-amber-400'
+                          : 'text-zinc-300 dark:text-zinc-700'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              {visit.feedbackText && (
+                <p className="text-xs text-zinc-700 dark:text-zinc-300 italic pl-2 border-l-2 border-amber-400">
+                  &ldquo;{visit.feedbackText}&rdquo;
+                </p>
+              )}
+            </div>
+          )}
 
           {/* 6. Notes: Line by Line */}
           <div className="pt-0.5">

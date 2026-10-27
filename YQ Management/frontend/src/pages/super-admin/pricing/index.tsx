@@ -4,6 +4,7 @@ import SuperAdminLayout from '../../../components/SuperAdminLayout';
 import { fetchApi } from '../../../lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Check, X, Shield, Loader2, BarChart } from 'lucide-react';
+import { ConfirmModal } from '../../../components/modals/ConfirmModal';
 
 interface PlanFeature {
   whatsappNotifications?: boolean;
@@ -57,6 +58,8 @@ export default function PricingHub() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editingPlan, setEditingPlan] = useState<PlanData | null>(null);
+  const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
+  const [isDeletingPlan, setIsDeletingPlan] = useState(false);
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ['plans'],
@@ -99,10 +102,21 @@ export default function PricingHub() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['plans'] })
   });
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this plan?')) {
-      await fetchApi(`/billing/plans/${id}`, { method: 'DELETE' });
+  const handleDelete = (id: string) => {
+    setDeletePlanId(id);
+  };
+
+  const executeDeletePlan = async () => {
+    if (!deletePlanId) return;
+    setIsDeletingPlan(true);
+    try {
+      await fetchApi(`/billing/plans/${deletePlanId}`, { method: 'DELETE' });
       queryClient.invalidateQueries({ queryKey: ['plans'] });
+      setDeletePlanId(null);
+    } catch (err: AnyFixMe) {
+      console.error(err);
+    } finally {
+      setIsDeletingPlan(false);
     }
   };
 
@@ -310,6 +324,17 @@ export default function PricingHub() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!deletePlanId}
+        onClose={() => setDeletePlanId(null)}
+        onConfirm={executeDeletePlan}
+        title="Delete Plan"
+        description="Are you sure you want to delete this subscription plan? Existing subscribed users will remain unaffected."
+        confirmText="Delete Plan"
+        variant="danger"
+        isLoading={isDeletingPlan}
+      />
     </SuperAdminLayout>
   );
 }

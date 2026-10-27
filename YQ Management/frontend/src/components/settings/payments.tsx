@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   CreditCard, 
@@ -15,9 +15,11 @@ import {
 } from 'lucide-react';
 import { fetchApi } from '../../lib/api';
 import { toast } from 'sonner';
+import { ConfirmModal } from '../modals/ConfirmModal';
 
 export default function StripePaymentsSettings() {
   const queryClient = useQueryClient();
+  const [isDisconnectModalOpen, setIsDisconnectModalOpen] = useState(false);
 
   const { data: status, isLoading, refetch } = useQuery({
     queryKey: ['tenant-payment-status'],
@@ -76,11 +78,7 @@ export default function StripePaymentsSettings() {
           </div>
           {status?.accountId && (
             <button
-              onClick={() => {
-                if (confirm('Disconnect current Stripe account and reset connection?')) {
-                  resetMutation.mutate();
-                }
-              }}
+              onClick={() => setIsDisconnectModalOpen(true)}
               disabled={resetMutation.isPending}
               className="text-xs text-red-600 dark:text-red-400 hover:underline shrink-0 font-medium"
             >
@@ -405,6 +403,20 @@ export default function StripePaymentsSettings() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={isDisconnectModalOpen}
+        onClose={() => setIsDisconnectModalOpen(false)}
+        onConfirm={() => {
+          setIsDisconnectModalOpen(false);
+          resetMutation.mutate();
+        }}
+        title="Disconnect Stripe Account"
+        description="Are you sure you want to disconnect your current Stripe account and reset the connection? Customers will not be able to pay online until you reconnect."
+        confirmText="Disconnect Account"
+        variant="danger"
+        isLoading={resetMutation.isPending}
+      />
     </div>
   );
 }

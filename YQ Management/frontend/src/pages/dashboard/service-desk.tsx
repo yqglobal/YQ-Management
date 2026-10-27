@@ -79,6 +79,7 @@ import {
   VisitBill,
 } from "../../components/modals/CheckoutBillModal";
 import { InvoiceModal } from "../../components/modals/InvoiceModal";
+import { ConfirmModal } from "../../components/modals/ConfirmModal";
 // ── Inline Notes Component ───────────────────────────────────────────────────
 function InlineNotes({
   visitId,
@@ -352,6 +353,16 @@ export default function ServiceDeskToday() {
     null,
   );
   const [isMarkingNoShow, setIsMarkingNoShow] = useState<boolean>(false);
+
+  // Complete Visit Confirmation State
+  const [completeConfirmData, setCompleteConfirmData] = useState<{
+    id: string;
+    isToken?: boolean;
+    title: string;
+    message: string;
+    isEarly: boolean;
+  } | null>(null);
+  const [isCompletingVisit, setIsCompletingVisit] = useState<boolean>(false);
 
   const { socket } = useSocket();
 
@@ -843,7 +854,6 @@ export default function ServiceDeskToday() {
     }
     return q;
   }, [queues, user]);
-
   const filteredVisits = React.useMemo(() => {
     let v = visits || [];
     if (user && user.role === "MANAGER") {
@@ -853,6 +863,24 @@ export default function ServiceDeskToday() {
         );
       }
     }
+
+    // Defensive temporal check: in 'today' operational board, filter out any visit from previous days (>24h ago)
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    v = v.filter((visit: AnyFixMe) => {
+      if (visit.scheduledTime) {
+        const schedTime = new Date(visit.scheduledTime).getTime();
+        if (schedTime < oneDayAgo) return false;
+        return true;
+      }
+      const createdTime = new Date(visit.createdAt).getTime();
+      const checkIn = visit.checkInTime ? new Date(visit.checkInTime).getTime() : 0;
+      const serviceStart = visit.serviceStart ? new Date(visit.serviceStart).getTime() : 0;
+      if (createdTime < oneDayAgo && checkIn < oneDayAgo && serviceStart < oneDayAgo) {
+        return false;
+      }
+      return true;
+    });
+
     return v;
   }, [visits, user]);
 
@@ -869,6 +897,15 @@ export default function ServiceDeskToday() {
     let hasCollection = false;
 
     (filteredVisits || []).forEach((v: AnyFixMe) => {
+      // Exclude cancelled, missed, or no-show visits from active fulfillment counters
+      if (
+        v.currentState === "CANCELLED" ||
+        v.currentState === "NO_SHOW" ||
+        v.currentState === "MISSED"
+      ) {
+        return;
+      }
+
       totalRegistered++;
       if (
         v.currentState === "CHECKED_IN" ||
@@ -880,7 +917,9 @@ export default function ServiceDeskToday() {
       }
       const collectionStep = v.visitSteps?.find(
         (s: AnyFixMe) =>
-          s.templateStep?.type === "COLLECTION" || s.quantityAllocated,
+          (s.templateStep?.type === "COLLECTION" || s.quantityAllocated) &&
+          s.status !== "CANCELLED" &&
+          s.status !== "SKIPPED",
       );
       if (collectionStep) {
         hasCollection = true;
@@ -893,6 +932,7 @@ export default function ServiceDeskToday() {
     });
 
     if (!isEventOrJourney && !hasCollection) return null;
+    if (totalRegistered === 0 && !isEventOrJourney) return null;
 
     return {
       totalRegistered,
@@ -1150,7 +1190,7 @@ export default function ServiceDeskToday() {
     setPaymentLink(null);
   };
 
-  const handleComplete = async (
+  const handleComplete = (
     id: string,
     e: React.MouseEvent,
     isToken?: boolean,
@@ -1161,13 +1201,30 @@ export default function ServiceDeskToday() {
         ? selectedVisit
         : visits.find((item: AnyFixMe) => item.id === id) || null;
     const prog = v ? getStepProgression(v) : null;
-    const confirmMsg = prog?.next
+    const isEarly = !!prog?.next;
+    const confirmMsg = isEarly
       ? "Are you sure you want to complete this entire visit early? Remaining journey stages will be skipped."
-      : "Are you sure you want to mark this as completed?";
+      : "Are you sure you want to mark this visit as completed?";
+    setCompleteConfirmData({
+      id,
+      isToken,
+      title: isEarly ? "Complete Visit Early?" : "Complete Visit?",
+      message: confirmMsg,
+      isEarly,
+    });
+  };
+
+  const executeFinalizeComplete = async () => {
+    if (!completeConfirmData) return;
+    const { id, isToken } = completeConfirmData;
+    const v: AnyFixMe =
+      selectedVisit?.id === id
+        ? selectedVisit
+        : visits.find((item: AnyFixMe) => item.id === id) || null;
+    setIsCompletingVisit(true);
     try {
-      // Backend returns 402 + bill only on the final step of a check-out-payment flow.
-      if (!window.confirm(confirmMsg)) return;
       await finalizeComplete(id, isToken);
+      setCompleteConfirmData(null);
     } catch (err: any) {
       if (err?.status === 402) {
         // Backend enforced the payment gate — fetch the bill and show the modal.
@@ -1180,6 +1237,7 @@ export default function ServiceDeskToday() {
             name: v?.customer?.name,
             phone: v?.customer?.phone,
           });
+          setCompleteConfirmData(null);
           return;
         } catch {
           /* fall through */
@@ -1187,6 +1245,8 @@ export default function ServiceDeskToday() {
       }
       console.error("Failed to complete visit/token", err);
       toast.error("Failed to complete. Please try again.");
+    } finally {
+      setIsCompletingVisit(false);
     }
   };
 
@@ -2133,7 +2193,8 @@ export default function ServiceDeskToday() {
                     : 0;
                   const waitTimeMins = Math.floor(waitTimeMs / 60000);
                   const threshold = tenant?.reviewWaitThresholdMins || 15;
-                  const isUrgent = !isUpcoming && waitTimeMins > threshold;
+                  const isStale = !isUpcoming && waitTimeMins > 1440; // > 24 hours
+                  const isUrgent = !isUpcoming && waitTimeMins > threshold && !isStale;
                   const slotTime = v.scheduledTime
                     ? new Date(v.scheduledTime)
                     : null;
@@ -2195,9 +2256,11 @@ export default function ServiceDeskToday() {
                             ? isUpcoming
                               ? "bg-sky-400/60"
                               : "bg-sky-500"
-                            : isUrgent
-                              ? "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
-                              : "bg-emerald-500"
+                            : isStale
+                              ? "bg-zinc-400 dark:bg-zinc-600"
+                              : isUrgent
+                                ? "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                                : "bg-emerald-500"
                         }`}
                       />
 
@@ -2281,9 +2344,11 @@ export default function ServiceDeskToday() {
                         ) : (
                           <div
                             className={`flex items-center gap-1.5 font-medium px-2 py-0.5 rounded border ${
-                              isUrgent
-                                ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border-rose-200/60 dark:border-rose-800/40 font-bold"
-                                : "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200/60 dark:border-amber-800/40"
+                              isStale
+                                ? "text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/60 border-zinc-300 dark:border-zinc-700 font-semibold"
+                                : isUrgent
+                                  ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border-rose-200/60 dark:border-rose-800/40 font-bold"
+                                  : "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200/60 dark:border-amber-800/40"
                             }`}
                           >
                             <Clock className="w-3.5 h-3.5 shrink-0" />
@@ -2291,19 +2356,30 @@ export default function ServiceDeskToday() {
                               {isAppt
                                 ? `Slot: ${slotTimeFormatted || "Scheduled"} • `
                                 : ""}
-                              Waiting: {waitTimeMins}m
-                              {cardEstimates.estWaitMins !== null
+                              Waiting: {isStale ? ">24h (Stale)" : `${waitTimeMins}m`}
+                              {!isStale && cardEstimates.estWaitMins !== null
                                 ? ` • Est. Wait: ~${cardEstimates.estWaitMins}m`
                                 : ""}
-                              {cardEstimates.estFinishTimeStr
+                              {!isStale && cardEstimates.estFinishTimeStr
                                 ? ` • Est. Finish: ~${cardEstimates.estFinishTimeStr}`
                                 : ""}
                             </span>
-                            {isUrgent && (
+                            {isStale ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setNoShowConfirmVisit(v);
+                                }}
+                                className="text-[10px] px-1.5 py-0.5 bg-zinc-600 hover:bg-zinc-700 text-white rounded font-bold uppercase tracking-wider ml-1 cursor-pointer transition-colors"
+                                title="Click to clear stale ticket as No-Show"
+                              >
+                                Mark No-Show
+                              </button>
+                            ) : isUrgent ? (
                               <span className="text-[10px] px-1 py-0.2 bg-rose-500 text-white rounded font-bold uppercase tracking-wider ml-0.5">
                                 Overdue
                               </span>
-                            )}
+                            ) : null}
                           </div>
                         )}
                       </div>
@@ -3833,6 +3909,17 @@ export default function ServiceDeskToday() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!completeConfirmData}
+        onClose={() => setCompleteConfirmData(null)}
+        onConfirm={executeFinalizeComplete}
+        title={completeConfirmData?.title || "Complete Visit"}
+        description={completeConfirmData?.message || "Are you sure you want to complete this visit?"}
+        confirmText={completeConfirmData?.isEarly ? "Complete Early" : "Complete Visit"}
+        variant={completeConfirmData?.isEarly ? "warning" : "primary"}
+        isLoading={isCompletingVisit}
+      />
     </AdminLayout>
   );
 }

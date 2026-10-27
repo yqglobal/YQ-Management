@@ -13,6 +13,7 @@ import {
   Clock,
   MapPin,
   CheckCircle2,
+  Star,
 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -388,6 +389,21 @@ export function CustomerDrawer({ isOpen, onClose, customerId }: CustomerDrawerPr
                                 ? `Booked for ${new Date(v.scheduledTime).toLocaleDateString()} at ${new Date(v.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                                 : `Created on ${new Date(v.createdAt).toLocaleDateString()} at ${new Date(v.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                             </div>
+
+                            {/* Customer Review & Rating */}
+                            {v.rating !== null && v.rating !== undefined && (
+                              <div className="mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] space-y-0.5">
+                                <div className="flex items-center gap-1 font-bold text-amber-700 dark:text-amber-300">
+                                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                                  Rated {v.rating} / 5
+                                </div>
+                                {v.feedbackText && (
+                                  <p className="text-zinc-600 dark:text-zinc-300 italic text-[11px] pl-1.5 border-l-2 border-amber-400">
+                                    &ldquo;{v.feedbackText}&rdquo;
+                                  </p>
+                                )}
+                              </div>
+                            )}
 
                             {/* Stage Timestamps & Details */}
                             {Array.isArray(v.steps) && v.steps.length > 0 && (

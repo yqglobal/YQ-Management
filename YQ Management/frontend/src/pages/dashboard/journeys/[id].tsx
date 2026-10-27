@@ -38,6 +38,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { FlowBuilder } from "../../../components/settings/FlowBuilder";
 import { INDUSTRY_GROUPS } from "../../../lib/subIndustries";
+import { ConfirmModal } from "../../../components/modals/ConfirmModal";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -587,6 +588,7 @@ export default function JourneyBuilder() {
   const [selectedSubType, setSelectedSubType] = useState<string>("");
   const [templateSearchQuery, setTemplateSearchQuery] = useState<string>("");
   const [isAdvancedMode, setIsAdvancedMode] = useState(false);
+  const [stepToDelete, setStepToDelete] = useState<string | null>(null);
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
@@ -2352,10 +2354,7 @@ export default function JourneyBuilder() {
                         </button>
                         {editingStep && !editingStep.isSystem && (
                           <button
-                            onClick={() => {
-                              if (confirm("Remove this stage from the flow?"))
-                                deleteStepMutation.mutate(editingStep.id);
-                            }}
+                            onClick={() => setStepToDelete(editingStep.id)}
                             className="h-11 px-4 text-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/20 rounded-xl transition-colors border border-red-200 dark:border-red-900/30 flex items-center"
                             title="Remove Stage"
                           >
@@ -2621,6 +2620,21 @@ export default function JourneyBuilder() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!stepToDelete}
+        onClose={() => setStepToDelete(null)}
+        onConfirm={async () => {
+          if (!stepToDelete) return;
+          await deleteStepMutation.mutateAsync(stepToDelete);
+          setStepToDelete(null);
+        }}
+        title="Remove Stage"
+        description="Are you sure you want to remove this stage from the flow?"
+        confirmText="Remove Stage"
+        variant="danger"
+        isLoading={deleteStepMutation.isPending}
+      />
     </AdminLayout>
   );
 }

@@ -18,8 +18,8 @@ const settingsNavLinks = [
   { label: 'Team & Security', href: '/dashboard/settings/team', icon: <Shield className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Operations', href: '/dashboard/settings/operations', icon: <Box className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Integrations & Comms', href: '/dashboard/settings/integrations', icon: <Workflow className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'Payments & Invoicing', href: '/dashboard/settings/payments', icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Staff View & My-Desk', href: '/dashboard/settings/staff-view', icon: <Building className="w-4 h-4" strokeWidth={1.5} /> },
-  { label: 'Payments & Payouts', href: '/dashboard/settings/payments', icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
 ];
 
 export default function SettingsLayout({ children, pageTitle = 'Settings', pageSubtitle = '' }: SettingsLayoutProps) {

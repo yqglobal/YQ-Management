@@ -14,7 +14,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/types/auth.types';
 
 @UseGuards(JwtAuthGuard)
-@Controller('customer')
+@Controller(['customer', 'customers'])
 export class CustomerController {
   constructor(private readonly customerService: CustomerService) {}
 
@@ -38,6 +38,12 @@ export class CustomerController {
   @Get(':id')
   findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.customerService.findOne(id, req.user.tenantId);
+  }
+
+  @Get(':id/visits')
+  async getVisits(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    const customer = await this.customerService.findOne(id, req.user.tenantId);
+    return customer?.visits || [];
   }
 
   @Patch(':id')

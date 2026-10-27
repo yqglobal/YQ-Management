@@ -18,11 +18,14 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CreateJourneyModal } from '../../../components/modals/CreateJourneyModal';
+import { ConfirmModal } from '../../../components/modals/ConfirmModal';
 
 export default function JourneysIndex() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [deleteFlowId, setDeleteFlowId] = useState<string | null>(null);
+  const [duplicateFlowId, setDuplicateFlowId] = useState<string | null>(null);
 
   const { data: flows = [], isLoading: flowsLoading } = useQuery({
     queryKey: ['service-flows'],
@@ -143,8 +146,8 @@ export default function JourneysIndex() {
                         service={service}
                         customStepCount={customStepCount}
                         onEdit={() => router.push(`/dashboard/journeys/${flow.id}`)}
-                        onDuplicate={() => { if (confirm('Duplicate this journey?')) duplicateMutation.mutate(flow.id); }}
-                        onDelete={() => { if (confirm('Delete this journey? This cannot be undone.')) deleteMutation.mutate(flow.id); }}
+                        onDuplicate={() => setDuplicateFlowId(flow.id)}
+                        onDelete={() => setDeleteFlowId(flow.id)}
                       />
                     );
                   })}
@@ -173,8 +176,8 @@ export default function JourneysIndex() {
                         service={null}
                         customStepCount={customStepCount}
                         onEdit={() => router.push(`/dashboard/journeys/${flow.id}`)}
-                        onDuplicate={() => { if (confirm('Duplicate this journey?')) duplicateMutation.mutate(flow.id); }}
-                        onDelete={() => { if (confirm('Delete this journey? This cannot be undone.')) deleteMutation.mutate(flow.id); }}
+                        onDuplicate={() => setDuplicateFlowId(flow.id)}
+                        onDelete={() => setDeleteFlowId(flow.id)}
                       />
                     );
                   })}
@@ -217,6 +220,36 @@ export default function JourneysIndex() {
       <CreateJourneyModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteFlowId}
+        onClose={() => setDeleteFlowId(null)}
+        onConfirm={async () => {
+          if (!deleteFlowId) return;
+          await deleteMutation.mutateAsync(deleteFlowId);
+          setDeleteFlowId(null);
+        }}
+        title="Delete Journey"
+        description="Are you sure you want to delete this customer journey? This action cannot be undone."
+        confirmText="Delete Journey"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
+
+      <ConfirmModal
+        isOpen={!!duplicateFlowId}
+        onClose={() => setDuplicateFlowId(null)}
+        onConfirm={async () => {
+          if (!duplicateFlowId) return;
+          await duplicateMutation.mutateAsync(duplicateFlowId);
+          setDuplicateFlowId(null);
+        }}
+        title="Duplicate Journey"
+        description="Create a clone of this journey with all its steps and configuration?"
+        confirmText="Duplicate"
+        variant="primary"
+        isLoading={duplicateMutation.isPending}
       />
     </AdminLayout>
   );

@@ -92,7 +92,13 @@ export function UserPermissionsModal({
       setRole((userToEdit.role as 'STAFF' | 'MANAGER' | 'ADMIN' | 'OWNER') || 'STAFF');
       setAllowedLocationIds(userToEdit.allowedLocationIds || []);
       setAllowedServiceIds(userToEdit.allowedServiceIds || []);
-      setAllowedPages(userToEdit.allowedPages || []);
+      const rawPages: string[] = userToEdit.allowedPages || [];
+      const normalized = rawPages.map((p: string) => {
+        if (p === 'customers') return 'people';
+        if (p === 'service-flow') return 'journeys';
+        return p;
+      });
+      setAllowedPages(normalized);
       setAllowWorkspaceSettings(
         userToEdit.allowedPages?.some((p: string) => p.startsWith('settings-')) || false
       );
@@ -109,7 +115,7 @@ export function UserPermissionsModal({
       setRole('STAFF');
       setAllowedLocationIds([]);
       setAllowedServiceIds([]);
-      setAllowedPages(['queues', 'service-desk', 'check-in']);
+      setAllowedPages(['queues', 'service-desk', 'people']);
       setAllowWorkspaceSettings(false);
       setStep(1);
     }
@@ -128,15 +134,14 @@ export function UserPermissionsModal({
   });
 
   const corePages = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'inbox', label: 'Inbox (WhatsApp)' },
-    { id: 'service-desk', label: 'Service Desk' },
-    { id: 'check-in', label: 'Check-in / QR Scanner' },
-    { id: 'appointments', label: 'Appointments' },
-    { id: 'customers', label: 'Customers' },
-    { id: 'analytics', label: 'Analytics' },
     { id: 'queues', label: 'Queues' },
-    { id: 'service-flow', label: 'Service Flow Builder' },
+    { id: 'service-desk', label: 'Service Desk' },
+    { id: 'appointments', label: 'Appointments' },
+    { id: 'journeys', label: 'Journeys' },
+    { id: 'inbox', label: 'Inbox' },
+    { id: 'people', label: 'People' },
+    { id: 'analytics', label: 'Analytics' },
+    { id: 'check-in', label: 'Scanner' },
   ];
 
   const flowOperations = [
@@ -152,6 +157,8 @@ export function UserPermissionsModal({
     { id: 'settings-team', label: 'Team & Security' },
     { id: 'settings-operations', label: 'Operations' },
     { id: 'settings-integrations', label: 'Integrations & Comms' },
+    { id: 'settings-payments', label: 'Payments & Invoicing' },
+    { id: 'settings-staff-view', label: 'Staff View & My-Desk' },
   ];
 
   const handleClose = () => {

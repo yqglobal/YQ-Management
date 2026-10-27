@@ -400,25 +400,27 @@ export default function StatusPage() {
       </Head>
 
       {/* Header */}
-      <header className="w-full max-w-md sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800 p-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
+      <header className="w-full max-w-md sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800 px-4 py-3 sm:p-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2.5 min-w-0">
           {logoUrl ? (
-            <Image src={logoUrl} alt={tenant?.name} width={140} height={32} className="h-8 w-auto object-contain" priority />
+            <div className="flex items-center shrink-0">
+              <Image src={logoUrl} alt={tenant?.name} width={80} height={18} className="h-[18px] sm:h-5 max-w-[100px] w-auto object-contain" priority />
+            </div>
           ) : !isBrandingEnabled ? (
-            <>
-              <Image src="/qmova-light-logo.png" alt="Qmova" width={140} height={32} className="h-8 w-auto max-w-[140px] object-contain dark:hidden" priority />
-              <Image src="/qmova-dark-logo.png" alt="Qmova" width={140} height={32} className="h-8 w-auto max-w-[140px] object-contain hidden dark:block" priority />
-            </>
+            <div className="flex items-center shrink-0">
+              <Image src="/qmova-light-logo.webp" alt="Qmova" width={80} height={18} className="h-[18px] sm:h-5 w-auto object-contain dark:hidden" priority />
+              <Image src="/qmova-dark-logo.webp" alt="Qmova" width={80} height={18} className="h-[18px] sm:h-5 w-auto object-contain hidden dark:block" priority />
+            </div>
           ) : (
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: primaryColor }}>
+            <div className="w-6 h-6 rounded-md flex items-center justify-center text-white font-bold text-xs shrink-0" style={{ backgroundColor: primaryColor }}>
               {tenant?.name?.substring(0, 2).toUpperCase() || 'YQ'}
             </div>
           )}
-          <span className="font-bold text-lg">{tenant?.name}</span>
+          <span className="font-bold text-base sm:text-lg tracking-tight text-gray-900 dark:text-white truncate">{tenant?.name}</span>
         </div>
         <button 
           onClick={toggleTheme} 
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors text-gray-500 dark:text-gray-400"
+          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors text-gray-500 dark:text-gray-400 shrink-0 ml-2"
           aria-label="Toggle theme"
         >
           {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -671,8 +673,8 @@ export default function StatusPage() {
           <div className="mt-8 pb-4 text-center">
             <a href="https://qmova.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
               <span>Powered by</span>
-              <Image src="/qmova-light-logo.png" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain dark:hidden" />
-              <Image src="/qmova-dark-logo.png" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain hidden dark:block" />
+              <Image src="/qmova-light-logo.webp" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain dark:hidden" />
+              <Image src="/qmova-dark-logo.webp" alt="Qmova" width={60} height={18} className="h-[18px] w-auto object-contain hidden dark:block" />
             </a>
           </div>
         )}

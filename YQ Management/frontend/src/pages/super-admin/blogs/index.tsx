@@ -6,10 +6,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Edit, Trash2, Plus, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { ConfirmModal } from '../../../components/modals/ConfirmModal';
 
 export default function SuperAdminBlogs() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingBlog, setEditingBlog] = useState<AnyFixMe>(null);
+  const [deleteBlogId, setDeleteBlogId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -55,6 +57,7 @@ export default function SuperAdminBlogs() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-blogs'] });
       toast.success('Blog deleted');
+      setDeleteBlogId(null);
     },
     onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to delete blog'),
   });
@@ -103,9 +106,7 @@ export default function SuperAdminBlogs() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this blog?')) {
-      deleteMutation.mutate(id);
-    }
+    setDeleteBlogId(id);
   };
 
   return (
@@ -336,6 +337,20 @@ export default function SuperAdminBlogs() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!deleteBlogId}
+        onClose={() => setDeleteBlogId(null)}
+        onConfirm={async () => {
+          if (!deleteBlogId) return;
+          await deleteMutation.mutateAsync(deleteBlogId);
+        }}
+        title="Delete Blog"
+        description="Are you sure you want to delete this blog post? This action cannot be undone."
+        confirmText="Delete Blog"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </SuperAdminLayout>
   );
 }

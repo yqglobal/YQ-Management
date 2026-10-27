@@ -256,6 +256,82 @@ describe('VisitService', () => {
       );
       expect(mockPrismaService.visitStep.updateMany).not.toHaveBeenCalled();
     });
+
+    it('should query visits with scope "records" applying search and timeframe', async () => {
+      mockPrismaService.visit.count = jest.fn().mockResolvedValue(1);
+      mockPrismaService.visit.findMany = jest.fn().mockResolvedValue([
+        {
+          id: 'v1',
+          displayId: 'Q001',
+          currentState: 'COMPLETED',
+          customer: { name: 'John Doe', phone: '+123456789' },
+          service: { name: 'Consultation' },
+        },
+      ]);
+
+      const result = await service.findAll(
+        { tenantId: 't1', role: 'ADMIN' },
+        'records',
+        'loc-1',
+        undefined,
+        'UTC',
+        '7d',
+        undefined,
+        undefined,
+        'svc-1',
+        '1',
+        '50',
+        'John',
+      );
+
+      expect(result.data).toHaveLength(1);
+      expect(mockPrismaService.visit.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            tenantId: 't1',
+            locationId: 'loc-1',
+            serviceId: 'svc-1',
+          }),
+        }),
+      );
+    });
+
+    it('should query visits with scope "records" and filter by rating', async () => {
+      mockPrismaService.visit.count = jest.fn().mockResolvedValue(1);
+      mockPrismaService.visit.findMany = jest.fn().mockResolvedValue([
+        {
+          id: 'v1',
+          rating: 5,
+          feedbackText: 'Great!',
+        },
+      ]);
+
+      const result = await service.findAll(
+        { tenantId: 't1', role: 'ADMIN' },
+        'records',
+        undefined,
+        undefined,
+        'UTC',
+        'all',
+        undefined,
+        undefined,
+        undefined,
+        '1',
+        '50',
+        undefined,
+        '5',
+      );
+
+      expect(result.data).toHaveLength(1);
+      expect(mockPrismaService.visit.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            tenantId: 't1',
+            rating: 5,
+          }),
+        }),
+      );
+    });
   });
 });
 

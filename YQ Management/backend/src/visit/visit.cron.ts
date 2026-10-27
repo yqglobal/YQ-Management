@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 @Injectable()
 export class VisitCron {
@@ -207,87 +208,166 @@ export class VisitCron {
     }
   }
 
-  @Cron('0 23 * * *') // 23:00 UTC daily — safely past business hours for IST/AEST tenants
+  @Cron(CronExpression.EVERY_HOUR)
   async handleEndOfDaySweeps() {
-    this.logger.log('Starting End-of-Day Visit Sweep...');
+    this.logger.log('Starting Timezone-Aware End-of-Day Visit Sweep...');
 
     try {
-      // 1. Sweep WAITING and CHECKED_IN to NO_SHOW
-      const waitingVisits = await this.prisma.visit.findMany({
-        where: {
-          currentState: { in: ['WAITING', 'CHECKED_IN'] },
-        },
-        include: {
-          customer: true,
-          tenant: true,
+      const now = new Date();
+      const locations = await this.prisma.location.findMany({
+        select: {
+          id: true,
+          tenantId: true,
+          name: true,
+          timezone: true,
         },
       });
 
-      if (waitingVisits.length > 0) {
-        this.logger.log(
-          `Found ${waitingVisits.length} waiting visits to mark as NO_SHOW.`,
-        );
+      for (const loc of locations) {
+        const tz = loc.timezone || 'UTC';
+        let zonedNow: Date;
+        try {
+          zonedNow = toZonedTime(now, tz);
+        } catch {
+          zonedNow = toZonedTime(now, 'UTC');
+        }
 
-        await this.prisma.visit.updateMany({
-          where: {
-            id: { in: waitingVisits.map((v) => v.id) },
-          },
-          data: {
-            currentState: 'NO_SHOW',
-            updatedAt: new Date(),
+        const localHour = zonedNow.getHours();
+        const zonedMidnight = new Date(zonedNow);
+        zonedMidnight.setHours(0, 0, 0, 0);
+        const startOfToday = fromZonedTime(zonedMidnight, tz);
+
+        // 1. Is this location in its end-of-day window (23:00 - 01:00 local time)?
+        const isEndOfDay = localHour === 23 || localHour === 0;
+
+        // Query active visits for this location
+        const activeStates: ('WAITING' | 'CHECKED_IN' | 'CALLED' | 'ON_HOLD' | 'PENDING_PAYMENT')[] = [
+          'WAITING',
+          'CHECKED_IN',
+          'CALLED',
+          'ON_HOLD',
+          'PENDING_PAYMENT',
+        ];
+
+        // If local end-of-day, sweep all active visits for today.
+        // Otherwise, sweep any leftover stale visits created before today's start.
+        const waitingWhere: any = {
+          locationId: loc.id,
+          currentState: { in: activeStates },
+        };
+
+        if (isEndOfDay) {
+          waitingWhere.createdAt = { lte: now };
+        } else {
+          waitingWhere.createdAt = { lt: startOfToday };
+        }
+
+        const waitingVisits = await this.prisma.visit.findMany({
+          where: waitingWhere,
+          include: {
+            customer: true,
+            tenant: true,
           },
         });
 
-        // Try to notify them
-        for (const visit of waitingVisits) {
-          if (
-            visit.customer?.phone &&
-            visit.tenant?.whatsappConnected &&
-            visit.tenant?.whatsappInstanceId
-          ) {
-            try {
-              const message = `Hi ${visit.customer.name}, we're sorry we missed you today! We have closed for the day and your place in the waitlist has been cancelled. Please visit us again tomorrow.`;
-              await this.whatsappService.sendMessage(
-                visit.tenant.whatsappInstanceId,
-                visit.customer.phone,
-                message,
-              );
-            } catch (err) {
-              this.logger.warn(
-                `Failed to send closing message to ${visit.customer.phone}: ${err}`,
-              );
+        if (waitingVisits.length > 0) {
+          this.logger.log(
+            `[Hourly Sweep] Found ${waitingVisits.length} waiting visits to mark NO_SHOW at location ${loc.name} (${tz}, local hour: ${localHour}).`,
+          );
+
+          await this.prisma.visit.updateMany({
+            where: { id: { in: waitingVisits.map((v) => v.id) } },
+            data: {
+              currentState: 'NO_SHOW',
+              completedAt: isEndOfDay ? now : null,
+              updatedAt: now,
+              cancelReason: isEndOfDay
+                ? 'End of Business Day / Rollover'
+                : 'Day Rollover / Unattended (Hourly Sweep)',
+            },
+          });
+
+          // Only send closing WhatsApp messages during the actual local end-of-day window
+          if (isEndOfDay) {
+            for (const visit of waitingVisits) {
+              if (
+                visit.customer?.phone &&
+                visit.tenant?.whatsappConnected &&
+                visit.tenant?.whatsappInstanceId
+              ) {
+                try {
+                  const message = `Hi ${visit.customer.name}, we're sorry we missed you today! We have closed for the day and your place in the waitlist has been cancelled. Please visit us again tomorrow.`;
+                  await this.whatsappService.sendMessage(
+                    visit.tenant.whatsappInstanceId,
+                    visit.customer.phone,
+                    message,
+                  );
+                } catch (err) {
+                  this.logger.warn(
+                    `Failed to send closing message to ${visit.customer.phone}: ${err}`,
+                  );
+                }
+              }
             }
           }
         }
+
+        // 2. Lingering IN_SERVICE visits
+        const inServiceWhere: any = {
+          locationId: loc.id,
+          currentState: 'IN_SERVICE',
+        };
+        if (isEndOfDay) {
+          inServiceWhere.createdAt = { lte: now };
+        } else {
+          inServiceWhere.createdAt = { lt: startOfToday };
+        }
+
+        const inServiceVisits = await this.prisma.visit.findMany({
+          where: inServiceWhere,
+        });
+
+        if (inServiceVisits.length > 0) {
+          this.logger.log(
+            `[Hourly Sweep] Auto-completing ${inServiceVisits.length} in-service visits at location ${loc.name}.`,
+          );
+          await this.prisma.visit.updateMany({
+            where: { id: { in: inServiceVisits.map((v) => v.id) } },
+            data: {
+              currentState: 'COMPLETED',
+              completedAt: isEndOfDay ? now : startOfToday,
+              updatedAt: now,
+              cancelReason: 'Day Rollover Auto-Complete',
+            },
+          });
+        }
       }
 
-      // 2. Sweep IN_SERVICE to COMPLETED
-      const inServiceVisits = await this.prisma.visit.findMany({
+      // Fallback: any lingering stale visits across all locations older than 24h
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const staleVisits = await this.prisma.visit.findMany({
         where: {
-          currentState: 'IN_SERVICE',
+          currentState: { in: ['WAITING', 'CHECKED_IN'] },
+          createdAt: { lt: oneDayAgo },
         },
+        select: { id: true },
       });
 
-      if (inServiceVisits.length > 0) {
-        this.logger.log(
-          `Found ${inServiceVisits.length} in-service visits to mark as COMPLETED.`,
-        );
-
+      if (staleVisits.length > 0) {
         await this.prisma.visit.updateMany({
-          where: {
-            id: { in: inServiceVisits.map((v) => v.id) },
-          },
+          where: { id: { in: staleVisits.map((v) => v.id) } },
           data: {
-            currentState: 'COMPLETED',
-            completedAt: new Date(),
-            updatedAt: new Date(),
+            currentState: 'NO_SHOW',
+            completedAt: null,
+            updatedAt: now,
+            cancelReason: 'Day Rollover / Unattended (>24h Sweep)',
           },
         });
       }
 
-      this.logger.log('End-of-Day Visit Sweep completed successfully.');
+      this.logger.log('Timezone-Aware End-of-Day Visit Sweep completed successfully.');
     } catch (error) {
-      this.logger.error('Error during End-of-Day Visit Sweep:', error);
+      this.logger.error('Error during Timezone-Aware End-of-Day Visit Sweep:', error);
     }
   }
 

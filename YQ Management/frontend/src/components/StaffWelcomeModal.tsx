@@ -3,24 +3,11 @@ import { X, CheckCircle2, Shield, Users, Briefcase, ChevronRight } from 'lucide-
 import { useAuth } from './AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../lib/api';
-
-const PAGE_LABELS: Record<string, string> = {
-  'service-desk': 'Service Desk & Scanner',
-  'inbox': 'Customer Inbox',
-  'appointments': 'Appointments',
-  'journeys': 'Journey Flows',
-  'queues': 'Queue Management',
-  'people': 'Customers & People',
-  'analytics': 'Analytics & Reports',
-  'settings-workspace': 'Workspace Settings',
-  'settings-team': 'Team Settings',
-  'settings-operations': 'Operations Settings',
-  'settings-integrations': 'Integrations Settings',
-  'settings-templates': 'Templates Settings',
-};
+import { useIndustry } from '../hooks/useIndustry';
 
 export function StaffWelcomeModal() {
   const { user } = useAuth();
+  const industry = useIndustry();
   const [visible, setVisible] = useState(false);
   const [storageKey, setStorageKey] = useState('');
 
@@ -29,6 +16,32 @@ export function StaffWelcomeModal() {
     queryFn: () => fetchApi('/tenant/me').catch(() => null),
     enabled: !!user,
   });
+
+  const pageLabels: Record<string, string> = {
+    'service-desk': industry?.navLabel || 'Service Desk',
+    'inbox': 'Inbox',
+    'appointments': 'Appointments',
+    'journeys': 'Journeys',
+    'queues': 'Queues',
+    'people': 'People',
+    'analytics': 'Analytics',
+    'scan': 'Scanner',
+    'check-in': 'Scanner',
+    'customers': 'People',
+    'service-flow': 'Journeys',
+    'dashboard': 'Dashboard',
+    'my-desk': 'My Desk',
+    'settings-workspace': 'Workspace & Identity',
+    'settings-team': 'Team & Security',
+    'settings-operations': 'Operations',
+    'settings-integrations': 'Integrations & Comms',
+    'settings-billing': 'Billing & Usage',
+    'settings-payments': 'Payments & Invoicing',
+    'settings-staff-view': 'Staff View & My-Desk',
+    'settings-personal': 'Personal Settings',
+    'settings-templates': 'Templates',
+    'settings-sla': 'SLA Policies',
+  };
 
   useEffect(() => {
     if (!user || !tenant) return;
@@ -53,9 +66,13 @@ export function StaffWelcomeModal() {
 
   if (!visible || !user || !tenant) return null;
 
-  const allowedLabels = ((user.allowedPages as string[]) || [])
-    .map((p: string) => PAGE_LABELS[p])
-    .filter(Boolean);
+  const allowedLabels = Array.from(
+    new Set(
+      ((user.allowedPages as string[]) || [])
+        .map((p: string) => pageLabels[p])
+        .filter(Boolean)
+    )
+  );
 
   const formatRole = (role: string) => {
     return role.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');

@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Confetti from 'react-confetti';
 import { useAuth } from '../../components/AuthContext';
 import { countryCodes as allCountryCodes } from '../../lib/country-codes';
+import { JoinWorkspaceModal } from '../../components/modals/JoinWorkspaceModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -553,6 +554,7 @@ export default function Onboarding() {
   // ── Personal info ──────────────────────────────────────────────────────────
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteInfo, setInviteInfo] = useState<AnyFixMe>(null);
+  const [isJoinTeamModalOpen, setIsJoinTeamModalOpen] = useState(false);
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
@@ -973,19 +975,7 @@ export default function Onboarding() {
                   <p className="text-sm text-on-surface-variant dark:text-zinc-400">I am the owner or admin setting up a new Qmova account.</p>
                 </button>
                 <button
-                  onClick={() => {
-                    const code = prompt('Enter your 8-character invite code:');
-                    if (code?.trim()) {
-                      const trimmed = code.trim().toUpperCase();
-                      setInviteCode(trimmed);
-                      fetchApi(`/workspace/invite-preview/${trimmed}`)
-                        .then((res: AnyFixMe) => {
-                          if (res?.valid) { setInviteInfo(res); setCompanyName(res.workspaceName); setStep(1); }
-                          else toast.error('Invalid or expired invite code');
-                        })
-                        .catch(() => toast.error('Could not verify invite code'));
-                    }
-                  }}
+                  onClick={() => setIsJoinTeamModalOpen(true)}
                   className="p-6 rounded-2xl border-2 border-border dark:border-dark-border hover:border-[#7C3AED] bg-white dark:bg-zinc-800 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-all text-left"
                 >
                   <div className="w-12 h-12 rounded-xl bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center mb-4"><Users className="w-6 h-6 text-[#7C3AED]" /></div>
@@ -1434,6 +1424,32 @@ export default function Onboarding() {
           ))}
         </form>
       )}
+      {/* Join Team Modal */}
+      <JoinWorkspaceModal
+        isOpen={isJoinTeamModalOpen}
+        onClose={() => setIsJoinTeamModalOpen(false)}
+        title="Join Your Team"
+        description="Enter the 8-character invite code provided by your manager to join their workspace."
+        onCustomSubmit={async (cleanCode) => {
+          try {
+            const res = await fetchApi(`/workspace/invite-preview/${cleanCode}`);
+            if (res?.valid) {
+              setInviteInfo(res);
+              setInviteCode(cleanCode);
+              setCompanyName(res.workspaceName);
+              setStep(1);
+              toast.success(`Verified! Joining ${res.workspaceName}`);
+              return true;
+            } else {
+              toast.error('Invalid or expired invite code');
+              return false;
+            }
+          } catch {
+            toast.error('Could not verify invite code. Please try again.');
+            return false;
+          }
+        }}
+      />
     </div>
   );
 }

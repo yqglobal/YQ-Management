@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { ConfirmModal } from '../../../components/modals/ConfirmModal';
 
 // ── Reusable sub-components ───────────────────────────────────────────────────
 
@@ -126,6 +127,8 @@ export default function SuperAdminTenantDetail() {
   const [billingInterval, setBillingInterval] = useState('MONTHLY');
   const [customEndDate, setCustomEndDate] = useState('');
   const [isFree, setIsFree] = useState(false);
+  const [showCancelPlanConfirm, setShowCancelPlanConfirm] = useState(false);
+  const [showDeleteTenantConfirm, setShowDeleteTenantConfirm] = useState(false);
 
   // Enterprise state
   const [editingLimits, setEditingLimits] = useState(false);
@@ -257,12 +260,10 @@ export default function SuperAdminTenantDetail() {
   });
 
   const handleCancelPlan = () => {
-    if (confirm("Cancel this tenant's active plan?")) cancelPlanMutation.mutate();
+    setShowCancelPlanConfirm(true);
   };
   const handleDelete = () => {
-    if (confirm('PERMANENTLY delete this tenant? This CANNOT be undone.')) {
-      deleteTenantMutation.mutate(id as string);
-    }
+    setShowDeleteTenantConfirm(true);
   };
   const handleUpdateSettings = (e: React.FormEvent) => { e.preventDefault(); updateTenantMutation.mutate(editForm); };
 
@@ -1000,6 +1001,34 @@ export default function SuperAdminTenantDetail() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={showCancelPlanConfirm}
+        onClose={() => setShowCancelPlanConfirm(false)}
+        onConfirm={async () => {
+          await cancelPlanMutation.mutateAsync();
+          setShowCancelPlanConfirm(false);
+        }}
+        title="Cancel Active Plan"
+        description="Are you sure you want to cancel this tenant's active subscription plan?"
+        confirmText="Cancel Plan"
+        variant="warning"
+        isLoading={cancelPlanMutation.isPending}
+      />
+
+      <ConfirmModal
+        isOpen={showDeleteTenantConfirm}
+        onClose={() => setShowDeleteTenantConfirm(false)}
+        onConfirm={async () => {
+          await deleteTenantMutation.mutateAsync(id as string);
+          setShowDeleteTenantConfirm(false);
+        }}
+        title="Permanently Delete Tenant"
+        description="Are you sure you want to permanently delete this tenant? All data, services, users, and queues will be completely erased. This CANNOT be undone."
+        confirmText="Permanently Delete"
+        variant="danger"
+        isLoading={deleteTenantMutation.isPending}
+      />
     </SuperAdminLayout>
   );
 }

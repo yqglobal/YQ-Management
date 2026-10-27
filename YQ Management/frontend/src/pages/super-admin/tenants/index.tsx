@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, MoreVertical, Search, QrCode, ArrowUpRight, Trash2, CreditCard, Filter, ArrowUp, ArrowDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { ConfirmModal } from '../../../components/modals/ConfirmModal';
 
 export default function SuperAdminTenants() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function SuperAdminTenants() {
   const [sortBy, setSortBy] = useState<'joined' | 'name' | 'queues' | 'users'>('joined');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [showActions, setShowActions] = useState<string | null>(null);
+  const [tenantToDelete, setTenantToDelete] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -29,14 +31,13 @@ export default function SuperAdminTenants() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-tenants'] });
       toast.success('Tenant removed');
+      setTenantToDelete(null);
     },
     onError: () => toast.error('Failed to remove tenant'),
   });
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to remove this tenant? This action cannot be undone.')) {
-      deleteTenantMutation.mutate(id);
-    }
+    setTenantToDelete(id);
   };
 
   const filteredAndSortedTenants = (tenants || [])
@@ -253,6 +254,20 @@ export default function SuperAdminTenants() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={!!tenantToDelete}
+        onClose={() => setTenantToDelete(null)}
+        onConfirm={async () => {
+          if (!tenantToDelete) return;
+          await deleteTenantMutation.mutateAsync(tenantToDelete);
+        }}
+        title="Remove Business"
+        description="Are you sure you want to remove this tenant? This action cannot be undone."
+        confirmText="Remove Business"
+        variant="danger"
+        isLoading={deleteTenantMutation.isPending}
+      />
     </SuperAdminLayout>
   );
 }

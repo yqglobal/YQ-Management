@@ -42,7 +42,8 @@ export default function MarketingLayout({ children, title, description }: Market
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
             <Link href="/features" className="hover:text-white transition-colors">Features</Link>
             <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
-            <Link href="/about" className="hover:text-white transition-colors">About</Link>
+            <Link href="/changelog" className="hover:text-white transition-colors">Changelog</Link>
+            <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
           </div>
 
           <div className="hidden md:flex items-center gap-4">
@@ -61,6 +62,9 @@ export default function MarketingLayout({ children, title, description }: Market
             ) : (
               !loading && (
                 <>
+                  <Link href="/book-demo" className="text-sm font-medium text-zinc-300 hover:text-white transition-colors">
+                    Book Demo
+                  </Link>
                   <Link href="/login" className="text-sm font-medium text-zinc-300 hover:text-white transition-colors">
                     Log in
                   </Link>
@@ -88,7 +92,9 @@ export default function MarketingLayout({ children, title, description }: Market
           <div className="md:hidden absolute top-20 left-0 right-0 bg-zinc-900 border-b border-white/10 p-6 flex flex-col gap-4 shadow-xl">
             <Link href="/features" className="text-zinc-300 font-medium" onClick={() => setMobileMenuOpen(false)}>Features</Link>
             <Link href="/pricing" className="text-zinc-300 font-medium" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
-            <Link href="/about" className="text-zinc-300 font-medium" onClick={() => setMobileMenuOpen(false)}>About</Link>
+            <Link href="/changelog" className="text-zinc-300 font-medium" onClick={() => setMobileMenuOpen(false)}>Changelog</Link>
+            <Link href="/contact" className="text-zinc-300 font-medium" onClick={() => setMobileMenuOpen(false)}>Contact</Link>
+            <Link href="/book-demo" className="text-zinc-300 font-medium" onClick={() => setMobileMenuOpen(false)}>Book Demo</Link>
             <hr className="border-white/10 my-2" />
             {!loading && user ? (
               <Link href="/dashboard" className="text-indigo-400 font-medium" onClick={() => setMobileMenuOpen(false)}>Go to Dashboard</Link>

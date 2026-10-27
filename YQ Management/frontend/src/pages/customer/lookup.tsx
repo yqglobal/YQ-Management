@@ -5,6 +5,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { format } from 'date-fns';
 import { fetchApi } from '../../lib/api';
+import { ConfirmModal } from '../../components/modals/ConfirmModal';
 
 export default function CustomerLookup() {
   const [phone, setPhone] = useState('');
@@ -12,6 +13,8 @@ export default function CustomerLookup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
+  const [cancelToken, setCancelToken] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
   const router = useRouter();
 
   // If a phone number is provided in the URL, search immediately
@@ -43,18 +46,24 @@ export default function CustomerLookup() {
     }
   };
 
-  const handleCancel = async (accessToken: string) => {
-    if (!confirm('Are you sure you want to cancel this ticket?')) return;
+  const handleCancel = (accessToken: string) => {
+    setCancelToken(accessToken);
+  };
 
+  const executeCancelTicket = async () => {
+    if (!cancelToken) return;
+    setIsCancelling(true);
     try {
-      await fetchApi(`/public-visit/${accessToken}/cancel`, {
+      await fetchApi(`/public-visit/${cancelToken}/cancel`, {
         method: 'POST',
       });
-      
-      // Refresh the list
+      toast.success('Ticket cancelled successfully');
+      setCancelToken(null);
       handleSearch();
     } catch (err: AnyFixMe) {
       toast.error(err.message || 'Failed to cancel ticket');
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -190,6 +199,17 @@ export default function CustomerLookup() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!cancelToken}
+        onClose={() => setCancelToken(null)}
+        onConfirm={executeCancelTicket}
+        title="Cancel Ticket"
+        description="Are you sure you want to cancel this ticket? This action cannot be undone."
+        confirmText="Yes, Cancel Ticket"
+        variant="danger"
+        isLoading={isCancelling}
+      />
     </div>
   );
 }

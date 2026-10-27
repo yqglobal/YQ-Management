@@ -10,6 +10,8 @@ import { useRouter } from 'next/router';
 import { toast } from 'sonner';
 import { InviteMemberModal } from '../modals/InviteMemberModal';
 import { UserPermissionsModal } from '../modals/UserPermissionsModal';
+import { JoinWorkspaceModal } from '../modals/JoinWorkspaceModal';
+import { ConfirmModal } from '../modals/ConfirmModal';
 import { usePlan } from '../../hooks/usePlan';
 import { QuotaWarningBanner } from '../QuotaWarningBanner';
 
@@ -181,6 +183,8 @@ export default function StaffDirectory() {
   const queryClient = useQueryClient();
 
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
   const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<Member | null>(null);
   const [modalInitialStep, setModalInitialStep] = useState<1 | 2 | 3>(2);
@@ -241,21 +245,8 @@ export default function StaffDirectory() {
             </p>
           </div>
           <button
-            onClick={() => {
-              const code = prompt('Enter your 8-character invite code:');
-              if (code && code.trim()) {
-                fetchApi('/auth/join-with-invite', {
-                  method: 'POST',
-                  body: JSON.stringify({ inviteCode: code.trim().toUpperCase() }),
-                })
-                  .then(() => {
-                    toast.success('Successfully joined the workspace! Reloading...', { duration: 5000 });
-                    setTimeout(() => window.location.href = '/dashboard', 1500);
-                  })
-                  .catch((e) => toast.error(e.message || 'Invalid or expired invite code'));
-              }
-            }}
-            className="flex items-center gap-2 px-4 h-9 bg-surface-container hover:bg-surface-container-high dark:bg-zinc-800 dark:hover:bg-zinc-700 text-on-surface dark:text-white text-sm font-semibold rounded-xl transition-colors border border-border dark:border-dark-border"
+            onClick={() => setIsJoinModalOpen(true)}
+            className="flex items-center gap-2 px-4 h-9 bg-primary/10 hover:bg-primary/20 text-primary dark:text-sky-400 text-sm font-semibold rounded-xl transition-colors border border-primary/20 shrink-0"
           >
             Join Workspace
           </button>
@@ -410,8 +401,9 @@ export default function StaffDirectory() {
                           </button>
                         ) : null}
                         <button
-                          onClick={() => { if (confirm(`Cancel invitation for ${member.email}?`)) deleteMember.mutate(member.id); }}
+                          onClick={() => setMemberToDelete(member)}
                           className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-red-400 dark:text-red-400 transition-colors"
+                          title="Cancel Invitation"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -428,6 +420,27 @@ export default function StaffDirectory() {
       <InviteMemberModal
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
+      />
+
+      <JoinWorkspaceModal
+        isOpen={isJoinModalOpen}
+        onClose={() => setIsJoinModalOpen(false)}
+      />
+
+      <ConfirmModal
+        isOpen={!!memberToDelete}
+        onClose={() => setMemberToDelete(null)}
+        onConfirm={() => {
+          if (memberToDelete) {
+            deleteMember.mutate(memberToDelete.id);
+            setMemberToDelete(null);
+          }
+        }}
+        title="Cancel Invitation"
+        description={`Are you sure you want to cancel the invitation for ${memberToDelete?.email}? Their invite code will immediately become invalid.`}
+        confirmText="Cancel Invitation"
+        variant="danger"
+        isLoading={deleteMember.isPending}
       />
 
       {permissionsModalOpen && userToEdit && (

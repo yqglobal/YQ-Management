@@ -15,7 +15,7 @@ import { useAuth } from '../../components/AuthContext';
 import type { AnalyticsResponse, Visit, Service } from '@yq/shared';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Download, Medal, Star } from 'lucide-react';
+import { Download, Medal, Star, Calendar as CalendarIcon } from 'lucide-react';
 import { CustomerDrawer } from '../../components/CustomerDrawer';
 
 // ── Inline Heatmap Component ──────────────────────────────────────────────────
@@ -76,7 +76,7 @@ const SLA_THRESHOLD_MINS = 15;
 export default function Analytics() {
   const { activeLocationId } = useLocation();
   const { user } = useAuth();
-  const [timeRange, setTimeRange] = useState<'Day' | 'Week' | 'Month' | 'All' | 'Custom'>('Week');
+  const [timeRange, setTimeRange] = useState<'Today' | 'Week' | 'Month' | 'Year' | 'All' | 'Custom'>('Week');
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [startDate, endDate] = dateRange;
 
@@ -92,12 +92,35 @@ export default function Analytics() {
     }
   }, [router.isReady, router.query.customerId]);
 
-  const timeParam = timeRange === 'Day' ? 'today' : timeRange === 'Week' ? '7d' : timeRange === 'Month' ? '30d' : timeRange === 'All' ? 'all' : 'custom';
+  const handleTimeRangeChange = (r: 'Today' | 'Week' | 'Month' | 'Year' | 'All' | 'Custom') => {
+    setTimeRange(r);
+    if (r === 'Custom' && !startDate) {
+      const now = new Date();
+      const past = new Date();
+      past.setDate(now.getDate() - 6);
+      setDateRange([past, now]);
+    }
+  };
+
+  const timeParam =
+    timeRange === 'Today'
+      ? 'today'
+      : timeRange === 'Week'
+      ? '7d'
+      : timeRange === 'Month'
+      ? '30d'
+      : timeRange === 'Year'
+      ? 'year'
+      : timeRange === 'All'
+      ? 'all'
+      : 'custom';
   const locParam = activeLocationId && activeLocationId !== 'all' ? `&locationId=${activeLocationId}` : '';
   
-  const customRangeParam = timeRange === 'Custom' && startDate && endDate 
-    ? `&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
-    : '';
+  const effectiveEndDate = endDate || startDate;
+  const customRangeParam =
+    timeRange === 'Custom' && startDate && effectiveEndDate
+      ? `&startDate=${startDate.toISOString()}&endDate=${effectiveEndDate.toISOString()}`
+      : '';
 
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { data: analytics = null, isLoading: isAnalyticsLoading } = useQuery({
@@ -105,15 +128,16 @@ export default function Analytics() {
     queryFn: (): Promise<AnalyticsResponse | null> =>
       fetchApi<AnalyticsResponse>(`/analytics?timeframe=${timeParam}${locParam}${customRangeParam}&tz=${encodeURIComponent(tz)}`)
         .catch(() => null),
-    enabled: timeRange !== 'Custom' || (!!startDate && !!endDate),
+    enabled: timeRange !== 'Custom' || !!startDate,
   });
 
-  const { kpis, chartData: rawChartData, servicePerformance, heatmapData, staffPerformance } = (analytics as any) || {
+  const { kpis, chartData: rawChartData, servicePerformance, heatmapData, staffPerformance, customerReviews = [] } = (analytics as any) || {
     kpis: { totalVisits: 0, averageWaitTimeMins: 0, slaViolations: 0, dropOffRate: 0, csatScore: 0, totalCancelled: 0, totalNoShow: 0 },
     chartData: [],
     servicePerformance: [],
     heatmapData: null,
-    staffPerformance: []
+    staffPerformance: [],
+    customerReviews: [],
   };
 
   const [isExporting, setIsExporting] = useState(false);
@@ -165,6 +189,22 @@ export default function Analytics() {
     }
   };
 
+  const timeframeLabel =
+    timeRange === 'Today'
+      ? 'Today'
+      : timeRange === 'Week'
+      ? 'Past 7 days'
+      : timeRange === 'Month'
+      ? 'Past 30 days'
+      : timeRange === 'Year'
+      ? 'Past 12 months'
+      : timeRange === 'Custom'
+      ? startDate && effectiveEndDate && startDate.toDateString() === effectiveEndDate.toDateString()
+        ? startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+        : startDate && effectiveEndDate
+        ? `${startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${effectiveEndDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+        : 'Selected range'
+      : 'Since account creation';
 
   const chartData = useMemo(() => {
     return (rawChartData || []).map((d: any) => ({ time: d.timeLabel, visits: d.volume }));
@@ -186,105 +226,142 @@ export default function Analytics() {
         featureName="Advanced Analytics"
       >
         <div className="w-full mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
+          {/* Top Control Bar: Title & Global Date Filters */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-border dark:border-dark-border">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-on-surface dark:text-white">Analytics</h1>
+              <p className="text-xs text-on-surface-variant dark:text-zinc-400 mt-0.5">
+                Overview of queue throughput, service velocity, customer drop-off, and staff performance
+              </p>
+            </div>
 
-              {/* KPI Ribbon */}
-              <motion.div
-                initial="hidden" animate="visible"
-                variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
-                className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+            <div className="flex flex-wrap items-center gap-2">
+              <button 
+                onClick={handleExportCSV}
+                disabled={isExporting}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface-container-low dark:bg-zinc-800 text-on-surface dark:text-zinc-200 hover:bg-surface-container-high border border-border dark:border-dark-border flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
-                <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
-                  <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Total Visits</p>
-                  <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">{kpis.totalVisits}</p>
-                  <p className="text-xs text-outline mt-1">All time</p>
-                </motion.div>
+                <Download className={`w-3.5 h-3.5 ${isExporting ? 'animate-spin' : ''}`} /> {isExporting ? 'Exporting...' : 'Export CSV'}
+              </button>
 
-                <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
-                  <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Avg Wait Time</p>
-                  <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">
-                    {kpis.averageWaitTimeMins > 0 ? `${kpis.averageWaitTimeMins}m` : '—'}
-                  </p>
-                  <p className="text-xs text-outline mt-1">Served customers</p>
-                </motion.div>
+              {/* Timeframe Presets */}
+              <div className="flex items-center bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-xl p-1 gap-1 shadow-sm">
+                {(['Today', 'Week', 'Month', 'Year', 'All', 'Custom'] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => handleTimeRangeChange(r)}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      timeRange === r
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-on-surface-variant hover:text-on-surface dark:hover:text-white'
+                    }`}
+                  >
+                    {r === 'All' ? 'All Time' : r}
+                  </button>
+                ))}
+              </div>
 
-                <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm relative overflow-hidden">
-                  <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Avg CSAT Score</p>
-                  <p className="font-mono text-3xl font-bold text-primary flex items-center gap-2">
-                    {kpis.csatScore > 0 ? kpis.csatScore : '—'} 
-                    {kpis.csatScore > 0 && <Star className="w-5 h-5 fill-primary" />}
-                  </p>
-                  <p className="text-xs text-outline mt-1">Customer satisfaction</p>
-                </motion.div>
-                <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-alert/30 dark:border-alert/20 rounded-xl p-5 shadow-sm relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-alert rounded-l-xl" />
-                  <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">SLA Violations</p>
-                  <p className="font-mono text-3xl font-bold text-alert">
-                    {kpis.slaViolations}
-                  </p>
-                  <p className="text-xs text-outline mt-1">{`> ${SLA_THRESHOLD_MINS}m wait`}</p>
-                </motion.div>
-
-                <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
-                  <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Walkaway Rate</p>
-                  <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">{kpis.dropOffRate}%</p>
-                  <p className="text-xs text-outline mt-1">
-                    {(kpis.totalCancelled !== undefined || kpis.totalNoShow !== undefined)
-                      ? `${kpis.totalCancelled || 0} cancelled · ${kpis.totalNoShow || 0} no-shows`
-                      : 'No-shows & cancels'}
-                  </p>
-                </motion.div>
-              </motion.div>
-
-              {/* Throughput Chart */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-                className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-6 shadow-sm"
-              >
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                  <h3 className="font-semibold text-on-surface dark:text-white">Visit Volume</h3>
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="flex flex-wrap gap-1.5 justify-end">
-                      <button 
-                        onClick={handleExportCSV}
-                        disabled={isExporting}
-                        className="px-3 py-1 rounded-lg text-xs font-semibold bg-surface-container-low dark:bg-zinc-800 text-on-surface hover:bg-surface-container-high border border-border flex items-center gap-1 transition-colors mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Download className={`w-3.5 h-3.5 ${isExporting ? 'animate-spin' : ''}`} /> {isExporting ? 'Exporting...' : 'Export CSV'}
-                      </button>
-
-                      {(['Day', 'Week', 'Month', 'All', 'Custom'] as const).map((r) => (
-                        <button
-                          key={r}
-                          onClick={() => setTimeRange(r)}
-                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${timeRange === r
-                              ? 'bg-primary text-white'
-                              : 'bg-surface-container-low dark:bg-zinc-800 text-on-surface-variant hover:text-on-surface dark:hover:text-white border border-border dark:border-dark-border'
-                            }`}
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                    {timeRange === 'Custom' && (
-                      <div className="bg-surface-container-low border border-border rounded-lg p-1 w-full max-w-[280px]">
-                        <DatePicker
-                          selectsRange={true}
-                          startDate={startDate}
-                          endDate={endDate}
-                          onChange={(update: [Date | null, Date | null]) => setDateRange(update)}
-                          placeholderText="Select date range"
-                          className="bg-transparent text-sm w-full outline-none px-2 py-1 text-on-surface"
-                          isClearable={true}
-                          maxDate={new Date()}
-                        />
-                      </div>
-                    )}
-                  </div>
+              {/* Custom Date Range Picker */}
+              {timeRange === 'Custom' && (
+                <div className="flex items-center bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-xl px-2.5 py-1 gap-2 shadow-sm">
+                  <CalendarIcon className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <DatePicker
+                    selectsRange={true}
+                    startDate={startDate}
+                    endDate={endDate}
+                    onChange={(update: [Date | null, Date | null]) => setDateRange(update)}
+                    placeholderText="Select date range"
+                    className="bg-transparent text-xs text-on-surface dark:text-white outline-none w-[190px] font-medium"
+                    isClearable={true}
+                    maxDate={new Date()}
+                    popperPlacement="bottom-end"
+                  />
                 </div>
-                <div className="w-full h-[280px]">
-                  <VisitsAreaChart data={chartData} />
+              )}
+            </div>
+          </div>
+
+          {/* KPI Ribbon */}
+          <motion.div
+            initial="hidden" animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+            className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+          >
+            <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
+              <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Total Visits</p>
+              <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">{kpis.totalVisits}</p>
+              <p className="text-xs text-outline mt-1">{timeframeLabel}</p>
+            </motion.div>
+
+            <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
+              <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Avg Wait Time</p>
+              <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">
+                {kpis.averageWaitTimeMins > 0 ? `${kpis.averageWaitTimeMins}m` : '—'}
+              </p>
+              <p className="text-xs text-outline mt-1">Served customers</p>
+            </motion.div>
+
+            <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm relative overflow-hidden">
+              <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Avg CSAT Score</p>
+              <p className="font-mono text-3xl font-bold text-primary flex items-center gap-2">
+                {kpis.csatScore > 0 ? kpis.csatScore : '—'} 
+                {kpis.csatScore > 0 && <Star className="w-5 h-5 fill-primary" />}
+              </p>
+              <p className="text-xs text-outline mt-1">Customer satisfaction</p>
+            </motion.div>
+            <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-alert/30 dark:border-alert/20 rounded-xl p-5 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-alert rounded-l-xl" />
+              <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">SLA Violations</p>
+              <p className="font-mono text-3xl font-bold text-alert">
+                {kpis.slaViolations}
+              </p>
+              <p className="text-xs text-outline mt-1">{`> ${SLA_THRESHOLD_MINS}m wait`}</p>
+            </motion.div>
+
+            <motion.div variants={kpiVariants} className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-5 shadow-sm">
+              <p className="text-on-surface-variant text-xs mb-1 uppercase tracking-wider font-semibold">Walkaway Rate</p>
+              <p className="font-mono text-3xl font-bold text-on-surface dark:text-white">{kpis.dropOffRate}%</p>
+              <p className="text-xs text-outline mt-1">
+                {(kpis.totalCancelled !== undefined || kpis.totalNoShow !== undefined)
+                  ? `${kpis.totalCancelled || 0} cancelled · ${kpis.totalNoShow || 0} no-shows`
+                  : 'No-shows & cancels'}
+              </p>
+            </motion.div>
+          </motion.div>
+
+          {/* Visit Volume Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-6 shadow-sm"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="font-semibold text-on-surface dark:text-white">Visit Volume</h3>
+                <p className="text-xs text-outline mt-0.5">
+                  {timeRange === 'Today' 
+                    ? 'Hourly visits today' 
+                    : timeRange === 'Week' 
+                    ? 'Daily visits over past 7 days' 
+                    : timeRange === 'Month' 
+                    ? 'Daily visits over past 30 days' 
+                    : timeRange === 'Year'
+                    ? 'Monthly visits over past 12 months'
+                    : timeRange === 'Custom' 
+                    ? 'Visits across selected date range' 
+                    : 'Visits since account creation'}
+                </p>
+              </div>
+              {isAnalyticsLoading && (
+                <div className="flex items-center gap-1.5 text-xs text-primary font-medium animate-pulse">
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                  Updating data...
                 </div>
-              </motion.div>
+              )}
+            </div>
+            <div className="w-full h-[280px]">
+              <VisitsAreaChart data={chartData} />
+            </div>
+          </motion.div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Heatmap */}
@@ -341,6 +418,89 @@ export default function Analytics() {
                   )}
                 </motion.div>
               </div>
+
+              {/* Customer Reviews & Feedback Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.28 }}
+                className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-6 shadow-sm"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
+                    <div>
+                      <h3 className="font-semibold text-on-surface dark:text-white">Customer Reviews & Feedback</h3>
+                      <p className="text-xs text-outline mt-0.5">Direct customer ratings and submitted review comments</p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-on-surface-variant font-medium bg-surface-container-low dark:bg-zinc-800 px-2.5 py-1 rounded-lg border border-border dark:border-dark-border">
+                    {customerReviews.length} {customerReviews.length === 1 ? 'review' : 'reviews'}
+                  </span>
+                </div>
+
+                {customerReviews && customerReviews.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {customerReviews.map((rev: any) => (
+                      <div
+                        key={rev.id}
+                        className="p-3.5 rounded-xl bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border flex flex-col justify-between space-y-2 hover:border-primary/40 transition-colors"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  className={`w-3.5 h-3.5 ${
+                                    s <= rev.rating
+                                      ? 'fill-amber-400 text-amber-400'
+                                      : 'text-zinc-300 dark:text-zinc-700'
+                                  }`}
+                                />
+                              ))}
+                              <span className="text-xs font-bold text-on-surface dark:text-white ml-1">
+                                {rev.rating}/5
+                              </span>
+                            </div>
+                            {rev.displayId && (
+                              <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                {rev.displayId}
+                              </span>
+                            )}
+                          </div>
+
+                          {rev.feedbackText ? (
+                            <p className="text-xs text-on-surface dark:text-zinc-200 italic line-clamp-3 pl-2 border-l-2 border-amber-400">
+                              &ldquo;{rev.feedbackText}&rdquo;
+                            </p>
+                          ) : (
+                            <p className="text-xs text-outline italic">No written comment provided.</p>
+                          )}
+                        </div>
+
+                        <div className="pt-2 border-t border-border/50 dark:border-dark-border/50 flex items-center justify-between text-[11px] text-outline">
+                          <span className="truncate max-w-[130px] font-medium text-on-surface-variant">
+                            {rev.customerName}
+                          </span>
+                          <span>
+                            {new Date(rev.date).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-8 text-center rounded-xl bg-surface-container-low dark:bg-zinc-900/50 border border-dashed border-border dark:border-dark-border">
+                    <Star className="w-8 h-8 text-outline/40 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-on-surface-variant">No reviews recorded for this timeframe.</p>
+                    <p className="text-xs text-outline mt-0.5">Customer ratings and comments submitted on their ticket status page will appear here.</p>
+                  </div>
+                )}
+              </motion.div>
 
               {/* Service & Queue Performance */}
 

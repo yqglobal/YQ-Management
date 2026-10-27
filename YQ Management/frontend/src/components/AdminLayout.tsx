@@ -243,20 +243,23 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     
     if (path.startsWith('/dashboard/inbox')) return user?.allowedPages?.includes('inbox');
     if (path.startsWith('/dashboard/service-desk')) return user?.allowedPages?.includes('service-desk');
-    if (path.startsWith('/dashboard/scan')) return user?.allowedPages?.includes('service-desk');
+    if (path.startsWith('/dashboard/scan')) return user?.allowedPages?.includes('service-desk') || user?.allowedPages?.includes('check-in') || user?.allowedPages?.includes('scan');
     if (path.startsWith('/dashboard/appointments')) return user?.allowedPages?.includes('appointments');
-    if (path.startsWith('/dashboard/journeys')) return user?.allowedPages?.includes('journeys');
-    if (path.startsWith('/dashboard/people')) return user?.allowedPages?.includes('people');
+    if (path.startsWith('/dashboard/journeys')) return user?.allowedPages?.includes('journeys') || user?.allowedPages?.includes('service-flow');
+    if (path.startsWith('/dashboard/people')) return user?.allowedPages?.includes('people') || user?.allowedPages?.includes('customers');
     if (path.startsWith('/dashboard/analytics')) return user?.allowedPages?.includes('analytics');
     if (path.startsWith('/dashboard/queues')) return user?.allowedPages?.includes('queues');
     
     if (path.startsWith('/dashboard/settings')) {
+      if (path.startsWith('/dashboard/settings/personal')) return true;
       if (path.startsWith('/dashboard/settings/workspace')) return user?.allowedPages?.includes('settings-workspace');
       if (path.startsWith('/dashboard/settings/team')) return user?.allowedPages?.includes('settings-team');
       if (path.startsWith('/dashboard/settings/operations')) return user?.allowedPages?.includes('settings-operations');
       if (path.startsWith('/dashboard/settings/integrations')) return user?.allowedPages?.includes('settings-integrations');
       if (path.startsWith('/dashboard/settings/templates')) return user?.allowedPages?.includes('settings-templates');
       if (path.startsWith('/dashboard/settings/billing')) return user?.allowedPages?.includes('settings-billing');
+      if (path.startsWith('/dashboard/settings/payments')) return user?.allowedPages?.includes('settings-payments');
+      if (path.startsWith('/dashboard/settings/staff-view')) return user?.allowedPages?.includes('settings-staff-view');
       if (path === '/dashboard/settings') {
          return user?.allowedPages?.some((p: string) => p.startsWith('settings-')) || false;
       }
@@ -574,11 +577,11 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
       {/* SideNavBar */}
       <nav 
         aria-label="Main Navigation" 
-        className={`fixed left-0 top-0 h-full bg-surface dark:bg-dark-canvas border-r border-border dark:border-dark-border flex flex-col py-gutter z-[70] transition-all duration-300 ease-in-out md:translate-x-0 overflow-x-hidden ${mobileOpen ? 'translate-x-0 w-sidebar-w' : '-translate-x-full'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-sidebar-w'} px-4`}
+        className={`fixed left-0 top-0 h-full bg-surface dark:bg-dark-canvas border-r border-border dark:border-dark-border flex flex-col py-gutter z-[70] transition-all duration-300 ease-in-out md:translate-x-0 overflow-x-hidden ${mobileOpen ? 'translate-x-0 w-sidebar-w' : '-translate-x-full'} ${isSidebarCollapsed ? 'md:w-20 md:px-2' : 'md:w-sidebar-w px-4'}`}
       >
-        <div className={`mb-8 flex flex-col mt-2 pl-3`}>
-          <div className={`flex items-center transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
-            <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'max-w-0 opacity-0 -translate-x-4 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 flex-1'}`}>
+        <div className={`mb-8 flex flex-col mt-2 ${isSidebarCollapsed ? 'pl-0 items-center w-full' : 'pl-3'}`}>
+          <div className={`flex items-center w-full transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+            <div className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'hidden max-w-0 opacity-0 -translate-x-4 pointer-events-none' : 'max-w-[160px] opacity-100 translate-x-0 flex-1'}`}>
               <Logo width={140} height={22} />
               {!plan.isLoading && (
                 <span className={`text-[9px] font-bold tracking-[0.2em] uppercase mt-1 ml-1 opacity-80 whitespace-nowrap ${
@@ -588,7 +591,12 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 </span>
               )}
             </div>
-            <button onClick={toggleSidebar} className={`hidden md:flex rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0 transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-10 h-10 items-center justify-center' : 'p-2'}`}>
+            <button
+              onClick={toggleSidebar}
+              className={`hidden md:flex rounded-xl hover:bg-surface-container-low text-on-surface-variant shrink-0 transition-all duration-300 ease-in-out items-center justify-center ${
+                isSidebarCollapsed ? 'w-11 h-11 mx-auto' : 'p-2'
+              }`}
+            >
               <span className="material-symbols-outlined">{isSidebarCollapsed ? 'menu' : 'menu_open'}</span>
             </button>
             <button onClick={() => setMobileOpen(false)} className={`md:hidden p-2 rounded-lg hover:bg-surface-container-low text-on-surface-variant shrink-0 ${isSidebarCollapsed ? 'hidden' : 'ml-auto'}`}>
@@ -597,7 +605,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col gap-2 overflow-y-auto scrollbar-none">
+        <div className={`flex-1 flex flex-col gap-2 overflow-y-auto scrollbar-none ${isSidebarCollapsed ? 'items-center' : ''}`}>
           {filteredNavItems.map((item) => {
             const active = isActive(item.href);
             return (
@@ -606,7 +614,11 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 href={item.href}
                 id={(item as any).id}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md relative group w-full px-3 justify-start gap-3 ${
+                className={`flex items-center rounded-xl transition-all duration-200 cursor-pointer active:opacity-80 font-body-md text-body-md relative group ${
+                  isSidebarCollapsed
+                    ? 'w-11 h-11 mx-auto justify-center p-0'
+                    : 'w-full py-3 px-3 justify-start gap-3'
+                } ${
                   active 
                     ? 'text-primary dark:text-white font-semibold bg-surface-container-low dark:bg-white/10' 
                     : 'text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-white/5'
@@ -614,14 +626,14 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 title={isSidebarCollapsed ? item.label : undefined}
               >
                 <span className="material-symbols-outlined shrink-0" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{item.icon}</span>
-                <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'opacity-0 w-0 -translate-x-2' : 'opacity-100 w-auto translate-x-0'}`}>
+                <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'hidden opacity-0 w-0 -translate-x-2' : 'opacity-100 w-auto translate-x-0'}`}>
                   {item.label}
                 </span>
               </Link>
             );
           })}
           {/* Setup CTA (replaces ghost heuristic) */}
-          <div className={`transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'opacity-0 h-0 scale-95' : 'opacity-100 h-auto scale-100'}`}>
+          <div className={`transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'opacity-0 h-0 scale-95 pointer-events-none' : 'opacity-100 h-auto scale-100'}`}>
           {tenant && !tenant.setupComplete && (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'OWNER') && (
             <div className="px-2 pb-2 mt-4">
               <Link href="/dashboard/setup-guide" className="block bg-surface-container-low hover:bg-surface-container-high dark:bg-zinc-900 border border-primary/20 dark:border-sky-900 rounded-2xl p-4 transition-colors">
@@ -753,7 +765,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 pt-4 border-t border-border dark:border-dark-border">
+        <div className={`flex flex-col gap-2 pt-4 border-t border-border dark:border-dark-border ${isSidebarCollapsed ? 'items-center' : ''}`}>
           {filteredBottomItems.map((item) => {
             if (item.adminOnly && (!user || !['OWNER', 'ADMIN', 'SUPER_ADMIN'].includes(user.role))) return null;
             const active = isActive(item.href);
@@ -763,7 +775,11 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 href={item.href}
                 id={item.id}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center py-3 rounded-lg transition-colors cursor-pointer active:opacity-80 font-body-md text-body-md relative group w-full px-3 justify-start gap-3 ${
+                className={`flex items-center rounded-xl transition-all duration-200 cursor-pointer active:opacity-80 font-body-md text-body-md relative group ${
+                  isSidebarCollapsed
+                    ? 'w-11 h-11 mx-auto justify-center p-0'
+                    : 'w-full py-3 px-3 justify-start gap-3'
+                } ${
                   active 
                     ? 'text-primary dark:text-white font-semibold bg-surface-container-low dark:bg-white/10' 
                     : 'text-on-surface-variant dark:text-outline hover:bg-surface-container-low dark:hover:bg-white/5'
@@ -771,7 +787,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 title={isSidebarCollapsed ? item.label : undefined}
               >
                 <span className="material-symbols-outlined shrink-0" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{item.icon}</span>
-                <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'opacity-0 w-0 -translate-x-2' : 'opacity-100 w-auto translate-x-0'}`}>
+                <span className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'hidden opacity-0 w-0 -translate-x-2' : 'opacity-100 w-auto translate-x-0'}`}>
                   {item.label}
                 </span>
               </Link>

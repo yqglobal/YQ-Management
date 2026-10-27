@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ArrowRight, Clock, User, X, Stethoscope, Pill } from 'lucide-react';
+import { ConfirmModal } from './ConfirmModal';
 
 interface CompleteStageModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export default function CompleteStageModal({
   onConfirmCompleteVisit,
 }: CompleteStageModalProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [showEarlyCompleteConfirm, setShowEarlyCompleteConfirm] = React.useState(false);
 
   if (!isOpen || !visit) return null;
 
@@ -180,17 +182,7 @@ export default function CompleteStageModal({
               {!isFinalStage && (
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (window.confirm('Are you sure you want to complete this entire visit early? Remaining journey stages will be marked as skipped.')) {
-                      setIsSubmitting(true);
-                      try {
-                        await onConfirmCompleteVisit();
-                        onClose();
-                      } finally {
-                        setIsSubmitting(false);
-                      }
-                    }
-                  }}
+                  onClick={() => setShowEarlyCompleteConfirm(true)}
                   disabled={isSubmitting}
                   className="px-3 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl transition-colors flex items-center gap-1.5 border border-emerald-300 dark:border-emerald-800/60 cursor-pointer"
                   title="Conclude and complete the entire visit now"
@@ -240,6 +232,26 @@ export default function CompleteStageModal({
           </div>
         </motion.div>
       </div>
+
+      <ConfirmModal
+        isOpen={showEarlyCompleteConfirm}
+        onClose={() => setShowEarlyCompleteConfirm(false)}
+        onConfirm={async () => {
+          setIsSubmitting(true);
+          try {
+            await onConfirmCompleteVisit();
+            setShowEarlyCompleteConfirm(false);
+            onClose();
+          } finally {
+            setIsSubmitting(false);
+          }
+        }}
+        title="Complete Entire Visit Early?"
+        description="Are you sure you want to complete this entire visit early? Remaining journey stages will be marked as skipped."
+        confirmText="Complete Visit"
+        variant="warning"
+        isLoading={isSubmitting}
+      />
     </AnimatePresence>
   );
 }

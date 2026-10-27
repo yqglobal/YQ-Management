@@ -68,7 +68,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'qmover_auth_token' && e.newValue === null) {
         setUser(null);
-        router.push('/login');
+        const currentPath = router.asPath || router.pathname || '';
+        const isProtectedRoute = 
+          currentPath.startsWith('/dashboard') || 
+          currentPath.startsWith('/super-admin') || 
+          currentPath.startsWith('/onboarding') ||
+          router.pathname?.startsWith('/dashboard') || 
+          router.pathname?.startsWith('/super-admin') || 
+          router.pathname?.startsWith('/onboarding');
+
+        if (isProtectedRoute) {
+          router.push('/login');
+        }
       }
     };
     window.addEventListener('storage', handleStorageChange);

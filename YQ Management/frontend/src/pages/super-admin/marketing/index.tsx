@@ -5,11 +5,13 @@ import { fetchApi } from '../../../lib/api';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Send, Users, Activity, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ConfirmModal } from '../../../components/modals/ConfirmModal';
 
 export default function SuperAdminMarketing() {
   const [audience, setAudience] = useState('ALL');
   const [subject, setSubject] = useState('');
   const [htmlContent, setHtmlContent] = useState('');
+  const [showBroadcastConfirm, setShowBroadcastConfirm] = useState(false);
 
   const { data: stats, isLoading: loadingStats } = useQuery({
     queryKey: ['marketing-stats'],
@@ -22,6 +24,7 @@ export default function SuperAdminMarketing() {
       toast.success(`Successfully sent emails to ${data.count || 0} recipients.`);
       setSubject('');
       setHtmlContent('');
+      setShowBroadcastConfirm(false);
     },
     onError: (err: AnyFixMe) => toast.error(err.message || 'Failed to send campaign'),
   });
@@ -32,9 +35,7 @@ export default function SuperAdminMarketing() {
       toast.error('Subject and content are required');
       return;
     }
-    if (confirm(`Are you sure you want to broadcast this to the chosen audience?`)) {
-      sendMutation.mutate({ audience, subject, htmlContent });
-    }
+    setShowBroadcastConfirm(true);
   };
 
   return (
@@ -157,6 +158,19 @@ export default function SuperAdminMarketing() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showBroadcastConfirm}
+        onClose={() => setShowBroadcastConfirm(false)}
+        onConfirm={async () => {
+          sendMutation.mutate({ audience, subject, htmlContent });
+        }}
+        title="Broadcast Email Campaign"
+        description={`Are you sure you want to broadcast this email campaign to the chosen audience (${audience})?`}
+        confirmText="Send Broadcast"
+        variant="primary"
+        isLoading={sendMutation.isPending}
+      />
     </SuperAdminLayout>
   );
 }

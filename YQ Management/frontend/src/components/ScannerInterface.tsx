@@ -19,6 +19,7 @@ import "react-phone-number-input/style.css";
 import { detectCountryCode, getInitialCountryIso } from "../lib/country-codes";
 import { useLocation } from "./LocationContext";
 import { toast } from "sonner";
+import { ConfirmModal } from "./modals/ConfirmModal";
 
 type ScannerStatus =
   "idle" | "scanning" | "processing" | "approved" | "rejected" | "error";
@@ -45,6 +46,9 @@ interface ValidationResult {
   lastCompletedStep?: AnyFixMe;
   allSteps?: AnyFixMe[];
   isCompleted?: boolean;
+  isPast?: boolean;
+  isFuture?: boolean;
+  canOverride?: boolean;
 }
 
 const SCANNER_CONFIG = {
@@ -103,6 +107,8 @@ export function ScannerInterface({
   }, []);
   const [manualPhone, setManualPhone] = useState("");
   const [phoneProcessing, setPhoneProcessing] = useState(false);
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const lastScanTimeRef = useRef<number>(0);
@@ -323,6 +329,13 @@ export function ScannerInterface({
             scheduledFor: result.scheduledFor,
             checkedIn: result.checkedIn,
             activeStep: result.activeStep,
+            completedSteps: result.completedSteps,
+            lastCompletedStep: result.lastCompletedStep,
+            allSteps: result.allSteps,
+            isCompleted: result.isCompleted,
+            isPast: result.isPast,
+            isFuture: result.isFuture,
+            canOverride: result.canOverride,
           };
 
           setValidationResult(validationResult);
@@ -558,6 +571,13 @@ export function ScannerInterface({
         scheduledFor: result.scheduledFor,
         checkedIn: result.checkedIn,
         activeStep: result.activeStep,
+        completedSteps: result.completedSteps,
+        lastCompletedStep: result.lastCompletedStep,
+        allSteps: result.allSteps,
+        isCompleted: result.isCompleted,
+        isPast: result.isPast,
+        isFuture: result.isFuture,
+        canOverride: result.canOverride,
       };
 
       setValidationResult(validationResult);
@@ -614,6 +634,54 @@ export function ScannerInterface({
     }
   }, [validationResult, onScanSuccess, continuousMode]);
 
+  const handleEarlyCheckInOverride = useCallback(async () => {
+    if (!validationResult?.tokenId) return;
+    setManualProcessing(true);
+    try {
+      const result = await fetchApi("/visits/validate", {
+        method: "POST",
+        body: JSON.stringify({
+          tokenId: validationResult.tokenId,
+          locationId: activeLocationId === "all" ? undefined : activeLocationId,
+          allowEarlyCheckIn: true,
+        }),
+      });
+
+      if (result.valid) {
+        await fetchApi(`/visits/${validationResult.tokenId}/checkin`, {
+          method: "POST",
+        });
+
+        toast.success(
+          `Early check-in approved for ${result.customerName || "customer"}!`,
+        );
+
+        const updatedResult: ValidationResult = {
+          ...result,
+          checkedIn: true,
+          status: "WAITING",
+        };
+        setValidationResult(updatedResult);
+        setScannerStatus("approved");
+
+        if (continuousMode) {
+          setTimeout(() => {
+            setValidationResult(null);
+            setScannerStatus("scanning");
+          }, 2000);
+        } else {
+          onScanSuccess(updatedResult);
+        }
+      } else {
+        toast.error(result.reason || "Early check-in not permitted");
+      }
+    } catch (e: AnyFixMe) {
+      toast.error(e?.message || "Failed to override early check-in");
+    } finally {
+      setManualProcessing(false);
+    }
+  }, [validationResult, activeLocationId, continuousMode, onScanSuccess]);
+
   const executeAdvanceStep = useCallback(
     async (outcome: string) => {
       if (!validationResult?.activeStep?.id) return;
@@ -656,7 +724,7 @@ export function ScannerInterface({
 
   const handleSkipStep = useCallback(async () => {
     if (!validationResult?.activeStep?.id) return;
-    if (!confirm("Are you sure you want to skip this step?")) return;
+    setIsSkipping(true);
     try {
       await fetchApi(`/visit-steps/${validationResult.activeStep.id}/skip`, {
         method: "POST",
@@ -669,8 +737,11 @@ export function ScannerInterface({
         checkedIn: true,
         status: "Skipped",
       });
+      setShowSkipConfirm(false);
     } catch (e: AnyFixMe) {
       toast.error(e.message || "Failed to skip step");
+    } finally {
+      setIsSkipping(false);
     }
   }, [validationResult, onScanSuccess]);
 
@@ -1025,7 +1096,13 @@ export function ScannerInterface({
                   <>
                     <div className="flex items-start gap-4 mb-6 pb-6 border-b border-border dark:border-dark-border">
                       <div
-                        className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold border-2 ${validationResult.valid ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-red-100 text-red-700 border-red-200"}`}
+                        className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold border-2 ${
+                          validationResult.valid
+                            ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                            : validationResult.isFuture
+                              ? "bg-amber-100 text-amber-700 border-amber-200"
+                              : "bg-red-100 text-red-700 border-red-200"
+                        }`}
                       >
                         {validationResult.customerName ? (
                           validationResult.customerName
@@ -1033,6 +1110,8 @@ export function ScannerInterface({
                             .toUpperCase()
                         ) : validationResult.valid ? (
                           <Check />
+                        ) : validationResult.isFuture ? (
+                          <AlertCircle />
                         ) : (
                           <XCircle />
                         )}
@@ -1045,19 +1124,50 @@ export function ScannerInterface({
                           {validationResult.phone || validationResult.tokenId}
                         </p>
                         <span
-                          className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold ${validationResult.valid ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
+                          className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold ${
+                            validationResult.valid
+                              ? "bg-emerald-100 text-emerald-700"
+                              : validationResult.isFuture
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                                : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
+                          }`}
                         >
                           {validationResult.valid
                             ? "Access Granted"
-                            : "Access Denied"}
+                            : validationResult.isFuture
+                              ? "Early Arrival (Future Date)"
+                              : validationResult.isPast
+                                ? "Expired / Past Booking"
+                                : "Access Denied"}
                         </span>
                       </div>
                     </div>
 
                     <div className="space-y-3 mb-6 flex-1 text-sm">
                       {!validationResult.valid && validationResult.reason && (
-                        <div className="p-4 bg-red-50 text-red-800 rounded-xl">
-                          {validationResult.reason}
+                        <div
+                          className={`p-4 rounded-xl border ${
+                            validationResult.isFuture
+                              ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200"
+                              : "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
+                          }`}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-current" />
+                            <div className="flex-1">
+                              <p className="font-semibold text-sm">{validationResult.reason}</p>
+                              {validationResult.isFuture && validationResult.canOverride && (
+                                <p className="mt-1 text-xs opacity-90">
+                                  Operator early check-in is permitted if queue capacity allows. Use the button below to check in now.
+                                </p>
+                              )}
+                              {validationResult.isPast && (
+                                <p className="mt-1 text-xs opacity-90">
+                                  This ticket was not serviced on its scheduled date. Please direct the customer to the reception or create a new walk-in visit.
+                                </p>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
                       {validationResult.valid && (
@@ -1302,7 +1412,7 @@ export function ScannerInterface({
                               </button>
                             )}
                             <button
-                              onClick={handleSkipStep}
+                              onClick={() => setShowSkipConfirm(true)}
                               className="w-full h-10 bg-surface text-on-surface border border-border font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-surface-container transition-colors mt-2"
                             >
                               Skip Step
@@ -1329,6 +1439,22 @@ export function ScannerInterface({
                           </button>
                         )
                       ) : null}
+                      {!validationResult.valid &&
+                        validationResult.isFuture &&
+                        validationResult.canOverride && (
+                          <button
+                            onClick={handleEarlyCheckInOverride}
+                            disabled={manualProcessing}
+                            className="w-full h-12 bg-amber-600 hover:bg-amber-700 active:scale-[0.99] text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
+                          >
+                            {manualProcessing ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-5 h-5" />
+                            )}
+                            Override & Check In Early
+                          </button>
+                        )}
                       <button
                         onClick={() => {
                           setValidationResult(null);
@@ -1373,6 +1499,17 @@ export function ScannerInterface({
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={showSkipConfirm}
+        onClose={() => setShowSkipConfirm(false)}
+        onConfirm={handleSkipStep}
+        title="Skip Journey Step"
+        description="Are you sure you want to skip this journey step? The step will be marked as skipped and the customer will advance to the next step."
+        confirmText="Skip Step"
+        variant="warning"
+        isLoading={isSkipping}
+      />
     </>
   );
 
