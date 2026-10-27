@@ -73,6 +73,7 @@ export default function TVDisplay() {
   const audioEnabledRef = useRef(audioEnabled);
   const isSpeakingRef = useRef(false);
   const announcedIdsRef = useRef<Set<string>>(new Set());
+  const lastAnnouncedMapRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
   useEffect(() => { audioEnabledRef.current = audioEnabled; }, [audioEnabled]);
@@ -385,6 +386,11 @@ export default function TVDisplay() {
     const handleVisitCalled = (payload: AnyFixMe) => {
       if (!payload?.visitId) return;
 
+      // Filter by queueId if this TV display is for a specific queue
+      if (queueId && payload.queueId && payload.queueId !== queueId) {
+        return;
+      }
+
       const calledToken: CalledToken = {
         id: payload.visitId,
         displayId: payload.displayId || `#${payload.visitId.substring(0, 5).toUpperCase()}`,
@@ -403,9 +409,21 @@ export default function TVDisplay() {
         return [calledToken, ...filtered].slice(0, 5); // Up to 5 active rotating calls
       });
 
-      // Queue announcement
+      // Deduplicate announcements: Ignore duplicate events for the same visit within 10 seconds
+      // (Prevents double/quadruple announcements caused by receiving both queueRoom & tenantRoom broadcasts)
+      const now = Date.now();
+      const lastAnnouncedAt = lastAnnouncedMapRef.current.get(payload.visitId) || 0;
+      if (now - lastAnnouncedAt < 10000) {
+        return;
+      }
+      lastAnnouncedMapRef.current.set(payload.visitId, now);
+
+      // Queue announcement (will announce once and repeat once = exactly twice)
       if (audioEnabledRef.current && !isMutedRef.current) {
-        setAnnouncementQueue((prev) => [...prev, calledToken]);
+        setAnnouncementQueue((prev) => {
+          if (prev.some((t) => t.id === calledToken.id)) return prev;
+          return [...prev, calledToken];
+        });
       }
 
       // Refresh queues
