@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Receipt, Download, FileText, Loader2, CheckCircle2 } from 'lucide-react';
+import { X, Receipt, Download, FileText, Loader2, CheckCircle2, Printer } from 'lucide-react';
 import { fetchApi } from '../../lib/api';
+import { downloadInvoicePdf, printInvoice } from '../../lib/invoicePdf';
 import { toast } from 'sonner';
 
 interface InvoiceModalProps {
@@ -12,6 +13,7 @@ interface InvoiceModalProps {
 
 export function InvoiceModal({ isOpen, visitId, onClose }: InvoiceModalProps) {
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const [invoice, setInvoice] = useState<any>(null);
 
   useEffect(() => {
@@ -38,6 +40,31 @@ export function InvoiceModal({ isOpen, visitId, onClose }: InvoiceModalProps) {
   const money = (n: number) =>
     new Intl.NumberFormat(undefined, { style: 'currency', currency: invoice?.currency || 'ZAR' }).format(n / 100);
 
+  const handleDownloadPdf = async () => {
+    if (!invoice) return;
+    setDownloading(true);
+    try {
+      const ok = downloadInvoicePdf(invoice);
+      if (ok) {
+        toast.success(`Invoice ${invoice.invoiceNumber} downloaded as PDF`);
+      } else {
+        toast.info('Opening browser print to PDF dialog...');
+        printInvoice(invoice);
+      }
+    } catch (err: any) {
+      console.error('PDF generation error:', err);
+      toast.error('Failed to generate PDF file, opening print dialog...');
+      printInvoice(invoice);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handlePrint = () => {
+    if (!invoice) return;
+    printInvoice(invoice);
+  };
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -62,7 +89,7 @@ export function InvoiceModal({ isOpen, visitId, onClose }: InvoiceModalProps) {
               <div>
                 <h2 className="font-headline-sm text-headline-sm font-semibold text-on-surface dark:text-white">Tax Invoice</h2>
                 <p className="font-body-sm text-body-sm text-on-surface-variant dark:text-outline mt-0.5">
-                  {invoice?.invoiceNumber || 'Loading...'}
+                  {invoice?.invoiceNumber || 'Loading...'} {invoice?.tenant?.name ? `• ${invoice.tenant.name}` : ''}
                 </p>
               </div>
             </div>
@@ -82,8 +109,9 @@ export function InvoiceModal({ isOpen, visitId, onClose }: InvoiceModalProps) {
                   <div>
                     <h3 className="font-semibold text-on-surface dark:text-white mb-2">Billed To:</h3>
                     <p className="text-on-surface-variant dark:text-outline text-sm">
-                      {invoice.customer?.name || 'Customer'}<br />
-                      {invoice.customer?.phone || ''}
+                      <span className="font-medium text-on-surface dark:text-white">{invoice.customer?.name || 'Customer'}</span>
+                      {invoice.customer?.phone && <><br />{invoice.customer.phone}</>}
+                      {invoice.customer?.email && <><br />{invoice.customer.email}</>}
                     </p>
                   </div>
                   <div className="text-right">
@@ -149,20 +177,36 @@ export function InvoiceModal({ isOpen, visitId, onClose }: InvoiceModalProps) {
             )}
           </div>
 
-          <div className="p-6 border-t border-border dark:border-dark-border bg-surface-container-lowest dark:bg-zinc-900/50 flex justify-end gap-3">
+          <div className="p-6 border-t border-border dark:border-dark-border bg-surface-container-lowest dark:bg-zinc-900/50 flex items-center justify-between gap-3">
             <button
               onClick={onClose}
               className="px-5 py-2.5 rounded-full font-label-lg text-label-lg font-semibold border border-border dark:border-dark-border text-on-surface dark:text-white hover:bg-surface-container-low dark:hover:bg-zinc-800 transition-colors"
             >
               Close
             </button>
-            <button
-              disabled={!invoice}
-              className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-on-primary rounded-full font-label-lg text-label-lg font-semibold flex items-center gap-2 transition-colors disabled:opacity-50"
-            >
-              <Download className="w-5 h-5" />
-              Download PDF
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={!invoice}
+                onClick={handlePrint}
+                className="px-4 py-2.5 border border-border dark:border-dark-border rounded-full font-label-lg text-label-lg font-semibold text-on-surface dark:text-white hover:bg-surface-container-low dark:hover:bg-zinc-800 flex items-center gap-2 transition-colors disabled:opacity-50"
+                title="Print or Save via Browser"
+              >
+                <Printer className="w-4 h-4" />
+                Print
+              </button>
+              <button
+                disabled={!invoice || downloading}
+                onClick={handleDownloadPdf}
+                className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-on-primary rounded-full font-label-lg text-label-lg font-semibold flex items-center gap-2 transition-colors disabled:opacity-50 shadow-sm"
+              >
+                {downloading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                {downloading ? 'Generating PDF...' : 'Download PDF'}
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>

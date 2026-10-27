@@ -71,12 +71,36 @@ export class InvoiceService {
         tenant: true,
         service: true,
         customer: true,
-        visitInvoice: true,
+        visitInvoice: {
+          include: {
+            customer: true,
+            tenant: {
+              select: {
+                id: true,
+                name: true,
+                taxConfig: true,
+              },
+            },
+          },
+        },
       },
     });
 
     if (!visit) throw new NotFoundException('Visit not found');
-    if (visit.visitInvoice) return visit.visitInvoice; // Already exists
+    if (visit.visitInvoice) {
+      const inv = visit.visitInvoice as any;
+      if (!inv.customer && visit.customer) {
+        inv.customer = visit.customer;
+      }
+      if (!inv.tenant && visit.tenant) {
+        inv.tenant = {
+          id: visit.tenant.id,
+          name: visit.tenant.name,
+          taxConfig: visit.tenant.taxConfig,
+        };
+      }
+      return inv;
+    }
 
     const tenant = visit.tenant;
     const taxConfig = (tenant.taxConfig as any) || {
@@ -130,12 +154,26 @@ export class InvoiceService {
         taxLines: computed.taxLines as any,
         lineItemsSnap: lineItemsSnap as any,
       },
+      include: {
+        customer: true,
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            taxConfig: true,
+          },
+        },
+      },
     });
 
     this.logger.log(
       `Visit Invoice generated: ${newInvoice.invoiceNumber} for visit ${visit.id}`,
     );
-    return newInvoice;
+    const created = newInvoice as any;
+    if (!created.customer && visit.customer) {
+      created.customer = visit.customer;
+    }
+    return created;
   }
 
   async updateVisitInvoice(visitId: string, lineItems: any[]) {
