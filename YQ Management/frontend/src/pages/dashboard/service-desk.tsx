@@ -1751,6 +1751,7 @@ export default function ServiceDeskToday() {
             )}
           </div>
 
+          {/* Attendance & Fulfillment section temporarily disabled
           {fulfillmentMetrics && (
             <div className="mt-4 pt-4 border-t border-border dark:border-dark-border">
               <div className="flex items-center justify-between mb-3">
@@ -1809,6 +1810,7 @@ export default function ServiceDeskToday() {
               )}
             </div>
           )}
+          */}
 
           <div className="mt-3 pt-4 border-t border-border dark:border-dark-border">
             <div>
