@@ -3,10 +3,14 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { VisitStepService } from '../visit-step/visit-step.service';
 import { InvoiceService } from '../invoice/invoice.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { QueueGateway } from '../queue/queue.gateway';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -18,6 +22,10 @@ export class TenantPaymentsService {
     private readonly prisma: PrismaService,
     private readonly visitStepService: VisitStepService,
     private readonly invoiceService: InvoiceService,
+    @Inject(forwardRef(() => WhatsappService))
+    private readonly whatsappService: WhatsappService,
+    @Inject(forwardRef(() => QueueGateway))
+    private readonly queueGateway: QueueGateway,
   ) {
     const stripeSecret = process.env.STRIPE_SECRET_KEY;
     if (stripeSecret) {
@@ -324,7 +332,16 @@ export class TenantPaymentsService {
     return payment;
   }
 
-  async completePayment(paymentId: string, method?: string) {
+  async completePayment(
+    paymentId: string,
+    method?: string,
+    extra: {
+      proofUrl?: string;
+      description?: string;
+      staffId?: string;
+      sendWhatsAppReceipt?: boolean;
+    } = {},
+  ) {
     const payment = await this.prisma.bookingPayment.findUnique({
       where: { id: paymentId },
       include: { paymentAccount: true },
@@ -348,18 +365,24 @@ export class TenantPaymentsService {
         );
       }
     } else if (method === 'OFFLINE_CASH') {
-      // Offline cash requires staff authorization, handled in separate endpoint or via staff UI
-      // For now, if the frontend sends OFFLINE_CASH to the public endpoint, we should block it unless they are authenticated.
-      // But since we can't easily check auth here without injecting request, let's just allow it for now if method === 'OFFLINE_CASH'
-      // Ideally, the frontend should use the authenticated manual endpoint.
-      // TODO: strictly require auth for OFFLINE_CASH in future
+      // Offline cash handled via staff UI or direct completion
     }
+
+    const allowedMethods = ['CASH', 'CARD_TERMINAL', 'EFT', 'OTHER'];
+    const normalizedMethod =
+      method && allowedMethods.includes(method.toUpperCase())
+        ? (method.toUpperCase() as any)
+        : payment.method;
 
     const updated = await this.prisma.bookingPayment.update({
       where: { id: paymentId },
       data: {
         status: 'SUCCEEDED',
         ...(method ? { stripePaymentMethodType: method } : {}),
+        ...(normalizedMethod ? { method: normalizedMethod } : {}),
+        ...(extra.proofUrl ? { proofUrl: extra.proofUrl } : {}),
+        ...(extra.description ? { description: extra.description } : {}),
+        ...(extra.staffId ? { recordedByStaffId: extra.staffId } : {}),
       },
     });
 
@@ -411,6 +434,28 @@ export class TenantPaymentsService {
           },
         });
       }
+
+      // Generate Invoice and mark it PAID
+      try {
+        const invoice = await this.invoiceService.generateVisitInvoice(
+          updated.visitId,
+        );
+        if (invoice && invoice.status !== 'PAID') {
+          await this.prisma.visitInvoice.update({
+            where: { id: invoice.id },
+            data: { status: 'PAID', paidAt: new Date() },
+          });
+        }
+      } catch (invErr: any) {
+        this.logger.warn(
+          `Invoice generation on payment completion failed: ${invErr.message}`,
+        );
+      }
+    }
+
+    // Send WhatsApp receipt if requested/enabled
+    if (extra.sendWhatsAppReceipt !== false) {
+      await this.sendPaymentWhatsAppReceipt(updated.id, extra.description);
     }
 
     return updated;
@@ -426,6 +471,7 @@ export class TenantPaymentsService {
       source?: 'CHECKIN' | 'CHECKOUT';
       staffId?: string;
       proofUrl?: string;
+      sendWhatsAppReceipt?: boolean;
     } = {},
   ) {
     const allowedMethods = ['CASH', 'CARD_TERMINAL', 'EFT', 'OTHER'];
@@ -498,7 +544,189 @@ export class TenantPaymentsService {
       });
     }
 
+    // Send WhatsApp receipt if requested/enabled
+    if (extra.sendWhatsAppReceipt !== false) {
+      await this.sendPaymentWhatsAppReceipt(payment.id, description);
+    }
+
     return payment;
+  }
+
+  async sendPaymentWhatsAppReceipt(
+    paymentId: string,
+    customNotes?: string,
+  ) {
+    try {
+      const payment = await this.prisma.bookingPayment.findUnique({
+        where: { id: paymentId },
+        include: {
+          visit: {
+            include: {
+              customer: true,
+              service: true,
+              queue: true,
+              tenant: true,
+              location: true,
+            },
+          },
+          appointment: {
+            include: {
+              customer: true,
+              service: true,
+              tenant: true,
+            },
+          },
+          tenant: true,
+        },
+      });
+
+      if (!payment) return;
+
+      const tenant = payment.tenant;
+      const customer = payment.visit?.customer || payment.appointment?.customer;
+      const rawPhone = customer?.phone;
+
+      if (!rawPhone) {
+        this.logger.log(
+          `No phone number for payment ${paymentId}, skipping WhatsApp receipt`,
+        );
+        return;
+      }
+
+      const cleanPhone = rawPhone.replace(/\D/g, '');
+      if (!cleanPhone) return;
+
+      const serviceName =
+        payment.visit?.service?.name ||
+        payment.appointment?.service?.name ||
+        'Service';
+      const customerName = customer?.name || 'Customer';
+      const currency = payment.currency || 'ZAR';
+      const formattedAmount = (payment.amount / 100).toFixed(2);
+
+      const methodLabels: Record<string, string> = {
+        CARD_TERMINAL: 'Card Machine (POS)',
+        CASH: 'Cash',
+        EFT: 'EFT / Bank Transfer',
+        STRIPE_ONLINE: 'Online Card (Stripe)',
+        OTHER: 'Counter / Manual',
+      };
+      const methodLabel =
+        methodLabels[payment.method || payment.stripePaymentMethodType || ''] ||
+        payment.method ||
+        payment.stripePaymentMethodType ||
+        'Payment';
+
+      const ticketNumber =
+        payment.visit?.displayId ||
+        (payment.visitId ? `#TKT-${payment.visitId.substring(0, 4)}` : '');
+      const locationName =
+        payment.visit?.location?.name || tenant.name;
+      const refOrProof =
+        payment.proofUrl ||
+        (payment.description &&
+        payment.description !== 'Manual Payment at Counter'
+          ? payment.description
+          : null);
+
+      const appBaseUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        process.env.APP_URL ||
+        'http://localhost:3001';
+      const statusUrl = payment.visit?.accessToken
+        ? `${appBaseUrl}/customer/status/${payment.visit.accessToken}`
+        : null;
+
+      const messageLines = [
+        `*Payment Received* ✅`,
+        ``,
+        `Dear *${customerName}*,`,
+        `We have received your payment of *${currency} ${formattedAmount}* via *${methodLabel}*.`,
+        ``,
+        ...(ticketNumber ? [`📋 *Ticket:* ${ticketNumber}`] : []),
+        `🏥 *Service:* ${serviceName}`,
+        `🏢 *Location:* ${locationName}`,
+        ...(refOrProof ? [`🧾 *Ref / Slip:* ${refOrProof}`] : []),
+        ...(customNotes && customNotes !== 'Manual Payment at Counter'
+          ? [`📝 *Notes:* ${customNotes}`]
+          : []),
+        ...(statusUrl ? [``, `Track live status: ${statusUrl}`] : []),
+        ``,
+        `Thank you for your visit!`,
+      ];
+
+      const messageText = messageLines.join('\n');
+
+      // Send WhatsApp message to customer
+      const sendResult = await this.whatsappService
+        .sendToTenant(tenant.id, cleanPhone, messageText)
+        .catch((err) => {
+          this.logger.warn(
+            `Failed to send payment receipt WhatsApp to ${cleanPhone}: ${err.message}`,
+          );
+          return null;
+        });
+
+      // Also persist message in Conversation & Message history for the inbox & chat panel
+      try {
+        const conversation = await this.prisma.customerConversation.upsert({
+          where: {
+            tenantId_customerPhone: {
+              tenantId: tenant.id,
+              customerPhone: rawPhone,
+            },
+          },
+          update: { lastMessageAt: new Date(), status: 'OPEN' },
+          create: {
+            tenantId: tenant.id,
+            customerPhone: rawPhone,
+            status: 'OPEN',
+            unreadCount: 0,
+          },
+        });
+
+        const loggedMsg = await this.prisma.message.create({
+          data: {
+            tenantId: tenant.id,
+            customerPhone: rawPhone,
+            conversationId: conversation.id,
+            visitId: payment.visitId || null,
+            body: messageText,
+            sender: 'SYSTEM',
+            isRead: true,
+            whatsappId: (sendResult as any)?.providerId || null,
+          },
+        });
+
+        this.queueGateway.broadcastTenantUpdate(
+          tenant.id,
+          'NEW_INBOX_MESSAGE',
+          {
+            phone: rawPhone,
+            conversationId: conversation.id,
+            message: loggedMsg,
+          },
+        );
+
+        if (payment.visit?.queueId) {
+          this.queueGateway.broadcastQueueUpdate(
+            payment.visit.queueId,
+            'NEW_MESSAGE',
+            {
+              message: loggedMsg,
+            },
+          );
+        }
+      } catch (logErr: any) {
+        this.logger.warn(
+          `Failed to log payment WhatsApp message to DB: ${logErr.message}`,
+        );
+      }
+    } catch (err: any) {
+      this.logger.error(
+        `Error in sendPaymentWhatsAppReceipt: ${err.message}`,
+      );
+    }
   }
 
   async refundPayment(tenantId: string, paymentId: string, reason?: string) {

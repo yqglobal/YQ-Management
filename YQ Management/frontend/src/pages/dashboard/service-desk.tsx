@@ -8,6 +8,7 @@ import { fetchApi } from "../../lib/api";
 import { CreateVisitModal } from "../../components/modals/CreateVisitModal";
 import { ScannerModal } from "../../components/modals/ScannerModal";
 import { WhatsAppChatPanel } from "../../components/WhatsAppChatPanel";
+import { RecordPaymentModal, PaymentMethodType } from "../../components/modals/RecordPaymentModal";
 import {
   MonitorPlay,
   ScanLine,
@@ -274,6 +275,20 @@ export default function ServiceDeskToday() {
   const [showInvoiceForVisit, setShowInvoiceForVisit] = useState<string | null>(
     null,
   );
+  const [recordPaymentModalState, setRecordPaymentModalState] = useState<{
+    isOpen: boolean;
+    initialMethod: PaymentMethodType;
+    amount: number;
+    currency: string;
+    visit: AnyFixMe | null;
+    pendingPaymentId?: string;
+  }>({
+    isOpen: false,
+    initialMethod: "CARD_TERMINAL",
+    amount: 0,
+    currency: "ZAR",
+    visit: null,
+  });
   const [checkoutBill, setCheckoutBill] = useState<VisitBill | null>(null);
   const [checkoutVisit, setCheckoutVisit] = useState<{
     id: string;
@@ -3275,9 +3290,15 @@ export default function ServiceDeskToday() {
                             </span>
                             <span className="font-medium text-zinc-700 dark:text-zinc-300">
                               {succeededPayment
-                                ? succeededPayment.method ||
-                                  succeededPayment.stripePaymentMethodType ||
-                                  "Online"
+                                ? succeededPayment.method === "CARD_TERMINAL"
+                                  ? "Card Machine (POS)"
+                                  : succeededPayment.method === "CASH"
+                                    ? "Cash"
+                                    : succeededPayment.method === "EFT"
+                                      ? "EFT / Bank"
+                                      : succeededPayment.method ||
+                                        succeededPayment.stripePaymentMethodType ||
+                                        "Online"
                                 : checkinPayMode === "COUNTER_ONLY"
                                   ? "Counter Only"
                                   : checkinPayMode === "STRIPE_ONLY"
@@ -3286,6 +3307,22 @@ export default function ServiceDeskToday() {
                             </span>
                           </div>
                         </div>
+
+                        {succeededPayment && (succeededPayment.proofUrl || (succeededPayment.description && succeededPayment.description !== "Manual Payment at Counter")) && (
+                          <div className="py-1 px-2 rounded-lg bg-surface-container/60 dark:bg-zinc-800/40 border border-border/40 dark:border-white/5 text-[11px] space-y-0.5">
+                            {succeededPayment.proofUrl && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] text-zinc-400 font-semibold uppercase">Ref / Slip:</span>
+                                <span className="font-mono font-bold text-zinc-700 dark:text-zinc-200">{succeededPayment.proofUrl}</span>
+                              </div>
+                            )}
+                            {succeededPayment.description && succeededPayment.description !== "Manual Payment at Counter" && (
+                              <div className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                                {succeededPayment.description}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {succeededPayment ? (
                           <div className="flex items-center justify-between pt-0.5">
@@ -3306,22 +3343,39 @@ export default function ServiceDeskToday() {
                           <div className="space-y-1.5 pt-0.5">
                             <div className="grid grid-cols-2 gap-2">
                               <button
-                                onClick={() => markAsPaid("CASH")}
-                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1"
+                                onClick={() =>
+                                  setRecordPaymentModalState({
+                                    isOpen: true,
+                                    initialMethod: "CASH",
+                                    amount,
+                                    currency,
+                                    visit: selectedVisit,
+                                    pendingPaymentId: pendingPayment?.id,
+                                  })
+                                }
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" /> Cash
                               </button>
                               <button
-                                onClick={() => markAsPaid("CARD_TERMINAL")}
-                                className="w-full bg-sky-600 hover:bg-sky-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1"
+                                onClick={() =>
+                                  setRecordPaymentModalState({
+                                    isOpen: true,
+                                    initialMethod: "CARD_TERMINAL",
+                                    amount,
+                                    currency,
+                                    visit: selectedVisit,
+                                    pendingPaymentId: pendingPayment?.id,
+                                  })
+                                }
+                                className="w-full bg-sky-600 hover:bg-sky-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
                               >
                                 <CreditCard className="w-3.5 h-3.5" /> Card /
                                 POS
                               </button>
                             </div>
                             <p className="text-[10px] text-zinc-400 text-center">
-                              Marking as paid will confirm the booking and issue
-                              an invoice.
+                              Confirm payment with slip/reference & send receipt on WhatsApp.
                             </p>
                           </div>
                         )}
@@ -3551,6 +3605,86 @@ export default function ServiceDeskToday() {
         isOpen={!!showInvoiceForVisit}
         visitId={showInvoiceForVisit}
         onClose={() => setShowInvoiceForVisit(null)}
+      />
+      <RecordPaymentModal
+        isOpen={recordPaymentModalState.isOpen}
+        onClose={() =>
+          setRecordPaymentModalState((prev) => ({ ...prev, isOpen: false }))
+        }
+        visit={recordPaymentModalState.visit}
+        amount={recordPaymentModalState.amount}
+        currency={recordPaymentModalState.currency}
+        initialMethod={recordPaymentModalState.initialMethod}
+        onConfirm={async (data) => {
+          const visitId = recordPaymentModalState.visit?.id;
+          const pendingId = recordPaymentModalState.pendingPaymentId;
+          if (pendingId) {
+            await fetchApi(
+              `/tenant-payments/public/payment/${pendingId}/complete`,
+              {
+                method: "POST",
+                body: JSON.stringify({
+                  method: data.method,
+                  proofUrl: data.proofUrl,
+                  description: data.description,
+                  sendWhatsAppReceipt: data.sendReceipt,
+                }),
+              },
+            );
+          } else if (visitId) {
+            await fetchApi(`/tenant-payments/manual`, {
+              method: "POST",
+              body: JSON.stringify({
+                visitId,
+                amount: recordPaymentModalState.amount,
+                method: data.method,
+                proofUrl: data.proofUrl,
+                description: data.description,
+                sendWhatsAppReceipt: data.sendReceipt,
+              }),
+            });
+          }
+          queryClient.invalidateQueries({ queryKey: ["visits"] });
+          if (visitId) {
+            queryClient.invalidateQueries({ queryKey: ["messages", visitId] });
+          }
+          const methodDisplay =
+            data.method === "CASH"
+              ? "Cash"
+              : data.method === "CARD_TERMINAL"
+                ? "Card/POS"
+                : data.method;
+          const phone = recordPaymentModalState.visit?.customer?.phone;
+          toast.success(
+            `Payment recorded (${methodDisplay})${data.sendReceipt && phone ? " & receipt sent on WhatsApp!" : "!"}`,
+          );
+          setSelectedVisit((prev: any) =>
+            prev
+              ? {
+                  ...prev,
+                  currentState:
+                    prev.currentState === "PENDING_PAYMENT"
+                      ? "WAITING"
+                      : prev.currentState,
+                  bookingPayments: [
+                    ...(prev.bookingPayments || []).filter(
+                      (p: any) => p.status !== "PENDING",
+                    ),
+                    {
+                      id: "temp-" + Date.now(),
+                      status: "SUCCEEDED",
+                      amount: recordPaymentModalState.amount,
+                      currency: recordPaymentModalState.currency,
+                      method: data.method,
+                      proofUrl: data.proofUrl,
+                      description: data.description,
+                      createdAt: new Date().toISOString(),
+                    },
+                  ],
+                }
+              : null,
+          );
+        }}
       />
       <CompleteStageModal
         isOpen={!!stageModalVisit}

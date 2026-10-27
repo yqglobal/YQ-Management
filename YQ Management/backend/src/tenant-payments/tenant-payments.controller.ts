@@ -88,8 +88,21 @@ export class TenantPaymentsController {
   }
 
   @Post('public/payment/:id/complete')
-  completePayment(@Param('id') id: string, @Body() body: { method?: string }) {
-    return this.tenantPaymentsService.completePayment(id, body?.method);
+  completePayment(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      method?: string;
+      proofUrl?: string;
+      description?: string;
+      sendWhatsAppReceipt?: boolean;
+    },
+  ) {
+    return this.tenantPaymentsService.completePayment(id, body?.method, {
+      proofUrl: body?.proofUrl,
+      description: body?.description,
+      sendWhatsAppReceipt: body?.sendWhatsAppReceipt,
+    });
   }
 
   @UseGuards(JwtAuthGuard)
@@ -104,6 +117,7 @@ export class TenantPaymentsController {
       description?: string;
       source?: 'CHECKIN' | 'CHECKOUT';
       proofUrl?: string;
+      sendWhatsAppReceipt?: boolean;
     },
   ) {
     return this.tenantPaymentsService.recordManualPayment(
@@ -116,6 +130,7 @@ export class TenantPaymentsController {
         source: body.source,
         staffId: req.user.userId,
         proofUrl: body.proofUrl,
+        sendWhatsAppReceipt: body.sendWhatsAppReceipt,
       },
     );
   }
