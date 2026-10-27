@@ -304,18 +304,44 @@ export class QueueService {
   }
 
   async getQueueTokens(queueId: string) {
-    return this.prisma.visit.findMany({
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const visits = await this.prisma.visit.findMany({
       where: {
         queueId,
-        currentState: { in: ['WAITING', 'CHECKED_IN'] },
+        OR: [
+          {
+            currentState: { in: ['WAITING', 'CHECKED_IN'] },
+          },
+          {
+            currentState: { in: ['SCHEDULED', 'CREATED', 'PENDING_PAYMENT'] },
+            scheduledTime: { gte: todayStart, lte: todayEnd },
+          },
+        ],
       },
       include: {
         customer: { select: { name: true } },
-        service: { select: { name: true } },
+        service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true } },
         queue: { select: { name: true } },
       },
-      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
-      take: 20,
+      take: 30,
+    });
+
+    return visits.sort((a, b) => {
+      const timeA = a.scheduledTime
+        ? new Date(a.scheduledTime).getTime()
+        : new Date(a.waitingStart || a.createdAt).getTime();
+      const timeB = b.scheduledTime
+        ? new Date(b.scheduledTime).getTime()
+        : new Date(b.waitingStart || b.createdAt).getTime();
+
+      if ((b.priority || 0) !== (a.priority || 0)) {
+        return (b.priority || 0) - (a.priority || 0);
+      }
+      return timeA - timeB;
     });
   }
 

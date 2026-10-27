@@ -29,6 +29,7 @@ interface UpcomingToken {
   priority?: number;
   currentState?: string;
   createdAt?: string;
+  scheduledTime?: string;
 }
 
 interface TTSConfig {
@@ -247,7 +248,9 @@ export default function TVDisplay() {
       .then((data) => {
         if (Array.isArray(data)) {
           const list: UpcomingToken[] = data
-            .filter((d: AnyFixMe) => d.currentState === 'WAITING' || d.currentState === 'CHECKED_IN')
+            .filter((d: AnyFixMe) =>
+              ['WAITING', 'CHECKED_IN', 'SCHEDULED', 'CREATED', 'PENDING_PAYMENT'].includes(d.currentState)
+            )
             .map((d: AnyFixMe) => ({
               id: d.id,
               displayId: d.displayId || d.ticketNumber || `#${d.id?.substring(0, 5)}`,
@@ -257,7 +260,16 @@ export default function TVDisplay() {
               priority: d.priority,
               currentState: d.currentState,
               createdAt: d.createdAt,
-            }));
+              scheduledTime: d.scheduledTime,
+            }))
+            .sort((a, b) => {
+              const timeA = a.scheduledTime ? new Date(a.scheduledTime).getTime() : new Date(a.createdAt || 0).getTime();
+              const timeB = b.scheduledTime ? new Date(b.scheduledTime).getTime() : new Date(b.createdAt || 0).getTime();
+              if ((b.priority || 0) !== (a.priority || 0)) {
+                return (b.priority || 0) - (a.priority || 0);
+              }
+              return timeA - timeB;
+            });
           setUpcomingTokens(list);
         }
       })
@@ -605,7 +617,7 @@ export default function TVDisplay() {
             activeSpotlightToken
               ? 'bg-gradient-to-br from-amber-950/40 via-zinc-900/90 to-zinc-950 border-amber-500/80 shadow-[0_0_60px_rgba(245,158,11,0.22)]'
               : 'bg-zinc-900/90 border-zinc-800 shadow-xl'
-          }`} style={{ minHeight: '340px' }}>
+          }`} style={{ minHeight: activeSpotlightToken ? '340px' : '220px' }}>
 
             {/* Subtle radial glow */}
             <div className="absolute -top-24 -left-24 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -749,61 +761,66 @@ export default function TVDisplay() {
           </div>
 
           {/* 2. LOBBY SELF CHECK-IN & SMART QR CARD */}
-          <div className="flex-1 rounded-3xl bg-zinc-900/90 border border-zinc-800 p-5 shadow-xl flex items-center justify-between gap-6 relative overflow-hidden">
+          <div className="flex-[1.25] rounded-3xl bg-zinc-900/90 border border-zinc-800 shadow-2xl flex items-stretch justify-between relative overflow-hidden" style={{ minHeight: '280px' }}>
             {/* Subtle gradient styling */}
             <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-zinc-950/60 pointer-events-none" />
 
-            <div className="flex-1 z-10 space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-xs font-bold uppercase tracking-wider">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{selfServeModeEnabled ? 'Self-Serve Check-In' : 'Join Queue Mobile'}</span>
+            {/* Left side: text, instructions, wait estimates */}
+            <div className="flex-1 z-10 flex flex-col justify-between p-6 sm:p-7 min-w-0 pr-4">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-xs font-bold uppercase tracking-wider w-fit">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>{selfServeModeEnabled ? 'Self-Serve Check-In' : 'Join Queue Mobile'}</span>
+                </div>
+
+                <div>
+                  <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+                    {selfServeModeEnabled ? 'Scan QR Code to Check In' : 'Scan to Take Your Ticket'}
+                  </h3>
+                  <p className="text-zinc-400 text-xs sm:text-sm mt-1 leading-relaxed">
+                    Use your phone camera to scan the QR code. You will receive live WhatsApp queue progress notifications.
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  {selfServeModeEnabled ? 'Scan QR Code to Check In' : 'Scan to Take Your Ticket'}
-                </h3>
-                <p className="text-zinc-400 text-xs sm:text-sm mt-1 leading-relaxed">
-                  Use your phone camera to scan the QR code. You will receive live WhatsApp queue progress notifications.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div className="p-2.5 rounded-xl bg-zinc-800/50 border border-zinc-700/50 text-xs">
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="p-3 rounded-2xl bg-zinc-800/60 border border-zinc-700/50 text-xs">
                   <span className="text-zinc-500 block text-[10px] font-bold uppercase tracking-wider">Estimated Wait</span>
-                  <span className="text-white font-mono font-bold text-sm">
+                  <span className="text-emerald-400 font-mono font-bold text-base sm:text-lg">
                     {upcomingTokens.length > 0 ? `~${upcomingTokens.length * 5} mins` : 'Immediate'}
                   </span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-zinc-800/50 border border-zinc-700/50 text-xs">
-                  <span className="text-zinc-500 block text-[10px] font-bold uppercase tracking-wider">Waiting in Line</span>
-                  <span className="text-amber-400 font-mono font-bold text-sm">
+                <div className="p-3 rounded-2xl bg-zinc-800/60 border border-zinc-700/50 text-xs">
+                  <span className="text-zinc-500 block text-[10px] font-bold uppercase tracking-wider">In Line / Booked</span>
+                  <span className="text-amber-400 font-mono font-bold text-base sm:text-lg">
                     {upcomingTokens.length} Customer{upcomingTokens.length === 1 ? '' : 's'}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* QR Code Container */}
-            <div className="shrink-0 z-10 flex flex-col items-center">
+            {/* Right side: QR Code aligned flush from top-to-bottom of div height with NO gap */}
+            <div className="h-full aspect-square shrink-0 bg-white flex flex-col items-center justify-center p-3.5 sm:p-4 relative select-none shadow-2xl">
               {joinUrl ? (
-                <div className="bg-white p-3.5 rounded-2xl shadow-2xl ring-4 ring-white/10 transition-transform hover:scale-105">
+                <div className="w-full h-full flex items-center justify-center">
                   <QRCode
                     value={joinUrl}
-                    size={150}
+                    size={320}
                     fgColor="#09090b"
                     bgColor="#ffffff"
-                    style={{ height: 'auto', maxWidth: '100%', width: '130px' }}
+                    style={{ height: '100%', width: '100%', maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
                   />
                 </div>
               ) : (
-                <div className="w-32 h-32 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500 font-mono text-xs">
+                <div className="w-full h-full bg-zinc-100 flex items-center justify-center text-zinc-500 font-mono text-xs">
                   Loading QR...
                 </div>
               )}
-              <span className="text-[10px] font-mono text-zinc-500 mt-2 font-bold uppercase tracking-widest">
-                Scan With Camera
-              </span>
+              <div className="mt-1.5 text-center shrink-0">
+                <span className="text-[10px] sm:text-[11px] font-black text-zinc-950 tracking-widest uppercase font-mono bg-zinc-100 px-3 py-0.5 rounded-full border border-zinc-200">
+                  Scan With Camera
+                </span>
+              </div>
             </div>
           </div>
         </section>
@@ -819,61 +836,86 @@ export default function TVDisplay() {
                 <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white">Next Up in Queue</h3>
               </div>
               <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30">
-                {upcomingTokens.length} Waiting
+                {upcomingTokens.length} in Line
               </span>
             </div>
 
             {/* Scrollable Next Up List with Large Legible Names */}
             <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-0">
               <AnimatePresence initial={false}>
-                {upcomingTokens.slice(0, 5).map((t, idx) => (
-                  <motion.div
-                    key={t.id}
-                    layout
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                    className="p-3.5 rounded-2xl bg-zinc-800/60 border border-zinc-800/80 flex items-center justify-between gap-3 hover:bg-zinc-800/90 transition-all shadow-xs"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      {/* Position Badge */}
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                        idx === 0
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 ring-1 ring-amber-500/30 font-mono'
-                          : 'bg-zinc-700/50 text-zinc-300 font-mono'
-                      }`}>
-                        #{idx + 1}
-                      </div>
+                {upcomingTokens.slice(0, 5).map((t, idx) => {
+                  const isScheduled = t.currentState === 'SCHEDULED' || t.currentState === 'CREATED' || !!t.scheduledTime;
+                  const schedDate = t.scheduledTime ? new Date(t.scheduledTime) : null;
+                  const minsUntil = schedDate ? Math.round((schedDate.getTime() - Date.now()) / 60000) : null;
+                  const timeFormatted = schedDate ? schedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
 
-                      {/* Ticket Number & Customer Name (PROPERLY VISIBLE) */}
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-black font-mono text-base text-amber-400 tabular-nums">
-                            {t.displayId}
-                          </span>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-700/60 text-zinc-300 font-bold uppercase tracking-wider">
-                            {t.currentState === 'CHECKED_IN' ? 'Checked In' : 'Waiting'}
-                          </span>
+                  return (
+                    <motion.div
+                      key={t.id}
+                      layout
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all shadow-xs ${
+                        isScheduled
+                          ? 'bg-sky-950/30 border-sky-800/50 hover:bg-sky-950/50'
+                          : 'bg-zinc-800/60 border-zinc-800/80 hover:bg-zinc-800/90'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Position Badge */}
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                          idx === 0
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 ring-1 ring-amber-500/30 font-mono'
+                            : isScheduled
+                            ? 'bg-sky-500/20 text-sky-300 font-mono border border-sky-500/30'
+                            : 'bg-zinc-700/50 text-zinc-300 font-mono'
+                        }`}>
+                          #{idx + 1}
                         </div>
-                        {/* Big Customer Name */}
-                        <p className="text-base font-bold text-white truncate mt-0.5">
-                          {t.customerName}
-                        </p>
-                      </div>
-                    </div>
 
-                    {/* Service/Queue info */}
-                    <div className="text-right shrink-0">
-                      <span className="text-xs font-semibold text-zinc-300 block truncate max-w-[120px]">
-                        {t.serviceName || t.queueName || 'General'}
-                      </span>
-                      <span className="text-[10px] font-mono text-zinc-500">
-                        {idx === 0 ? 'Next caller' : `~${(idx + 1) * 5}m wait`}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
+                        {/* Ticket Number & Customer Name */}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-black font-mono text-base text-amber-400 tabular-nums">
+                              {t.displayId}
+                            </span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
+                              isScheduled
+                                ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                                : t.currentState === 'CHECKED_IN'
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                : 'bg-zinc-700/60 text-zinc-300'
+                            }`}>
+                              {isScheduled ? `Slot: ${timeFormatted || 'Booked'}` : t.currentState === 'CHECKED_IN' ? 'Checked In' : 'Waiting'}
+                            </span>
+                          </div>
+                          {/* Big Customer Name */}
+                          <p className="text-base font-bold text-white truncate mt-0.5">
+                            {t.customerName}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Service/Queue info & Wait status */}
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-semibold text-zinc-300 block truncate max-w-[130px]">
+                          {t.serviceName || t.queueName || 'General'}
+                        </span>
+                        <span className="text-[11px] font-mono text-zinc-400 font-medium">
+                          {isScheduled && minsUntil !== null
+                            ? minsUntil <= 0
+                              ? 'Ready now'
+                              : `in ${minsUntil}m`
+                            : idx === 0
+                            ? 'Next caller'
+                            : `~${(idx + 1) * 5}m wait`}
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
 
               {upcomingTokens.length === 0 && (
