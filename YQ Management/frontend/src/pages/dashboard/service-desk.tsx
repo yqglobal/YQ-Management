@@ -498,14 +498,28 @@ export default function ServiceDeskToday() {
     );
   };
 
-  const getVisitTimeEstimates = (visit: AnyFixMe, peopleAheadCount: number) => {
+  const getVisitTimeEstimates = (
+    visit: AnyFixMe,
+    peopleAheadCount: number,
+    activeServingVisit?: AnyFixMe,
+  ) => {
     if (!visit)
-      return { estWaitMins: null, estFinishTimeStr: null, estTotalMins: null };
+      return {
+        estWaitMins: null,
+        estFinishTimeStr: null,
+        estTotalMins: null,
+        isReadyNow: false,
+      };
 
     const isAppt = visit.source === "APPOINTMENT" || !!visit.scheduledTime;
     const isInService = ["IN_SERVICE", "SERVING"].includes(visit.currentState);
-    const serviceDuration =
-      visit.service?.expectedDuration || visit.service?.durationMins || 15;
+    // Prioritize adaptive EMA expected duration learned from actual provider tempo
+    const serviceDuration = Math.round(
+      visit.service?.emaExpectedDuration ||
+        visit.service?.expectedDuration ||
+        visit.service?.durationMins ||
+        15,
+    );
     const nowMs = Date.now();
 
     if (isInService) {
@@ -520,6 +534,7 @@ export default function ServiceDeskToday() {
           ? "Finishing soon"
           : formatAppointmentTime(new Date(finishMs)),
         estTotalMins: serviceDuration,
+        isReadyNow: false,
       };
     }
 
@@ -537,16 +552,39 @@ export default function ServiceDeskToday() {
         estWaitMins: waitMins,
         estFinishTimeStr: formatAppointmentTime(new Date(finishMs)),
         estTotalMins: waitMins + serviceDuration,
+        isReadyNow: waitMins === 0 && peopleAheadCount === 0 && !activeServingVisit,
       };
     }
 
-    // Waiting queue
-    const estWaitMins = Math.max(5, peopleAheadCount * serviceDuration);
+    // Active waiting queue calculation:
+    // If someone is currently in service at this queue desk, add their remaining time
+    let servingRemainingMins = 0;
+    if (activeServingVisit && activeServingVisit.serviceStart) {
+      const activeSvcDuration = Math.round(
+        activeServingVisit.service?.emaExpectedDuration ||
+          activeServingVisit.service?.expectedDuration ||
+          activeServingVisit.service?.durationMins ||
+          15,
+      );
+      const elapsedMins =
+        (nowMs - new Date(activeServingVisit.serviceStart).getTime()) / 60000;
+      servingRemainingMins = Math.max(
+        1,
+        Math.round(activeSvcDuration - elapsedMins),
+      );
+    }
+
+    // Dynamic wait: time until active serving finishes + each person ahead
+    const estWaitMins =
+      servingRemainingMins + peopleAheadCount * serviceDuration;
+    const isReadyNow = estWaitMins === 0;
     const finishMs = nowMs + (estWaitMins + serviceDuration) * 60000;
+
     return {
       estWaitMins,
       estFinishTimeStr: formatAppointmentTime(new Date(finishMs)),
       estTotalMins: estWaitMins + serviceDuration,
+      isReadyNow,
     };
   };
 
@@ -2239,9 +2277,13 @@ export default function ServiceDeskToday() {
                       (item: AnyFixMe) => item.id === v.id,
                     ),
                   );
+                  const activeServingInQueue = inServiceVisitsUnsorted.find(
+                    (s: AnyFixMe) => s.queueId === v.queueId,
+                  );
                   const cardEstimates = getVisitTimeEstimates(
                     v,
                     peopleBeforeThem,
+                    activeServingInQueue,
                   );
 
                   return (
@@ -2375,7 +2417,7 @@ export default function ServiceDeskToday() {
                                 : ""}
                               Waiting: {isStale ? ">24h (Stale)" : `${waitTimeMins}m`}
                               {!isStale && cardEstimates.estWaitMins !== null
-                                ? ` • Est. Wait: ~${cardEstimates.estWaitMins}m`
+                                ? ` • Est. Wait: ${cardEstimates.isReadyNow ? "Ready now" : `~${cardEstimates.estWaitMins}m`}`
                                 : ""}
                               {!isStale && cardEstimates.estFinishTimeStr
                                 ? ` • Est. Finish: ~${cardEstimates.estFinishTimeStr}`
@@ -2536,9 +2578,13 @@ export default function ServiceDeskToday() {
                 (item: AnyFixMe) => item.id === selectedVisit.id,
               ),
             );
+            const activeServingInQueue = inServiceVisitsUnsorted.find(
+              (s: AnyFixMe) => s.queueId === selectedVisit.queueId,
+            );
             const detailsEstimates = getVisitTimeEstimates(
               selectedVisit,
               peopleAhead,
+              activeServingInQueue,
             );
             const stepProgression = getStepProgression(selectedVisit);
 
@@ -2764,12 +2810,25 @@ export default function ServiceDeskToday() {
                               return `${wMins}m`;
                             })()}
                       </span>
+                      {!isInService && (
+                        <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal ml-1">
+                          (elapsed)
+                        </span>
+                      )}
                     </div>
                     {!isInService && detailsEstimates.estWaitMins !== null && (
                       <div>
                         <span className="text-outline">Est. wait: </span>
-                        <span className="font-bold text-sky-600 dark:text-sky-400 font-mono text-sm">
-                          ~{detailsEstimates.estWaitMins}m
+                        <span
+                          className={`font-bold font-mono text-sm ${
+                            detailsEstimates.isReadyNow
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-sky-600 dark:text-sky-400"
+                          }`}
+                        >
+                          {detailsEstimates.isReadyNow
+                            ? "Ready now (0m)"
+                            : `~${detailsEstimates.estWaitMins}m`}
                         </span>
                       </div>
                     )}

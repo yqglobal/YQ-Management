@@ -359,7 +359,9 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
                   ? '0 mins'
                   : scheduledTimeVal
                   ? `${Math.max(0, Math.round((new Date(scheduledTimeVal).getTime() - renderTime) / 60000))} mins`
-                  : '5 mins'}
+                  : visit.estimatedWaitTime !== undefined && visit.estimatedWaitTime !== null
+                  ? `${visit.estimatedWaitTime} mins`
+                  : '0 mins'}
               </span>
             </div>
             <div>
