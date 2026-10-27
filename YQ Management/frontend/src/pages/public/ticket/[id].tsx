@@ -4,7 +4,8 @@ import { useRouter } from 'next/router';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
 import { motion } from 'framer-motion';
-import { QrCode, Clock, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Clock, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { format } from 'date-fns';
 import Image from 'next/image';
 
@@ -149,8 +150,18 @@ export default function DigitalTicket() {
             {/* Footer QR */}
             <div className="bg-gray-50 p-6 sm:p-8 pb-10 sm:pb-12 flex flex-col items-center justify-center border-t border-gray-100">
               <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-                {/* Dummy QR code since it's just visual for now */}
-                <QrCode className={`w-20 h-20 sm:w-24 sm:h-24 ${isCanceled ? 'text-gray-300' : 'text-gray-900'}`} strokeWidth={1} />
+                {isCanceled ? (
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center text-gray-300">
+                    <AlertCircle className="w-16 h-16" strokeWidth={1} />
+                  </div>
+                ) : (
+                  <QRCodeSVG
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/customer/status/${visit.accessToken || id}`}
+                    size={96}
+                    level="H"
+                    includeMargin={false}
+                  />
+                )}
               </div>
               <p className="text-gray-400 font-mono text-xs tracking-[0.2em] mt-4 uppercase text-center break-all">
                 ID: {id?.toString().split('-')[0]}

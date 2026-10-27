@@ -155,10 +155,11 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
     
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
     const socket = io(backendUrl);
+    const visitId = statusData?.token?.id;
 
     socket.on('connect', () => {
       socket.emit('joinQueueRoom', queueId);
-      socket.emit('joinVisitRoom', token.id);
+      if (visitId) socket.emit('joinVisitRoom', visitId);
     });
 
     const refresh = () => {
@@ -180,7 +181,7 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
     return () => {
       socket.disconnect();
     };
-  }, [queueId, tokenId, queryClient]);
+  }, [queueId, tokenId, queryClient, statusData?.token?.id]);
 
   // Client-side timer to re-evaluate if check-in is allowed based on time difference
   const [now, setNow] = useState(new Date());

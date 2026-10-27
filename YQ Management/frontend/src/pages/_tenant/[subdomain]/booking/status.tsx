@@ -572,6 +572,18 @@ export default function StatusPage() {
                       </div>
                     </div>
                   )}
+
+                  {!isDone && visit.accessToken && (
+                    <a
+                      href={`/customer/status/${visit.accessToken}`}
+                      className="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-2xl font-bold text-sm text-white transition-all hover:opacity-90 active:scale-[0.98] shadow-lg"
+                      style={{ backgroundColor: primaryColor }}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">route</span>
+                      Track Full Journey
+                      <span className="text-white/70 text-xs font-normal">→</span>
+                    </a>
+                  )}
                 </div>
               );
             };

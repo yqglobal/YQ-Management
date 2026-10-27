@@ -20,6 +20,7 @@ import { Queue } from 'bullmq';
 const VISIT_NOTIFICATION_TYPES: VisitNotificationType[] = [
   'VISIT_CREATED',
   'VISIT_CALLED',
+  'VISIT_STARTED',
   'VISIT_CANCELLED',
   'VISIT_MISSED',
   'VISIT_COMPLETED',

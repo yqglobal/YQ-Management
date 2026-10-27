@@ -17,6 +17,7 @@ import * as QRCode from 'qrcode';
 export type VisitNotificationType =
   | 'VISIT_CREATED'
   | 'VISIT_CALLED'
+  | 'VISIT_STARTED'
   | 'VISIT_CANCELLED'
   | 'VISIT_MISSED'
   | 'VISIT_COMPLETED'
@@ -95,6 +96,7 @@ export class VisitNotificationService {
     > = {
       VISIT_CREATED: (p) => this.handleVisitCreated(p),
       VISIT_CALLED: (p) => this.handleVisitCalled(p),
+      VISIT_STARTED: (p) => this.handleVisitStarted(p),
       VISIT_CANCELLED: (p) => this.handleVisitCancelled(p),
       VISIT_MISSED: (p) => this.handleVisitMissed(p),
       VISIT_COMPLETED: (p) => this.handleVisitCompleted(p),
@@ -413,6 +415,58 @@ export class VisitNotificationService {
     await this.sendMessage(visit, message, 'visit_called');
   }
 
+  /** VISIT_STARTED: "Your service has begun" notification. */
+  private async handleVisitStarted(payload: VisitEventPayload): Promise<void> {
+    const visit = await this.fetchVisitBase(payload.visitId!);
+    if (!this.canSendMessage(visit, 'VISIT_STARTED')) return;
+
+    const watermark = this.buildWatermark(visit);
+    const displayId = visit.displayId || payload.displayId || 'Unknown';
+    const serviceName = visit.service?.name || 'your service';
+    const locationName = visit.location?.name || visit.tenant?.name || '';
+
+    const statusUrl = process.env.APP_URL
+      ? `${process.env.APP_URL}/customer/status/${visit.accessToken}`
+      : null;
+
+    // Find the first active/pending step to give the customer direction
+    const activeStep = await this.prisma.visitStep.findFirst({
+      where: {
+        visitId: visit.id,
+        status: { in: ['ACTIVE', 'PENDING', 'QUEUED'] },
+      },
+      select: {
+        id: true,
+        name: true,
+        stepOrder: true,
+        templateStep: {
+          select: { customerInstruction: true },
+        },
+      },
+      orderBy: { stepOrder: 'asc' },
+    });
+
+    let stepGuidance = '';
+    if (activeStep?.templateStep?.customerInstruction) {
+      stepGuidance = `\n\n📋 *Step ${activeStep.stepOrder}: ${activeStep.name}*\n${activeStep.templateStep.customerInstruction}`;
+    } else if (activeStep) {
+      stepGuidance = `\n\n📋 *Current Step:* ${activeStep.name}`;
+    }
+
+    const locationText = locationName ? ` at *${locationName}*` : '';
+    const linkText = statusUrl ? `\n\n🔗 Track your journey: ${statusUrl}` : '';
+
+    const message =
+      `🟢 *Your service has started!*\n\n` +
+      `Hi ${visit.customer.name}, your visit for *${serviceName}*${locationText} has now begun.` +
+      `\n\n🎫 Ticket: *${displayId}*` +
+      stepGuidance +
+      linkText +
+      watermark;
+
+    await this.sendMessage(visit, message, 'visit_started');
+  }
+
   /** VISIT_CANCELLED: Cancellation notification. */
   private async handleVisitCancelled(
     payload: VisitEventPayload & {
@@ -684,6 +738,10 @@ export class VisitNotificationService {
       visit.location?.name ||
       '';
 
+    const statusUrl = process.env.APP_URL
+      ? `${process.env.APP_URL}/customer/status/${visit.accessToken}`
+      : null;
+
     const message = rawTemplate
       .replace(/\{\{customer_name\}\}/g, visit.customer.name || 'Customer')
       .replace(/\{\{step_name\}\}/g, step.name)
@@ -695,6 +753,8 @@ export class VisitNotificationService {
       .replace(/\{\{location\}\}/g, locationHint)
       .replace(/\{\{eta_minutes\}\}/g, ''); // ETA is dynamic — strip if not resolved
 
-    await this.sendMessage(visit, message.trim(), 'step_activated');
+    const linkSuffix = statusUrl ? `\n\n🔗 View your journey: ${statusUrl}` : '';
+
+    await this.sendMessage(visit, message.trim() + linkSuffix, 'step_activated');
   }
 }
