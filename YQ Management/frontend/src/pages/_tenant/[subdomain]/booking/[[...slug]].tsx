@@ -197,6 +197,10 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
   useEffect(() => {
     if (!tenant || !router.isReady || hasAutoSelected) return;
 
+    // Immediately mark as executed to guard against concurrent re-renders or router events
+    setHasAutoSelected(true);
+    setIsRestored(true);
+
     let restored = false;
     try {
       const saved = sessionStorage.getItem('bookingState');
@@ -214,12 +218,25 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
     } catch (e) {}
 
     const { locationId, serviceId, queueId, slug } = router.query;
+
+    // Safely extract slug parameter (can be array, string, or derived from pathname)
+    let urlSlug: string | null = null;
+    if (Array.isArray(slug) && slug.length > 0 && typeof slug[0] === 'string') {
+      urlSlug = slug[0];
+    } else if (typeof slug === 'string' && slug.length > 0) {
+      urlSlug = slug;
+    } else if (typeof window !== 'undefined') {
+      const pathParts = window.location.pathname.split('?')[0].split('/').filter(Boolean);
+      const bookingIdx = pathParts.indexOf('booking');
+      if (bookingIdx !== -1 && pathParts[bookingIdx + 1]) {
+        urlSlug = decodeURIComponent(pathParts[bookingIdx + 1]);
+      }
+    }
     
     // Explicit URL params override restored state
-    if (locationId || serviceId || slug) {
+    if (locationId || serviceId || urlSlug) {
       // Auto-select location
-      if (slug && typeof slug[0] === 'string') {
-        const urlSlug = slug[0];
+      if (urlSlug) {
         const matchedLocation = tenant?.locations?.find((l: AnyFixMe) => slugify(l.name) === urlSlug);
         if (matchedLocation) {
           setSelectedLocationId(matchedLocation.id);
@@ -259,21 +276,23 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
       }
     } else if (!restored) {
       // Apply defaults only if no state was restored
-      if (tenant?.locations && tenant.locations.length === 1 && !slug) {
-        // Redirect to the slug while preserving /t/[subdomain] prefix if path-based
-        const slugPath = `/booking/${slugify(tenant.locations[0].name)}`;
-        const fullPath = router.asPath.startsWith('/t/')
-          ? `/t/${router.query.subdomain}${slugPath}`
-          : slugPath;
-        router.replace(fullPath, undefined, { shallow: true });
-        return; // Wait for route change
+      if (tenant?.locations && tenant.locations.length === 1) {
+        const singleLoc = tenant.locations[0];
+        setSelectedLocationId(singleLoc.id);
+        setStep(2);
+
+        // Cosmetically update browser address bar without triggering shallow routing reload loops
+        const targetSlug = slugify(singleLoc.name);
+        if (typeof window !== 'undefined' && !window.location.pathname.includes(targetSlug)) {
+          const isPathBased = window.location.pathname.startsWith('/t/');
+          const slugPath = `/booking/${targetSlug}`;
+          const fullPath = isPathBased ? `/t/${router.query.subdomain || tenant.subdomain}${slugPath}` : slugPath;
+          window.history.replaceState(window.history.state, '', fullPath);
+        }
       } else if (!tenant?.locations || tenant.locations.length === 0) {
         setStep(2); // Skip location step if none exist
       }
     }
-
-    setHasAutoSelected(true);
-    setIsRestored(true);
   }, [tenant, router.query, router.isReady, hasAutoSelected]);
 
   
