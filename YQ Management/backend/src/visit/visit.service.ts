@@ -23,6 +23,7 @@ import { ServiceService } from '../service/service.service';
 import { BlockOffService } from '../block-off/block-off.service';
 import { VisitStepService } from '../visit-step/visit-step.service';
 import { calculateAdvancedEWT } from '../utils/ewt.util';
+import { getPhoneVariants } from '../common/phone.util';
 
 @Injectable()
 export class VisitService {
@@ -565,7 +566,15 @@ export class VisitService {
 
   async findOne(id: string, tenantId: string) {
     const visit = await this.prisma.visit.findFirst({
-      where: { id, tenantId },
+      where: {
+        tenantId,
+        OR: [
+          { id },
+          { accessToken: id },
+          { displayId: { equals: id, mode: 'insensitive' } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
       include: {
         customer: true,
         service: { include: { serviceFlow: true } },
@@ -584,8 +593,14 @@ export class VisitService {
   }
 
   async findVisitsByPhone(phone: string) {
+    const { variants, digits } = getPhoneVariants(phone);
+    const conditions: any[] = [{ phone: { in: variants } }];
+    if (digits.length >= 7) {
+      conditions.push({ phone: { contains: digits.slice(-10) } });
+    }
+
     return this.prisma.visit.findMany({
-      where: { customer: { phone } },
+      where: { customer: { OR: conditions } },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -1495,7 +1510,7 @@ export class VisitService {
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const u = await tx.visit.update({
-        where: { id },
+        where: { id: visit.id },
         data: {
           currentState: 'CHECKED_IN',
           waitingStart: new Date(),
@@ -2197,33 +2212,71 @@ export class VisitService {
     locationId?: string,
     options?: { allowEarlyCheckIn?: boolean },
   ) {
-    let tokenValue = tokenString;
+    let tokenValue = (tokenString || '').trim();
     try {
-      if (tokenString.includes('http')) {
-        const url = new URL(tokenString);
-        const parts = url.pathname.split('/');
-        tokenValue = parts[parts.length - 1];
+      if (tokenValue.includes('http')) {
+        const url = new URL(tokenValue);
+        tokenValue =
+          url.searchParams.get('token') ||
+          url.searchParams.get('accessToken') ||
+          url.searchParams.get('id') ||
+          url.searchParams.get('t') ||
+          url.pathname.split('/').filter(Boolean).pop() ||
+          tokenValue;
       }
     } catch (e) {
       // Ignore
     }
 
-    const whereClause: any = {
-      OR: [{ id: tokenValue }, { accessToken: tokenValue }],
-      tenantId: tenantId,
-    };
+    const clean = tokenValue.replace(/^#/, '').trim();
+    const variants = new Set([tokenValue, clean, clean.toUpperCase(), clean.toLowerCase()]);
 
-    if (locationId && locationId !== 'all') {
-      whereClause.locationId = locationId;
+    if (clean.includes('-')) {
+      variants.add(clean.replace(/-/g, ''));
+      variants.add(clean.replace(/-/g, '').toUpperCase());
+    } else {
+      const match = clean.match(/^([a-zA-Z]+)(\d+)$/);
+      if (match) {
+        variants.add(match[1].toUpperCase() + '-' + match[2]);
+        variants.add(match[1].toUpperCase() + match[2]);
+      }
+    }
+
+    const matchConditions: any[] = [
+      { id: tokenValue },
+      { accessToken: tokenValue },
+      { appointmentId: tokenValue },
+    ];
+
+    for (const v of variants) {
+      if (v) {
+        matchConditions.push({ id: v });
+        matchConditions.push({ accessToken: v });
+        matchConditions.push({ displayId: { equals: v, mode: 'insensitive' } });
+      }
+    }
+
+    const digits = tokenValue.replace(/\D/g, '');
+    if (digits.length >= 7) {
+      matchConditions.push({
+        customer: {
+          phone: { contains: digits.slice(-10) },
+        },
+      });
     }
 
     const visit = await this.prisma.visit.findFirst({
-      where: whereClause,
+      where: {
+        tenantId,
+        OR: matchConditions,
+      },
+      orderBy: { createdAt: 'desc' },
       include: {
         customer: true,
         queue: {
           include: { location: true },
         },
+        location: true,
         service: true,
         visitSteps: {
           include: { templateStep: true },
@@ -2237,6 +2290,28 @@ export class VisitService {
         valid: false,
         reason: 'Invalid token or not found for this workspace',
       };
+    }
+
+    if (locationId && locationId !== 'all') {
+      const visitLocId = visit.locationId || visit.queue?.locationId;
+      if (visitLocId && visitLocId !== locationId) {
+        const targetLoc = await this.prisma.location.findUnique({
+          where: { id: locationId },
+          select: { name: true },
+        });
+        const currentLocName = targetLoc?.name || 'the selected location';
+        const visitLocName = visit.location?.name || visit.queue?.location?.name || 'Another Location';
+        return {
+          valid: false,
+          status: 'WRONG_LOCATION',
+          reason: `Ticket belongs to "${visitLocName}", but scanner is set to "${currentLocName}". Please switch location filter or direct customer to ${visitLocName}.`,
+          tokenId: visit.id,
+          displayId: visit.displayId,
+          customerName: visit.customer?.name || 'Unknown',
+          queueName: visit.queue?.name || 'Unknown Queue',
+          locationName: visitLocName,
+        };
+      }
     }
 
     const completedSteps =
@@ -2263,6 +2338,7 @@ export class VisitService {
         status: visit.currentState,
         reason: `Visit is already ${visit.currentState.toLowerCase()}`,
         tokenId: visit.id,
+        displayId: visit.displayId,
         customerName: visit.customer?.name || 'Unknown',
         queueName: visit.queue?.name || 'Unknown Queue',
         locationName: visit.queue?.location?.name || 'Unknown Location',
@@ -2287,6 +2363,7 @@ export class VisitService {
           ? `Visit was marked as no-show (${visit.cancelReason})`
           : 'Visit was marked as no-show / expired',
         tokenId: visit.id,
+        displayId: visit.displayId,
         customerName: visit.customer?.name || 'Unknown',
         queueName: visit.queue?.name || 'Unknown Queue',
         locationName: visit.queue?.location?.name || 'Unknown Location',
@@ -2323,6 +2400,7 @@ export class VisitService {
           scheduledFor: visit.scheduledTime,
           reason: `This appointment was scheduled for a past date (${schedTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}). It cannot be checked in today.`,
           tokenId: visit.id,
+          displayId: visit.displayId,
           customerName: visit.customer?.name || 'Unknown',
           queueName: visit.queue?.name || 'Unknown Queue',
           locationName: visit.queue?.location?.name || 'Unknown Location',
@@ -2339,6 +2417,7 @@ export class VisitService {
           scheduledFor: visit.scheduledTime,
           reason: `This appointment is scheduled for a future date (${schedTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}). Early check-in is not permitted today without staff override.`,
           tokenId: visit.id,
+          displayId: visit.displayId,
           customerName: visit.customer?.name || 'Unknown',
           queueName: visit.queue?.name || 'Unknown Queue',
           locationName: visit.queue?.location?.name || 'Unknown Location',
@@ -2355,6 +2434,7 @@ export class VisitService {
           status: visit.currentState,
           reason: `This walk-in ticket was issued on a previous date (${createdTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}) and has expired.`,
           tokenId: visit.id,
+          displayId: visit.displayId,
           customerName: visit.customer?.name || 'Unknown',
           queueName: visit.queue?.name || 'Unknown Queue',
           locationName: visit.queue?.location?.name || 'Unknown Location',
@@ -2377,6 +2457,7 @@ export class VisitService {
       isCompleted: false,
       status: visit.currentState,
       tokenId: visit.id,
+      displayId: visit.displayId,
       customerName: visit.customer?.name || 'Unknown',
       queueName: visit.queue?.name || 'Unknown Queue',
       locationName: visit.queue?.location?.name || 'Unknown Location',

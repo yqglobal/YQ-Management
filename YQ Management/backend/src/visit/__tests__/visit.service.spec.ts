@@ -90,7 +90,14 @@ describe('VisitService', () => {
       expect(result).toEqual(mockVisit);
       expect(mockPrismaService.visit.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'v1', tenantId: 't1' },
+          where: expect.objectContaining({
+            tenantId: 't1',
+            OR: expect.arrayContaining([
+              { id: 'v1' },
+              { accessToken: 'v1' },
+              { displayId: { equals: 'v1', mode: 'insensitive' } },
+            ]),
+          }),
         }),
       );
     });

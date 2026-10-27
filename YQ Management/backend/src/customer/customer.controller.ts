@@ -8,6 +8,7 @@ import {
   Req,
   Query,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { CustomerService } from './customer.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -24,6 +25,17 @@ export class CustomerController {
     @Body() body: { name: string; phone?: string; email?: string },
   ) {
     return this.customerService.create(req.user.tenantId, body);
+  }
+
+  @Get('by-phone')
+  findByPhone(
+    @Req() req: AuthenticatedRequest,
+    @Query('phone') phone: string,
+  ) {
+    if (!phone) {
+      throw new BadRequestException('Phone parameter is required');
+    }
+    return this.customerService.findByPhone(phone, req.user.tenantId);
   }
 
   @Get()

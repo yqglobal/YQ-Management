@@ -29,6 +29,7 @@ interface ValidationResult {
   status: string;
   reason?: string;
   tokenId?: string;
+  displayId?: string;
   customerName?: string;
   queueName?: string;
   locationName?: string;
@@ -299,7 +300,7 @@ export function ScannerInterface({
             idleTimerRef.current = null;
           }
 
-          if (!decodedText || decodedText.length < 5) {
+          if (!decodedText || decodedText.trim().length === 0) {
             throw new Error("Invalid QR code format");
           }
 
@@ -316,7 +317,8 @@ export function ScannerInterface({
             valid: result.valid,
             status: result.status,
             reason: result.reason,
-            tokenId: decodedText,
+            tokenId: result.tokenId || result.id || decodedText,
+            displayId: result.displayId || decodedText,
             customerName: result.customerName,
             queueName: result.queueName,
             locationName: result.locationName,
@@ -558,7 +560,8 @@ export function ScannerInterface({
         valid: result.valid,
         status: result.status,
         reason: result.reason,
-        tokenId: manualTokenId.trim(),
+        tokenId: result.tokenId || result.id || manualTokenId.trim(),
+        displayId: result.displayId || manualTokenId.trim(),
         customerName: result.customerName,
         queueName: result.queueName,
         locationName: result.locationName,
@@ -601,7 +604,7 @@ export function ScannerInterface({
     } finally {
       setManualProcessing(false);
     }
-  }, [manualTokenId]);
+  }, [manualTokenId, activeLocationId]);
 
   const handleCheckIn = useCallback(async () => {
     if (!validationResult?.tokenId) return;
@@ -779,17 +782,47 @@ export function ScannerInterface({
         `/customers/by-phone?phone=${encodeURIComponent(manualPhone.trim())}`,
       );
       if (!result) throw new Error("No customer found with this phone number");
-      // Build a pseudo validation result from customer record
+      
       const latest = result.visits?.[0];
+      if (latest?.id) {
+        try {
+          const validation = await fetchApi("/visits/validate", {
+            method: "POST",
+            body: JSON.stringify({
+              tokenId: latest.id,
+              locationId: activeLocationId === "all" ? undefined : activeLocationId,
+            }),
+          });
+          const fullResult: ValidationResult = {
+            ...validation,
+            customerName: validation.customerName || result.name || "Unknown",
+            phone: result.phone || validation.phone,
+            displayId: validation.displayId || latest.displayId,
+          };
+          setValidationResult(fullResult);
+          setScannerStatus(fullResult.valid ? "approved" : "rejected");
+          return;
+        } catch {
+          // If validate call fails, fall back to building result directly from visit record
+        }
+      }
+
       setValidationResult({
         valid: true,
-        status: "FOUND",
+        status: latest ? (latest.currentState || "FOUND") : "REGISTERED",
         tokenId: latest?.id || result.id,
+        displayId: latest?.displayId,
         customerName: result.name || "Unknown",
-        queueName: latest?.queue?.name || "—",
+        queueName: latest?.queue?.name || "No Active Queue",
+        locationName: latest?.queue?.location?.name || latest?.location?.name || "—",
+        serviceBooked: latest?.service?.name || "—",
         phone: result.phone,
-        joinedAt: latest?.createdAt,
+        joinedAt: latest?.createdAt || result.createdAt,
         queueId: latest?.queueId,
+        isAppointment: !!latest?.appointmentId || latest?.source === "APPOINTMENT",
+        scheduledFor: latest?.scheduledTime,
+        checkedIn: latest?.currentState === "CHECKED_IN" || latest?.currentState === "IN_SERVICE" || !!latest?.checkInTime,
+        allSteps: latest?.visitSteps || [],
       });
       setScannerStatus("approved");
     } catch (e: AnyFixMe) {
@@ -803,7 +836,7 @@ export function ScannerInterface({
     } finally {
       setPhoneProcessing(false);
     }
-  }, [manualPhone]);
+  }, [manualPhone, activeLocationId]);
 
   useEffect(() => {
     getCameras();
@@ -1021,12 +1054,12 @@ export function ScannerInterface({
                           if (e.key === "Enter") validateManualToken();
                         }}
                         className="h-12 w-full rounded-xl bg-surface-container dark:bg-dark-canvas border border-border dark:border-dark-border px-4 font-data-mono focus:ring-1 focus:ring-primary outline-none"
-                        placeholder="Enter Token ID"
+                        placeholder="Enter Ticket ID (e.g. Q001, A-001)"
                       />
                       <button
                         onClick={validateManualToken}
                         disabled={
-                          manualProcessing || manualTokenId.trim().length < 5
+                          manualProcessing || manualTokenId.trim().length === 0
                         }
                         className="h-12 bg-primary text-white rounded-xl font-semibold flex items-center justify-center"
                       >
@@ -1056,7 +1089,7 @@ export function ScannerInterface({
                       <button
                         onClick={lookupByPhone}
                         disabled={
-                          phoneProcessing || manualPhone.trim().length < 7
+                          phoneProcessing || manualPhone.trim().length < 3
                         }
                         className="h-12 bg-primary text-white rounded-xl font-semibold flex items-center justify-center"
                       >
@@ -1120,8 +1153,15 @@ export function ScannerInterface({
                         <h3 className="text-xl font-bold text-on-surface dark:text-white">
                           {validationResult.customerName || "Unknown"}
                         </h3>
-                        <p className="text-outline font-data-mono text-sm">
-                          {validationResult.phone || validationResult.tokenId}
+                        <p className="text-outline font-data-mono text-sm flex items-center gap-2">
+                          {validationResult.displayId && (
+                            <span className="font-bold text-primary dark:text-blue-400">
+                              #{validationResult.displayId}
+                            </span>
+                          )}
+                          <span>
+                            {validationResult.phone || validationResult.tokenId}
+                          </span>
                         </p>
                         <span
                           className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold ${

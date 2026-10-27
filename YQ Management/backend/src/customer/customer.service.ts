@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { getPhoneVariants } from '../common/phone.util';
 
 @Injectable()
 export class CustomerService {
@@ -95,6 +96,64 @@ export class CustomerService {
     });
 
     return { items, nextCursor };
+  }
+
+  async findByPhone(phone: string, tenantId: string) {
+    const { variants, digits } = getPhoneVariants(phone);
+    const conditions: any[] = [{ phone: { in: variants } }];
+    if (digits.length >= 7) {
+      conditions.push({ phone: { contains: digits.slice(-10) } });
+    }
+
+    const customer = await this.prisma.extendedClient.customer.findFirst({
+      where: {
+        tenantId,
+        OR: conditions,
+      },
+      include: {
+        visits: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          include: {
+            service: { include: { serviceFlow: true } },
+            queue: { include: { location: true } },
+            location: true,
+            bookingPayments: true,
+            visitSteps: {
+              include: { templateStep: true },
+              orderBy: { stepOrder: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!customer) {
+      throw new NotFoundException(`Customer not found with phone ${phone}`);
+    }
+
+    let age: number | null = null;
+    let gender: string | null = null;
+    for (const v of customer.visits || []) {
+      // Map visitSteps to steps for frontend convenience
+      (v as any).steps = (v as any).visitSteps;
+      const meta = (v.metadata as any) || {};
+      const form = (v.formResponses as any) || {};
+      if (!age && (meta.age || form.age)) {
+        const parsed = parseInt(meta.age || form.age, 10);
+        if (!isNaN(parsed)) age = parsed;
+      }
+      if (!gender && (meta.gender || form.gender)) {
+        gender = String(meta.gender || form.gender);
+      }
+      if (age && gender) break;
+    }
+
+    return {
+      ...customer,
+      age,
+      gender,
+    };
   }
 
   async findOne(id: string, tenantId: string) {
