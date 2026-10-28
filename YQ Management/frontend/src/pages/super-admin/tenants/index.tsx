@@ -44,7 +44,8 @@ export default function SuperAdminTenants() {
     .filter((t: AnyFixMe) => {
       if (statusFilter === 'ALL') return true;
       if (statusFilter === 'ACTIVE') return t.subscriptionStatus === 'ACTIVE';
-      if (statusFilter === 'TRIAL') return !t.subscriptionStatus || t.subscriptionStatus === 'TRIAL';
+      if (statusFilter === 'TRIAL') return t.subscriptionStatus === 'TRIAL';
+      if (statusFilter === 'EXPIRED') return t.subscriptionStatus === 'EXPIRED';
       return t.subscriptionStatus === statusFilter;
     })
     .sort((a: AnyFixMe, b: AnyFixMe) => {
@@ -184,18 +185,55 @@ export default function SuperAdminTenants() {
                           {tenant.users?.[0]?.email || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400">
-                            Active
-                          </span>
+                          {tenant.subscriptionStatus === 'ACTIVE' ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400">
+                              Active
+                            </span>
+                          ) : tenant.subscriptionStatus === 'TRIAL' ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">
+                              Trial
+                            </span>
+                          ) : tenant.subscriptionStatus === 'EXPIRED' ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400">
+                              Expired
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-800 dark:bg-zinc-500/10 dark:text-zinc-400">
+                              No Plan
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            tenant.subscriptionStatus === 'ACTIVE' ? 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400' :
-                            tenant.subscriptionStatus === 'TRIAL' || !tenant.subscriptionStatus ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400' :
-                            'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400'
-                          }`}>
-                            {tenant.subscriptions?.plan?.name || tenant.subscriptions?.[0]?.plan?.name || tenant.subscriptionStatus || 'TRIAL'}
-                          </span>
+                          {(() => {
+                            const planName = tenant.subscriptions?.plan?.name || tenant.subscriptions?.[0]?.plan?.name;
+                            const status = tenant.subscriptionStatus || 'NO_PLAN';
+                            if (status === 'ACTIVE') {
+                              return (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400">
+                                  {planName || 'ACTIVE'}
+                                </span>
+                              );
+                            }
+                            if (status === 'TRIAL') {
+                              return (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400">
+                                  {planName ? `${planName} (TRIAL)` : 'TRIAL'}
+                                </span>
+                              );
+                            }
+                            if (status === 'EXPIRED') {
+                              return (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400">
+                                  {planName ? `${planName} (EXPIRED)` : 'EXPIRED'}
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-zinc-800 dark:text-zinc-400">
+                                No Subscription
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-zinc-300 font-medium">
                           {tenant.createdAt ? format(new Date(tenant.createdAt), 'MMM d, yyyy') : '-'}

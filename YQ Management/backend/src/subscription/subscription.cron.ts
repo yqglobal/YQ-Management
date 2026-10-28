@@ -29,10 +29,14 @@ export class SubscriptionCron implements OnModuleInit {
   @Cron(CronExpression.EVERY_HOUR)
   async expireTrials() {
     this.logger.log('Running trial expiration cron');
+    const now = new Date();
     const expired = await this.prisma.subscription.findMany({
       where: {
         status: 'TRIAL',
-        trialEndDate: { lte: new Date() },
+        OR: [
+          { trialEndDate: { lte: now } },
+          { AND: [{ trialEndDate: null }, { currentPeriodEnd: { lte: now } }] },
+        ],
       },
       include: { tenant: { select: { id: true, name: true } } },
     });

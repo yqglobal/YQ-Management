@@ -29,11 +29,12 @@ export class SubscriptionService {
       },
     });
 
+    const effectiveEndDate = sub?.trialEndDate || sub?.currentPeriodEnd;
     if (
       sub &&
       sub.status === SubscriptionStatus.TRIAL &&
-      sub.trialEndDate &&
-      new Date(sub.trialEndDate) <= new Date()
+      effectiveEndDate &&
+      new Date(effectiveEndDate) <= new Date()
     ) {
       const expired = await this.expireTrial(tenantId);
       if (expired) {
@@ -561,7 +562,8 @@ export class SubscriptionService {
     }
 
     const now = new Date();
-    if (!subscription.trialEndDate || subscription.trialEndDate > now) {
+    const effectiveEndDate = subscription.trialEndDate || subscription.currentPeriodEnd;
+    if (!effectiveEndDate || effectiveEndDate > now) {
       return null;
     }
 

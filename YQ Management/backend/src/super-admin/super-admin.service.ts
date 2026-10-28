@@ -145,18 +145,23 @@ export class SuperAdminService {
           select: { email: true },
         },
         subscriptions: {
-          where: {
-            status: { in: ['ACTIVE', 'TRIAL', 'PAST_DUE'] },
-          },
           include: {
             plan: {
-              select: { name: true },
+              select: { name: true, type: true },
             },
           },
         },
       },
       orderBy: { createdAt: 'desc' },
-    });
+    }).then((tenants) =>
+      tenants.map((t) => {
+        const sub = t.subscriptions;
+        return {
+          ...t,
+          subscriptionStatus: sub ? sub.status : 'NO_PLAN',
+        };
+      }),
+    );
   }
 
   async getTenantById(id: string) {
