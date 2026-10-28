@@ -6,24 +6,63 @@ import { MyDeskProvider, useMyDesk } from '../../components/my-desk/MyDeskContex
 import { renderWidget } from '../../components/my-desk/WidgetRegistry';
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
-import { RefreshCw, LayoutDashboard, UserCheck, Shield } from 'lucide-react';
+import { RefreshCw, LayoutDashboard } from 'lucide-react';
 
-function MyDeskContent({ tenant }: { tenant: any }) {
+interface DeskWidgetConfig {
+  id: string;
+  type: string;
+  position?: { colSpan?: number; rowSpan?: number };
+}
+
+interface DeskTemplateItem {
+  id: string;
+  name: string;
+  layout?: DeskWidgetConfig[];
+}
+
+interface DeskStaffViewLayout {
+  version?: number;
+  assignments?: Record<string, string>;
+  templates?: DeskTemplateItem[];
+}
+
+interface DeskTenant {
+  staffViewLayout?: DeskStaffViewLayout;
+}
+
+function MyDeskContent({ tenant }: { tenant: DeskTenant | null | undefined }) {
   const { user } = useAuth();
   const { refetchVisits } = useMyDesk();
 
-  // Robust default layout tailored for counter staff and service desks
-  const layout = useMemo(() => {
-    if (tenant?.staffViewLayout && Array.isArray(tenant.staffViewLayout) && tenant.staffViewLayout.length > 0) {
-      return tenant.staffViewLayout;
+  // Resolve layout: v2 template system → per-user assignment → global → default
+  const layout = useMemo<DeskWidgetConfig[]>(() => {
+    const svl = tenant?.staffViewLayout;
+
+    // v2 template system
+    if (svl && svl.version === 2) {
+      const userId = user?.userId;
+      const templateId = userId ? svl.assignments?.[userId] : undefined;
+      if (templateId) {
+        const tpl = svl.templates?.find((t) => t.id === templateId);
+        if (tpl?.layout?.length) return tpl.layout;
+      }
+      // fall back to first template
+      if (svl.templates && svl.templates.length > 0 && svl.templates[0].layout?.length) {
+        return svl.templates[0].layout;
+      }
     }
+
+    // v1 legacy flat array
+    if (Array.isArray(svl) && svl.length > 0) return svl;
+
+    // built-in default
     return [
-      { id: "current-task-1", type: "CurrentTicketWidget", position: { colSpan: 1, rowSpan: 2 } },
-      { id: "history-1", type: "CustomerHistoryWidget", position: { colSpan: 1, rowSpan: 1 } },
-      { id: "schedule-1", type: "ScheduleWidget", position: { colSpan: 1, rowSpan: 1 } },
-      { id: "queue-grid-1", type: "QueueGridWidget", position: { colSpan: 2, rowSpan: 1 } },
+      { id: 'current-task-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 2 } },
+      { id: 'history-1', type: 'CustomerHistoryWidget', position: { colSpan: 1, rowSpan: 1 } },
+      { id: 'schedule-1', type: 'ScheduleWidget', position: { colSpan: 1, rowSpan: 1 } },
+      { id: 'queue-grid-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
     ];
-  }, [tenant]);
+  }, [tenant, user]);
 
   return (
     <div className="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8 flex flex-col min-h-[calc(100vh-80px)]">
@@ -61,7 +100,7 @@ function MyDeskContent({ tenant }: { tenant: any }) {
       {/* Grid Canvas */}
       <div className="flex-1 min-h-0">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 auto-rows-[minmax(320px,auto)]">
-          {layout.map((widgetConfig: any) => {
+          {layout.map((widgetConfig: DeskWidgetConfig) => {
             const colSpan = widgetConfig.position?.colSpan || 1;
             const rowSpan = widgetConfig.position?.rowSpan || 1;
 

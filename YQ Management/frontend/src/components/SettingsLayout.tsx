@@ -1,7 +1,7 @@
 import React from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from './AdminLayout';
-import { Shield, Workflow, CreditCard, Building, Box, User } from 'lucide-react';
+import { Workflow, CreditCard, Building, Box, User, Users, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from './AuthContext';
 
@@ -12,14 +12,14 @@ interface SettingsLayoutProps {
 }
 
 const settingsNavLinks = [
-  { label: 'Personal Settings', href: '/dashboard/settings/personal', icon: <User className="w-4 h-4" strokeWidth={1.5} /> },
-  { label: 'Workspace & Identity', href: '/dashboard/settings/workspace', icon: <Building className="w-4 h-4" strokeWidth={1.5} /> },
-  { label: 'Billing & Usage', href: '/dashboard/settings/billing', icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
-  { label: 'Team & Security', href: '/dashboard/settings/team', icon: <Shield className="w-4 h-4" strokeWidth={1.5} /> },
-  { label: 'Operations', href: '/dashboard/settings/operations', icon: <Box className="w-4 h-4" strokeWidth={1.5} /> },
-  { label: 'Integrations & Comms', href: '/dashboard/settings/integrations', icon: <Workflow className="w-4 h-4" strokeWidth={1.5} /> },
-  { label: 'Payments & Invoicing', href: '/dashboard/settings/payments', icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
-  { label: 'Staff View & My-Desk', href: '/dashboard/settings/staff-view', icon: <Building className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'Personal',        href: '/dashboard/settings/personal',     icon: <User className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'Workspace',       href: '/dashboard/settings/workspace',    icon: <Building className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'Billing',         href: '/dashboard/settings/billing',      icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'Team & Staff',    href: '/dashboard/settings/team',         icon: <Users className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'Operations',      href: '/dashboard/settings/operations',   icon: <Box className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'Integrations',    href: '/dashboard/settings/integrations', icon: <Workflow className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'Payments',        href: '/dashboard/settings/payments',     icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
+  { label: 'Staff View',      href: '/dashboard/settings/staff-view',   icon: <LayoutDashboard className="w-4 h-4" strokeWidth={1.5} /> },
 ];
 
 export default function SettingsLayout({ children, pageTitle = 'Settings', pageSubtitle = '' }: SettingsLayoutProps) {

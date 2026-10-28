@@ -76,5 +76,17 @@ jobs:
       name: Production
       url: https://qmova.yqbuddy.com
     steps:
+      - name: Sync & Clean VPS Working Copy
+        run: |
+          cd "/var/www/yq"
+          echo "====> Fetching latest origin/main..."
+          git fetch origin main
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Notice: Local modifications or untracked files detected. Stashing..."
+            git stash -u -m "deploy_auto_stash_$(date +%Y%m%d_%H%M%S)" || true
+          fi
+          git reset --hard origin/main
+          git clean -fd -e ".env" -e "YQ Management/.env"
+
       - name: Run Deploy Script
         run: bash "/var/www/yq/YQ Management/scripts/deploy.sh"

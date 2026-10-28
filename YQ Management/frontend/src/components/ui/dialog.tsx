@@ -9,17 +9,19 @@ const Dialog = React.forwardRef<
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 bg-zinc-950/60 dark:bg-black/85 backdrop-blur-md z-[140] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <DialogPrimitive.Popup
-          ref={ref}
-          className={cn(
-            'fixed left-[50%] top-[50%] z-[150] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border-border dark:border-zinc-800 bg-surface dark:bg-zinc-900 p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg',
-            className
-          )}
-          {...props}
-        >
-          {children}
-        </DialogPrimitive.Popup>
+        <DialogPrimitive.Backdrop className="fixed inset-0 bg-zinc-950/60 dark:bg-black/85 backdrop-blur-md z-[140] transition-opacity duration-200 data-[open]:opacity-100 data-[closed]:opacity-0" />
+        <DialogPrimitive.Viewport className="fixed inset-0 z-[150] flex min-h-full items-center justify-center p-4 overflow-y-auto pointer-events-none">
+          <DialogPrimitive.Popup
+            ref={ref}
+            className={cn(
+              'relative w-full max-w-lg pointer-events-auto rounded-[24px] border border-border dark:border-zinc-800 bg-surface dark:bg-zinc-900 p-6 shadow-2xl transition-all duration-200 data-[open]:scale-100 data-[open]:opacity-100 data-[closed]:scale-95 data-[closed]:opacity-0',
+              className
+            )}
+            {...props}
+          >
+            {children}
+          </DialogPrimitive.Popup>
+        </DialogPrimitive.Viewport>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );

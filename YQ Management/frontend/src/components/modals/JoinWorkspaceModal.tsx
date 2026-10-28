@@ -75,8 +75,8 @@ export function JoinWorkspaceModal({
       setTimeout(() => {
         window.location.href = '/dashboard';
       }, 1200);
-    } catch (err: any) {
-      const message = err.message || 'Invalid or expired invite code. Please check with your administrator.';
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Invalid or expired invite code. Please check with your administrator.';
       setError(message);
       toast.error(message);
     } finally {
@@ -87,8 +87,8 @@ export function JoinWorkspaceModal({
   return (
     <Dialog 
       open={isOpen} 
-      onOpenChange={handleClose} 
-      className="sm:max-w-[440px] w-[94vw] p-6 md:p-7 rounded-[28px] bg-surface dark:bg-zinc-900 border-border dark:border-zinc-800 shadow-2xl relative overflow-hidden"
+      onOpenChange={(open) => { if (!open) handleClose(); }} 
+      className="sm:max-w-[440px] w-[94vw] p-6 md:p-7 rounded-[28px] bg-surface dark:bg-zinc-900 border-border dark:border-zinc-800 shadow-2xl overflow-hidden"
     >
       <button 
         type="button"

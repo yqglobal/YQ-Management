@@ -121,9 +121,9 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     if (userHasAcceptedFromProfile && userId) {
       localStorage.setItem(`qmova_policies_accepted_${userId}`, 'true');
       localStorage.setItem('qmova_policies_accepted_v1', 'true');
-      setIsLocallyAccepted(true);
+      setTimeout(() => setIsLocallyAccepted(true), 0);
     } else if (userId && (localStorage.getItem(`qmova_policies_accepted_${userId}`) === 'true' || localStorage.getItem('qmova_policies_accepted_v1') === 'true')) {
-      setIsLocallyAccepted(true);
+      setTimeout(() => setIsLocallyAccepted(true), 0);
     }
   }, [user?.id, userHasAcceptedFromProfile]);
 
@@ -143,7 +143,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
       if (hasTos && hasPrivacy) {
         localStorage.setItem(`qmova_policies_accepted_${user.id}`, 'true');
         localStorage.setItem('qmova_policies_accepted_v1', 'true');
-        setIsLocallyAccepted(true);
+        setTimeout(() => setIsLocallyAccepted(true), 0);
       }
     }
   }, [acceptedPolicies, user?.id]);
@@ -171,9 +171,10 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
     if (typeof window === 'undefined') return;
     const seen = localStorage.getItem('hasSeenIntro') === 'true' || localStorage.getItem('qmova_welcome_seen') === 'true';
     if (seen !== hasSeenWelcome) {
-      setHasSeenWelcome(seen);
+      const timer = setTimeout(() => setHasSeenWelcome(seen), 0);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [hasSeenWelcome]);
 
   const [planWelcomeDismissed, setPlanWelcomeDismissed] = useState(false);
 
@@ -392,26 +393,30 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
                 <span className="material-symbols-outlined text-[20px]">{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
               </button>
             </div>
-            {/* Bottom row: settings tabs */}
-            <nav className="flex items-center gap-1 px-gutter overflow-x-auto scrollbar-none border-t border-border/50 dark:border-dark-border/50">
-              {settingsNavLinks.map(link => {
-                const active = router.pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`flex items-center gap-1.5 px-3 py-3 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
-                      active
-                        ? 'text-primary dark:text-sky-400 border-primary dark:border-sky-400'
-                        : 'text-on-surface-variant dark:text-outline border-transparent hover:text-on-surface dark:hover:text-white hover:border-border'
-                    }`}
-                  >
-                    {link.icon && <span className={active ? 'text-primary dark:text-sky-400' : 'text-on-surface-variant dark:text-outline'}>{link.icon}</span>}
-                    {link.label}
-                  </Link>
-                );
-              })}
-            </nav>
+            {/* Bottom row: settings tabs — horizontally scrollable, no clip */}
+            <div className="relative border-t border-border/50 dark:border-dark-border/50">
+              <nav className="flex items-center gap-0.5 px-gutter overflow-x-auto scrollbar-none pb-px">
+                {settingsNavLinks.map(link => {
+                  const active = router.pathname === link.href;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={`flex items-center gap-1.5 px-3 py-3 text-sm font-medium whitespace-nowrap transition-all border-b-2 shrink-0 ${
+                        active
+                          ? 'text-primary dark:text-sky-400 border-primary dark:border-sky-400'
+                          : 'text-on-surface-variant dark:text-outline border-transparent hover:text-on-surface dark:hover:text-white hover:border-border'
+                      }`}
+                    >
+                      {link.icon && <span className={active ? 'text-primary dark:text-sky-400' : 'text-on-surface-variant dark:text-outline'}>{link.icon}</span>}
+                      {link.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+              {/* Right fade — indicates scroll is available */}
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface dark:from-dark-card to-transparent" />
+            </div>
           </div>
         ) : (
           /* ── Normal dashboard header ── */
@@ -612,7 +617,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
               <Link
                 key={item.href}
                 href={item.href}
-                id={(item as any).id}
+                id={(item as { id?: string }).id}
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center rounded-xl transition-all duration-200 cursor-pointer active:opacity-80 font-body-md text-body-md relative group ${
                   isSidebarCollapsed

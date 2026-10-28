@@ -84,9 +84,9 @@ export default function ProvidersSettings() {
       <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-on-surface dark:text-white">Providers</h3>
+              <h3 className="font-bold text-on-surface dark:text-white">On-Ground Staff</h3>
               <p className="text-xs text-on-surface-variant dark:text-zinc-400 mt-0.5">
-                Bookable people and resources linked to your services
+                Bookable on-ground workers (doctors, nurses, waiters, etc.) linked to your services
               </p>
             </div>
             {canManageProviders && (
@@ -94,7 +94,7 @@ export default function ProvidersSettings() {
                 onClick={() => { setEditingProvider(null); setIsProviderModalOpen(true); }}
                 className="flex items-center gap-2 px-4 h-9 bg-primary hover:bg-primary/90 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
               >
-                <Plus className="w-4 h-4" /> Add Provider
+                <Plus className="w-4 h-4" /> Add Staff Member
               </button>
             )}
           </div>
@@ -108,14 +108,14 @@ export default function ProvidersSettings() {
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
                 <Briefcase className="w-6 h-6 text-primary" />
               </div>
-              <p className="font-semibold text-on-surface dark:text-white">No providers yet</p>
-              <p className="text-sm text-on-surface-variant dark:text-zinc-400 mt-1">Add bookable providers to enable appointment scheduling</p>
+              <p className="font-semibold text-on-surface dark:text-white">No on-ground staff yet</p>
+              <p className="text-sm text-on-surface-variant dark:text-zinc-400 mt-1">Add bookable staff members to enable appointment scheduling</p>
               {canManageProviders && (
                 <button
                   onClick={() => { setEditingProvider(null); setIsProviderModalOpen(true); }}
                   className="mt-4 px-4 h-9 bg-primary hover:bg-primary/90 text-white text-sm font-semibold rounded-xl transition-colors inline-flex items-center gap-2 shadow-sm"
                 >
-                  <Plus className="w-4 h-4" /> Add First Provider
+                  <Plus className="w-4 h-4" /> Add First Staff Member
                 </button>
               )}
             </div>
@@ -203,7 +203,7 @@ export default function ProvidersSettings() {
             setProviderToDelete(null);
           }
         }}
-        title="Remove Provider"
+        title="Remove Staff Member"
         description={`Are you sure you want to remove ${providerToDelete?.name}?`}
         confirmText="Remove"
         variant="danger"

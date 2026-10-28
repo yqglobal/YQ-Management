@@ -7,9 +7,17 @@ set -e
 GIT_DIR="/var/www/yq"
 APP_DIR="/var/www/yq/YQ Management"
 
-echo "====> Pulling latest code..."
+echo "====> Syncing latest code with origin/main..."
 cd "$GIT_DIR"
-git pull origin main
+
+git fetch origin main
+if [ -n "$(git status --porcelain)" ]; then
+    echo "Notice: Local modifications or untracked files detected in $GIT_DIR."
+    echo "Stashing changes safely before syncing to origin/main..."
+    git stash -u -m "deploy_auto_stash_$(date +%Y%m%d_%H%M%S)" || true
+fi
+git reset --hard origin/main
+git clean -fd -e ".env" -e "YQ Management/.env"
 
 cd "$APP_DIR"
 

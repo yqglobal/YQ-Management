@@ -26,17 +26,23 @@ export function ConfirmModal({
   variant = 'danger',
   isLoading = false,
 }: ConfirmModalProps) {
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      onClose();
+    }
+  };
+
   return (
     <Dialog 
       open={isOpen} 
-      onOpenChange={onClose} 
-      className="sm:max-w-[420px] w-[92vw] p-6 rounded-[24px] bg-surface dark:bg-zinc-900 border-border dark:border-zinc-800 shadow-2xl relative"
+      onOpenChange={handleOpenChange} 
+      className="sm:max-w-[420px] w-[92vw] p-6 rounded-[24px] bg-surface dark:bg-zinc-900 border-border dark:border-zinc-800 shadow-2xl"
     >
       <button 
         type="button"
         onClick={onClose}
         disabled={isLoading}
-        className="absolute right-4 top-4 p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none"
+        className="absolute right-4 top-4 p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none cursor-pointer"
         title="Close"
       >
         <X className="w-5 h-5" />
