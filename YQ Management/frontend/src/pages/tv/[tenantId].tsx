@@ -834,11 +834,6 @@ export default function TVDisplay() {
                   Loading QR...
                 </div>
               )}
-              <div className="mt-1.5 text-center shrink-0">
-                <span className="text-[10px] sm:text-[11px] font-black text-zinc-950 tracking-widest uppercase font-mono bg-zinc-100 px-3 py-0.5 rounded-full border border-zinc-200">
-                  Scan With Camera
-                </span>
-              </div>
             </div>
           </div>
         </section>
@@ -864,7 +859,7 @@ export default function TVDisplay() {
                 {upcomingTokens.slice(0, 5).map((t, idx) => {
                   const isScheduled = t.currentState === 'SCHEDULED' || t.currentState === 'CREATED' || !!t.scheduledTime;
                   const schedDate = t.scheduledTime ? new Date(t.scheduledTime) : null;
-                  const minsUntil = schedDate ? Math.round((schedDate.getTime() - Date.now()) / 60000) : null;
+                  const minsUntil = schedDate ? Math.round((schedDate.getTime() - currentTime.getTime()) / 60000) : null;
                   const timeFormatted = schedDate ? schedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
 
                   return (
