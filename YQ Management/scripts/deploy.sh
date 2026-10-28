@@ -57,6 +57,6 @@ echo "====> Starting new containers..."
 docker compose -f docker-compose.production.yml up -d --remove-orphans --wait
 
 # Clean up dangling images to save disk space
-docker image prune -f
+docker image prune -f || true
 
 echo "====> Deployment Complete!"
