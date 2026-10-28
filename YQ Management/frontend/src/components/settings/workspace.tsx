@@ -214,12 +214,20 @@ export default function WorkspaceSettingsPage() {
                   {subdomainError}
                 </p>
               ) : tenantSubdomain ? (
-                <p className="text-[12px] text-emerald-500 mt-2 flex items-center gap-1">
+                <a
+                  href={portalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[12px] text-emerald-500 hover:text-emerald-400 hover:underline transition-colors mt-2 group"
+                >
                   <span className="material-symbols-outlined text-[14px]">
                     link
                   </span>
-                  Customers visit: {portalUrl}
-                </p>
+                  <span>Customers visit: <span className="font-mono">{portalUrl}</span></span>
+                  <span className="material-symbols-outlined text-[12px] opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-transform">
+                    open_in_new
+                  </span>
+                </a>
               ) : (
                 <p className="text-[12px] text-outline mt-2">
                   Used in the customer-facing booking page URL.
