@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useCallback, useMemo, useEffect } from 'react';
 import {
   ReactFlow,
@@ -206,7 +207,7 @@ const EmptyStagePrompt = ({ data }: any) => (
       <Settings2 className="w-5 h-5 text-primary" />
     </div>
     <p className="text-sm font-semibold text-on-surface dark:text-white">Add Custom Stages</p>
-    <p className="text-[10px] text-on-surface-variant mt-1">Click "+ Add Stage" to build your journey</p>
+    <p className="text-[10px] text-on-surface-variant mt-1">Click &ldquo;+ Add Stage&rdquo; to build your journey</p>
     <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
   </div>
 );
@@ -226,6 +227,14 @@ interface FlowBuilderProps {
 export function FlowBuilder(props: FlowBuilderProps) {
   const { flow, selectedStepId, onEditStep, onSaveTransitions, onAddStage, fitViewTrigger } = props;
   const [rfInstance, setRfInstance] = React.useState<any>(null);
+  const [mousePos, setMousePos] = React.useState<{ x: number; y: number }>({ x: -1000, y: -1000 });
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [zoomPercent, setZoomPercent] = React.useState(100);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  }, []);
 
   const handleFitView = useCallback(() => {
     if (!rfInstance) return;
@@ -345,7 +354,6 @@ export function FlowBuilder(props: FlowBuilderProps) {
       if (step.transitions && step.transitions.length > 0) {
         step.transitions.forEach((t: any) => {
           if (t.toStepId) {
-            const targetStep = sorted.find((s: any) => s.id === t.toStepId);
             const color = t.isDefault
               ? (TYPE_CONFIG[step.type]?.color || '#6366f1')
               : '#a78bfa';
@@ -421,8 +429,67 @@ export function FlowBuilder(props: FlowBuilderProps) {
   }, [setEdges, onSaveTransitions]);
 
   return (
-    <div className="w-full h-full flow-builder-canvas">
+    <div
+      className="w-full h-full flow-builder-canvas relative overflow-hidden select-none"
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <style>{`
+        .flow-builder-canvas {
+          --rf-bg: #f8fafc;
+          --rf-dot-color: rgba(71, 85, 105, 0.22);
+          --rf-major-dot-color: rgba(71, 85, 105, 0.40);
+          background-color: var(--rf-bg);
+          position: relative;
+        }
+        .dark .flow-builder-canvas {
+          --rf-bg: #07080b;
+          --rf-dot-color: rgba(255, 255, 255, 0.22);
+          --rf-major-dot-color: rgba(255, 255, 255, 0.46);
+          background-color: var(--rf-bg);
+        }
+        .flow-builder-canvas .react-flow__pane {
+          background: transparent !important;
+        }
+        .flow-builder-canvas .canvas-vignette {
+          background: radial-gradient(ellipse at center, transparent 40%, rgba(15, 23, 42, 0.08) 100%);
+        }
+        .dark .flow-builder-canvas .canvas-vignette {
+          background: radial-gradient(ellipse at center, transparent 38%, rgba(0, 0, 0, 0.52) 100%);
+        }
+        @keyframes meshDrift {
+          0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0.85;
+          }
+          50% {
+            transform: translate(-30px, -20px) scale(1.08);
+            opacity: 0.98;
+          }
+        }
+        @keyframes meshDriftSecondary {
+          0%, 100% {
+            transform: translate(0, 0) scale(1);
+            opacity: 0.35;
+          }
+          50% {
+            transform: translate(25px, 20px) scale(1.06);
+            opacity: 0.45;
+          }
+        }
+        .ambient-mesh-glow {
+          animation: meshDrift 18s ease-in-out infinite alternate;
+        }
+        .ambient-mesh-secondary {
+          animation: meshDriftSecondary 22s ease-in-out infinite alternate;
+        }
+        .flow-builder-canvas:not(.dark) .ambient-mesh-glow {
+          opacity: 0.35 !important;
+        }
+        .flow-builder-canvas:not(.dark) .ambient-mesh-secondary {
+          opacity: 0.18 !important;
+        }
         .flow-builder-canvas .react-flow__controls {
           background: rgba(255, 255, 255, 0.92);
           backdrop-filter: blur(12px);
@@ -515,6 +582,56 @@ export function FlowBuilder(props: FlowBuilderProps) {
           color: #3f3f46;
         }
       `}</style>
+
+      {/* Layer 1: Ambient Corner Mesh Aurora (exact match to user screenshot) */}
+      <div
+        className="ambient-mesh-glow pointer-events-none absolute -bottom-36 -right-36 w-[640px] h-[640px] rounded-full blur-[96px] z-0"
+        style={{
+          background:
+            'radial-gradient(circle at 75% 75%, #38bdf8 0%, #06b6d4 18%, #8b5cf6 44%, #7c3aed 68%, #3b0764 88%, transparent 100%)',
+        }}
+      />
+
+      {/* Layer 2: Ambient Top-Left Secondary Aurora */}
+      <div
+        className="ambient-mesh-secondary pointer-events-none absolute -top-40 -left-40 w-[480px] h-[480px] rounded-full blur-[110px] z-0"
+        style={{
+          background:
+            'radial-gradient(circle at 30% 30%, #6366f1 0%, #a855f7 42%, #4f46e5 75%, transparent 100%)',
+        }}
+      />
+
+      {/* Layer 3: Interactive Mouse Spotlight */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-300"
+        style={{
+          opacity: isHovered ? 1 : 0,
+          background: `radial-gradient(550px circle at ${mousePos.x}px ${mousePos.y}px, rgba(139, 92, 246, 0.18), rgba(6, 182, 212, 0.08) 42%, transparent 75%)`,
+        }}
+      />
+
+      {/* Layer 4: Edge Vignette for Scale Depth */}
+      <div className="pointer-events-none absolute inset-0 z-0 canvas-vignette" />
+
+      {/* Floating Scale & Depth HUD pill */}
+      <div className="absolute bottom-4 left-16 z-10 flex items-center gap-2.5 bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-zinc-200/80 dark:border-zinc-800 shadow-lg text-[11px] font-medium text-zinc-600 dark:text-zinc-300 transition-transform duration-200 hover:scale-[1.02]">
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="font-semibold text-zinc-900 dark:text-white">Canvas</span>
+        </div>
+        <span className="text-zinc-300 dark:text-zinc-700">|</span>
+        <span className="font-mono text-zinc-500 dark:text-zinc-400">24px Grid</span>
+        <span className="text-zinc-300 dark:text-zinc-700">|</span>
+        <button
+          type="button"
+          onClick={() => rfInstance?.zoomTo(1, { duration: 400 })}
+          title="Click to reset zoom to 100%"
+          className="font-mono font-bold text-primary dark:text-indigo-400 hover:underline cursor-pointer"
+        >
+          {zoomPercent}%
+        </button>
+      </div>
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -522,6 +639,9 @@ export function FlowBuilder(props: FlowBuilderProps) {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onInit={setRfInstance}
+        onMove={(_, viewport) => {
+          setZoomPercent(Math.round(viewport.zoom * 100));
+        }}
         onNodeClick={(_, node) => {
           if (node.data?.step && onEditStep) {
             onEditStep(node.data.step);
@@ -538,7 +658,20 @@ export function FlowBuilder(props: FlowBuilderProps) {
         panOnScroll
         selectionOnDrag={false}
       >
-        <Background color="#4f4f5a18" gap={20} variant={BackgroundVariant.Dots} />
+        <Background
+          id="rf-dots-minor"
+          color="var(--rf-dot-color)"
+          gap={24}
+          size={1.4}
+          variant={BackgroundVariant.Dots}
+        />
+        <Background
+          id="rf-dots-major"
+          color="var(--rf-major-dot-color)"
+          gap={120}
+          size={2.4}
+          variant={BackgroundVariant.Dots}
+        />
         <Controls
           showInteractive={false}
           fitViewOptions={{ padding: 0.28, maxZoom: 0.9, duration: 800 }}
