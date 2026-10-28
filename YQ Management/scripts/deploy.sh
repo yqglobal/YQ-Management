@@ -50,7 +50,7 @@ docker exec yq-postgres psql -U postgres -d yq_queue -c "DELETE FROM _prisma_mig
 docker compose -f docker-compose.production.yml run --rm backend npx prisma migrate deploy
 
 echo "====> Seeding/Updating Industry Blueprints..."
-docker compose -f docker-compose.production.yml run --rm backend node dist/src/service-flow/seed-blueprints.js
+docker compose -f docker-compose.production.yml run --rm backend node dist/service-flow/seed-blueprints.js
 
 echo "====> Starting new containers..."
 # Recreate only the containers that have changed images or configs
