@@ -927,7 +927,7 @@ model ServiceFlow {
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
   paymentTiming          PaymentTiming      @default(CHECKIN)
-  checkinPayMode         String             @default("BOTH")
+  checkinPayMode         String             @default("COUNTER_ONLY")
   autoSendInvoice        Boolean            @default(false)
   allowUnpaidCheckout    Boolean            @default(false)
   steps                  FlowStepTemplate[]
@@ -1145,7 +1145,7 @@ model BlueprintFlow {
   tenantId       String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
-  checkinPayMode String?
+  checkinPayMode String?         @default("COUNTER_ONLY")
   paymentTiming  PaymentTiming   @default(NONE)
   tenant         Tenant?         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   steps          BlueprintStep[]

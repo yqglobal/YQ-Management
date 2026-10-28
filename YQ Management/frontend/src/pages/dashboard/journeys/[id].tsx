@@ -1153,10 +1153,10 @@ export default function JourneyBuilder() {
                               {(flow?.paymentTiming || "CHECKIN") === "NONE"
                                 ? "No Payment"
                                 : `${(flow?.paymentTiming || "CHECKIN") === "CHECKIN" ? "Check-in" : "Check-out"} · ${
-                                    (flow?.checkinPayMode || "BOTH") ===
+                                    (flow?.checkinPayMode || "COUNTER_ONLY") ===
                                     "COUNTER_ONLY"
                                       ? "Counter Only"
-                                      : (flow?.checkinPayMode || "BOTH") ===
+                                      : (flow?.checkinPayMode || "COUNTER_ONLY") ===
                                           "STRIPE_ONLY"
                                         ? "Stripe Online"
                                         : "Stripe or Counter"
@@ -1243,13 +1243,14 @@ export default function JourneyBuilder() {
                           </span>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <button
+                              type="button"
                               onClick={() =>
                                 updateFlowMutation.mutate({
                                   checkinPayMode: "COUNTER_ONLY",
                                 })
                               }
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                                (flow.checkinPayMode || "BOTH") ===
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                                (flow.checkinPayMode || "COUNTER_ONLY") ===
                                 "COUNTER_ONLY"
                                   ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
                                   : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
@@ -1259,6 +1260,7 @@ export default function JourneyBuilder() {
                             </button>
 
                             <button
+                              type="button"
                               disabled={!stripeConnected}
                               onClick={() => {
                                 if (stripeConnected) {
@@ -1275,16 +1277,17 @@ export default function JourneyBuilder() {
                               className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
                                 !stripeConnected
                                   ? "opacity-50 cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400"
-                                  : (flow.checkinPayMode || "BOTH") ===
+                                  : (flow.checkinPayMode || "COUNTER_ONLY") ===
                                       "STRIPE_ONLY"
-                                    ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
-                                    : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
+                                    ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm cursor-pointer"
+                                    : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60 cursor-pointer"
                               }`}
                             >
                               Pay via Stripe Online
                             </button>
 
                             <button
+                              type="button"
                               disabled={!stripeConnected}
                               onClick={() => {
                                 if (stripeConnected) {
@@ -1301,9 +1304,9 @@ export default function JourneyBuilder() {
                               className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
                                 !stripeConnected
                                   ? "opacity-50 cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400"
-                                  : (flow.checkinPayMode || "BOTH") === "BOTH"
-                                    ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
-                                    : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
+                                  : (flow.checkinPayMode || "COUNTER_ONLY") === "BOTH"
+                                    ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm cursor-pointer"
+                                    : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60 cursor-pointer"
                               }`}
                             >
                               Both (Customer Chooses)

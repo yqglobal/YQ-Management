@@ -139,7 +139,7 @@ export class ServiceService {
           name: `${data.name} Default Flow`,
           isActive: true,
           paymentTiming: data.paymentTiming || 'NONE',
-          checkinPayMode: data.checkinPayMode || 'BOTH',
+          checkinPayMode: data.checkinPayMode || 'COUNTER_ONLY',
           allowUnpaidCheckout: data.allowUnpaidCheckout || false,
           autoSendInvoice: data.autoSendInvoice || false,
         },

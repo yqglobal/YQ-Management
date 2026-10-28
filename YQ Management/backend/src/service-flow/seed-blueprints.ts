@@ -53,7 +53,7 @@ async function main() {
         data: {
           paymentTiming,
           checkinPayMode:
-            paymentTiming === 'CHECKIN' ? 'BOTH' : null,
+            paymentTiming === 'CHECKIN' ? 'COUNTER_ONLY' : null,
         },
       });
 

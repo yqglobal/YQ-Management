@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
 import { ServiceService } from '../service/service.service';
 import { AppointmentService } from '../appointment/appointment.service';
+import { VisitService } from '../visit/visit.service';
 
 @Injectable()
 export class WhatsappAiService {
@@ -16,6 +17,8 @@ export class WhatsappAiService {
     private readonly serviceService: ServiceService,
     @Inject(forwardRef(() => AppointmentService))
     private readonly appointmentService: AppointmentService,
+    @Inject(forwardRef(() => VisitService))
+    private readonly visitService: VisitService,
   ) {}
 
   async processMessage(
@@ -115,6 +118,26 @@ export class WhatsappAiService {
       },
       {
         type: 'function',
+        name: 'checkInTodayAppointment',
+        description:
+          'Check in the customer for their scheduled appointment today and issue their queue ticket.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {},
+        },
+      },
+      {
+        type: 'function',
+        name: 'getJourneyStatus',
+        description:
+          'Get comprehensive status of the customers visit, including multi-stage journey progress, current stage, payment requirements, and queue position.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {},
+        },
+      },
+      {
+        type: 'function',
         name: 'transferToHuman',
         description:
           'Transfer the conversation to a human operator. Use this if the user asks for a human, or if you cannot help them.',
@@ -176,6 +199,10 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
             result = await this.executeGetWaitTime(tenantId, phone);
           } else if (name === 'cancelVisit') {
             result = await this.executeCancelVisit(tenantId, phone);
+          } else if (name === 'checkInTodayAppointment') {
+            result = await this.executeCheckInTodayAppointment(tenantId, phone);
+          } else if (name === 'getJourneyStatus') {
+            result = await this.executeGetJourneyStatus(tenantId, phone);
           } else if (name === 'bookAppointment') {
             result = await this.executeBookAppointment(tenantId, phone, args);
           } else if (name === 'transferToHuman') {
@@ -374,5 +401,179 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
     } catch (e) {
       return { success: false, message: `Failed to book: ${e.message}` };
     }
+  }
+
+  private async executeCheckInTodayAppointment(tenantId: string, phone: string) {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-9);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const appt = await this.prisma.appointment.findFirst({
+      where: {
+        tenantId,
+        customer: { phone: { contains: cleanPhone } },
+        scheduledStart: { gte: todayStart, lte: todayEnd },
+        status: { in: ['CONFIRMED', 'SCHEDULED'] },
+      },
+      include: {
+        customer: true,
+        service: true,
+        location: true,
+      },
+      orderBy: { scheduledStart: 'asc' },
+    });
+
+    if (!appt) {
+      return {
+        success: false,
+        message: 'No confirmed appointments scheduled for today were found for this number.',
+      };
+    }
+
+    // Check if already checked in
+    if (appt.customerId) {
+      const existing = await this.prisma.visit.findFirst({
+        where: {
+          tenantId,
+          customerId: appt.customerId,
+          currentState: { in: ['WAITING', 'CHECKED_IN', 'IN_SERVICE'] },
+        },
+      });
+
+      if (existing) {
+        return {
+          success: true,
+          alreadyCheckedIn: true,
+          displayId: existing.displayId,
+          message: `You are already checked in with ticket ${existing.displayId}.`,
+        };
+      }
+    }
+
+    const queue = await this.prisma.queue.findFirst({
+      where: { tenantId, locationId: appt.locationId, status: 'ACTIVE' },
+    });
+
+    if (!queue) {
+      return {
+        success: false,
+        message: 'No open queue found for this location. Please approach the front desk.',
+      };
+    }
+
+    try {
+      let visit: any = null;
+      if (this.visitService) {
+        visit = await this.visitService.joinQueue(queue.id, {
+          name: appt.customer?.name || 'Guest',
+          phone: appt.customer?.phone || phone,
+          serviceId: appt.serviceId,
+        });
+        if (visit?.id) {
+          await this.prisma.visit.update({
+            where: { id: visit.id },
+            data: { appointmentId: appt.id },
+          });
+        }
+      }
+
+      if (!visit) {
+        return { success: false, message: 'Could not create queue ticket.' };
+      }
+
+      await this.prisma.appointment.update({
+        where: { id: appt.id },
+        data: { status: 'CHECKED_IN' },
+      });
+
+      const baseAppUrl =
+        process.env.APP_URL ||
+        (process.env.DOMAIN_BASE
+          ? `https://${process.env.DOMAIN_BASE}`
+          : 'https://qmova.yqbuddy.com');
+
+      return {
+        success: true,
+        displayId: visit.displayId,
+        service: appt.service?.name,
+        location: appt.location?.name,
+        trackerUrl: `${baseAppUrl}/customer/status/${visit.id}`,
+        message: `Checked in successfully with ticket ${visit.displayId}. Track live at ${baseAppUrl}/customer/status/${visit.id}`,
+      };
+    } catch (e: any) {
+      return { success: false, message: `Check-in failed: ${e.message}` };
+    }
+  }
+
+  private async executeGetJourneyStatus(tenantId: string, phone: string) {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-9);
+    const visit = await this.prisma.visit.findFirst({
+      where: {
+        tenantId,
+        customer: { phone: { contains: cleanPhone } },
+        currentState: { in: ['WAITING', 'CHECKED_IN', 'IN_SERVICE'] },
+      },
+      include: {
+        queue: true,
+        service: true,
+        location: true,
+        visitSteps: { orderBy: { stepOrder: 'asc' } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!visit) {
+      return { found: false, message: 'No active tickets or journey visits found.' };
+    }
+
+    const position = await this.prisma.visit.count({
+      where: {
+        queueId: visit.queueId,
+        currentState: { in: ['WAITING', 'CHECKED_IN'] },
+        createdAt: { lt: visit.createdAt },
+      },
+    });
+
+    const steps = visit.visitSteps;
+    const activeStep: any =
+      steps && steps.length > 0
+        ? steps.find((s: any) => s.status === 'ACTIVE') ||
+          steps.find((s: any) => s.status === 'QUEUED') ||
+          steps.find((s: any) => s.status === 'PENDING') ||
+          steps[0]
+        : null;
+    const activeIdx =
+      steps && activeStep ? steps.findIndex((s: any) => s.id === activeStep.id) : 0;
+    const totalSteps = steps ? steps.length : 0;
+
+    const baseAppUrl =
+      process.env.APP_URL ||
+      (process.env.DOMAIN_BASE
+        ? `https://${process.env.DOMAIN_BASE}`
+        : 'https://qmova.yqbuddy.com');
+
+    return {
+      found: true,
+      ticketNumber: visit.displayId,
+      status: visit.currentState,
+      aheadInQueue: position,
+      queueName: visit.queue?.name,
+      serviceName: visit.service?.name,
+      locationName: visit.location?.name,
+      totalStages: totalSteps,
+      currentStageIndex: totalSteps > 0 ? activeIdx + 1 : 1,
+      currentStageName: activeStep?.name || activeStep?.type || 'In Service',
+      nextStageName:
+        totalSteps > activeIdx + 1 ? steps[activeIdx + 1]?.name : null,
+      paymentPending:
+        activeStep?.type === 'PAYMENT' && activeStep.paymentStatus !== 'PAID',
+      amountDue:
+        activeStep?.type === 'PAYMENT' && activeStep.amountCharged
+          ? (activeStep.amountCharged / 100).toFixed(2)
+          : null,
+      trackerUrl: `${baseAppUrl}/customer/status/${visit.id}`,
+    };
   }
 }

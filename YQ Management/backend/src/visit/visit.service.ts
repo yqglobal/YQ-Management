@@ -1138,7 +1138,7 @@ export class VisitService {
         const stripeActive =
           !!paymentAccount?.chargesEnabled &&
           !!paymentAccount?.connectedAccountId;
-        const payMode = bookingFlow?.checkinPayMode ?? 'BOTH';
+        const payMode = bookingFlow?.checkinPayMode ?? 'COUNTER_ONLY';
 
         const holdForCheckinPayment = bookingFlow?.isActive
           ? bookingFlow.paymentTiming === 'CHECKIN' &&

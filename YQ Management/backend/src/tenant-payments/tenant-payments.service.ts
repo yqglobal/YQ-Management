@@ -484,16 +484,32 @@ export class TenantPaymentsService {
       throw new BadRequestException('Amount must be greater than zero');
     const visit = await this.prisma.visit.findUnique({
       where: { id: visitId },
-      include: { service: true },
+      include: {
+        service: true,
+        visitSteps: {
+          include: { templateStep: true },
+          orderBy: { stepOrder: 'asc' },
+        },
+      },
     });
     if (!visit || visit.tenantId !== tenantId) {
       throw new BadRequestException('Visit not found');
     }
 
+    // Check if visit has a PAYMENT step awaiting completion
+    const paymentStep = visit.visitSteps?.find(
+      (s: any) =>
+        s.type === 'PAYMENT' &&
+        s.status !== 'DONE' &&
+        s.status !== 'SKIPPED' &&
+        !s.isSkipped,
+    );
+
     const payment = await this.prisma.bookingPayment.create({
       data: {
         tenantId,
         visitId,
+        visitStepId: paymentStep?.id || null,
         amount,
         platformFeeAmount: 0,
         tenantNetAmount: amount,
@@ -510,13 +526,53 @@ export class TenantPaymentsService {
       },
     });
 
+    // Advance payment visit step in journey builder flow if present
+    if (paymentStep) {
+      try {
+        if (paymentStep.status === 'PENDING') {
+          await this.visitStepService.activateStep(
+            tenantId,
+            paymentStep.id,
+            extra.staffId || 'SYSTEM',
+          );
+        }
+        await this.visitStepService.advanceStep(
+          tenantId,
+          paymentStep.id,
+          extra.staffId || 'SYSTEM',
+          {
+            outcome: 'SUCCESS',
+            staffNotes:
+              description ||
+              `Counter payment completed via ${normalizedMethod}`,
+          },
+        );
+        await this.prisma.visitStep.update({
+          where: { id: paymentStep.id },
+          data: {
+            amountCharged: amount,
+            paymentRef: extra.proofUrl || description || normalizedMethod,
+            paymentStatus: 'PAID',
+          },
+        });
+      } catch (stepErr: any) {
+        this.logger.warn(
+          `Failed to advance payment step ${paymentStep.id}: ${stepErr.message}`,
+        );
+      }
+    }
+
     // Generate Invoice and mark it PAID
-    const invoice = await this.invoiceService.generateVisitInvoice(visit.id);
-    if (invoice && invoice.status !== 'PAID') {
-      await this.prisma.visitInvoice.update({
-        where: { id: invoice.id },
-        data: { status: 'PAID', paidAt: new Date() },
-      });
+    try {
+      const invoice = await this.invoiceService.generateVisitInvoice(visit.id);
+      if (invoice && invoice.status !== 'PAID') {
+        await this.prisma.visitInvoice.update({
+          where: { id: invoice.id },
+          data: { status: 'PAID', paidAt: new Date() },
+        });
+      }
+    } catch (invErr: any) {
+      this.logger.warn(`Invoice generation on manual payment failed: ${invErr.message}`);
     }
 
     if (visit.balanceDue) {
@@ -543,6 +599,15 @@ export class TenantPaymentsService {
         },
       });
     }
+
+    // Broadcast real-time WebSocket events for instant UI reactivity
+    this.queueGateway.broadcastTenantUpdate(tenantId, 'VISIT_UPDATED', {
+      visitId: visit.id,
+    });
+    this.queueGateway.broadcastTenantUpdate(tenantId, 'PAYMENT_RECORDED', {
+      payment,
+      visitId: visit.id,
+    });
 
     // Send WhatsApp receipt if requested/enabled
     if (extra.sendWhatsAppReceipt !== false) {
@@ -593,8 +658,11 @@ export class TenantPaymentsService {
         return;
       }
 
-      const cleanPhone = rawPhone.replace(/\D/g, '');
+      let cleanPhone = rawPhone.replace(/\D/g, '');
       if (!cleanPhone) return;
+      if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
+        cleanPhone = '27' + cleanPhone.slice(1);
+      }
 
       const serviceName =
         payment.visit?.service?.name ||
@@ -637,20 +705,31 @@ export class TenantPaymentsService {
         ? `${appBaseUrl}/customer/status/${payment.visit.accessToken}`
         : null;
 
+      const timeStr = new Date().toLocaleString('en-ZA', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+
       const messageLines = [
-        `*Payment Received* ✅`,
+        `*🧾 PAYMENT RECEIPT*`,
+        `*${tenant.name.toUpperCase()}*`,
         ``,
         `Dear *${customerName}*,`,
-        `We have received your payment of *${currency} ${formattedAmount}* via *${methodLabel}*.`,
+        `Your payment has been successfully recorded.`,
         ``,
+        `───────────────────────`,
         ...(ticketNumber ? [`📋 *Ticket:* ${ticketNumber}`] : []),
         `🏥 *Service:* ${serviceName}`,
+        `💰 *Amount Paid:* ${currency} ${formattedAmount}`,
+        `💳 *Method:* ${methodLabel}`,
         `🏢 *Location:* ${locationName}`,
+        `📅 *Date:* ${timeStr}`,
         ...(refOrProof ? [`🧾 *Ref / Slip:* ${refOrProof}`] : []),
         ...(customNotes && customNotes !== 'Manual Payment at Counter'
           ? [`📝 *Notes:* ${customNotes}`]
           : []),
-        ...(statusUrl ? [``, `Track live status: ${statusUrl}`] : []),
+        `───────────────────────`,
+        ...(statusUrl ? [``, `🔗 *Live Queue & Stage Tracker:*`, statusUrl] : []),
         ``,
         `Thank you for your visit!`,
       ];

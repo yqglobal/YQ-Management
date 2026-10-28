@@ -40,7 +40,7 @@ export class ServiceFlowService {
         isActive: dto.isActive ?? true,
         allowPartialCompletion: dto.allowPartialCompletion ?? false,
         paymentTiming: dto.paymentTiming ?? 'CHECKIN',
-        checkinPayMode: dto.checkinPayMode ?? 'BOTH',
+        checkinPayMode: dto.checkinPayMode ?? 'COUNTER_ONLY',
         autoSendInvoice: dto.autoSendInvoice ?? false,
         allowUnpaidCheckout: dto.allowUnpaidCheckout ?? false,
       },

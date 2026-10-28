@@ -10,6 +10,7 @@ import { QueueModule } from '../queue/queue.module';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { ServiceModule } from '../service/service.module';
 import { AppointmentModule } from '../appointment/appointment.module';
+import { VisitModule } from '../visit/visit.module';
 
 import { BullModule } from '@nestjs/bullmq';
 import { WhatsappWebhookProcessor } from './whatsapp-webhook.processor';
@@ -26,6 +27,7 @@ import { WhatsappAiService } from './whatsapp-ai.service';
     forwardRef(() => ServiceModule),
     forwardRef(() => AppointmentModule),
     forwardRef(() => CommunicationModule),
+    forwardRef(() => VisitModule),
     AiModule,
     BullModule.registerQueue({
       name: 'whatsapp-webhooks',

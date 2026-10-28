@@ -3225,7 +3225,7 @@ export default function ServiceDeskToday() {
                       selectedVisit?.service?.priceCurrency || "ZAR";
                     const flow = selectedVisit?.service?.serviceFlow;
                     const paymentTiming = flow?.paymentTiming || "NONE";
-                    const checkinPayMode = flow?.checkinPayMode || "BOTH";
+                    const checkinPayMode = flow?.checkinPayMode || "COUNTER_ONLY";
 
                     const hasPaymentObligation =
                       basePrice > 0 && paymentTiming !== "NONE";

@@ -1,6 +1,7 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { ServiceService } from '../service/service.service';
 import { AppointmentService } from '../appointment/appointment.service';
+import { VisitService } from '../visit/visit.service';
 
 export class WhatsappChatbot {
   constructor(
@@ -9,6 +10,7 @@ export class WhatsappChatbot {
     private sendListMsg: (jid: string, payload: any) => Promise<void>,
     private serviceService?: ServiceService,
     private appointmentService?: AppointmentService,
+    private visitService?: VisitService,
   ) {}
 
   async process(
@@ -93,6 +95,16 @@ export class WhatsappChatbot {
           upperText === 'check_status')
       ) {
         await this.handleStatusCheck(tenantId, phone, jid);
+        return { handled: true, isHumanPaused: false };
+      }
+
+      if (
+        upperText.includes('CHECKIN') ||
+        upperText.includes('CHECK IN') ||
+        upperText === 'CHECK-IN' ||
+        upperText === 'check_in'
+      ) {
+        await this.handleAppointmentCheckin(tenantId, phone, jid);
         return { handled: true, isHumanPaused: false };
       }
 
@@ -223,35 +235,87 @@ export class WhatsappChatbot {
     phone: string,
     jid: string,
   ) {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-9);
+
     const visit = await this.prisma.visit.findFirst({
       where: {
         tenantId,
         customer: {
-          // Match the phone number — strip leading/trailing spaces and handle country code variations
-          phone: { contains: phone.replace(/\D/g, '').slice(-9) },
+          phone: { contains: cleanPhone },
         },
         currentState: { in: ['WAITING', 'CHECKED_IN', 'IN_SERVICE'] },
       },
       include: {
         queue: { select: { name: true } },
-        service: { select: { name: true } },
+        service: { select: { name: true, basePrice: true } },
+        location: { select: { name: true } },
+        visitSteps: {
+          orderBy: { stepOrder: 'asc' },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
 
     if (!visit) {
+      // Check if user has an upcoming appointment scheduled for TODAY
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      const todayAppt = await this.prisma.appointment.findFirst({
+        where: {
+          tenantId,
+          customer: { phone: { contains: cleanPhone } },
+          scheduledStart: { gte: todayStart, lte: todayEnd },
+          status: { in: ['CONFIRMED', 'SCHEDULED'] },
+        },
+        include: {
+          service: { select: { name: true } },
+          location: { select: { name: true } },
+        },
+        orderBy: { scheduledStart: 'asc' },
+      });
+
+      if (todayAppt) {
+        const timeStr = new Date(todayAppt.scheduledStart).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        const serviceName = todayAppt.service?.name || 'Appointment';
+        const locName = todayAppt.location?.name ? ` at *${todayAppt.location.name}*` : '';
+
+        await this.sendMsg(
+          jid,
+          `📅 *Upcoming Appointment Today*\n\n` +
+            `Service: *${serviceName}*${locName}\n` +
+            `Time: *${timeStr}*\n` +
+            `Status: *${todayAppt.status}*\n\n` +
+            `Ready to join the queue? Reply *CHECKIN* to check in now and receive your live ticket!`,
+        );
+        return;
+      }
+
       await this.sendMsg(
         jid,
-        "I couldn't find any active queue tickets for this number.\n\nReply '0' for the main menu.",
+        "I couldn't find any active queue tickets or appointments scheduled for today under this number.\n\nReply '0' for the main menu.",
       );
       return;
     }
 
+    const baseAppUrl =
+      process.env.APP_URL ||
+      (process.env.DOMAIN_BASE
+        ? `https://${process.env.DOMAIN_BASE}`
+        : 'https://qmova.yqbuddy.com');
+    const trackerUrl = `${baseAppUrl}/customer/status/${visit.id}`;
+
     if (visit.currentState === 'IN_SERVICE') {
-      await this.sendMsg(
-        jid,
-        `Your ticket *${visit.displayId || 'Unknown'}* is currently being served!\n\nPlease proceed to the service counter now.`,
-      );
+      let inServiceMsg = `🟢 *Your ticket ${visit.displayId || 'Unknown'} is currently being served!*\n\n`;
+      if (visit.service?.name) inServiceMsg += `Service: *${visit.service.name}*\n`;
+      if (visit.location?.name) inServiceMsg += `Location: *${visit.location.name}*\n`;
+      inServiceMsg += `\nPlease proceed to the service counter now.\n\n📲 Live Tracker:\n🔗 ${trackerUrl}`;
+      await this.sendMsg(jid, inServiceMsg);
       return;
     }
 
@@ -264,14 +328,177 @@ export class WhatsappChatbot {
       },
     });
 
-    const queueName = visit.queue?.name || 'queue';
+    const queueName = visit.queue?.name || 'Main Queue';
     const serviceName = visit.service?.name || '';
-    const serviceText = serviceName ? `\nService: *${serviceName}*` : '';
+    const locName = visit.location?.name || '';
 
-    await this.sendMsg(
-      jid,
-      `Ticket: *${visit.displayId || 'Pending'}*\nQueue: *${queueName}*${serviceText}\n\nThere are *${position}* people ahead of you.\n\nReply '0' for the main menu.`,
-    );
+    let msg = `🎫 *Live Ticket: ${visit.displayId || 'In Queue'}*\n`;
+    if (locName) msg += `📍 Location: *${locName}*\n`;
+    if (serviceName) msg += `💼 Service: *${serviceName}*\n`;
+    msg += `👥 Queue: *${queueName}*\n\n`;
+
+    msg += `⏳ *Status:* Waiting in Queue\n`;
+    msg += `🔢 Ahead of you: *${position}* ${position === 1 ? 'person' : 'people'}\n`;
+
+    // Multi-stage Journey Builder inspection
+    const steps = visit.visitSteps;
+    if (steps && steps.length > 0) {
+      const totalSteps = steps.length;
+      const activeStep: any =
+        steps.find((s: any) => s.status === 'ACTIVE') ||
+        steps.find((s: any) => s.status === 'QUEUED') ||
+        steps.find((s: any) => s.status === 'PENDING') ||
+        steps[0];
+      const activeIdx = steps.findIndex((s: any) => s.id === activeStep?.id);
+
+      if (totalSteps > 1) {
+        msg += `\n🔄 *Journey Progress:* Stage ${activeIdx + 1} of ${totalSteps}\n`;
+        msg += `📍 Current Stage: *${activeStep.name || activeStep.type}*\n`;
+        if (activeIdx + 1 < totalSteps) {
+          const nextStep = steps[activeIdx + 1];
+          msg += `➡️ Next Up: ${nextStep.name || nextStep.type}\n`;
+        }
+      }
+
+      if (
+        activeStep?.type === 'PAYMENT' &&
+        activeStep.paymentStatus !== 'PAID' &&
+        activeStep.amountCharged
+      ) {
+        const amountFormatted = (activeStep.amountCharged / 100).toFixed(2);
+        msg += `\n💳 *Payment Due: R${amountFormatted}*\n`;
+        msg += `Please pay at the counter or complete payment online:\n🔗 ${trackerUrl}\n`;
+      }
+    }
+
+    msg += `\n📲 *Live Updates & Mobile Calling:*\n🔗 ${trackerUrl}\n\n`;
+    msg += `Reply '0' for the main menu.`;
+
+    await this.sendMsg(jid, msg);
+  }
+
+  /**
+   * 1-Click WhatsApp Check-in for Today's Scheduled Appointments
+   */
+  private async handleAppointmentCheckin(
+    tenantId: string,
+    phone: string,
+    jid: string,
+  ) {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-9);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const appt = await this.prisma.appointment.findFirst({
+      where: {
+        tenantId,
+        customer: { phone: { contains: cleanPhone } },
+        scheduledStart: { gte: todayStart, lte: todayEnd },
+        status: { in: ['CONFIRMED', 'SCHEDULED'] },
+      },
+      include: {
+        customer: true,
+        service: true,
+        location: true,
+      },
+      orderBy: { scheduledStart: 'asc' },
+    });
+
+    if (!appt) {
+      await this.sendMsg(
+        jid,
+        `I couldn't find an appointment scheduled for today under this phone number.\n\nReply *0* for the main menu to check status or book an appointment.`,
+      );
+      return;
+    }
+
+    // Check if customer already has an active visit
+    if (appt.customerId) {
+      const existingVisit = await this.prisma.visit.findFirst({
+        where: {
+          tenantId,
+          customerId: appt.customerId,
+          currentState: { in: ['WAITING', 'CHECKED_IN', 'IN_SERVICE'] },
+        },
+      });
+
+      if (existingVisit) {
+        await this.sendMsg(
+          jid,
+          `You are already checked in with Ticket *${existingVisit.displayId}*!\n\nReply *1* to check your live queue position and journey status.`,
+        );
+        return;
+      }
+    }
+
+    // Determine target queue
+    const queue = await this.prisma.queue.findFirst({
+      where: {
+        tenantId,
+        locationId: appt.locationId,
+        status: 'ACTIVE',
+      },
+    });
+
+    if (!queue) {
+      await this.sendMsg(
+        jid,
+        `⚠️ Could not automatically check you in: no open queue found for this location. Please approach the front desk.`,
+      );
+      return;
+    }
+
+    try {
+      let createdVisit: any = null;
+      if (this.visitService) {
+        createdVisit = await this.visitService.joinQueue(queue.id, {
+          name: appt.customer?.name || 'Guest',
+          phone: appt.customer?.phone || phone,
+          serviceId: appt.serviceId,
+        });
+        if (createdVisit?.id) {
+          await this.prisma.visit.update({
+            where: { id: createdVisit.id },
+            data: { appointmentId: appt.id },
+          });
+        }
+      }
+
+      if (!createdVisit) {
+        throw new Error('Could not create queue ticket');
+      }
+
+      // Mark appointment as checked in
+      await this.prisma.appointment.update({
+        where: { id: appt.id },
+        data: { status: 'CHECKED_IN' },
+      });
+
+      const baseAppUrl =
+        process.env.APP_URL ||
+        (process.env.DOMAIN_BASE
+          ? `https://${process.env.DOMAIN_BASE}`
+          : 'https://qmova.yqbuddy.com');
+      const trackerUrl = `${baseAppUrl}/customer/status/${createdVisit.id}`;
+
+      await this.sendMsg(
+        jid,
+        `✅ *Check-In Successful!*\n\n` +
+          `🎫 Ticket Number: *${createdVisit.displayId || 'Checked In'}*\n` +
+          `💼 Service: *${appt.service?.name || 'General'}*\n` +
+          `📍 Location: *${appt.location?.name || 'Main Branch'}*\n\n` +
+          `You have joined the queue. You can track your position live and be notified when called here:\n` +
+          `🔗 ${trackerUrl}\n\n` +
+          `Reply *1* at any time to check your status.`,
+      );
+    } catch (err: any) {
+      await this.sendMsg(
+        jid,
+        `Sorry, we encountered an error checking you in. Please see the front desk for assistance.`,
+      );
+    }
   }
 
   /**

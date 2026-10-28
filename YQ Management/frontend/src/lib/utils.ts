@@ -25,9 +25,8 @@ export function getTenantUrl(subdomain: string, path: string = '') {
     const hostname = window.location.hostname;
     const parts = hostname.split('.');
     if (parts.length > 2) {
-      const baseHostname = (parts[0] === 'app' || parts[0] === 'www' || parts[0] === subdomain)
-        ? parts.slice(1).join('.')
-        : hostname;
+      const isKnownPrefix = ['app', 'www', 'superadmin', 'admin', subdomain].includes(parts[0]);
+      const baseHostname = isKnownPrefix ? parts.slice(1).join('.') : hostname;
       baseDomain = `${window.location.protocol}//${baseHostname}`;
     } else {
       baseDomain = `${window.location.protocol}//${hostname}`;

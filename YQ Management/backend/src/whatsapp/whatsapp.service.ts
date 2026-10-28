@@ -21,6 +21,7 @@ import {
 
 import { ServiceService } from '../service/service.service';
 import { AppointmentService } from '../appointment/appointment.service';
+import { VisitService } from '../visit/visit.service';
 
 interface EvolutionError {
   message: string;
@@ -60,6 +61,8 @@ export class WhatsappService implements OnModuleInit {
     private readonly serviceService: ServiceService,
     @Inject(forwardRef(() => AppointmentService))
     private readonly appointmentService: AppointmentService,
+    @Inject(forwardRef(() => VisitService))
+    private readonly visitService: VisitService,
     @Inject(forwardRef(() => CommunicationLogService))
     private readonly communicationLogService: CommunicationLogService,
     private readonly whatsappAiService: WhatsappAiService,
@@ -1847,6 +1850,7 @@ export class WhatsappService implements OnModuleInit {
           },
           this.serviceService,
           this.appointmentService,
+          this.visitService,
         );
 
         processed = await bot.process(tenant, phone, jid, rawText);

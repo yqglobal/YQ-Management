@@ -43,7 +43,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   const [basePrice, setBasePrice] = useState<string>('');
   const [priceCurrency, setPriceCurrency] = useState('ZAR');
   const [paymentTiming, setPaymentTiming] = useState('NONE');
-  const [checkinPayMode, setCheckinPayMode] = useState<string>('BOTH');
+  const [checkinPayMode, setCheckinPayMode] = useState<string>('COUNTER_ONLY');
   const [allowUnpaidCheckout, setAllowUnpaidCheckout] = useState(false);
   const [autoSendInvoice, setAutoSendInvoice] = useState(false);
 
@@ -86,12 +86,12 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       
       if (service.serviceFlow) {
         setPaymentTiming(service.serviceFlow.paymentTiming || 'NONE');
-        setCheckinPayMode(service.serviceFlow.checkinPayMode || 'BOTH');
+        setCheckinPayMode(service.serviceFlow.checkinPayMode || 'COUNTER_ONLY');
         setAllowUnpaidCheckout(service.serviceFlow.allowUnpaidCheckout || false);
         setAutoSendInvoice(service.serviceFlow.autoSendInvoice || false);
       } else {
         setPaymentTiming('NONE');
-        setCheckinPayMode('BOTH');
+        setCheckinPayMode('COUNTER_ONLY');
         setAllowUnpaidCheckout(false);
         setAutoSendInvoice(false);
       }
@@ -142,7 +142,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       setBasePrice('');
       setPriceCurrency('ZAR');
       setPaymentTiming('NONE');
-      setCheckinPayMode('BOTH');
+      setCheckinPayMode('COUNTER_ONLY');
       setAllowUnpaidCheckout(false);
       setAutoSendInvoice(false);
       setUseLocationHours(true);
@@ -223,7 +223,7 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
       basePrice: basePrice ? Math.round(parseFloat(basePrice) * 100) : null,
       priceCurrency,
       paymentTiming,
-      checkinPayMode,
+      checkinPayMode: (!stripeConnected || !checkinPayMode) ? 'COUNTER_ONLY' : checkinPayMode,
       allowUnpaidCheckout,
       autoSendInvoice,
       formConfig,

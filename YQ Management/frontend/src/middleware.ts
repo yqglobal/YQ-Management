@@ -22,8 +22,9 @@ export const config = {
 export async function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
 
-  // Get hostname (e.g. tenant1.qmova.vercel.app or localhost:3000)
-  const hostname = req.headers.get('host') || '';
+  // Get raw hostname from proxy header or host header
+  const rawHost = req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.host || '';
+  const hostname = rawHost.split(':')[0].toLowerCase();
   const isLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1');
 
   let subdomain = '';
@@ -34,18 +35,63 @@ export async function middleware(req: NextRequest) {
       subdomain = parts[0];
     }
   } else {
-    // Production domain matching
-    // Use NEXT_PUBLIC_APP_URL if available, otherwise try to extract from hostname
-    let baseDomain = process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : '';
-    
-    // Fallbacks for known deployments if env var isn't set
-    if (!baseDomain) {
-      const expectedDomain = process.env.NEXT_PUBLIC_DOMAIN_BASE || 'qmova.com';
-      if (hostname.includes(expectedDomain)) baseDomain = expectedDomain;
+    // Check known base domains
+    const baseCandidates: string[] = [];
+
+    const envAppUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+    if (envAppUrl) {
+      try {
+        baseCandidates.push(new URL(envAppUrl).hostname.toLowerCase());
+      } catch {}
+    }
+    const envDomainBase = process.env.NEXT_PUBLIC_DOMAIN_BASE || process.env.DOMAIN_BASE;
+    if (envDomainBase) {
+      baseCandidates.push(envDomainBase.toLowerCase());
     }
 
-    if (baseDomain && hostname.endsWith(`.${baseDomain}`)) {
-      subdomain = hostname.replace(`.${baseDomain}`, '');
+    // Known production fallbacks
+    baseCandidates.push('qmova.yqbuddy.com');
+    baseCandidates.push('qmova.com');
+
+    // Find first matching base domain
+    for (const base of baseCandidates) {
+      if (hostname.endsWith(`.${base}`)) {
+        subdomain = hostname.slice(0, hostname.length - base.length - 1);
+        break;
+      }
+    }
+
+    // Generic fallback for subdomains if hostname has 3+ parts and not a reserved prefix
+    if (!subdomain) {
+      const parts = hostname.split('.');
+      if (parts.length >= 3 && !['www', 'api', 'evo'].includes(parts[0])) {
+        subdomain = parts[0];
+      }
+    }
+  }
+
+  // Handle Next.js internal data fetching requests (_next/data)
+  if (url.pathname.startsWith('/_next/data/')) {
+    const parts = url.pathname.split('/');
+    if (parts.length >= 4) {
+      const buildId = parts[3];
+      const dataSubPath = parts.slice(4).join('/');
+
+      // Path-based tenant: /_next/data/[buildId]/t/[subdomain]/...
+      if (dataSubPath.startsWith('t/')) {
+        const tParts = dataSubPath.split('/');
+        if (tParts.length >= 3) {
+          const pathSub = tParts[1];
+          const rest = tParts.slice(2).join('/');
+          url.pathname = `/_next/data/${buildId}/_tenant/${pathSub}/${rest}`;
+          return NextResponse.rewrite(url);
+        }
+      }
+      // Subdomain-based tenant: /_next/data/[buildId]/...
+      else if (subdomain && subdomain !== 'www' && !dataSubPath.startsWith('_tenant') && !dataSubPath.startsWith('dashboard') && !dataSubPath.startsWith('super-admin')) {
+        url.pathname = `/_next/data/${buildId}/_tenant/${subdomain}/${dataSubPath}`;
+        return NextResponse.rewrite(url);
+      }
     }
   }
 

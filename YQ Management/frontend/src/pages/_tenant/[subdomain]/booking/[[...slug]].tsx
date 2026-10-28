@@ -1185,7 +1185,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                     const payMode =
                       pendingVisit?.flow?.checkinPayMode ||
                       (services.find((x: any) => x.id === pendingVisit?.serviceId) as any)?.serviceFlow?.checkinPayMode ||
-                      'BOTH';
+                      'COUNTER_ONLY';
                     // STRIPE_ONLY requires payment online, so no skip button
                     if (payMode === 'STRIPE_ONLY') return undefined;
                     // BOTH or COUNTER_ONLY allow skip and pay later at counter
