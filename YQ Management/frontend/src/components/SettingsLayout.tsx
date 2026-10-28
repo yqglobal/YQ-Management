@@ -1,7 +1,7 @@
 import React from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from './AdminLayout';
-import { Workflow, CreditCard, Building, Box, User, Users, LayoutDashboard } from 'lucide-react';
+import { Workflow, CreditCard, Building, Box, User, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from './AuthContext';
 
@@ -19,7 +19,6 @@ const settingsNavLinks = [
   { label: 'Operations',      href: '/dashboard/settings/operations',   icon: <Box className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Integrations',    href: '/dashboard/settings/integrations', icon: <Workflow className="w-4 h-4" strokeWidth={1.5} /> },
   { label: 'Payments',        href: '/dashboard/settings/payments',     icon: <CreditCard className="w-4 h-4" strokeWidth={1.5} /> },
-  { label: 'Staff View',      href: '/dashboard/settings/staff-view',   icon: <LayoutDashboard className="w-4 h-4" strokeWidth={1.5} /> },
 ];
 
 export default function SettingsLayout({ children, pageTitle = 'Settings', pageSubtitle = '' }: SettingsLayoutProps) {

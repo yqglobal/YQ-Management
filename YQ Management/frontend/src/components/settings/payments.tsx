@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { 
   CreditCard, 
   ExternalLink, 
@@ -18,7 +18,6 @@ import { toast } from 'sonner';
 import { ConfirmModal } from '../modals/ConfirmModal';
 
 export default function StripePaymentsSettings() {
-  const queryClient = useQueryClient();
   const [isDisconnectModalOpen, setIsDisconnectModalOpen] = useState(false);
 
   const { data: status, isLoading, refetch } = useQuery({
@@ -28,7 +27,7 @@ export default function StripePaymentsSettings() {
 
   const connectMutation = useMutation({
     mutationFn: () => fetchApi('/tenant-payments/connect', { method: 'POST' }),
-    onSuccess: (data: any) => {
+    onSuccess: (data: { url?: string }) => {
       if (data.url) {
         window.location.href = data.url; // Redirect to Stripe Onboarding
       } else {
@@ -61,15 +60,9 @@ export default function StripePaymentsSettings() {
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                   Stripe Connect
                 </h2>
-                {status?.isTestMode ? (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
-                    ⚡ Test Mode
-                  </span>
-                ) : (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-                    ● Live Mode
-                  </span>
-                )}
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                  ● Live Mode
+                </span>
               </div>
               <p className="text-sm text-gray-500 dark:text-zinc-400 max-w-2xl leading-relaxed">
                 Accept credit cards, Apple Pay, and Google Pay from your customers. Payouts are automatically routed to your bank account.
@@ -102,18 +95,6 @@ export default function StripePaymentsSettings() {
                   <p>YQ Management partners with Stripe to ensure PCI compliance. We do not store credit card details on our servers.</p>
                 </div>
               </div>
-
-              {status?.isTestMode && (
-                <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-500/10 p-4 rounded-xl text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800/40 w-full text-sm">
-                  <span className="text-lg">💡</span>
-                  <div>
-                    <p className="font-semibold mb-0.5">Local Development Tip</p>
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      When redirected to Stripe in Test Mode, look for the banner button at the top that says <strong>&quot;Skip this account form&quot;</strong> or <strong>&quot;Use test account&quot;</strong> to instantly activate test payments without entering real bank or personal information.
-                    </p>
-                  </div>
-                </div>
-              )}
 
               <button
                 onClick={() => connectMutation.mutate()}
