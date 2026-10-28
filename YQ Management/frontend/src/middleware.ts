@@ -53,19 +53,27 @@ export async function middleware(req: NextRequest) {
     baseCandidates.push('qmova.yqbuddy.com');
     baseCandidates.push('qmova.com');
 
-    // Find first matching base domain
-    for (const base of baseCandidates) {
-      if (hostname.endsWith(`.${base}`)) {
-        subdomain = hostname.slice(0, hostname.length - base.length - 1);
-        break;
-      }
-    }
+    // Deduplicate candidates
+    const uniqueBases = Array.from(new Set(baseCandidates.filter(Boolean)));
 
-    // Generic fallback for subdomains if hostname has 3+ parts and not a reserved prefix
-    if (!subdomain) {
-      const parts = hostname.split('.');
-      if (parts.length >= 3 && !['www', 'api', 'evo'].includes(parts[0])) {
-        subdomain = parts[0];
+    // If hostname exactly matches any apex/root domain, it is NOT a tenant subdomain
+    const isRootDomain = uniqueBases.some(base => hostname === base);
+
+    if (!isRootDomain) {
+      // Find first matching base domain for subdomains
+      for (const base of uniqueBases) {
+        if (hostname.endsWith(`.${base}`)) {
+          subdomain = hostname.slice(0, hostname.length - base.length - 1);
+          break;
+        }
+      }
+
+      // Generic fallback for subdomains if hostname has 3+ parts and not a reserved prefix
+      if (!subdomain) {
+        const parts = hostname.split('.');
+        if (parts.length >= 3 && !['www', 'api', 'evo', 'app', 'qmova'].includes(parts[0])) {
+          subdomain = parts[0];
+        }
       }
     }
   }
@@ -107,8 +115,34 @@ export async function middleware(req: NextRequest) {
   }
 
   // Global paths that should never be rewritten to a tenant folder
-  const globalPaths = ['/login', '/register', '/onboarding', '/dashboard', '/super-admin', '/404'];
-  const isGlobalPath = globalPaths.some(p => url.pathname.startsWith(p) || url.pathname === p);
+  const globalPaths = [
+    '/',
+    '/login',
+    '/register',
+    '/onboarding',
+    '/dashboard',
+    '/super-admin',
+    '/features',
+    '/pricing',
+    '/about',
+    '/contact',
+    '/support',
+    '/status',
+    '/blog',
+    '/changelog',
+    '/docs',
+    '/book-demo',
+    '/privacy',
+    '/terms',
+    '/security',
+    '/trust',
+    '/cookies',
+    '/refund-policy',
+    '/data-request',
+    '/for',
+    '/404',
+  ];
+  const isGlobalPath = globalPaths.some(p => p === '/' ? url.pathname === '/' : (url.pathname.startsWith(p) || url.pathname === p));
 
   // Rewrite to the _tenant dynamic route for subdomains
   if (subdomain && subdomain !== 'www' && !url.pathname.startsWith('/_tenant') && !isGlobalPath) {
