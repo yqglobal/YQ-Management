@@ -68,7 +68,9 @@ export class OutboxProcessorService implements OnModuleInit {
     const subscribeToEvents = () => {
       this.redisService.subscriber.subscribe('outbox_events', (err) => {
         if (err) {
-          this.logger.warn(`Failed to subscribe to outbox_events: ${err.message}`);
+          this.logger.warn(
+            `Failed to subscribe to outbox_events: ${err.message}`,
+          );
         } else {
           this.logger.log('Successfully subscribed to outbox_events');
         }

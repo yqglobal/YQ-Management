@@ -131,37 +131,39 @@ export class SuperAdminService {
       ];
     }
 
-    return this.prisma.tenant.findMany({
-      where,
-      include: {
-        _count: {
-          select: {
-            users: true,
-            queues: { where: { status: { not: 'CLOSED' } } },
+    return this.prisma.tenant
+      .findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              users: true,
+              queues: { where: { status: { not: 'CLOSED' } } },
+            },
           },
-        },
-        users: {
-          where: { role: { in: ['OWNER', 'SUPER_ADMIN'] } },
-          select: { email: true },
-        },
-        subscriptions: {
-          include: {
-            plan: {
-              select: { name: true, type: true },
+          users: {
+            where: { role: { in: ['OWNER', 'SUPER_ADMIN'] } },
+            select: { email: true },
+          },
+          subscriptions: {
+            include: {
+              plan: {
+                select: { name: true, type: true },
+              },
             },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    }).then((tenants) =>
-      tenants.map((t) => {
-        const sub = t.subscriptions;
-        return {
-          ...t,
-          subscriptionStatus: sub ? sub.status : 'NO_PLAN',
-        };
-      }),
-    );
+        orderBy: { createdAt: 'desc' },
+      })
+      .then((tenants) =>
+        tenants.map((t) => {
+          const sub = t.subscriptions;
+          return {
+            ...t,
+            subscriptionStatus: sub ? sub.status : 'NO_PLAN',
+          };
+        }),
+      );
   }
 
   async getTenantById(id: string) {
@@ -960,10 +962,19 @@ export class SuperAdminService {
       });
       await tx.blueprintStep.createMany({
         data: source.steps.map(
-          ({ id: _id, blueprintId: _bid, customerView, notificationRules, ...stepData }) => ({
+          ({
+            id: _id,
+            blueprintId: _bid,
+            customerView,
+            notificationRules,
+            ...stepData
+          }) => ({
             ...stepData,
             customerView: customerView === null ? undefined : customerView,
-            notificationRules: notificationRules === null ? undefined : (notificationRules as any),
+            notificationRules:
+              notificationRules === null
+                ? undefined
+                : (notificationRules as any),
             blueprintId: newFlow.id,
           }),
         ),
@@ -1157,9 +1168,13 @@ export class SuperAdminService {
     }
 
     const rawLimits = sub.plan?.limits;
-    const planLimits = typeof rawLimits === 'string' ? JSON.parse(rawLimits) : (rawLimits || {});
+    const planLimits =
+      typeof rawLimits === 'string' ? JSON.parse(rawLimits) : rawLimits || {};
     const rawFeatures = sub.plan?.features;
-    const planFeatures = typeof rawFeatures === 'string' ? JSON.parse(rawFeatures) : (rawFeatures || {});
+    const planFeatures =
+      typeof rawFeatures === 'string'
+        ? JSON.parse(rawFeatures)
+        : rawFeatures || {};
     const subMeta = (sub.metadata as any) || {};
     const customLimits: Record<string, number> = subMeta.customLimits || {};
     const customFeatures: Record<string, boolean | string | number> =

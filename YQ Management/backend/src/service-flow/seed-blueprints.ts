@@ -52,8 +52,7 @@ async function main() {
         where: { id: f.id },
         data: {
           paymentTiming,
-          checkinPayMode:
-            paymentTiming === 'CHECKIN' ? 'COUNTER_ONLY' : null,
+          checkinPayMode: paymentTiming === 'CHECKIN' ? 'COUNTER_ONLY' : null,
         },
       });
 

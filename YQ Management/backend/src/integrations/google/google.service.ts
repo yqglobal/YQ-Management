@@ -655,7 +655,8 @@ export class GoogleService {
             await this.prisma.googleIntegration.update({
               where: { id: integration.id },
               data: {
-                accessToken: credentials.access_token || integration.accessToken,
+                accessToken:
+                  credentials.access_token || integration.accessToken,
                 ...(credentials.refresh_token
                   ? { refreshToken: credentials.refresh_token }
                   : {}),

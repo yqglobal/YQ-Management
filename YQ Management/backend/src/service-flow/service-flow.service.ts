@@ -581,7 +581,12 @@ export class ServiceFlowService {
         },
       });
 
-      if (data.expectedDuration && !data.isOptional && !data.deferredByHours && !data.deferredByDays) {
+      if (
+        data.expectedDuration &&
+        !data.isOptional &&
+        !data.deferredByHours &&
+        !data.deferredByDays
+      ) {
         totalDuration += data.expectedDuration;
       }
     }
@@ -590,7 +595,7 @@ export class ServiceFlowService {
     if (totalDuration > 0 && serviceId) {
       const existingService = await this.prisma.service.findUnique({
         where: { id: serviceId },
-        select: { expectedDuration: true }
+        select: { expectedDuration: true },
       });
       if (!existingService?.expectedDuration) {
         await this.prisma.service.update({

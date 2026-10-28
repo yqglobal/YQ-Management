@@ -72,7 +72,8 @@ export class PaymentsService {
     }
 
     // If price is stored in cents (>= 1000), convert to Rands for processor
-    const amountInCurrency = finalAmount >= 1000 ? finalAmount / 100 : finalAmount;
+    const amountInCurrency =
+      finalAmount >= 1000 ? finalAmount / 100 : finalAmount;
     const formattedAmount = amountInCurrency.toFixed(2);
 
     // 1. Create a pending transaction

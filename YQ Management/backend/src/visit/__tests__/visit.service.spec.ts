@@ -54,7 +54,11 @@ describe('VisitService', () => {
         { provide: SubscriptionService, useValue: {} },
         {
           provide: AppointmentService,
-          useValue: { updateAvgActualDuration: jest.fn().mockReturnValue(Promise.resolve()) },
+          useValue: {
+            updateAvgActualDuration: jest
+              .fn()
+              .mockReturnValue(Promise.resolve()),
+          },
         },
         { provide: CommunicationService, useValue: {} },
         { provide: ServiceService, useValue: {} },
@@ -208,7 +212,10 @@ describe('VisitService', () => {
         serviceStart: mockVisit.serviceStart,
       });
       mockPrismaService.visitStep.updateMany.mockResolvedValue({ count: 1 });
-      mockPrismaService.service.findUnique.mockResolvedValue({ id: 's1', expectedDuration: 15 });
+      mockPrismaService.service.findUnique.mockResolvedValue({
+        id: 's1',
+        expectedDuration: 15,
+      });
       mockPrismaService.service.update.mockResolvedValue({});
 
       const result = await service.completeService('v1', 't1');
@@ -253,7 +260,9 @@ describe('VisitService', () => {
       mockPrismaService.visit.findUnique.mockResolvedValue(mockVisit);
       const visitStepService = (service as any).visitStepService;
 
-      await service.completeService('v1', 't1', 'op1', { forceComplete: false });
+      await service.completeService('v1', 't1', 'op1', {
+        forceComplete: false,
+      });
 
       expect(visitStepService.advanceStep).toHaveBeenCalledWith(
         't1',
@@ -341,4 +350,3 @@ describe('VisitService', () => {
     });
   });
 });
-

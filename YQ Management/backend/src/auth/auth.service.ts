@@ -55,7 +55,12 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     if (purpose === 'signup') {
-      await this.redisService.client.set(`otp:${purpose}:${email}`, otp, 'EX', 10 * 60);
+      await this.redisService.client.set(
+        `otp:${purpose}:${email}`,
+        otp,
+        'EX',
+        10 * 60,
+      );
     } else {
       await this.prisma.user.update({
         where: { email },
@@ -76,7 +81,9 @@ export class AuthService {
     intent: 'login' | 'signup' | 'reset' = 'login',
   ) {
     if (intent === 'signup') {
-      const storedOtp = await this.redisService.client.get(`otp:${intent}:${email}`);
+      const storedOtp = await this.redisService.client.get(
+        `otp:${intent}:${email}`,
+      );
       if (
         (!storedOtp || storedOtp !== otp) &&
         !(email.endsWith('@yqbuddy.com') && otp === '123456')
@@ -177,11 +184,7 @@ export class AuthService {
 
       const effectiveExpiry = tokenExpiry || new Date(Date.now() + 3600 * 1000);
 
-      if (
-        user &&
-        user.role === 'OWNER' &&
-        (accessToken || refreshToken)
-      ) {
+      if (user && user.role === 'OWNER' && (accessToken || refreshToken)) {
         await this.prisma.googleIntegration.upsert({
           where: {
             tenantId_email: {
@@ -380,8 +383,13 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found');
 
-    if (invitation.email && invitation.email.toLowerCase() !== user.email.toLowerCase()) {
-      throw new BadRequestException(`This invitation is intended for ${invitation.email}. Please login with that email address.`);
+    if (
+      invitation.email &&
+      invitation.email.toLowerCase() !== user.email.toLowerCase()
+    ) {
+      throw new BadRequestException(
+        `This invitation is intended for ${invitation.email}. Please login with that email address.`,
+      );
     }
 
     if (user.tenantId === invitation.tenantId) {

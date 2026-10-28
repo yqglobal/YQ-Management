@@ -6,7 +6,10 @@
  * - National leading zero: 09747808461
  * - Formatting characters: spaces, dashes, parentheses
  */
-export function getPhoneVariants(phone: string): { variants: string[]; digits: string } {
+export function getPhoneVariants(phone: string): {
+  variants: string[];
+  digits: string;
+} {
   const variants = new Set<string>();
   const trimmed = (phone || '').trim();
   if (!trimmed) {

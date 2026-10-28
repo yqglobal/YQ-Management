@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsBoolean, IsObject, IsIn } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsBoolean,
+  IsObject,
+  IsIn,
+} from 'class-validator';
 import { WhatsappProvider } from '@prisma/client';
 
 export class UpdateTenantDto {

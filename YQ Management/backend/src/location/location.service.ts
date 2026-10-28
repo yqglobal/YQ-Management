@@ -51,10 +51,7 @@ export class LocationService {
   async findAll(tenantId: string, reqUser?: any) {
     const where: any = { tenantId };
 
-    if (
-      reqUser &&
-      (reqUser.role === 'MANAGER' || reqUser.role === 'MANAGER')
-    ) {
+    if (reqUser && (reqUser.role === 'MANAGER' || reqUser.role === 'MANAGER')) {
       const dbUser = await this.prisma.user.findUnique({
         where: { id: reqUser.userId || reqUser.sub },
       });
@@ -76,10 +73,7 @@ export class LocationService {
   async findOne(id: string, tenantId: string, reqUser?: any) {
     const where: any = { id, tenantId };
 
-    if (
-      reqUser &&
-      (reqUser.role === 'MANAGER' || reqUser.role === 'MANAGER')
-    ) {
+    if (reqUser && (reqUser.role === 'MANAGER' || reqUser.role === 'MANAGER')) {
       const dbUser = await this.prisma.user.findUnique({
         where: { id: reqUser.userId || reqUser.sub },
       });
@@ -145,10 +139,7 @@ export class LocationService {
     const queues = await this.prisma.queue.findMany({
       where: {
         tenantId,
-        OR: [
-          { locationId: id },
-          { services: { some: { locationId: id } } },
-        ],
+        OR: [{ locationId: id }, { services: { some: { locationId: id } } }],
       },
       include: {
         services: true,
@@ -212,7 +203,8 @@ export class LocationService {
       counts: {
         services: services.length,
         queues: queues.length,
-        exclusiveQueues: queueDetails.filter((q) => q.exclusiveToLocation).length,
+        exclusiveQueues: queueDetails.filter((q) => q.exclusiveToLocation)
+          .length,
         activeVisits: activeVisitsCount,
         totalVisits: totalVisitsCount,
         upcomingAppointments: upcomingAppointmentsCount,
@@ -498,4 +490,3 @@ export class LocationService {
     });
   }
 }
-

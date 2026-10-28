@@ -22,13 +22,7 @@ import { Throttle } from '@nestjs/throttler';
 
 @Controller('users')
 @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard, PermissionsGuard)
-@Roles(
-  Role.OWNER,
-  Role.SUPER_ADMIN,
-  Role.ADMIN,
-  Role.MANAGER,
-  Role.STAFF,
-)
+@Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.STAFF)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -107,7 +101,13 @@ export class UsersController {
   @Put('me')
   async updateMe(
     @Req() req: AuthenticatedRequest,
-    @Body() body: { name?: string; phone?: string; description?: string; password?: string }
+    @Body()
+    body: {
+      name?: string;
+      phone?: string;
+      description?: string;
+      password?: string;
+    },
   ) {
     return this.usersService.updateMe(req.user.userId, body);
   }

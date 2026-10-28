@@ -292,7 +292,9 @@ export class VisitService {
         );
       }
     } catch (e) {
-      this.logger.warn(`Failed during JIT auto-sweep for tenant ${tenantId}: ${e}`);
+      this.logger.warn(
+        `Failed during JIT auto-sweep for tenant ${tenantId}: ${e}`,
+      );
     }
   }
 
@@ -522,7 +524,8 @@ export class VisitService {
     // Set a high default limit if pagination is implicitly bypassed (records or analytics)
     const limitNum =
       parseInt(
-        limit || (scope === 'analytics' || scope === 'records' ? '1000' : '100'),
+        limit ||
+          (scope === 'analytics' || scope === 'records' ? '1000' : '100'),
         10,
       ) || 100;
     const skip = (pageNum - 1) * limitNum;
@@ -1427,7 +1430,7 @@ export class VisitService {
         const v = await tx.visit.create({
           data: {
             tenantId,
-            customerId: customerId!,
+            customerId: customerId,
             appointmentId: appointment.id,
             locationId: appointment.locationId,
             queueId,
@@ -2229,7 +2232,12 @@ export class VisitService {
     }
 
     const clean = tokenValue.replace(/^#/, '').trim();
-    const variants = new Set([tokenValue, clean, clean.toUpperCase(), clean.toLowerCase()]);
+    const variants = new Set([
+      tokenValue,
+      clean,
+      clean.toUpperCase(),
+      clean.toLowerCase(),
+    ]);
 
     if (clean.includes('-')) {
       variants.add(clean.replace(/-/g, ''));
@@ -2300,7 +2308,10 @@ export class VisitService {
           select: { name: true },
         });
         const currentLocName = targetLoc?.name || 'the selected location';
-        const visitLocName = visit.location?.name || visit.queue?.location?.name || 'Another Location';
+        const visitLocName =
+          visit.location?.name ||
+          visit.queue?.location?.name ||
+          'Another Location';
         return {
           valid: false,
           status: 'WRONG_LOCATION',
@@ -2427,7 +2438,11 @@ export class VisitService {
     } else {
       // 2. Walk-in created prior to today that was not serviced today
       const createdTime = new Date(visit.createdAt);
-      if (createdTime < startOfDay && !visit.checkInTime && visit.currentState !== 'IN_SERVICE') {
+      if (
+        createdTime < startOfDay &&
+        !visit.checkInTime &&
+        visit.currentState !== 'IN_SERVICE'
+      ) {
         return {
           valid: false,
           isPast: true,

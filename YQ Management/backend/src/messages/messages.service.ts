@@ -26,7 +26,10 @@ export class MessagesService {
 
     const customerPhone = token.customer?.phone;
     const cleanDigits = customerPhone ? customerPhone.replace(/\D/g, '') : null;
-    const lastDigits = cleanDigits && cleanDigits.length >= 7 ? cleanDigits.slice(-9) : cleanDigits;
+    const lastDigits =
+      cleanDigits && cleanDigits.length >= 7
+        ? cleanDigits.slice(-9)
+        : cleanDigits;
 
     const messageOrConditions: any[] = [{ visitId }];
     if (customerPhone) messageOrConditions.push({ customerPhone });
@@ -71,7 +74,10 @@ export class MessagesService {
     }
 
     const existingMessages = new Set(
-      messages.map((m) => `${m.body.trim().slice(0, 40)}_${new Date(m.createdAt).getMinutes()}`),
+      messages.map(
+        (m) =>
+          `${m.body.trim().slice(0, 40)}_${new Date(m.createdAt).getMinutes()}`,
+      ),
     );
 
     const automatedMessages = commLogs
@@ -95,11 +101,17 @@ export class MessagesService {
         whatsappId: log.providerId || null,
         isAutomated: true,
         automatedType: log.type,
-        status: log.status === 'SENT' || log.status === 'DELIVERED' ? 'delivered' : 'sent',
+        status:
+          log.status === 'SENT' || log.status === 'DELIVERED'
+            ? 'delivered'
+            : 'sent',
       }));
 
     const all = [...messages, ...automatedMessages];
-    all.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    all.sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
     return all;
   }
 
@@ -190,7 +202,10 @@ export class MessagesService {
     });
 
     const cleanDigits = phone ? phone.replace(/\D/g, '') : null;
-    const lastDigits = cleanDigits && cleanDigits.length >= 7 ? cleanDigits.slice(-9) : cleanDigits;
+    const lastDigits =
+      cleanDigits && cleanDigits.length >= 7
+        ? cleanDigits.slice(-9)
+        : cleanDigits;
 
     const messageOrConditions: any[] = [{ customerPhone: phone }];
     if (cleanDigits) {
@@ -229,7 +244,10 @@ export class MessagesService {
     });
 
     const existingMessages = new Set(
-      messages.map((m) => `${m.body.trim().slice(0, 40)}_${new Date(m.createdAt).getMinutes()}`),
+      messages.map(
+        (m) =>
+          `${m.body.trim().slice(0, 40)}_${new Date(m.createdAt).getMinutes()}`,
+      ),
     );
 
     const automatedMessages = commLogs
@@ -253,11 +271,17 @@ export class MessagesService {
         whatsappId: log.providerId || null,
         isAutomated: true,
         automatedType: log.type,
-        status: log.status === 'SENT' || log.status === 'DELIVERED' ? 'delivered' : 'sent',
+        status:
+          log.status === 'SENT' || log.status === 'DELIVERED'
+            ? 'delivered'
+            : 'sent',
       }));
 
     const all = [...messages, ...automatedMessages];
-    all.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    all.sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
     return all;
   }
 

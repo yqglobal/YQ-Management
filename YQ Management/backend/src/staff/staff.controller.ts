@@ -116,10 +116,7 @@ export class StaffController {
   @Post(':id/desk-token')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.OWNER, Role.ADMIN, Role.MANAGER)
-  generateDeskToken(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  generateDeskToken(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.staffService.generateDeskToken(id, req.user.tenantId);
   }
 
@@ -129,10 +126,7 @@ export class StaffController {
   @Delete(':id/desk-token')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.OWNER, Role.ADMIN, Role.MANAGER)
-  revokeDeskToken(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  revokeDeskToken(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.staffService.revokeDeskToken(id, req.user.tenantId);
   }
 

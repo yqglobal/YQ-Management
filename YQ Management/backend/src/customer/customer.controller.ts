@@ -28,10 +28,7 @@ export class CustomerController {
   }
 
   @Get('by-phone')
-  findByPhone(
-    @Req() req: AuthenticatedRequest,
-    @Query('phone') phone: string,
-  ) {
+  findByPhone(@Req() req: AuthenticatedRequest, @Query('phone') phone: string) {
     if (!phone) {
       throw new BadRequestException('Phone parameter is required');
     }
@@ -44,7 +41,11 @@ export class CustomerController {
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.customerService.findAll(req.user.tenantId, cursor, limit ? parseInt(limit, 10) : undefined);
+    return this.customerService.findAll(
+      req.user.tenantId,
+      cursor,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Get(':id')
@@ -62,7 +63,15 @@ export class CustomerController {
   update(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { isVip?: boolean; isBlocked?: boolean; notes?: string; name?: string; phone?: string; email?: string }
+    @Body()
+    body: {
+      isVip?: boolean;
+      isBlocked?: boolean;
+      notes?: string;
+      name?: string;
+      phone?: string;
+      email?: string;
+    },
   ) {
     return this.customerService.update(id, req.user.tenantId, body);
   }

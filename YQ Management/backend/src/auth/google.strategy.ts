@@ -68,7 +68,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google', 6) {
       return done(new Error('No email found in Google profile'));
     }
 
-    const expiresInSeconds = params?.expires_in ? Number(params.expires_in) : 3600;
+    const expiresInSeconds = params?.expires_in
+      ? Number(params.expires_in)
+      : 3600;
     const tokenExpiry = new Date(Date.now() + expiresInSeconds * 1000);
 
     const intent = req.query.state || 'login';

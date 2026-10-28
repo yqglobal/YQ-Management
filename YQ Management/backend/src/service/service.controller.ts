@@ -101,10 +101,7 @@ export class ServiceController {
   @UseGuards(JwtAuthGuard)
   @Get(':id/deletion-impact')
   @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
-  getDeletionImpact(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  getDeletionImpact(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.serviceService.getDeletionImpact(id, req.user.tenantId);
   }
 
@@ -116,8 +113,10 @@ export class ServiceController {
     @Param('id') id: string,
     @Res() res: any,
   ) {
-    const { filename, buffer } =
-      await this.serviceService.exportServiceDataZip(id, req.user.tenantId);
+    const { filename, buffer } = await this.serviceService.exportServiceDataZip(
+      id,
+      req.user.tenantId,
+    );
 
     res.set({
       'Content-Type': 'application/zip',

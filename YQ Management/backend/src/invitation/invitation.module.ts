@@ -10,4 +10,3 @@ import { SubscriptionModule } from '../subscription/subscription.module';
   exports: [InvitationService],
 })
 export class InvitationModule {}
-

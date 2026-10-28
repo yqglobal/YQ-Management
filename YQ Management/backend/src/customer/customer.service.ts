@@ -136,9 +136,9 @@ export class CustomerService {
     let gender: string | null = null;
     for (const v of customer.visits || []) {
       // Map visitSteps to steps for frontend convenience
-      (v as any).steps = (v as any).visitSteps;
-      const meta = (v.metadata as any) || {};
-      const form = (v.formResponses as any) || {};
+      v.steps = v.visitSteps;
+      const meta = v.metadata || {};
+      const form = v.formResponses || {};
       if (!age && (meta.age || form.age)) {
         const parsed = parseInt(meta.age || form.age, 10);
         if (!isNaN(parsed)) age = parsed;
@@ -182,9 +182,9 @@ export class CustomerService {
     let gender: string | null = null;
     for (const v of customer.visits || []) {
       // Map visitSteps to steps for frontend convenience
-      (v as any).steps = (v as any).visitSteps;
-      const meta = (v.metadata as any) || {};
-      const form = (v.formResponses as any) || {};
+      v.steps = v.visitSteps;
+      const meta = v.metadata || {};
+      const form = v.formResponses || {};
       if (!age && (meta.age || form.age)) {
         const parsed = parseInt(meta.age || form.age, 10);
         if (!isNaN(parsed)) age = parsed;

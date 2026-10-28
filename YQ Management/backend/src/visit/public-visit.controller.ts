@@ -363,24 +363,25 @@ export class PublicVisitController {
 
         if (service && service.basePrice && service.basePrice > 0) {
           const flow = service.serviceFlow;
-          const allowsOffline = flow?.isActive 
-             ? flow.checkinPayMode !== 'STRIPE_ONLY'
-             : (service.paymentMode === 'PAY_AT_SERVICE' || service.paymentMode === 'OPTIONAL_PREPAY');
+          const allowsOffline = flow?.isActive
+            ? flow.checkinPayMode !== 'STRIPE_ONLY'
+            : service.paymentMode === 'PAY_AT_SERVICE' ||
+              service.paymentMode === 'OPTIONAL_PREPAY';
 
           if (allowsOffline) {
-          await this.prisma.bookingPayment.create({
-            data: {
-              tenantId: primaryVisit.tenantId,
-              visitId: primaryVisit.id,
-              customerId: primaryVisit.customerId,
-              amount: service.basePrice,
-              platformFeeAmount: 0, // No platform fee for offline payments
-              tenantNetAmount: service.basePrice,
-              currency: service.priceCurrency || 'ZAR',
-              status: 'PENDING',
-              stripePaymentMethodType: 'OFFLINE',
-            },
-          });
+            await this.prisma.bookingPayment.create({
+              data: {
+                tenantId: primaryVisit.tenantId,
+                visitId: primaryVisit.id,
+                customerId: primaryVisit.customerId,
+                amount: service.basePrice,
+                platformFeeAmount: 0, // No platform fee for offline payments
+                tenantNetAmount: service.basePrice,
+                currency: service.priceCurrency || 'ZAR',
+                status: 'PENDING',
+                stripePaymentMethodType: 'OFFLINE',
+              },
+            });
           }
         }
       } catch (e) {

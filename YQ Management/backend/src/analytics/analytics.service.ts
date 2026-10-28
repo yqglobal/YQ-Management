@@ -182,9 +182,7 @@ export class AnalyticsService {
         ? Math.floor(totalServiceTimeSecs / serviceTimeCount / 60)
         : 0;
     const csatScore =
-      ratingCount > 0
-        ? Number((totalRating / ratingCount).toFixed(1))
-        : 0;
+      ratingCount > 0 ? Number((totalRating / ratingCount).toFixed(1)) : 0;
     const dropOffRate =
       totalCompleted + totalMissed > 0
         ? Math.round((totalMissed / (totalCompleted + totalMissed)) * 100)
@@ -608,9 +606,7 @@ export class AnalyticsService {
         feedbackText: t.feedbackText,
         date: t.completedAt || t.createdAt,
       }))
-      .sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-      );
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return {
       kpis: {

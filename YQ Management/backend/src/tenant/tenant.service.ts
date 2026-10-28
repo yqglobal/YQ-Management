@@ -230,7 +230,13 @@ export class TenantService {
       include: {
         customer: { select: { name: true } },
         queue: { select: { name: true } },
-        service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true } },
+        service: {
+          select: {
+            name: true,
+            expectedDuration: true,
+            emaExpectedDuration: true,
+          },
+        },
       },
       take: 30,
     });
@@ -474,17 +480,20 @@ export class TenantService {
     });
     if (!tenant) throw new NotFoundException('Tenant not found');
 
-    const [userCount, staffCount, flowCount, onlineVisitCount] = await Promise.all([
-      this.prisma.user.count({ where: { tenantId } }),
-      this.prisma.staff.count({ where: { tenantId } }),
-      this.prisma.serviceFlow.count({ where: { tenantId } }),
-      this.prisma.visit.count({
-        where: {
-          tenantId,
-          source: { in: ['ONLINE', 'QR_KIOSK', 'PORTAL', 'SELF_SERVE'] as any },
-        },
-      }),
-    ]);
+    const [userCount, staffCount, flowCount, onlineVisitCount] =
+      await Promise.all([
+        this.prisma.user.count({ where: { tenantId } }),
+        this.prisma.staff.count({ where: { tenantId } }),
+        this.prisma.serviceFlow.count({ where: { tenantId } }),
+        this.prisma.visit.count({
+          where: {
+            tenantId,
+            source: {
+              in: ['ONLINE', 'QR_KIOSK', 'PORTAL', 'SELF_SERVE'] as any,
+            },
+          },
+        }),
+      ]);
 
     const hasJourney =
       flowCount > 0 ||
@@ -498,13 +507,12 @@ export class TenantService {
       (tenant.invitations && tenant.invitations.length > 0);
 
     const custExp =
-      typeof tenant.customerExperience === 'object' && tenant.customerExperience !== null
+      typeof tenant.customerExperience === 'object' &&
+      tenant.customerExperience !== null
         ? (tenant.customerExperience as any)
         : {};
 
-    const hasSharedQr =
-      !!custExp.portalShared ||
-      onlineVisitCount > 0;
+    const hasSharedQr = !!custExp.portalShared || onlineVisitCount > 0;
 
     return {
       queueCount: tenant.queues.length,
@@ -512,7 +520,9 @@ export class TenantService {
       locationCount: tenant.locations.length,
       staffCount: hasTeam ? 1 : 0,
       whatsappConnected:
-        tenant.whatsappConnected || !!tenant.whatsappInstanceId || !!tenant.whatsappPhone,
+        tenant.whatsappConnected ||
+        !!tenant.whatsappInstanceId ||
+        !!tenant.whatsappPhone,
       hasSharedQr,
       journeyCount: hasJourney ? 1 : 0,
       hasJourney,
@@ -533,7 +543,13 @@ export class TenantService {
         visits: {
           where: {
             currentState: {
-              in: ['WAITING', 'CHECKED_IN', 'CALLED', 'IN_SERVICE', 'SERVING'] as any,
+              in: [
+                'WAITING',
+                'CHECKED_IN',
+                'CALLED',
+                'IN_SERVICE',
+                'SERVING',
+              ] as any,
             },
           },
           select: { id: true },

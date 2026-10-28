@@ -89,12 +89,19 @@ export class AuthController {
     @Body() body: { email: string; purpose: 'signup' | 'login' | 'reset' },
   ) {
     if (body.purpose === 'signup') {
-      const exists = await this.redisService.client.exists(`pending_signup:${body.email}`);
+      const exists = await this.redisService.client.exists(
+        `pending_signup:${body.email}`,
+      );
       if (!exists) {
-        throw new UnauthorizedException('Signup session expired. Please register again.');
+        throw new UnauthorizedException(
+          'Signup session expired. Please register again.',
+        );
       }
       // Extend the pending signup session by another 15 minutes
-      await this.redisService.client.expire(`pending_signup:${body.email}`, 15 * 60);
+      await this.redisService.client.expire(
+        `pending_signup:${body.email}`,
+        15 * 60,
+      );
     }
 
     await this.authService.generateAndSendOTP(
@@ -179,7 +186,7 @@ export class AuthController {
       `pending_signup:${body.email}`,
       JSON.stringify(pendingSignup),
       'EX',
-      15 * 60
+      15 * 60,
     );
 
     await this.authService.generateAndSendOTP(body.email, 'signup');
@@ -195,17 +202,17 @@ export class AuthController {
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
   ) {
-    const pendingSignupRaw = await this.redisService.client.get(`pending_signup:${body.email}`);
+    const pendingSignupRaw = await this.redisService.client.get(
+      `pending_signup:${body.email}`,
+    );
     if (!pendingSignupRaw) {
-      throw new UnauthorizedException('Signup session expired. Please register again.');
+      throw new UnauthorizedException(
+        'Signup session expired. Please register again.',
+      );
     }
     const pendingSignup = JSON.parse(pendingSignupRaw);
 
-    await this.authService.verifyOTP(
-      body.email,
-      body.otp,
-      'signup',
-    );
+    await this.authService.verifyOTP(body.email, body.otp, 'signup');
 
     let user = await this.usersService.findOneByEmail(body.email);
     if (!user) {
@@ -221,12 +228,22 @@ export class AuthController {
         const tos = await prisma.policy.upsert({
           where: { type_version: { type: 'TERMS_OF_SERVICE', version: '1.0' } },
           update: {},
-          create: { type: 'TERMS_OF_SERVICE', version: '1.0', content: 'Terms of Service v1.0', active: true },
+          create: {
+            type: 'TERMS_OF_SERVICE',
+            version: '1.0',
+            content: 'Terms of Service v1.0',
+            active: true,
+          },
         });
         const privacy = await prisma.policy.upsert({
           where: { type_version: { type: 'PRIVACY_POLICY', version: '1.0' } },
           update: {},
-          create: { type: 'PRIVACY_POLICY', version: '1.0', content: 'Privacy Policy v1.0', active: true },
+          create: {
+            type: 'PRIVACY_POLICY',
+            version: '1.0',
+            content: 'Privacy Policy v1.0',
+            active: true,
+          },
         });
         await prisma.policyAcceptance.createMany({
           data: [
@@ -236,7 +253,10 @@ export class AuthController {
           skipDuplicates: true,
         });
       } catch (e) {
-        new Logger(AuthController.name).warn('Failed to auto-record policy acceptance on signup', e);
+        new Logger(AuthController.name).warn(
+          'Failed to auto-record policy acceptance on signup',
+          e,
+        );
       }
     }
 

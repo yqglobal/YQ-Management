@@ -37,7 +37,11 @@ export class InvitationService {
     const [currentUsersCount, pendingInvitesCount] = await Promise.all([
       this.prisma.user.count({ where: { tenantId } }),
       this.prisma.invitation.count({
-        where: { tenantId, used: false, ...(data.email ? { email: { not: data.email } } : {}) },
+        where: {
+          tenantId,
+          used: false,
+          ...(data.email ? { email: { not: data.email } } : {}),
+        },
       }),
     ]);
     await this.subscriptionService.checkLimit(

@@ -70,8 +70,7 @@ export class UsersService {
     // If ownerId not set on Tenant, fall back to first OWNER
     const resolvedOwnerId =
       ownerId ??
-      (activeUsers.find((u) => u.role === 'OWNER') || activeUsers[0])
-        ?.id ??
+      (activeUsers.find((u) => u.role === 'OWNER') || activeUsers[0])?.id ??
       null;
 
     const staffList: any[] = activeUsers.map((u) => ({
@@ -96,9 +95,8 @@ export class UsersService {
 
     const now = new Date();
     const tenantAdmin =
-      activeUsers.find(
-        (u) => u.role === 'OWNER' || u.role === 'SUPER_ADMIN',
-      ) || activeUsers[0];
+      activeUsers.find((u) => u.role === 'OWNER' || u.role === 'SUPER_ADMIN') ||
+      activeUsers[0];
 
     for (const inv of invites) {
       if (
@@ -200,7 +198,11 @@ export class UsersService {
       }),
     ]);
     const totalStaffCount = currentUsersCount + pendingInvitesCount;
-    await this.subscriptionService.checkLimit(tenantId, 'staff', totalStaffCount);
+    await this.subscriptionService.checkLimit(
+      tenantId,
+      'staff',
+      totalStaffCount,
+    );
 
     const handleMakeBookable = async (userId?: string) => {
       if (!data.makeBookable) return;
@@ -468,7 +470,9 @@ export class UsersService {
         allowedPages: data.allowedPages || [],
         ...(data.name !== undefined && { name: data.name }),
         ...(data.phone !== undefined && { phone: data.phone }),
-        ...(data.description !== undefined && { description: data.description }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
       },
       select: {
         id: true,
@@ -691,9 +695,13 @@ export class UsersService {
 
   async updateMe(
     userId: string,
-    data: { name?: string; phone?: string; description?: string; password?: string }
+    data: {
+      name?: string;
+      phone?: string;
+      description?: string;
+      password?: string;
+    },
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const bcrypt = require('bcrypt');
     let hashedPassword;
     if (data.password) {
@@ -705,10 +713,18 @@ export class UsersService {
       data: {
         ...(data.name !== undefined && { name: data.name }),
         ...(data.phone !== undefined && { phone: data.phone }),
-        ...(data.description !== undefined && { description: data.description }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
         ...(hashedPassword !== undefined && { password: hashedPassword }),
       },
-      select: { id: true, name: true, email: true, phone: true, description: true }
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        description: true,
+      },
     });
   }
 }

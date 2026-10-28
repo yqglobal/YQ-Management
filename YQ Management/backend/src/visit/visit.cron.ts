@@ -117,7 +117,10 @@ export class VisitCron {
         include: {
           templateStep: true,
           visit: {
-            include: { customer: { select: { phone: true, name: true } }, tenant: true },
+            include: {
+              customer: { select: { phone: true, name: true } },
+              tenant: true,
+            },
           },
         },
       });
@@ -130,7 +133,8 @@ export class VisitCron {
         if (!rules || !Array.isArray(rules)) continue;
 
         const delayRules = rules.filter(
-          (r: any) => r.trigger === 'DELAY' && typeof r.delayMinutes === 'number'
+          (r: any) =>
+            r.trigger === 'DELAY' && typeof r.delayMinutes === 'number',
         );
         if (delayRules.length === 0) continue;
 
@@ -141,7 +145,11 @@ export class VisitCron {
         const customerPhone = visit?.customer?.phone;
         const tenant = visit?.tenant;
 
-        if (!customerPhone || !tenant?.whatsappConnected || !tenant?.whatsappInstanceId) {
+        if (
+          !customerPhone ||
+          !tenant?.whatsappConnected ||
+          !tenant?.whatsappInstanceId
+        ) {
           continue;
         }
 
@@ -155,9 +163,13 @@ export class VisitCron {
                 customerPhone,
                 message,
               );
-              this.logger.log(`Sent DELAY notification for step ${step.id} to ${customerPhone}`);
+              this.logger.log(
+                `Sent DELAY notification for step ${step.id} to ${customerPhone}`,
+              );
             } catch (e) {
-              this.logger.error(`Failed to send DELAY notification for step ${step.id}: ${e}`);
+              this.logger.error(
+                `Failed to send DELAY notification for step ${step.id}: ${e}`,
+              );
             }
           }
         }
@@ -241,13 +253,9 @@ export class VisitCron {
         const isEndOfDay = localHour === 23 || localHour === 0;
 
         // Query active visits for this location
-        const activeStates: ('WAITING' | 'CHECKED_IN' | 'CALLED' | 'ON_HOLD' | 'PENDING_PAYMENT')[] = [
-          'WAITING',
-          'CHECKED_IN',
-          'CALLED',
-          'ON_HOLD',
-          'PENDING_PAYMENT',
-        ];
+        const activeStates: (
+          'WAITING' | 'CHECKED_IN' | 'CALLED' | 'ON_HOLD' | 'PENDING_PAYMENT'
+        )[] = ['WAITING', 'CHECKED_IN', 'CALLED', 'ON_HOLD', 'PENDING_PAYMENT'];
 
         // If local end-of-day, sweep all active visits for today.
         // Otherwise, sweep any leftover stale visits created before today's start.
@@ -365,9 +373,14 @@ export class VisitCron {
         });
       }
 
-      this.logger.log('Timezone-Aware End-of-Day Visit Sweep completed successfully.');
+      this.logger.log(
+        'Timezone-Aware End-of-Day Visit Sweep completed successfully.',
+      );
     } catch (error) {
-      this.logger.error('Error during Timezone-Aware End-of-Day Visit Sweep:', error);
+      this.logger.error(
+        'Error during Timezone-Aware End-of-Day Visit Sweep:',
+        error,
+      );
     }
   }
 

@@ -63,7 +63,7 @@ describe('VisitService - Temporal Booking & Queue Hygiene Engine', () => {
       const staleVisitIds = [{ id: 'visit-old-1' }, { id: 'visit-old-2' }];
       prisma.visit.findMany
         .mockResolvedValueOnce(staleVisitIds) // stale waiting visits
-        .mockResolvedValueOnce([]) // lingering in_service
+        .mockResolvedValueOnce([]); // lingering in_service
       prisma.appointment.findMany.mockResolvedValueOnce([]); // past scheduled appts
       prisma.visit.updateMany.mockResolvedValue({ count: 2 });
 
@@ -103,7 +103,7 @@ describe('VisitService - Temporal Booking & Queue Hygiene Engine', () => {
     it('should invoke JIT auto-sweep and bind active visit states to today window', async () => {
       const spyAutoSweep = jest
         .spyOn(service, 'autoSweepStaleVisits')
-        .mockResolvedValue(undefined as any);
+        .mockResolvedValue(undefined);
       prisma.visit.findMany.mockResolvedValue([]);
 
       await service.findAll(
@@ -205,9 +205,14 @@ describe('VisitService - Temporal Booking & Queue Hygiene Engine', () => {
         visitSteps: [],
       });
 
-      const result = await service.validateToken('visit-future-allowed', 'tenant-1', undefined, {
-        allowEarlyCheckIn: true,
-      });
+      const result = await service.validateToken(
+        'visit-future-allowed',
+        'tenant-1',
+        undefined,
+        {
+          allowEarlyCheckIn: true,
+        },
+      );
 
       expect(result.valid).toBe(true);
       expect(result.customerName).toBe('Future Customer');
@@ -227,7 +232,10 @@ describe('VisitService - Temporal Booking & Queue Hygiene Engine', () => {
         visitSteps: [],
       });
 
-      const result = await service.validateToken('visit-stale-walkin', 'tenant-1');
+      const result = await service.validateToken(
+        'visit-stale-walkin',
+        'tenant-1',
+      );
 
       expect(result.valid).toBe(false);
       expect((result as any).isPast).toBe(true);

@@ -109,9 +109,13 @@ export class TenantPaymentsService {
     if (
       this.stripe &&
       isLive &&
-      (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1') || !baseUrl.startsWith('https://'))
+      (baseUrl.includes('localhost') ||
+        baseUrl.includes('127.0.0.1') ||
+        !baseUrl.startsWith('https://'))
     ) {
-      baseUrl = process.env.STRIPE_CONNECT_RETURN_URL_BASE || 'https://qmova.yqbuddy.com';
+      baseUrl =
+        process.env.STRIPE_CONNECT_RETURN_URL_BASE ||
+        'https://qmova.yqbuddy.com';
     }
 
     const accountLink = await this.stripe.accountLinks.create({
@@ -572,7 +576,9 @@ export class TenantPaymentsService {
         });
       }
     } catch (invErr: any) {
-      this.logger.warn(`Invoice generation on manual payment failed: ${invErr.message}`);
+      this.logger.warn(
+        `Invoice generation on manual payment failed: ${invErr.message}`,
+      );
     }
 
     if (visit.balanceDue) {
@@ -617,10 +623,7 @@ export class TenantPaymentsService {
     return payment;
   }
 
-  async sendPaymentWhatsAppReceipt(
-    paymentId: string,
-    customNotes?: string,
-  ) {
+  async sendPaymentWhatsAppReceipt(paymentId: string, customNotes?: string) {
     try {
       const payment = await this.prisma.bookingPayment.findUnique({
         where: { id: paymentId },
@@ -688,8 +691,7 @@ export class TenantPaymentsService {
       const ticketNumber =
         payment.visit?.displayId ||
         (payment.visitId ? `#TKT-${payment.visitId.substring(0, 4)}` : '');
-      const locationName =
-        payment.visit?.location?.name || tenant.name;
+      const locationName = payment.visit?.location?.name || tenant.name;
       const refOrProof =
         payment.proofUrl ||
         (payment.description &&
@@ -729,7 +731,9 @@ export class TenantPaymentsService {
           ? [`📝 *Notes:* ${customNotes}`]
           : []),
         `───────────────────────`,
-        ...(statusUrl ? [``, `🔗 *Live Queue & Stage Tracker:*`, statusUrl] : []),
+        ...(statusUrl
+          ? [``, `🔗 *Live Queue & Stage Tracker:*`, statusUrl]
+          : []),
         ``,
         `Thank you for your visit!`,
       ];
@@ -802,9 +806,7 @@ export class TenantPaymentsService {
         );
       }
     } catch (err: any) {
-      this.logger.error(
-        `Error in sendPaymentWhatsAppReceipt: ${err.message}`,
-      );
+      this.logger.error(`Error in sendPaymentWhatsAppReceipt: ${err.message}`);
     }
   }
 

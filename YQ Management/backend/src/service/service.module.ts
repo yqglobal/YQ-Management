@@ -5,7 +5,10 @@ import { QueueModule } from '../queue/queue.module';
 import { SubscriptionModule } from '../subscription/subscription.module';
 
 @Module({
-  imports: [forwardRef(() => QueueModule), forwardRef(() => SubscriptionModule)],
+  imports: [
+    forwardRef(() => QueueModule),
+    forwardRef(() => SubscriptionModule),
+  ],
   providers: [ServiceService],
   controllers: [ServiceController],
   exports: [ServiceService],

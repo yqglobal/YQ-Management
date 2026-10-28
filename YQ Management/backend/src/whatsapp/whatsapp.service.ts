@@ -1993,7 +1993,13 @@ export class WhatsappService implements OnModuleInit {
     }
   }
 
-  async sendMetaCloudMediaMessage(tenant: any, to: string, mediaUrl: string, mediaType: string, caption: string) {
+  async sendMetaCloudMediaMessage(
+    tenant: any,
+    to: string,
+    mediaUrl: string,
+    mediaType: string,
+    caption: string,
+  ) {
     if (!tenant.metaCloudToken || !tenant.metaCloudPhoneNumberId) {
       return { success: false, error: 'Missing Meta Cloud credentials' };
     }

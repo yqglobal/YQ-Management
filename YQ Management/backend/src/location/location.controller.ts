@@ -47,10 +47,7 @@ export class LocationController {
 
   @Get(':id/deletion-impact')
   @Roles(Role.OWNER, Role.SUPER_ADMIN, Role.ADMIN)
-  getDeletionImpact(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  getDeletionImpact(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.locationService.getDeletionImpact(id, req.user.tenantId);
   }
 

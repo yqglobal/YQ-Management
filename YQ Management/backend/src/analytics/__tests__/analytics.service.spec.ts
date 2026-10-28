@@ -208,7 +208,10 @@ describe('AnalyticsService', () => {
         customer: { name: 'Alice' },
         service: { name: 'VIP Consultation' },
         queue: { name: 'VIP' },
-        operatorUser: { email: 'staff@example.com', personalSettings: { name: 'Sarah' } },
+        operatorUser: {
+          email: 'staff@example.com',
+          personalSettings: { name: 'Sarah' },
+        },
       },
       {
         id: 'visit-2',
@@ -224,7 +227,11 @@ describe('AnalyticsService', () => {
       },
     ]);
 
-    const result = await service.getDashboardAnalytics('tenant-123', 'all', 'UTC');
+    const result = await service.getDashboardAnalytics(
+      'tenant-123',
+      'all',
+      'UTC',
+    );
     expect(result.customerReviews).toBeDefined();
     expect(result.customerReviews.length).toBe(2);
     // Most recent first (visit-2 on Oct 21 before visit-1 on Oct 20)

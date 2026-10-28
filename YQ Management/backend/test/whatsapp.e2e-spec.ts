@@ -43,7 +43,12 @@ describe('WhatsappService (e2e)', () => {
             },
           },
         },
-        { provide: QueueGateway, useValue: { server: { to: jest.fn().mockReturnValue({ emit: jest.fn() }) } } },
+        {
+          provide: QueueGateway,
+          useValue: {
+            server: { to: jest.fn().mockReturnValue({ emit: jest.fn() }) },
+          },
+        },
         { provide: ServiceService, useValue: {} },
         { provide: AppointmentService, useValue: {} },
         { provide: CommunicationLogService, useValue: {} },

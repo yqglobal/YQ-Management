@@ -403,7 +403,10 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
     }
   }
 
-  private async executeCheckInTodayAppointment(tenantId: string, phone: string) {
+  private async executeCheckInTodayAppointment(
+    tenantId: string,
+    phone: string,
+  ) {
     const cleanPhone = phone.replace(/\D/g, '').slice(-9);
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -428,7 +431,8 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
     if (!appt) {
       return {
         success: false,
-        message: 'No confirmed appointments scheduled for today were found for this number.',
+        message:
+          'No confirmed appointments scheduled for today were found for this number.',
       };
     }
 
@@ -459,7 +463,8 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
     if (!queue) {
       return {
         success: false,
-        message: 'No open queue found for this location. Please approach the front desk.',
+        message:
+          'No open queue found for this location. Please approach the front desk.',
       };
     }
 
@@ -525,7 +530,10 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
     });
 
     if (!visit) {
-      return { found: false, message: 'No active tickets or journey visits found.' };
+      return {
+        found: false,
+        message: 'No active tickets or journey visits found.',
+      };
     }
 
     const position = await this.prisma.visit.count({
@@ -545,7 +553,9 @@ If you don't know the answer or the user is frustrated, call transferToHuman.`;
           steps[0]
         : null;
     const activeIdx =
-      steps && activeStep ? steps.findIndex((s: any) => s.id === activeStep.id) : 0;
+      steps && activeStep
+        ? steps.findIndex((s: any) => s.id === activeStep.id)
+        : 0;
     const totalSteps = steps ? steps.length : 0;
 
     const baseAppUrl =

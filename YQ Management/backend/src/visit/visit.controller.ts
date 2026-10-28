@@ -260,13 +260,31 @@ export class VisitController {
   }
 
   @Post(':id/clinical-note')
-  createClinicalNote(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: any) {
-    return this.visitService.saveClinicalNote(id, req.user.tenantId, body, req.user.userId);
+  createClinicalNote(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.visitService.saveClinicalNote(
+      id,
+      req.user.tenantId,
+      body,
+      req.user.userId,
+    );
   }
 
   @Patch(':id/clinical-note')
-  updateClinicalNote(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: any) {
-    return this.visitService.saveClinicalNote(id, req.user.tenantId, body, req.user.userId);
+  updateClinicalNote(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.visitService.saveClinicalNote(
+      id,
+      req.user.tenantId,
+      body,
+      req.user.userId,
+    );
   }
 
   @Get(':id/prescription')
@@ -275,12 +293,30 @@ export class VisitController {
   }
 
   @Post(':id/prescription')
-  createPrescription(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: any) {
-    return this.visitService.savePrescription(id, req.user.tenantId, body, req.user.userId);
+  createPrescription(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.visitService.savePrescription(
+      id,
+      req.user.tenantId,
+      body,
+      req.user.userId,
+    );
   }
 
   @Patch(':id/prescription')
-  updatePrescription(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: any) {
-    return this.visitService.savePrescription(id, req.user.tenantId, body, req.user.userId);
+  updatePrescription(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.visitService.savePrescription(
+      id,
+      req.user.tenantId,
+      body,
+      req.user.userId,
+    );
   }
 }

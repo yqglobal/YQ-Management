@@ -20,4 +20,3 @@ export class EnterpriseInquiryController {
     return this.inquiryService.createInquiry(tenantId, dto);
   }
 }
-

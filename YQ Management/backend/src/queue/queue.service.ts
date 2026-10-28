@@ -133,7 +133,9 @@ export class QueueService {
 
   async deleteQueueForTenant(queueId: string, tenantId: string) {
     await this.getQueueByIdForTenant(queueId, tenantId);
-    await this.redisService.client.del(`queue:${queueId}:state`).catch(() => {});
+    await this.redisService.client
+      .del(`queue:${queueId}:state`)
+      .catch(() => {});
     await this.prisma.blockOff.deleteMany({ where: { queueId } });
     await this.prisma.visit.updateMany({
       where: { queueId },
@@ -271,7 +273,7 @@ export class QueueService {
     });
 
     if (queue && (queue as any).tenant) {
-      const tenant = (queue as any).tenant as any;
+      const tenant = (queue as any).tenant;
       const planFeatures = tenant.subscriptions?.plan?.features;
       const hasCustomBranding = planFeatures?.customBranding === true;
       if (!hasCustomBranding) {
@@ -324,7 +326,13 @@ export class QueueService {
       },
       include: {
         customer: { select: { name: true } },
-        service: { select: { name: true, expectedDuration: true, emaExpectedDuration: true } },
+        service: {
+          select: {
+            name: true,
+            expectedDuration: true,
+            emaExpectedDuration: true,
+          },
+        },
         queue: { select: { name: true } },
       },
       take: 30,
@@ -444,9 +452,16 @@ export class QueueService {
   }
 
   async advanceTurn(queueId: string) {
-    const queue = await this.prisma.queue.findUnique({ where: { id: queueId } });
-    if (queue && (queue.status === 'PAUSED' || queue.status === 'PAUSED_FOR_EMERGENCY')) {
-      throw new ConflictException('Queue is currently paused. Please resume the queue to advance turns.');
+    const queue = await this.prisma.queue.findUnique({
+      where: { id: queueId },
+    });
+    if (
+      queue &&
+      (queue.status === 'PAUSED' || queue.status === 'PAUSED_FOR_EMERGENCY')
+    ) {
+      throw new ConflictException(
+        'Queue is currently paused. Please resume the queue to advance turns.',
+      );
     }
     return this.visitService.advanceTurn(queueId);
   }
@@ -462,12 +477,23 @@ export class QueueService {
       where: { id: queueId },
       include: {
         tenant: {
-          select: { id: true, whatsappConnected: true, whatsappInstanceId: true },
+          select: {
+            id: true,
+            whatsappConnected: true,
+            whatsappInstanceId: true,
+          },
         },
       },
     });
-    if (queue && (queue.status === 'PAUSED' || queue.status === 'PAUSED_FOR_EMERGENCY')) {
-      return { announced: false, message: 'Queue is currently paused. Please resume the queue to call the next customer.' };
+    if (
+      queue &&
+      (queue.status === 'PAUSED' || queue.status === 'PAUSED_FOR_EMERGENCY')
+    ) {
+      return {
+        announced: false,
+        message:
+          'Queue is currently paused. Please resume the queue to call the next customer.',
+      };
     }
 
     const nextVisit = await this.prisma.visit.findFirst({
@@ -481,7 +507,10 @@ export class QueueService {
     });
 
     if (!nextVisit) {
-      return { announced: false, message: 'No waiting customers in this queue' };
+      return {
+        announced: false,
+        message: 'No waiting customers in this queue',
+      };
     }
 
     await this.prisma.outboxEvent.create({

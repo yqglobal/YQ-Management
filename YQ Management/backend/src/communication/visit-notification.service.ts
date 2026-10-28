@@ -343,15 +343,13 @@ export class VisitNotificationService {
     } else {
       // Walk-in: calculate queue position and ETA
       if (visit.queueId) {
-        const peopleAhead = await this.prisma.visit.count(
-          {
-            where: {
-              queueId: visit.queueId,
-              currentState: 'WAITING',
-              createdAt: { lt: visit.createdAt },
-            },
-          }
-        );
+        const peopleAhead = await this.prisma.visit.count({
+          where: {
+            queueId: visit.queueId,
+            currentState: 'WAITING',
+            createdAt: { lt: visit.createdAt },
+          },
+        });
         const etaMins = peopleAhead * perPersonMins;
         message =
           (await this.templateService.renderWhatsAppForWorkspace(
@@ -364,7 +362,7 @@ export class VisitNotificationService {
               wait_time: etaMins,
               link: statusUrl || '',
             },
-            (visit.customer as any)?.preferredLanguage || 'en'
+            (visit.customer as any)?.preferredLanguage || 'en',
           )) + watermark;
       } else {
         message =
@@ -588,23 +586,21 @@ export class VisitNotificationService {
       // Set chat session to step 20 so the chatbot awaits a rating reply.
       try {
         const normalizedPhone = this.normalizePhone(visit.customer.phone!);
-        await this.prisma.chatSession.upsert(
-          {
-            where: {
-              tenantId_phone: {
-                tenantId: visit.tenantId,
-                phone: normalizedPhone,
-              },
-            },
-            update: { step: 20, context: { locationId: visit.locationId } },
-            create: {
+        await this.prisma.chatSession.upsert({
+          where: {
+            tenantId_phone: {
               tenantId: visit.tenantId,
               phone: normalizedPhone,
-              step: 20,
-              context: { locationId: visit.locationId },
             },
-          }
-        );
+          },
+          update: { step: 20, context: { locationId: visit.locationId } },
+          create: {
+            tenantId: visit.tenantId,
+            phone: normalizedPhone,
+            step: 20,
+            context: { locationId: visit.locationId },
+          },
+        });
       } catch (err: any) {
         this.logger.error(
           `VISIT_COMPLETED: failed to set chat session step 20 — ${err.message}`,
@@ -753,8 +749,14 @@ export class VisitNotificationService {
       .replace(/\{\{location\}\}/g, locationHint)
       .replace(/\{\{eta_minutes\}\}/g, ''); // ETA is dynamic — strip if not resolved
 
-    const linkSuffix = statusUrl ? `\n\n🔗 View your journey: ${statusUrl}` : '';
+    const linkSuffix = statusUrl
+      ? `\n\n🔗 View your journey: ${statusUrl}`
+      : '';
 
-    await this.sendMessage(visit, message.trim() + linkSuffix, 'step_activated');
+    await this.sendMessage(
+      visit,
+      message.trim() + linkSuffix,
+      'step_activated',
+    );
   }
 }

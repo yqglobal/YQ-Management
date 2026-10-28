@@ -58,10 +58,7 @@ export const rolePermissions: Record<string, readonly Permission[]> = {
     Permission.SETTINGS_READ,
     Permission.USER_READ,
   ],
-  STAFF: [
-    Permission.QUEUE_READ,
-    Permission.QUEUE_OPERATE,
-  ],
+  STAFF: [Permission.QUEUE_READ, Permission.QUEUE_OPERATE],
 };
 
 export function hasPermission(role: string, permission: Permission): boolean {

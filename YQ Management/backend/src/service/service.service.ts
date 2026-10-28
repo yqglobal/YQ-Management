@@ -63,7 +63,9 @@ export class ServiceService {
     },
   ) {
     if (!data.locationId) {
-      throw new BadRequestException('A location must be provided to create a service.');
+      throw new BadRequestException(
+        'A location must be provided to create a service.',
+      );
     }
 
     const servicesCount = await this.prisma.extendedClient.service.count({
@@ -72,7 +74,11 @@ export class ServiceService {
       },
     });
 
-    await this.subscriptionService.checkLimit(tenantId, 'services', servicesCount);
+    await this.subscriptionService.checkLimit(
+      tenantId,
+      'services',
+      servicesCount,
+    );
 
     const createData: any = {
       tenantId,
@@ -158,10 +164,7 @@ export class ServiceService {
       where.locationId = locationId;
     }
 
-    if (
-      reqUser &&
-      (reqUser.role === 'MANAGER' || reqUser.role === 'MANAGER')
-    ) {
+    if (reqUser && (reqUser.role === 'MANAGER' || reqUser.role === 'MANAGER')) {
       const dbUser = await this.prisma.user.findUnique({
         where: { id: reqUser.userId || reqUser.sub },
       });
@@ -380,7 +383,14 @@ export class ServiceService {
       autoSendInvoice?: boolean;
     },
   ) {
-    const { queueIds, paymentTiming, checkinPayMode, allowUnpaidCheckout, autoSendInvoice, ...restData } = data;
+    const {
+      queueIds,
+      paymentTiming,
+      checkinPayMode,
+      allowUnpaidCheckout,
+      autoSendInvoice,
+      ...restData
+    } = data;
     const updateData: any = { ...restData };
 
     if (queueIds !== undefined) {
@@ -391,7 +401,9 @@ export class ServiceService {
 
     if (restData.locationId !== undefined) {
       if (!restData.locationId) {
-        throw new BadRequestException('A service must have a location. Cannot remove location.');
+        throw new BadRequestException(
+          'A service must have a location. Cannot remove location.',
+        );
       } else {
         updateData.location = { connect: { id: restData.locationId } };
       }
@@ -457,10 +469,14 @@ export class ServiceService {
       autoSendInvoice !== undefined
     ) {
       const flowUpdateData: any = {};
-      if (paymentTiming !== undefined) flowUpdateData.paymentTiming = paymentTiming;
-      if (checkinPayMode !== undefined) flowUpdateData.checkinPayMode = checkinPayMode;
-      if (allowUnpaidCheckout !== undefined) flowUpdateData.allowUnpaidCheckout = allowUnpaidCheckout;
-      if (autoSendInvoice !== undefined) flowUpdateData.autoSendInvoice = autoSendInvoice;
+      if (paymentTiming !== undefined)
+        flowUpdateData.paymentTiming = paymentTiming;
+      if (checkinPayMode !== undefined)
+        flowUpdateData.checkinPayMode = checkinPayMode;
+      if (allowUnpaidCheckout !== undefined)
+        flowUpdateData.allowUnpaidCheckout = allowUnpaidCheckout;
+      if (autoSendInvoice !== undefined)
+        flowUpdateData.autoSendInvoice = autoSendInvoice;
 
       await this.prisma.serviceFlow.updateMany({
         where: { serviceId: id, tenantId },
@@ -652,7 +668,8 @@ export class ServiceService {
       },
       counts: {
         queues: queues.length,
-        exclusiveQueues: queueDetails.filter((q) => q.exclusiveToService).length,
+        exclusiveQueues: queueDetails.filter((q) => q.exclusiveToService)
+          .length,
         sharedQueues: queueDetails.filter((q) => !q.exclusiveToService).length,
         activeVisits: activeVisitsCount,
         totalVisits: totalVisitsCount,

@@ -278,12 +278,17 @@ export class WhatsappChatbot {
       });
 
       if (todayAppt) {
-        const timeStr = new Date(todayAppt.scheduledStart).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        const timeStr = new Date(todayAppt.scheduledStart).toLocaleTimeString(
+          [],
+          {
+            hour: '2-digit',
+            minute: '2-digit',
+          },
+        );
         const serviceName = todayAppt.service?.name || 'Appointment';
-        const locName = todayAppt.location?.name ? ` at *${todayAppt.location.name}*` : '';
+        const locName = todayAppt.location?.name
+          ? ` at *${todayAppt.location.name}*`
+          : '';
 
         await this.sendMsg(
           jid,
@@ -312,8 +317,10 @@ export class WhatsappChatbot {
 
     if (visit.currentState === 'IN_SERVICE') {
       let inServiceMsg = `🟢 *Your ticket ${visit.displayId || 'Unknown'} is currently being served!*\n\n`;
-      if (visit.service?.name) inServiceMsg += `Service: *${visit.service.name}*\n`;
-      if (visit.location?.name) inServiceMsg += `Location: *${visit.location.name}*\n`;
+      if (visit.service?.name)
+        inServiceMsg += `Service: *${visit.service.name}*\n`;
+      if (visit.location?.name)
+        inServiceMsg += `Location: *${visit.location.name}*\n`;
       inServiceMsg += `\nPlease proceed to the service counter now.\n\n📲 Live Tracker:\n🔗 ${trackerUrl}`;
       await this.sendMsg(jid, inServiceMsg);
       return;

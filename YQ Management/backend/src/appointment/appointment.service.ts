@@ -344,32 +344,33 @@ export class AppointmentService {
         }
       }
 
-      await this.prisma.visit.updateMany({
-        where: {
-          appointmentId: id,
-          currentState: { notIn: ['COMPLETED', 'CANCELLED', 'NO_SHOW'] },
-        },
-        data: {
-          currentState: 'CANCELLED',
-          completedAt: new Date(),
-          cancelReason: reason,
-        },
-      }).catch((e) => console.error('Failed to cascade cancel visit', e));
-    } else if (
-      existing.status !== 'NO_SHOW' &&
-      updated.status === 'NO_SHOW'
-    ) {
-      await this.prisma.visit.updateMany({
-        where: {
-          appointmentId: id,
-          currentState: { notIn: ['COMPLETED', 'CANCELLED', 'NO_SHOW'] },
-        },
-        data: {
-          currentState: 'NO_SHOW',
-          completedAt: new Date(),
-          cancelReason: 'Customer did not show up (No-Show)',
-        },
-      }).catch((e) => console.error('Failed to cascade no-show visit', e));
+      await this.prisma.visit
+        .updateMany({
+          where: {
+            appointmentId: id,
+            currentState: { notIn: ['COMPLETED', 'CANCELLED', 'NO_SHOW'] },
+          },
+          data: {
+            currentState: 'CANCELLED',
+            completedAt: new Date(),
+            cancelReason: reason,
+          },
+        })
+        .catch((e) => console.error('Failed to cascade cancel visit', e));
+    } else if (existing.status !== 'NO_SHOW' && updated.status === 'NO_SHOW') {
+      await this.prisma.visit
+        .updateMany({
+          where: {
+            appointmentId: id,
+            currentState: { notIn: ['COMPLETED', 'CANCELLED', 'NO_SHOW'] },
+          },
+          data: {
+            currentState: 'NO_SHOW',
+            completedAt: new Date(),
+            cancelReason: 'Customer did not show up (No-Show)',
+          },
+        })
+        .catch((e) => console.error('Failed to cascade no-show visit', e));
     }
 
     // Sync to Google Calendar

@@ -47,7 +47,8 @@ export class SubscriptionService {
 
   async checkLimit(
     tenantId: string,
-    resource: 'services' | 'locations' | 'visits' | 'queues' | 'staff' | 'members',
+    resource:
+      'services' | 'locations' | 'visits' | 'queues' | 'staff' | 'members',
     currentCount: number,
   ): Promise<void> {
     const sub = await this.getSubscription(tenantId);
@@ -72,7 +73,10 @@ export class SubscriptionService {
     const customLimits = subMeta.customLimits || {};
 
     if (resource === 'services') {
-      const maxServices = customLimits.maxServices ?? parsedLimits?.maxServices ?? parsedLimits?.maxQueues;
+      const maxServices =
+        customLimits.maxServices ??
+        parsedLimits?.maxServices ??
+        parsedLimits?.maxQueues;
       if (
         maxServices !== undefined &&
         maxServices !== null &&
@@ -104,7 +108,10 @@ export class SubscriptionService {
 
     if (resource === 'queues') {
       const maxQueues =
-        customLimits.maxQueues ?? sub.plan.maxQueues ?? parsedLimits?.maxQueues ?? parsedLimits?.maxServices;
+        customLimits.maxQueues ??
+        sub.plan.maxQueues ??
+        parsedLimits?.maxQueues ??
+        parsedLimits?.maxServices;
       if (maxQueues !== undefined && maxQueues !== null && maxQueues > 0) {
         if (currentCount >= maxQueues) {
           throw new BillingException(
@@ -116,7 +123,10 @@ export class SubscriptionService {
 
     if (resource === 'visits') {
       const maxVisits =
-        customLimits.maxVisits ?? sub.plan.maxVisits ?? parsedLimits?.maxTokens ?? parsedLimits?.maxVisits;
+        customLimits.maxVisits ??
+        sub.plan.maxVisits ??
+        parsedLimits?.maxTokens ??
+        parsedLimits?.maxVisits;
       if (maxVisits !== undefined && maxVisits !== null && maxVisits > 0) {
         if (currentCount >= maxVisits) {
           throw new BillingException(
@@ -128,7 +138,10 @@ export class SubscriptionService {
 
     if (resource === 'staff' || resource === 'members') {
       const maxStaff =
-        customLimits.maxStaff ?? customLimits.maxMembers ?? parsedLimits?.maxStaff ?? parsedLimits?.maxMembers;
+        customLimits.maxStaff ??
+        customLimits.maxMembers ??
+        parsedLimits?.maxStaff ??
+        parsedLimits?.maxMembers;
       if (maxStaff !== undefined && maxStaff !== null && maxStaff > 0) {
         if (currentCount >= maxStaff) {
           throw new BillingException(
@@ -562,7 +575,8 @@ export class SubscriptionService {
     }
 
     const now = new Date();
-    const effectiveEndDate = subscription.trialEndDate || subscription.currentPeriodEnd;
+    const effectiveEndDate =
+      subscription.trialEndDate || subscription.currentPeriodEnd;
     if (!effectiveEndDate || effectiveEndDate > now) {
       return null;
     }
@@ -667,7 +681,8 @@ export class SubscriptionService {
         : plan.limits || {};
     const maxLocations = parsedLimits?.maxLocations ?? Infinity;
     const maxServices = parsedLimits?.maxServices ?? Infinity;
-    const maxQueues = parsedLimits?.maxQueues ?? parsedLimits?.maxServices ?? Infinity;
+    const maxQueues =
+      parsedLimits?.maxQueues ?? parsedLimits?.maxServices ?? Infinity;
 
     const queues = await this.prisma.queue.findMany({
       where: { tenantId },
@@ -789,7 +804,8 @@ export class SubscriptionService {
         : sub.plan.limits || {};
     const maxLocations = parsedLimits?.maxLocations ?? Infinity;
     const maxServices = parsedLimits?.maxServices ?? Infinity;
-    const maxQueues = parsedLimits?.maxQueues ?? parsedLimits?.maxServices ?? Infinity;
+    const maxQueues =
+      parsedLimits?.maxQueues ?? parsedLimits?.maxServices ?? Infinity;
 
     await this.releaseQuotaFreeze(tenantId);
     await this.applyQuotaFreeze(tenantId, maxLocations, maxServices, maxQueues);
