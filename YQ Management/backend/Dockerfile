@@ -45,4 +45,4 @@ COPY --from=builder /app/scripts ./scripts
 EXPOSE 3000
 
 # Start script: Starts the app (migrations handled externally)
-CMD ["node", "dist/src/main"]
+CMD ["node", "dist/main"]

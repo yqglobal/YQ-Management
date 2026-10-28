@@ -108,6 +108,7 @@ services:
       - OZOW_API_KEY=${OZOW_API_KEY}
       - OZOW_IS_TEST=${OZOW_IS_TEST:-false}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+    command: ["node", "dist/main"]
     depends_on:
       db:
         condition: service_healthy
