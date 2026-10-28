@@ -149,7 +149,7 @@ export class UpdatePlanDto {
 }
 
 export class ChangePlanStatusDto {
-  @IsEnum(['ACTIVE', 'INACTIVE', 'ARCHIVED'])
+  @IsEnum(['ACTIVE', 'INACTIVE', 'ARCHIVED', 'active', 'inactive', 'archived'])
   status: string;
 }
 

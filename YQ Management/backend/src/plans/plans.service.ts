@@ -170,6 +170,8 @@ export class PlansService {
     if (dto.features !== undefined) data.features = dto.features;
     if (dto.limits !== undefined) data.limits = dto.limits;
     if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.type !== undefined) data.type = dto.type;
+    if (dto.active !== undefined) data.active = dto.active;
 
     const updated = await this.prisma.plan.update({
       where: { id },
@@ -179,13 +181,14 @@ export class PlansService {
     return updated;
   }
 
-  async changePlanStatus(id: string, status: string): Promise<Plan> {
+  async changePlanStatus(id: string, status: string | boolean): Promise<Plan> {
     const existing = await this.getPlan(id);
+    const normalized = typeof status === 'string' ? status.toUpperCase() : (status ? 'ACTIVE' : 'INACTIVE');
     const updated = await this.prisma.plan.update({
       where: { id },
-      data: { active: status === 'ACTIVE' },
+      data: { active: normalized === 'ACTIVE' },
     });
-    this.logger.log(`Plan ${id} status changed to ${status}`);
+    this.logger.log(`Plan ${id} status changed to ${normalized}`);
     return updated;
   }
 

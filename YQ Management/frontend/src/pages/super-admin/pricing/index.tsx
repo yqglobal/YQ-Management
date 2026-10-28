@@ -83,6 +83,7 @@ export default function PricingHub() {
         features: plan.features,
         limits: plan.limits,
         sortOrder: plan.sortOrder,
+        active: plan.active !== undefined ? plan.active : true,
       };
 
       return fetchApi(url, { method, body: JSON.stringify(payload) });
@@ -97,7 +98,7 @@ export default function PricingHub() {
   const toggleStatusMutation = useMutation({
     mutationFn: (plan: PlanData) => fetchApi(`/billing/plans/${plan.id}/status`, { 
       method: 'PATCH', 
-      body: JSON.stringify({ status: plan.active ? 'inactive' : 'active' }) 
+      body: JSON.stringify({ status: plan.active ? 'INACTIVE' : 'ACTIVE' }) 
     }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['plans'] })
   });
@@ -245,7 +246,7 @@ export default function PricingHub() {
                 <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white"><X className="w-6 h-6" /></button>
               </div>
               <div className="p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700 dark:text-zinc-300">Plan Name</label>
                     <input type="text" value={editingPlan?.name} onChange={e => setEditingPlan({...editingPlan as PlanData, name: e.target.value})} className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
@@ -257,6 +258,21 @@ export default function PricingHub() {
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-700 dark:text-zinc-300">Yearly Price</label>
                     <input type="number" value={editingPlan?.annualPrice ? editingPlan.annualPrice / 100 : 0} onChange={e => setEditingPlan({...editingPlan as PlanData, annualPrice: Math.round(Number(e.target.value) * 100)})} className="w-full px-4 py-2 rounded-xl bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-700 dark:text-zinc-300">Plan Status</label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingPlan({ ...editingPlan as PlanData, active: !editingPlan?.active })}
+                      className={`w-full py-2.5 px-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 border ${
+                        editingPlan?.active
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${editingPlan?.active ? 'bg-emerald-500' : 'bg-zinc-400'}`} />
+                      {editingPlan?.active ? 'ACTIVE' : 'DRAFT'}
+                    </button>
                   </div>
                 </div>
                 
