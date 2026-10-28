@@ -1879,8 +1879,16 @@ export default function ServiceDeskToday() {
                 const stepProg = getStepProgression(v);
                 const serviceStartTs = v.serviceStart
                   ? new Date(v.serviceStart).getTime()
-                  : Date.now();
-                const nowMs = Date.now() + activeServiceTick * 0; // reference tick so React re-renders
+                  : v.servedAt
+                    ? new Date(v.servedAt).getTime()
+                    : v.updatedAt
+                      ? new Date(v.updatedAt).getTime()
+                      : v.waitingStart
+                        ? new Date(v.waitingStart).getTime()
+                        : v.createdAt
+                          ? new Date(v.createdAt).getTime()
+                          : Date.now();
+                const nowMs = Date.now() + activeServiceTick * 0; // reference tick so React re-renders every second
                 const totalSvcSecs = Math.max(
                   0,
                   Math.floor((nowMs - serviceStartTs) / 1000),
@@ -2886,7 +2894,15 @@ export default function ServiceDeskToday() {
                     (() => {
                       const svcStart = selectedVisit.serviceStart
                         ? new Date(selectedVisit.serviceStart).getTime()
-                        : Date.now();
+                        : selectedVisit.servedAt
+                          ? new Date(selectedVisit.servedAt).getTime()
+                          : selectedVisit.updatedAt
+                            ? new Date(selectedVisit.updatedAt).getTime()
+                            : selectedVisit.waitingStart
+                              ? new Date(selectedVisit.waitingStart).getTime()
+                              : selectedVisit.createdAt
+                                ? new Date(selectedVisit.createdAt).getTime()
+                                : Date.now();
                       const stageStart = stepProgression.current.activatedAt
                         ? new Date(
                             stepProgression.current.activatedAt,
