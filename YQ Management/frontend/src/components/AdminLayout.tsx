@@ -21,7 +21,7 @@ const QueueMigrationModal = dynamic(() => import('./modals/QueueMigrationModal')
 const ServiceModal = dynamic(() => import('./modals/ServiceModal').then(mod => mod.ServiceModal), { ssr: false });
 const PlanGateModal = dynamic(() => import('./PlanGateModal').then(mod => mod.PlanGateModal), { ssr: false });
 const PlanWelcomeModal = dynamic(() => import('./PlanWelcomeModal').then(mod => mod.PlanWelcomeModal), { ssr: false });
-const StaffWelcomeModal = dynamic(() => import('./StaffWelcomeModal').then(mod => mod.StaffWelcomeModal), { ssr: false });
+
 const WelcomeModal = dynamic(() => import('./modals/WelcomeModal').then(mod => mod.WelcomeModal), { ssr: false });
 
 interface AdminLayoutProps {
@@ -353,8 +353,7 @@ export default function AdminLayout({ children, pageTitle, pageSubtitle, topNavL
         <AdvancedPoliciesModal onAccepted={() => setIsLocallyAccepted(true)} userId={user?.id} />
       )}
 
-      {/* Staff Welcome for non-admin staff users */}
-      {hasAcceptedPolicies && !isTenantAdmin && !!user?.tenantId && <StaffWelcomeModal />}
+
 
       {/* 4. Dashboard Tour (only after all modals are dismissed & policies accepted) */}
       {canStartTour && <DashboardTour canStart={true} />}

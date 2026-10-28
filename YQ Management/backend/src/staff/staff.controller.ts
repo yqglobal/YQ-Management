@@ -34,6 +34,15 @@ export class StaffController {
     return this.staffService.findAvailableForService(tenantId, serviceId, date);
   }
 
+  /**
+   * Public endpoint: resolve a desk token to staff + tenant context.
+   * Used by the /staff-desk/[token] kiosk page — no auth required.
+   */
+  @Get('desk-token/:token')
+  findByDeskToken(@Param('token') token: string) {
+    return this.staffService.findByDeskToken(token);
+  }
+
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.OWNER, Role.ADMIN, Role.MANAGER)
@@ -98,6 +107,33 @@ export class StaffController {
       req.user.tenantId,
       body.serviceIds,
     );
+  }
+
+  /**
+   * Generate (or return existing) desk token for a staff member.
+   * The token creates a unique shareable kiosk URL for that staff member.
+   */
+  @Post(':id/desk-token')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.OWNER, Role.ADMIN, Role.MANAGER)
+  generateDeskToken(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.staffService.generateDeskToken(id, req.user.tenantId);
+  }
+
+  /**
+   * Revoke a staff member's desk token (e.g. if the link is compromised).
+   */
+  @Delete(':id/desk-token')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.OWNER, Role.ADMIN, Role.MANAGER)
+  revokeDeskToken(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.staffService.revokeDeskToken(id, req.user.tenantId);
   }
 
   @Delete(':id')

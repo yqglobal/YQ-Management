@@ -620,6 +620,7 @@ model Staff {
   title          String?
   weeklySchedule Json?
   skills         String[]      @default([])
+  deskToken      String?       @unique
   appointments   Appointment[]
   location       Location?     @relation(fields: [locationId], references: [id])
   tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -629,7 +630,9 @@ model Staff {
   @@index([tenantId])
   @@index([locationId])
   @@index([userId])
+  @@index([deskToken])
 }
+
 
 model Resource {
   id           String        @id @default(uuid())

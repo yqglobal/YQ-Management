@@ -7,11 +7,13 @@ import SettingsLayout from '../../../components/SettingsLayout';
 import {
   ChevronUp, ChevronDown, Trash2, Plus, Pencil, Check,
   Layout, Users, Grip, LayoutDashboard,
-  ArrowLeft, Save, Copy, Sparkles,
+  ArrowLeft, Save, Copy, Sparkles, Stethoscope, UtensilsCrossed,
+  Dumbbell, ShoppingCart, Scissors, BookOpen, Zap,
+  ChevronRight, ExternalLink, Monitor,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface WidgetConfig {
   id: string;
   type: string;
@@ -23,18 +25,25 @@ interface DeskTemplate {
   name: string;
   color: string;
   description?: string;
+  industry?: string;
+  role?: string;
   layout: WidgetConfig[];
 }
 
 interface StaffViewData {
   version: 2;
   templates: DeskTemplate[];
-  assignments: Record<string, string>; // userId → templateId
+  assignments: Record<string, string>; // staffId → templateId
 }
 
 type SettingsUser = { id: string; email: string; name?: string; role: string };
+type OnGroundStaff = {
+  id: string; name: string; title?: string; color?: string; status: string;
+  deskToken?: string | null;
+  services?: { id: string; name: string }[];
+};
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 const WIDGET_DESCRIPTIONS: Record<string, string> = {
   CurrentTicketWidget: 'Shows the active visit/ticket being served.',
   CustomerHistoryWidget: 'Shows past visit history for the current customer.',
@@ -56,47 +65,250 @@ const TEMPLATE_COLORS = [
   '#DB2777', '#0891B2', '#4F46E5', '#65A30D', '#9333EA',
 ];
 
-const PRESET_TEMPLATES: DeskTemplate[] = [
+// ─── Industry pre-built templates ─────────────────────────────────────────────
+interface PresetCategory {
+  label: string;
+  icon: React.ElementType;
+  color: string;
+  presets: DeskTemplate[];
+}
+
+const PRESET_CATEGORIES: PresetCategory[] = [
   {
-    id: 'preset-reception',
-    name: 'Reception Desk',
-    color: '#0284C7',
-    description: 'Ideal for front-desk staff managing walk-ins',
-    layout: [
-      { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 2 } },
-      { id: 'qg-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
-      { id: 'ch-1', type: 'CustomerHistoryWidget', position: { colSpan: 2, rowSpan: 1 } },
-    ],
-  },
-  {
-    id: 'preset-clinical',
-    name: 'Clinical Station',
+    label: 'Healthcare & Clinic',
+    icon: Stethoscope,
     color: '#059669',
-    description: 'For doctors and clinical staff with notes + prescriptions',
-    layout: [
-      { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 2 } },
-      { id: 'cn-1', type: 'ClinicalNotesWidget', position: { colSpan: 1, rowSpan: 1 } },
-      { id: 'px-1', type: 'PrescriptionWidget', position: { colSpan: 1, rowSpan: 1 } },
-      { id: 'ch-1', type: 'CustomerHistoryWidget', position: { colSpan: 1, rowSpan: 1 } },
+    presets: [
+      {
+        id: 'preset-doctor',
+        name: 'Doctor Station',
+        color: '#059669',
+        industry: 'healthcare',
+        role: 'Doctor / Physician',
+        description: 'Full clinical workflow — active patient, notes & prescriptions',
+        layout: [
+          { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 2 } },
+          { id: 'cn-1', type: 'ClinicalNotesWidget', position: { colSpan: 1, rowSpan: 1 } },
+          { id: 'px-1', type: 'PrescriptionWidget', position: { colSpan: 1, rowSpan: 1 } },
+          { id: 'ch-1', type: 'CustomerHistoryWidget', position: { colSpan: 1, rowSpan: 1 } },
+        ],
+      },
+      {
+        id: 'preset-nurse',
+        name: 'Nurse Station',
+        color: '#0891B2',
+        industry: 'healthcare',
+        role: 'Nurse / Care Assistant',
+        description: 'Queue overview + patient history for triage and care',
+        layout: [
+          { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 1 } },
+          { id: 'qg-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
+          { id: 'ch-1', type: 'CustomerHistoryWidget', position: { colSpan: 1, rowSpan: 1 } },
+          { id: 'cn-1', type: 'ClinicalNotesWidget', position: { colSpan: 2, rowSpan: 1 } },
+        ],
+      },
+      {
+        id: 'preset-reception-clinic',
+        name: 'Clinic Reception',
+        color: '#7C3AED',
+        industry: 'healthcare',
+        role: 'Receptionist',
+        description: 'Front desk — check-in queue, appointments & history',
+        layout: [
+          { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 2 } },
+          { id: 'qg-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
+          { id: 'sc-1', type: 'ScheduleWidget', position: { colSpan: 2, rowSpan: 1 } },
+        ],
+      },
+      {
+        id: 'preset-lab',
+        name: 'Lab Technician',
+        color: '#D97706',
+        industry: 'healthcare',
+        role: 'Lab Technician',
+        description: 'Sample queue management with custom form for lab results',
+        layout: [
+          { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 1 } },
+          { id: 'qg-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
+          { id: 'cf-1', type: 'CustomFormWidget', position: { colSpan: 3, rowSpan: 1 } },
+        ],
+      },
     ],
   },
   {
-    id: 'preset-simple',
-    name: 'Simple Queue View',
-    color: '#7C3AED',
-    description: 'Minimal layout — just the queue grid and current ticket',
-    layout: [
-      { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 1 } },
-      { id: 'qg-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
+    label: 'Restaurant & Hospitality',
+    icon: UtensilsCrossed,
+    color: '#DC2626',
+    presets: [
+      {
+        id: 'preset-chef',
+        name: 'Kitchen Station',
+        color: '#DC2626',
+        industry: 'restaurant',
+        role: 'Chef / Cook',
+        description: 'Full-screen order queue for kitchen operations',
+        layout: [
+          { id: 'qg-1', type: 'QueueGridWidget', position: { colSpan: 3, rowSpan: 2 } },
+        ],
+      },
+      {
+        id: 'preset-waiter',
+        name: 'Waiter Desk',
+        color: '#D97706',
+        industry: 'restaurant',
+        role: 'Waiter / Server',
+        description: 'Table ticket view + active order at a glance',
+        layout: [
+          { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 2 } },
+          { id: 'qg-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
+          { id: 'sc-1', type: 'ScheduleWidget', position: { colSpan: 2, rowSpan: 1 } },
+        ],
+      },
+      {
+        id: 'preset-host',
+        name: "Host / Maître D'",
+        color: '#7C3AED',
+        industry: 'restaurant',
+        role: 'Host / Seating',
+        description: 'Queue management for walk-ins and reservations',
+        layout: [
+          { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 1 } },
+          { id: 'qg-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
+          { id: 'sc-1', type: 'ScheduleWidget', position: { colSpan: 3, rowSpan: 1 } },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Salon & Beauty',
+    icon: Scissors,
+    color: '#DB2777',
+    presets: [
+      {
+        id: 'preset-barber',
+        name: 'Barber / Stylist',
+        color: '#DB2777',
+        industry: 'salon',
+        role: 'Barber / Hair Stylist',
+        description: 'Personal appointment schedule + active client info',
+        layout: [
+          { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 2 } },
+          { id: 'sc-1', type: 'ScheduleWidget', position: { colSpan: 2, rowSpan: 2 } },
+        ],
+      },
+      {
+        id: 'preset-beauty-reception',
+        name: 'Salon Reception',
+        color: '#9333EA',
+        industry: 'salon',
+        role: 'Receptionist',
+        description: 'Walk-in queue + appointment management',
+        layout: [
+          { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 1 } },
+          { id: 'qg-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
+          { id: 'sc-1', type: 'ScheduleWidget', position: { colSpan: 3, rowSpan: 1 } },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Fitness & Gym',
+    icon: Dumbbell,
+    color: '#4F46E5',
+    presets: [
+      {
+        id: 'preset-trainer',
+        name: 'Personal Trainer',
+        color: '#4F46E5',
+        industry: 'fitness',
+        role: 'Personal Trainer',
+        description: 'Client schedule + session history for training sessions',
+        layout: [
+          { id: 'sc-1', type: 'ScheduleWidget', position: { colSpan: 2, rowSpan: 2 } },
+          { id: 'ch-1', type: 'CustomerHistoryWidget', position: { colSpan: 1, rowSpan: 2 } },
+        ],
+      },
+      {
+        id: 'preset-gym-reception',
+        name: 'Gym Check-in Desk',
+        color: '#0284C7',
+        industry: 'fitness',
+        role: 'Front Desk',
+        description: 'Full queue overview for member check-in',
+        layout: [
+          { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 1 } },
+          { id: 'qg-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
+          { id: 'ch-1', type: 'CustomerHistoryWidget', position: { colSpan: 3, rowSpan: 1 } },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Retail & Service',
+    icon: ShoppingCart,
+    color: '#65A30D',
+    presets: [
+      {
+        id: 'preset-counter',
+        name: 'Service Counter',
+        color: '#65A30D',
+        industry: 'retail',
+        role: 'Counter Staff',
+        description: 'Minimal — current ticket + queue at a glance',
+        layout: [
+          { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 2 } },
+          { id: 'qg-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
+        ],
+      },
+      {
+        id: 'preset-technician',
+        name: 'Technician / Repair',
+        color: '#D97706',
+        industry: 'retail',
+        role: 'Technician',
+        description: 'Work orders queue + custom job notes form',
+        layout: [
+          { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 1 } },
+          { id: 'qg-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
+          { id: 'cf-1', type: 'CustomFormWidget', position: { colSpan: 3, rowSpan: 1 } },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Education & Admin',
+    icon: BookOpen,
+    color: '#0891B2',
+    presets: [
+      {
+        id: 'preset-advisor',
+        name: 'Advisor Desk',
+        color: '#0891B2',
+        industry: 'education',
+        role: 'Student Advisor',
+        description: 'Student queue + meeting schedule for advisors',
+        layout: [
+          { id: 'ct-1', type: 'CurrentTicketWidget', position: { colSpan: 1, rowSpan: 2 } },
+          { id: 'sc-1', type: 'ScheduleWidget', position: { colSpan: 1, rowSpan: 1 } },
+          { id: 'ch-1', type: 'CustomerHistoryWidget', position: { colSpan: 1, rowSpan: 1 } },
+        ],
+      },
     ],
   },
 ];
 
-
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Sub-components ────────────────────────────────────────────────────────────
 function TemplateColorDot({ color }: { color: string }) {
   return <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />;
+}
+
+function RoleTag({ role, industry }: { role?: string; industry?: string }) {
+  if (!role) return null;
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+      {role}
+    </span>
+  );
 }
 
 function WidgetChip({ widget, index, total, onMove, onRemove, onUpdateSpan }: {
@@ -161,7 +373,32 @@ function makeId(prefix: string): string {
   return `${prefix}-${_idCounter}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-// ─── Main page ────────────────────────────────────────────────────────────────
+// ─── Mini widget preview ───────────────────────────────────────────────────────
+function LayoutPreview({ layout, color }: { layout: WidgetConfig[]; color: string }) {
+  if (layout.length === 0) return (
+    <div className="h-16 rounded-lg border-2 border-dashed border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
+      <Grip className="w-4 h-4 text-zinc-300 dark:text-zinc-600" />
+    </div>
+  );
+  return (
+    <div className="h-16 grid grid-cols-3 gap-1 rounded-lg overflow-hidden">
+      {layout.slice(0, 4).map((w, i) => (
+        <div
+          key={i}
+          className="rounded-md flex items-center justify-center text-[9px] font-bold uppercase tracking-wide text-white truncate px-1"
+          style={{
+            backgroundColor: color + 'cc',
+            gridColumn: w.position.colSpan > 1 ? `span ${Math.min(w.position.colSpan, 3)}` : undefined,
+          }}
+        >
+          {w.type.replace(/Widget$/, '').replace(/([A-Z])/g, ' $1').trim().split(' ')[0]}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main page ─────────────────────────────────────────────────────────────────
 export default function StaffViewSettings() {
   const { refetch: refetchAuth } = useAuth();
   const [tenantId, setTenantId] = useState('');
@@ -170,13 +407,14 @@ export default function StaffViewSettings() {
   const [saving, setSaving] = useState(false);
 
   // Editor state
-  const [view, setView] = useState<'templates' | 'editor' | 'assign'>('templates');
+  const [view, setView] = useState<'templates' | 'editor' | 'assign' | 'presets'>('templates');
   const [editingTemplate, setEditingTemplate] = useState<DeskTemplate | null>(null);
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editColor, setEditColor] = useState(TEMPLATE_COLORS[0]);
   const [editLayout, setEditLayout] = useState<WidgetConfig[]>([]);
   const [isDirty, setIsDirty] = useState(false);
+  const [presetsCategory, setPresetsCategory] = useState<PresetCategory | null>(null);
 
   // Assignment state
   const [assignTemplate, setAssignTemplate] = useState<DeskTemplate | null>(null);
@@ -191,7 +429,6 @@ export default function StaffViewSettings() {
         if (raw && raw.version === 2) {
           setData(raw as StaffViewData);
         } else if (Array.isArray(raw) && raw.length > 0) {
-          // Migrate v1 legacy flat layout → single "Default" template
           setData({
             version: 2,
             templates: [{ id: 'migrated-default', name: 'Default Layout', color: '#0284C7', layout: raw }],
@@ -236,7 +473,7 @@ export default function StaffViewSettings() {
     setEditName(t.name);
     setEditDesc(t.description ?? '');
     setEditColor(t.color);
-    setEditLayout(JSON.parse(JSON.stringify(t.layout))); // deep copy
+    setEditLayout(JSON.parse(JSON.stringify(t.layout)));
     setIsDirty(false);
     setView('editor');
   };
@@ -309,22 +546,22 @@ export default function StaffViewSettings() {
     setIsDirty(true);
   };
 
-  // ── Assignment ──
-  const { data: users = [] } = useQuery<SettingsUser[]>({
-    queryKey: ['users-for-desk'],
-    queryFn: () => fetchApi('/users') as Promise<SettingsUser[]>,
+  // ── Assignment — now uses on-ground staff list, not Qmova users ──
+  const { data: onGroundStaff = [] } = useQuery<OnGroundStaff[]>({
+    queryKey: ['staffList'],
+    queryFn: () => fetchApi('/staff') as Promise<OnGroundStaff[]>,
     enabled: view === 'assign',
   });
 
   const openAssign = (t: DeskTemplate) => { setAssignTemplate(t); setView('assign'); };
 
-  const toggleAssignment = async (userId: string) => {
+  const toggleAssignment = async (staffId: string) => {
     if (!assignTemplate) return;
     const assignments = { ...data.assignments };
-    if (assignments[userId] === assignTemplate.id) {
-      delete assignments[userId];
+    if (assignments[staffId] === assignTemplate.id) {
+      delete assignments[staffId];
     } else {
-      assignments[userId] = assignTemplate.id;
+      assignments[staffId] = assignTemplate.id;
     }
     await save({ ...data, assignments }, true);
     toast.success('Assignment updated');
@@ -333,42 +570,148 @@ export default function StaffViewSettings() {
   // ─────────────────────────────────────────────────────────────────────────────
   if (loading) return <div className="flex items-center justify-center py-24 text-zinc-500 text-sm">Loading…</div>;
 
+  // ── PRESET GALLERY VIEW ──────────────────────────────────────────────────────
+  if (view === 'presets') {
+    const category = presetsCategory;
+    return (
+      <div className="space-y-6">
+        {/* Toolbar */}
+        <div className="flex items-center gap-3">
+          <button onClick={() => { setView('templates'); setPresetsCategory(null); }}
+            className="flex items-center gap-1.5 text-sm text-on-surface-variant dark:text-zinc-400 hover:text-primary transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          {category && (
+            <>
+              <ChevronRight className="w-4 h-4 text-zinc-300 dark:text-zinc-600" />
+              <span className="text-sm font-semibold text-on-surface dark:text-white">{category.label}</span>
+            </>
+          )}
+        </div>
+
+        {/* Category selector — if no category selected yet */}
+        {!category && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-on-surface dark:text-white mb-1">Industry Templates</h2>
+              <p className="text-sm text-on-surface-variant dark:text-zinc-400">
+                Choose a category to see pre-built desk layouts for that industry&apos;s on-ground staff roles.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {PRESET_CATEGORIES.map(cat => {
+                const Icon = cat.icon;
+                return (
+                  <button key={cat.label} onClick={() => setPresetsCategory(cat)}
+                    className="text-left p-5 rounded-2xl border border-border dark:border-dark-border bg-white dark:bg-zinc-800/60 hover:border-zinc-300 dark:hover:border-zinc-600 hover:shadow-sm transition-all group">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: cat.color + '22' }}>
+                        <Icon className="w-5 h-5" style={{ color: cat.color }} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-on-surface dark:text-white group-hover:text-primary transition-colors">{cat.label}</p>
+                        <p className="text-xs text-zinc-400">{cat.presets.length} templates</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {cat.presets.map(p => (
+                        <span key={p.id} className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400">
+                          {p.role}
+                        </span>
+                      ))}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Preset grid for selected category */}
+        {category && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: category.color + '22' }}>
+                <category.icon className="w-4 h-4" style={{ color: category.color }} />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-on-surface dark:text-white">{category.label}</h2>
+                <p className="text-xs text-zinc-400">{category.presets.length} ready-to-use desk layouts</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {category.presets.map(preset => (
+                <div key={preset.id}
+                  className="p-5 rounded-2xl border border-border dark:border-dark-border bg-white dark:bg-zinc-800/60 hover:border-zinc-300 dark:hover:border-zinc-600 transition-all space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <TemplateColorDot color={preset.color} />
+                        <p className="font-bold text-sm text-on-surface dark:text-white">{preset.name}</p>
+                      </div>
+                      <RoleTag role={preset.role} />
+                    </div>
+                    <button onClick={() => openPreset(preset)}
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl transition-colors shadow-sm">
+                      <Plus className="w-3.5 h-3.5" /> Use
+                    </button>
+                  </div>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{preset.description}</p>
+                  <LayoutPreview layout={preset.layout} color={preset.color} />
+                  <p className="text-[10px] text-zinc-400">{preset.layout.length} widget{preset.layout.length !== 1 ? 's' : ''}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // ── TEMPLATES LIST VIEW ──────────────────────────────────────────────────────
   if (view === 'templates') return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-on-surface-variant dark:text-zinc-400 mt-0.5 max-w-xl">
-            Create named layout templates (like Journey Builder flows) and assign them to individual staff members. Each staff member&apos;s My Desk will show their assigned layout.
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-on-surface-variant dark:text-zinc-400 max-w-xl">
+            Build named desk layouts for your on-ground staff — doctors, nurses, waiters, technicians, and more. Assign each layout to specific staff members so their My Desk kiosk shows exactly what they need.
           </p>
         </div>
-        <button onClick={openNew}
-          className="flex items-center gap-2 px-4 h-9 bg-primary hover:bg-primary/90 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm shrink-0">
-          <Plus className="w-4 h-4" /> New Template
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => { setPresetsCategory(null); setView('presets'); }}
+            className="flex items-center gap-2 px-4 h-9 border border-border dark:border-dark-border text-on-surface dark:text-zinc-300 text-sm font-semibold rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+            <Sparkles className="w-4 h-4 text-primary" /> Industry Templates
+          </button>
+          <button onClick={openNew}
+            className="flex items-center gap-2 px-4 h-9 bg-primary hover:bg-primary/90 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
+            <Plus className="w-4 h-4" /> New Template
+          </button>
+        </div>
       </div>
 
-      {/* Preset starter templates */}
+      {/* Empty state with category prompt */}
       {data.templates.length === 0 && (
-        <div>
-          <p className="text-xs font-semibold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> Start with a preset
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {PRESET_TEMPLATES.map(preset => (
-              <button key={preset.id} onClick={() => openPreset(preset)}
-                className="text-left p-4 rounded-2xl border-2 border-dashed border-border dark:border-dark-border hover:border-primary/50 hover:bg-primary/5 transition-all group">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: preset.color + '22' }}>
-                    <LayoutDashboard className="w-4 h-4" style={{ color: preset.color }} />
-                  </div>
-                  <span className="font-semibold text-sm text-on-surface dark:text-white group-hover:text-primary transition-colors">{preset.name}</span>
-                </div>
-                <p className="text-xs text-on-surface-variant dark:text-zinc-500">{preset.description}</p>
-                <p className="text-xs text-zinc-400 mt-2">{preset.layout.length} widget{preset.layout.length !== 1 ? 's' : ''}</p>
-              </button>
-            ))}
+        <div className="rounded-2xl border-2 border-dashed border-border dark:border-dark-border p-10 text-center space-y-6">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+            <LayoutDashboard className="w-7 h-7 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-bold text-on-surface dark:text-white mb-1">No desk layouts yet</h3>
+            <p className="text-sm text-on-surface-variant dark:text-zinc-400 max-w-sm mx-auto">
+              Create a layout from scratch or start with an industry-specific template for doctors, chefs, stylists, and more.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <button onClick={() => { setPresetsCategory(null); setView('presets'); }}
+              className="flex items-center gap-2 px-5 h-10 bg-primary hover:bg-primary/90 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
+              <Sparkles className="w-4 h-4" /> Browse Industry Templates
+            </button>
+            <button onClick={openNew}
+              className="flex items-center gap-2 px-5 h-10 border border-border dark:border-dark-border text-sm font-semibold rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-on-surface dark:text-zinc-300">
+              <Plus className="w-4 h-4" /> Blank Layout
+            </button>
           </div>
         </div>
       )}
@@ -377,7 +720,7 @@ export default function StaffViewSettings() {
       {data.templates.length > 0 && (
         <div className="space-y-3">
           <p className="text-xs font-semibold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Layout className="w-3.5 h-3.5" /> Your Templates
+            <Layout className="w-3.5 h-3.5" /> Your Templates ({data.templates.length})
           </p>
           <div className="space-y-2">
             {data.templates.map(t => {
@@ -385,14 +728,14 @@ export default function StaffViewSettings() {
               return (
                 <div key={t.id}
                   className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-800/60 rounded-2xl border border-border dark:border-dark-border hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors">
-                  {/* Color swatch + name */}
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: t.color + '22' }}>
                     <LayoutDashboard className="w-5 h-5" style={{ color: t.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <TemplateColorDot color={t.color} />
                       <span className="font-semibold text-sm text-on-surface dark:text-white">{t.name}</span>
+                      {t.role && <RoleTag role={t.role} />}
                       {assignedCount > 0 && (
                         <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                           <Users className="w-3 h-3" /> {assignedCount} assigned
@@ -404,9 +747,8 @@ export default function StaffViewSettings() {
                     </p>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => openAssign(t)} title="Assign to staff"
+                    <button onClick={() => openAssign(t)} title="Assign to on-ground staff"
                       className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border dark:border-dark-border hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors text-on-surface-variant dark:text-zinc-400">
                       <Users className="w-3.5 h-3.5" /> Assign
                     </button>
@@ -431,16 +773,27 @@ export default function StaffViewSettings() {
       )}
 
       {/* How it works */}
-      <div className="rounded-2xl border border-border dark:border-dark-border bg-zinc-50 dark:bg-zinc-800/30 p-5">
-        <h3 className="text-sm font-bold text-on-surface dark:text-white mb-3 flex items-center gap-2">
-          <LayoutDashboard className="w-4 h-4 text-primary" /> How Staff View Templates Work
+      <div className="rounded-2xl border border-border dark:border-dark-border bg-zinc-50 dark:bg-zinc-800/30 p-5 space-y-4">
+        <h3 className="text-sm font-bold text-on-surface dark:text-white flex items-center gap-2">
+          <Zap className="w-4 h-4 text-primary" /> How On-Ground Staff Access Their Desk
         </h3>
-        <ol className="space-y-2 text-sm text-on-surface-variant dark:text-zinc-400 list-decimal list-inside">
-          <li>Create a named template (e.g. &ldquo;Reception Desk&rdquo;, &ldquo;Doctor Station&rdquo;)</li>
-          <li>Add widgets and arrange them (like a Journey Builder flow)</li>
-          <li>Click <strong className="text-on-surface dark:text-zinc-300">Assign</strong> to assign the template to specific staff members</li>
-          <li>That staff member&apos;s <strong className="text-on-surface dark:text-zinc-300">My Desk</strong> will use their assigned template</li>
-        </ol>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { icon: LayoutDashboard, step: '1', title: 'Build a Template', desc: 'Design a layout for each role — Doctor, Chef, Nurse, etc.' },
+            { icon: Users, step: '2', title: 'Assign to Staff', desc: 'Click Assign and pick which on-ground staff members use this layout.' },
+            { icon: Monitor, step: '3', title: 'Share Desk Link', desc: 'In the staff member settings, generate a unique desk link. Open it on any tablet or monitor — no login needed.' },
+          ].map(item => (
+            <div key={item.step} className="flex gap-3">
+              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0 mt-0.5">
+                {item.step}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-on-surface dark:text-zinc-200">{item.title}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -470,13 +823,13 @@ export default function StaffViewSettings() {
           <div>
             <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Template Name *</label>
             <input value={editName} onChange={e => { setEditName(e.target.value); setIsDirty(true); }}
-              placeholder="e.g. Reception Desk"
+              placeholder="e.g. Doctor Station"
               className="w-full h-10 px-3 rounded-xl border border-border dark:border-dark-border bg-transparent text-sm text-on-surface dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Description (optional)</label>
+            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Role / Description</label>
             <input value={editDesc} onChange={e => { setEditDesc(e.target.value); setIsDirty(true); }}
-              placeholder="Who is this layout for?"
+              placeholder="e.g. For clinic doctors on duty"
               className="w-full h-10 px-3 rounded-xl border border-border dark:border-dark-border bg-transparent text-sm text-on-surface dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40" />
           </div>
         </div>
@@ -569,46 +922,71 @@ export default function StaffViewSettings() {
         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: assignTemplate.color + '22' }}>
           <LayoutDashboard className="w-5 h-5" style={{ color: assignTemplate.color }} />
         </div>
-        <div>
+        <div className="flex-1">
           <p className="font-bold text-sm text-on-surface dark:text-white">{assignTemplate.name}</p>
           <p className="text-xs text-zinc-500">{assignTemplate.layout.length} widgets · {assignTemplate.description || 'Custom layout'}</p>
         </div>
       </div>
 
-      {/* Staff list */}
+      {/* On-ground staff list */}
       <div>
         <p className="text-xs font-semibold text-on-surface-variant dark:text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-          <Users className="w-3.5 h-3.5" /> Staff Members — toggle to assign this template
+          <Users className="w-3.5 h-3.5" /> On-Ground Staff — click to assign this desk layout
         </p>
-        {users.length === 0 ? (
-          <div className="text-center py-10 text-sm text-zinc-400">No staff members found</div>
+        {onGroundStaff.length === 0 ? (
+          <div className="text-center py-12 rounded-2xl border-2 border-dashed border-border dark:border-dark-border">
+            <Users className="w-8 h-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">No on-ground staff found</p>
+            <p className="text-xs text-zinc-400 mt-1">Add staff members in Settings → Team → On-Ground Staff</p>
+          </div>
         ) : (
           <div className="space-y-2">
-            {users.map(u => {
-              const assigned = data.assignments[u.id] === assignTemplate.id;
-              const otherTemplate = !assigned && data.assignments[u.id]
-                ? data.templates.find(t => t.id === data.assignments[u.id])
+            {onGroundStaff.map(staff => {
+              const assigned = data.assignments[staff.id] === assignTemplate.id;
+              const otherTemplate = !assigned && data.assignments[staff.id]
+                ? data.templates.find(t => t.id === data.assignments[staff.id])
                 : null;
               return (
-                <div key={u.id}
+                <div key={staff.id}
                   className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${
                     assigned
                       ? 'border-primary/50 bg-primary/5 dark:bg-primary/10'
                       : 'border-border dark:border-dark-border bg-white dark:bg-zinc-800/60 hover:border-zinc-300 dark:hover:border-zinc-600'
                   }`}
-                  onClick={() => toggleAssignment(u.id)}
+                  onClick={() => toggleAssignment(staff.id)}
                 >
-                  <div className="w-9 h-9 rounded-xl bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center font-bold text-sm text-zinc-600 dark:text-zinc-300 shrink-0">
-                    {(u.name || u.email).charAt(0).toUpperCase()}
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white shrink-0"
+                    style={{ backgroundColor: staff.color || '#6366f1' }}
+                  >
+                    {staff.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-on-surface dark:text-white">{u.name || u.email}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-zinc-400">{u.role}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-on-surface dark:text-white">{staff.name}</p>
+                      {staff.title && <span className="text-xs text-zinc-400">{staff.title}</span>}
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                        staff.status === 'ACTIVE'
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                          : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
+                      }`}>{staff.status}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      {staff.services && staff.services.length > 0 && (
+                        <span className="text-xs text-zinc-400">
+                          {staff.services.slice(0, 2).map(s => s.name).join(', ')}
+                          {staff.services.length > 2 && ` +${staff.services.length - 2}`}
+                        </span>
+                      )}
                       {otherTemplate && (
                         <span className="flex items-center gap-1 text-[10px] text-zinc-400">
                           currently: <TemplateColorDot color={otherTemplate.color} />
                           <span>{otherTemplate.name}</span>
+                        </span>
+                      )}
+                      {staff.deskToken && (
+                        <span className="flex items-center gap-1 text-[10px] text-emerald-500 dark:text-emerald-400">
+                          <ExternalLink className="w-2.5 h-2.5" /> Desk link active
                         </span>
                       )}
                     </div>
@@ -626,7 +1004,7 @@ export default function StaffViewSettings() {
       </div>
 
       <p className="text-xs text-zinc-400 text-center">
-        Staff without an assignment will see the default layout from My Desk.
+        On-ground staff without an assignment will see the default layout when accessing their desk link.
       </p>
     </div>
   );
@@ -636,7 +1014,7 @@ export default function StaffViewSettings() {
 
 StaffViewSettings.getLayout = function getLayout(page: React.ReactElement) {
   return (
-    <SettingsLayout pageTitle="Staff View Builder" pageSubtitle="Create named desk layouts and assign them to individual staff members — like Journey Builder, but for My Desk.">
+    <SettingsLayout pageTitle="Staff View Builder" pageSubtitle="Design desk layouts for your on-ground staff — doctors, nurses, waiters, technicians, and more. Assign layouts and share desk links.">
       {page}
     </SettingsLayout>
   );

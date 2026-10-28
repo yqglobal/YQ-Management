@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { randomBytes } from 'crypto';
 
 interface WeeklyScheduleSlot {
   day:
@@ -160,6 +161,58 @@ export class StaffService {
   async remove(id: string, tenantId: string) {
     await this.findOne(id, tenantId);
     return this.prisma.staff.delete({ where: { id } });
+  }
+
+  /**
+   * Generate (or return existing) a unique desk token for a staff member.
+   * The token is used to open the staff kiosk desk without a Qmova login.
+   */
+  async generateDeskToken(id: string, tenantId: string) {
+    const staff = await this.findOne(id, tenantId);
+    if (staff.deskToken) return { deskToken: staff.deskToken };
+
+    const token = randomBytes(24).toString('hex');
+    const updated = await this.prisma.staff.update({
+      where: { id },
+      data: { deskToken: token },
+    });
+    return { deskToken: updated.deskToken };
+  }
+
+  /**
+   * Revoke (clear) a staff member's desk token.
+   */
+  async revokeDeskToken(id: string, tenantId: string) {
+    await this.findOne(id, tenantId);
+    await this.prisma.staff.update({
+      where: { id },
+      data: { deskToken: null },
+    });
+    return { success: true };
+  }
+
+  /**
+   * Public (no auth): resolve a desk token to the staff + tenant context.
+   * Used by the staff kiosk page to load the correct desk layout.
+   */
+  async findByDeskToken(token: string) {
+    const staff = await this.prisma.staff.findUnique({
+      where: { deskToken: token },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            subdomain: true,
+            staffViewLayout: true,
+          },
+        },
+        services: { select: { id: true, name: true } },
+        location: { select: { id: true, name: true } },
+      },
+    });
+    if (!staff) throw new NotFoundException('Invalid desk token');
+    return staff;
   }
 
   /**

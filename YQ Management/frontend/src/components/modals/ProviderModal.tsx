@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import PhoneInput from '../PhoneInput';
 import {
   X, Loader2, MapPin, Briefcase, Clock, User as UserIcon, Link2, Check,
+  ExternalLink, Copy, Zap, Trash2,
 } from 'lucide-react';
 
 const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'] as const;
@@ -48,6 +49,9 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [skills, setSkills] = useState('');
   const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE);
+  const [deskToken, setDeskToken] = useState<string | null>(null);
+  const [generatingToken, setGeneratingToken] = useState(false);
+  const [revokingToken, setRevokingToken] = useState(false);
 
   const { data: locations = [] } = useQuery({
     queryKey: ['locations'],
@@ -82,6 +86,7 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
       setCapacity(provider.capacity ?? 1);
       setSelectedServiceIds(provider.services?.map((s: AnyFixMe) => s.id) || []);
       setSkills(provider.skills?.join(', ') || '');
+      setDeskToken(provider.deskToken || null);
       if (provider.weeklySchedule && Array.isArray(provider.weeklySchedule)) {
         setSchedule(provider.weeklySchedule);
       }
@@ -95,10 +100,10 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
         : fetchApi('/staff', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staffList'] });
-      toast.success(isEditing ? 'Provider updated!' : 'Provider added!');
+      toast.success(isEditing ? 'Staff member updated!' : 'Staff member added!');
       onClose();
     },
-    onError: (e: Error) => toast.error(e.message || 'Failed to save provider'),
+    onError: (e: Error) => toast.error(e.message || 'Failed to save'),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -140,7 +145,7 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
               {name ? name.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4" />}
             </div>
             <h2 className="font-semibold text-on-surface dark:text-white">
-              {isEditing ? 'Edit Provider' : 'Add Provider'}
+              {isEditing ? 'Edit On-Ground Staff' : 'Add On-Ground Staff'}
             </h2>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-surface-container-low dark:hover:bg-white/10 text-outline transition-colors">
@@ -356,6 +361,80 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
               ))}
             </div>
           </section>
+
+          {/* Desk Access Link — only shown when editing an existing staff member */}
+          {isEditing && (
+            <section className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant dark:text-zinc-400 flex items-center gap-2">
+                <Zap className="w-3 h-3" /> Desk Access Link
+              </h3>
+              <div className="p-4 rounded-xl border border-border dark:border-dark-border bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
+                <p className="text-xs text-on-surface-variant dark:text-zinc-400">
+                  Generate a unique link for this staff member to open their <strong className="text-on-surface dark:text-zinc-300">My Desk</strong> on any device — no Qmova login required. Share it as a bookmark, QR code, or pinned browser tab on their workstation.
+                </p>
+                {deskToken ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-white dark:bg-zinc-800 border border-border dark:border-dark-border">
+                      <ExternalLink className="w-4 h-4 text-indigo-500 shrink-0" />
+                      <code className="text-xs text-zinc-600 dark:text-zinc-300 flex-1 truncate">
+                        {typeof window !== 'undefined' ? `${window.location.origin}/staff-desk/${deskToken}` : `/staff-desk/${deskToken}`}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = `${window.location.origin}/staff-desk/${deskToken}`;
+                          navigator.clipboard.writeText(url);
+                          toast.success('Desk link copied!');
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-400 hover:text-indigo-500 transition-colors"
+                        title="Copy link"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={revokingToken}
+                      onClick={async () => {
+                        if (!confirm('Revoke this desk link? The staff member will lose access until a new link is generated.')) return;
+                        setRevokingToken(true);
+                        try {
+                          await fetchApi(`/staff/${provider.id}/desk-token`, { method: 'DELETE' });
+                          setDeskToken(null);
+                          queryClient.invalidateQueries({ queryKey: ['staffList'] });
+                          toast.success('Desk link revoked.');
+                        } catch { toast.error('Failed to revoke link.'); }
+                        finally { setRevokingToken(false); }
+                      }}
+                      className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      {revokingToken ? 'Revoking…' : 'Revoke & regenerate'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={generatingToken}
+                    onClick={async () => {
+                      setGeneratingToken(true);
+                      try {
+                        const res = await fetchApi(`/staff/${provider.id}/desk-token`, { method: 'POST' });
+                        setDeskToken(res.deskToken);
+                        queryClient.invalidateQueries({ queryKey: ['staffList'] });
+                        toast.success('Desk link generated!');
+                      } catch { toast.error('Failed to generate desk link.'); }
+                      finally { setGeneratingToken(false); }
+                    }}
+                    className="flex items-center gap-2 px-4 h-9 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
+                  >
+                    {generatingToken ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                    {generatingToken ? 'Generating…' : 'Generate Desk Link'}
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
         </form>
 
         {/* Footer */}
@@ -373,7 +452,7 @@ export function ProviderModal({ isOpen, onClose, provider }: ProviderModalProps)
             className="px-5 h-10 bg-[#0284C7] hover:bg-[#0369A1] text-white font-semibold rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
           >
             {mutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            {isEditing ? 'Save Changes' : 'Add Provider'}
+            {isEditing ? 'Save Changes' : 'Add Staff Member'}
           </button>
         </div>
       </div>
