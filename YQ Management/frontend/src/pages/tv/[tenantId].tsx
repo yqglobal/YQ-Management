@@ -30,6 +30,8 @@ interface UpcomingToken {
   currentState?: string;
   createdAt?: string;
   scheduledTime?: string;
+  expectedDuration?: number;
+  emaExpectedDuration?: number;
 }
 
 interface TTSConfig {
@@ -262,6 +264,8 @@ export default function TVDisplay() {
               currentState: d.currentState,
               createdAt: d.createdAt,
               scheduledTime: d.scheduledTime,
+              expectedDuration: d.service?.expectedDuration,
+              emaExpectedDuration: d.service?.emaExpectedDuration,
             }))
             .sort((a, b) => {
               const timeA = a.scheduledTime ? new Date(a.scheduledTime).getTime() : new Date(a.createdAt || 0).getTime();
@@ -805,7 +809,9 @@ export default function TVDisplay() {
                 <div className="p-3 rounded-2xl bg-zinc-800/60 border border-zinc-700/50 text-xs">
                   <span className="text-zinc-500 block text-[10px] font-bold uppercase tracking-wider">Estimated Wait</span>
                   <span className="text-emerald-400 font-mono font-bold text-base sm:text-lg">
-                    {upcomingTokens.length > 0 ? `~${upcomingTokens.length * 5} mins` : 'Immediate'}
+                    {upcomingTokens.length > 0
+                      ? `~${upcomingTokens.reduce((acc, t) => acc + (t.emaExpectedDuration || t.expectedDuration || 15), 0)} mins`
+                      : 'Immediate'}
                   </span>
                 </div>
                 <div className="p-3 rounded-2xl bg-zinc-800/60 border border-zinc-700/50 text-xs">

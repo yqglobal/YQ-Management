@@ -141,6 +141,12 @@ export async function middleware(req: NextRequest) {
     '/data-request',
     '/for',
     '/404',
+    '/customer',
+    '/public',
+    '/form',
+    '/kiosk',
+    '/staff-desk',
+    '/join',
   ];
   const isGlobalPath = globalPaths.some(p => p === '/' ? url.pathname === '/' : (url.pathname.startsWith(p) || url.pathname === p));
 
