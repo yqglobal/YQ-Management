@@ -400,30 +400,37 @@ export default function StatusPage() {
       </Head>
 
       {/* Header */}
-      <header className="w-full max-w-md sticky top-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800 px-4 py-3 sm:p-4 flex items-center justify-between shadow-sm">
+      <header className="w-full max-w-md sticky top-0 z-50 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md border-b border-gray-200/80 dark:border-zinc-800/80 px-4 py-3 flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.02)] transition-all">
         <div className="flex items-center gap-2.5 min-w-0">
           {logoUrl ? (
             <div className="flex items-center shrink-0">
-              <Image src={logoUrl} alt={tenant?.name} width={80} height={18} className="h-[18px] sm:h-5 max-w-[100px] w-auto object-contain" priority />
+              <Image src={logoUrl} alt={tenant?.name} width={72} height={18} className="h-[18px] sm:h-5 max-w-[90px] w-auto object-contain" priority />
             </div>
           ) : !isBrandingEnabled ? (
             <div className="flex items-center shrink-0">
-              <Image src="/qmova-light-logo.webp" alt="Qmova" width={80} height={18} className="h-[18px] sm:h-5 w-auto object-contain dark:hidden" priority />
-              <Image src="/qmova-dark-logo.webp" alt="Qmova" width={80} height={18} className="h-[18px] sm:h-5 w-auto object-contain hidden dark:block" priority />
+              <Image src="/qmova-light-logo.webp" alt="Qmova" width={72} height={16} className="h-4 sm:h-[18px] w-auto object-contain dark:hidden" priority />
+              <Image src="/qmova-dark-logo.webp" alt="Qmova" width={72} height={16} className="h-4 sm:h-[18px] w-auto object-contain hidden dark:block" priority />
             </div>
           ) : (
-            <div className="w-6 h-6 rounded-md flex items-center justify-center text-white font-bold text-xs shrink-0" style={{ backgroundColor: primaryColor }}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-sm shrink-0 tracking-wider" style={{ backgroundColor: primaryColor }}>
               {tenant?.name?.substring(0, 2).toUpperCase() || 'YQ'}
             </div>
           )}
-          <span className="font-bold text-base sm:text-lg tracking-tight text-gray-900 dark:text-white truncate">{tenant?.name}</span>
+
+          {/* Subtle elegant divider */}
+          <span className="h-3.5 w-px bg-gray-200 dark:bg-zinc-700/80 shrink-0" aria-hidden="true" />
+
+          {/* Tenant Name */}
+          <h1 className="font-semibold text-sm sm:text-base tracking-tight text-gray-900 dark:text-zinc-100 truncate">
+            {tenant?.name}
+          </h1>
         </div>
         <button 
           onClick={toggleTheme} 
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors text-gray-500 dark:text-gray-400 shrink-0 ml-2"
+          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors text-gray-500 dark:text-gray-400 shrink-0 ml-2 active:scale-95"
           aria-label="Toggle theme"
         >
-          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
       </header>
 
