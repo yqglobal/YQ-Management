@@ -1903,6 +1903,14 @@ export default function ServiceDeskToday() {
                     stepProg.current &&
                     stepProg.activeIndex < stepProg.totalSteps - 1);
 
+                const totalStepsCount = Math.max(1, stepProg.totalSteps || 1);
+                const currentStageNum = stepProg.isCompleted
+                  ? totalStepsCount
+                  : Math.min(stepProg.activeIndex + 1, totalStepsCount);
+                const percentComplete = stepProg.isCompleted
+                  ? 100
+                  : Math.round(((stepProg.activeIndex) / totalStepsCount) * 100);
+
                 return (
                   <div
                     key={v.id}
@@ -1976,41 +1984,23 @@ export default function ServiceDeskToday() {
                       </div>
                     )}
 
-                    {/* Row 3: Next stage chip + Action button */}
-                    <div className="flex items-center justify-between gap-1.5">
-                      <div className="flex items-center gap-1 min-w-0 flex-1">
-                        {stepProg.next && (
-                          <span className="text-[9px] text-outline bg-surface-container-high dark:bg-dark-canvas px-1.5 py-0.5 rounded border border-border truncate">
-                            Next:{" "}
-                            {stepProg.next.name ||
-                              stepProg.next.label ||
-                              "Next Stage"}
-                          </span>
-                        )}
+                    {/* Row 3: Progress Bar + Stage Count + Percentage Complete */}
+                    <div className="flex flex-col gap-1 pt-1 mt-1 border-t border-border/50 dark:border-dark-border/50">
+                      <div className="flex items-center justify-between text-[10px] text-outline">
+                        <span className="font-medium truncate">
+                          {stepProg.next
+                            ? `Stage ${currentStageNum}/${totalStepsCount}: Next → ${stepProg.next.name || stepProg.next.label || "Next Stage"}`
+                            : `Stage ${currentStageNum}/${totalStepsCount}`}
+                        </span>
+                        <span className="font-mono font-bold text-on-surface dark:text-white shrink-0 ml-1">
+                          {percentComplete}%
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {hasMoreSteps && stepProg.current?.id && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedVisit(v);
-                              setStageModalVisit(v);
-                            }}
-                            title="Advance to next stage"
-                            className="flex items-center gap-1 py-1 px-2 text-[10px] font-semibold text-sky-700 bg-sky-100 hover:bg-sky-200 dark:text-sky-400 dark:bg-sky-900/30 dark:hover:bg-sky-800/50 rounded-md transition-colors border border-sky-200 dark:border-sky-800/50 cursor-pointer"
-                          >
-                            <ArrowRight className="w-3 h-3" />
-                            Next Stage
-                          </button>
-                        )}
-                        <button
-                          onClick={(e) => handleComplete(v.id, e, v.isToken)}
-                          title={`Complete — ${industry.terminology.actionVerbPast}`}
-                          className="flex items-center gap-1 py-1 px-2 text-[10px] font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 dark:text-emerald-400 dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50 rounded-md transition-colors border border-emerald-200 dark:border-emerald-800/50 cursor-pointer"
-                        >
-                          <CheckCircle2 className="w-3 h-3" />
-                          Complete
-                        </button>
+                      <div className="w-full bg-border/60 dark:bg-dark-border/60 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className="bg-primary h-full rounded-full transition-all duration-300"
+                          style={{ width: `${percentComplete}%` }}
+                        />
                       </div>
                     </div>
                   </div>
