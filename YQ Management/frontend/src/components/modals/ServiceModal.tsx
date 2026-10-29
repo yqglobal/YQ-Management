@@ -347,79 +347,191 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
               <div className="space-y-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Payment Settings</label>
                 <div className="p-4 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { v: "CHECKIN", l: "At check-in (booking)" },
-                      { v: "CHECKOUT", l: "At check-out (counter)" },
-                      { v: "NONE", l: "No payment" },
-                    ].map((o) => (
+                  {/* Row 1: How to Collect (Payment Medium) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
+                      How to Collect
+                    </label>
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <button
                         type="button"
-                        key={o.v}
-                        onClick={() => setPaymentTiming(o.v)}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                          paymentTiming === o.v
+                        onClick={() => setPaymentTiming("NONE")}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                          paymentTiming === "NONE"
                             ? "bg-indigo-600 text-white border-indigo-600"
                             : "bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
                         }`}
                       >
-                        {o.l}
+                        No payment (Free)
                       </button>
-                    ))}
+
+                      <button
+                        type="button"
+                        disabled={!stripeConnected}
+                        onClick={() => {
+                          if (stripeConnected) {
+                            setCheckinPayMode("STRIPE_ONLY");
+                            if (paymentTiming === "NONE" || paymentTiming === "CHECKIN") {
+                              setPaymentTiming("BOOKING");
+                            }
+                          }
+                        }}
+                        title={
+                          !stripeConnected
+                            ? "Connect Stripe in Settings to enable online payments"
+                            : undefined
+                        }
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                          !stripeConnected
+                            ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-400"
+                            : paymentTiming !== "NONE" && checkinPayMode === "STRIPE_ONLY"
+                              ? "bg-indigo-600 text-white border-indigo-600"
+                              : "bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                        }`}
+                      >
+                        Pay via Stripe Online
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCheckinPayMode("COUNTER_ONLY");
+                          if (paymentTiming === "NONE" || paymentTiming === "BOOKING") {
+                            setPaymentTiming("CHECKIN");
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                          paymentTiming !== "NONE" && checkinPayMode === "COUNTER_ONLY"
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                        }`}
+                      >
+                        Pay at Counter (Cash/Card)
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={!stripeConnected}
+                        onClick={() => {
+                          if (stripeConnected) {
+                            setCheckinPayMode("BOTH");
+                            if (paymentTiming === "NONE") {
+                              setPaymentTiming("BOOKING");
+                            }
+                          }
+                        }}
+                        title={
+                          !stripeConnected
+                            ? "Connect Stripe in Settings to enable online payments"
+                            : undefined
+                        }
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                          !stripeConnected
+                            ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-400"
+                            : paymentTiming !== "NONE" && checkinPayMode === "BOTH"
+                              ? "bg-indigo-600 text-white border-indigo-600"
+                              : "bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                        }`}
+                      >
+                        Both (Customer Chooses)
+                      </button>
+                    </div>
                   </div>
-                  
+
+                  {/* Row 2: When to Collect (Dynamic) */}
                   {paymentTiming !== "NONE" && (
                     <div className="space-y-3 pt-3 border-t border-gray-200 dark:border-white/10">
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
-                          How to Collect
+                          When to Collect
                         </label>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <button
-                            type="button"
-                            onClick={() => setCheckinPayMode('COUNTER_ONLY')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                              checkinPayMode === 'COUNTER_ONLY'
-                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
-                            }`}
-                          >
-                            Pay at Counter
-                          </button>
-                          <button
-                            type="button"
-                            disabled={!stripeConnected}
-                            onClick={() => {
-                              if (stripeConnected) setCheckinPayMode('STRIPE_ONLY');
-                            }}
-                            title={!stripeConnected ? 'Connect Stripe in Settings to enable online payments' : undefined}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                              !stripeConnected
-                                ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-400'
-                                : checkinPayMode === 'STRIPE_ONLY'
-                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
-                            }`}
-                          >
-                            Pay via Stripe Online
-                          </button>
-                          <button
-                            type="button"
-                            disabled={!stripeConnected}
-                            onClick={() => {
-                              if (stripeConnected) setCheckinPayMode('BOTH');
-                            }}
-                            title={!stripeConnected ? 'Connect Stripe in Settings to enable online payments' : undefined}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                              !stripeConnected
-                                ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-400'
-                                : checkinPayMode === 'BOTH'
-                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700'
-                            }`}
-                          >
-                            Both (Customer Chooses)
-                          </button>
+                          {/* STRIPE_ONLY options */}
+                          {checkinPayMode === "STRIPE_ONLY" && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setPaymentTiming("BOOKING")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1.5 ${
+                                  paymentTiming === "BOOKING" || paymentTiming === "CHECKIN"
+                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                    : "bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                                }`}
+                              >
+                                <span>Pay at Booking (Online)</span>
+                                <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold uppercase">
+                                  Recommended
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPaymentTiming("CHECKOUT")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                                  paymentTiming === "CHECKOUT"
+                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                    : "bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                                }`}
+                              >
+                                Pay at Counter Checkout (Stripe Link/QR)
+                              </button>
+                            </>
+                          )}
+
+                          {/* COUNTER_ONLY options */}
+                          {checkinPayMode === "COUNTER_ONLY" && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setPaymentTiming("CHECKIN")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                                  paymentTiming === "CHECKIN" || paymentTiming === "BOOKING"
+                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                    : "bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                                }`}
+                              >
+                                Pay at Check-in (Counter)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPaymentTiming("CHECKOUT")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                                  paymentTiming === "CHECKOUT"
+                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                    : "bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                                }`}
+                              >
+                                Pay at Check-out (Counter)
+                              </button>
+                            </>
+                          )}
+
+                          {/* BOTH options */}
+                          {checkinPayMode === "BOTH" && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setPaymentTiming("BOOKING")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                                  paymentTiming === "BOOKING"
+                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                    : "bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                                }`}
+                              >
+                                Online at Booking (or Counter Check-in)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPaymentTiming("CHECKOUT")}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                                  paymentTiming === "CHECKOUT"
+                                    ? "bg-indigo-600 text-white border-indigo-600"
+                                    : "bg-white dark:bg-zinc-800 border-gray-200 dark:border-white/10 text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                                }`}
+                              >
+                                At Counter Check-out (Stripe QR or Cash/Card)
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
 

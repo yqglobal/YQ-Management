@@ -1176,10 +1176,10 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                 amount={selectedServiceIds.reduce((total, sid) => {
                   const s = services.find(x => x.id === sid);
                   const flow = (s as any)?.serviceFlow;
-                  const isCheckinPay = flow?.isActive
-                    ? flow.paymentTiming === 'CHECKIN'
+                  const isBookingPay = flow?.isActive
+                    ? (flow.paymentTiming === 'BOOKING' || flow.paymentTiming === 'CHECKIN')
                     : ((s as any)?.paymentMode === 'PREPAY' || (s as any)?.paymentMode === 'OPTIONAL_PREPAY' || (s as any)?.paymentMode === 'PAY_AT_SERVICE');
-                  const base = s && isCheckinPay && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0;
+                  const base = s && isBookingPay && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0;
                   return total + (base * (1 + accompanyingGuests));
                 }, 0)} // Base price is already in integer cents
                 currency={services.find(x => x.id === selectedServiceIds[0]) ? (services.find(x => x.id === selectedServiceIds[0]) as any).priceCurrency || (services.find(x => x.id === selectedServiceIds[0]) as any).currency || 'usd' : 'usd'}

@@ -13,7 +13,7 @@ export interface VisitBill {
   total: number;
   paid: number;
   balanceDue: number;
-  paymentTiming: 'CHECKIN' | 'CHECKOUT' | 'NONE' | null;
+  paymentTiming: 'BOOKING' | 'CHECKIN' | 'CHECKOUT' | 'NONE' | null;
   autoSendInvoice: boolean;
   allowUnpaidCheckout: boolean;
 }

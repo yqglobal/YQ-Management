@@ -20,10 +20,10 @@ export class CreateFlowDto {
   @IsBoolean()
   allowPartialCompletion?: boolean;
 
-  /** Where payment is collected: at booking (CHECKIN), at the counter on completion (CHECKOUT) or never. */
+  /** Where payment is collected: during booking flow (BOOKING), at physical check-in (CHECKIN), at counter check-out (CHECKOUT) or never (NONE). */
   @IsOptional()
-  @IsIn(['CHECKIN', 'CHECKOUT', 'NONE'])
-  paymentTiming?: 'CHECKIN' | 'CHECKOUT' | 'NONE';
+  @IsIn(['BOOKING', 'CHECKIN', 'CHECKOUT', 'NONE'])
+  paymentTiming?: 'BOOKING' | 'CHECKIN' | 'CHECKOUT' | 'NONE';
 
   @IsOptional()
   @IsIn(['COUNTER_ONLY', 'STRIPE_ONLY', 'BOTH'])

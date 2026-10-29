@@ -1164,8 +1164,8 @@ export class VisitService {
           !!paymentAccount?.connectedAccountId;
         const payMode = bookingFlow?.checkinPayMode ?? 'COUNTER_ONLY';
 
-        const holdForCheckinPayment = bookingFlow?.isActive
-          ? bookingFlow.paymentTiming === 'CHECKIN' &&
+        const holdForBookingPayment = bookingFlow?.isActive
+          ? (bookingFlow.paymentTiming === 'BOOKING' || bookingFlow.paymentTiming === 'CHECKIN') &&
             (service.basePrice ?? 0) > 0 &&
             payMode !== 'COUNTER_ONLY' &&
             stripeActive
@@ -1175,7 +1175,7 @@ export class VisitService {
             (service.basePrice ?? 0) > 0 &&
             stripeActive;
 
-        if (holdForCheckinPayment && !(data as any).paymentId) {
+        if (holdForBookingPayment && !(data as any).paymentId) {
           currentState = 'PENDING_PAYMENT';
         }
 

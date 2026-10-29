@@ -3394,9 +3394,14 @@ export default function ServiceDeskToday() {
                             </span>
                           ) : checkinPayMode === "COUNTER_ONLY" ||
                             paymentTiming === "CHECKOUT" ||
-                            paymentTiming === "CHECKIN" ? (
+                            paymentTiming === "CHECKIN" ||
+                            paymentTiming === "BOOKING" ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                              Pay at Counter
+                              {paymentTiming === "BOOKING"
+                                ? "Pay Online at Booking"
+                                : paymentTiming === "CHECKIN"
+                                  ? "Pay at Counter Check-in"
+                                  : "Pay at Counter Check-out"}
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-500">

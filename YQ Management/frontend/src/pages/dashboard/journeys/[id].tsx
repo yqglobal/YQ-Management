@@ -1150,15 +1150,21 @@ export default function JourneyBuilder() {
                             </span>
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-border dark:border-zinc-700">
                               Payment:{" "}
-                              {(flow?.paymentTiming || "CHECKIN") === "NONE"
+                              {(flow?.paymentTiming || "BOOKING") === "NONE"
                                 ? "No Payment"
-                                : `${(flow?.paymentTiming || "CHECKIN") === "CHECKIN" ? "Check-in" : "Check-out"} · ${
+                                : `${
+                                    flow?.paymentTiming === "BOOKING"
+                                      ? "Online Booking"
+                                      : flow?.paymentTiming === "CHECKOUT"
+                                        ? "Check-out"
+                                        : "Check-in"
+                                  } · ${
                                     (flow?.checkinPayMode || "COUNTER_ONLY") ===
                                     "COUNTER_ONLY"
-                                      ? "Counter Only"
+                                      ? "Counter"
                                       : (flow?.checkinPayMode || "COUNTER_ONLY") ===
                                           "STRIPE_ONLY"
-                                        ? "Stripe Online"
+                                        ? "Stripe"
                                         : "Stripe or Counter"
                                   }`}
                             </span>
@@ -1205,112 +1211,232 @@ export default function JourneyBuilder() {
                     className="overflow-hidden border-b border-border dark:border-zinc-800 shrink-0"
                   >
                     <div className="px-5 py-3.5 bg-white dark:bg-zinc-900 shadow-sm space-y-3">
-                      {/* Row 1: When to collect */}
+                      {/* Row 1: How to collect (Payment Medium) */}
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 w-28 shrink-0">
-                          When to collect:
+                          How to collect:
                         </span>
-                        <div className="flex items-center gap-1.5">
-                          {[
-                            { v: "CHECKIN", l: "At check-in (booking)" },
-                            { v: "CHECKOUT", l: "At check-out (counter)" },
-                            { v: "NONE", l: "No payment" },
-                          ].map((o) => (
-                            <button
-                              key={o.v}
-                              onClick={() =>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateFlowMutation.mutate({
+                                paymentTiming: "NONE",
+                              })
+                            }
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                              flow.paymentTiming === "NONE"
+                                ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
+                                : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
+                            }`}
+                          >
+                            No payment (Free)
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={!stripeConnected}
+                            onClick={() => {
+                              if (stripeConnected) {
                                 updateFlowMutation.mutate({
-                                  paymentTiming: o.v,
-                                })
+                                  checkinPayMode: "STRIPE_ONLY",
+                                  paymentTiming:
+                                    flow.paymentTiming === "NONE" || flow.paymentTiming === "CHECKIN"
+                                      ? "BOOKING"
+                                      : flow.paymentTiming || "BOOKING",
+                                });
                               }
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                                (flow.paymentTiming || "CHECKIN") === o.v
-                                  ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
-                                  : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
-                              }`}
-                            >
-                              {o.l}
-                            </button>
-                          ))}
+                            }}
+                            title={
+                              !stripeConnected
+                                ? "Connect Stripe in Settings to enable online payments"
+                                : undefined
+                            }
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                              !stripeConnected
+                                ? "opacity-50 cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400"
+                                : flow.paymentTiming !== "NONE" &&
+                                  (flow.checkinPayMode || "COUNTER_ONLY") === "STRIPE_ONLY"
+                                  ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm cursor-pointer"
+                                  : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60 cursor-pointer"
+                            }`}
+                          >
+                            Pay via Stripe Online
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateFlowMutation.mutate({
+                                checkinPayMode: "COUNTER_ONLY",
+                                paymentTiming:
+                                  flow.paymentTiming === "NONE" || flow.paymentTiming === "BOOKING"
+                                    ? "CHECKIN"
+                                    : flow.paymentTiming || "CHECKIN",
+                              })
+                            }
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                              flow.paymentTiming !== "NONE" &&
+                              (flow.checkinPayMode || "COUNTER_ONLY") === "COUNTER_ONLY"
+                                ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
+                                : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
+                            }`}
+                          >
+                            Pay at Counter (Cash/Card)
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={!stripeConnected}
+                            onClick={() => {
+                              if (stripeConnected) {
+                                updateFlowMutation.mutate({
+                                  checkinPayMode: "BOTH",
+                                  paymentTiming:
+                                    flow.paymentTiming === "NONE"
+                                      ? "BOOKING"
+                                      : flow.paymentTiming || "BOOKING",
+                                });
+                              }
+                            }}
+                            title={
+                              !stripeConnected
+                                ? "Connect Stripe in Settings to enable online payments"
+                                : undefined
+                            }
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                              !stripeConnected
+                                ? "opacity-50 cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400"
+                                : flow.paymentTiming !== "NONE" &&
+                                  (flow.checkinPayMode || "COUNTER_ONLY") === "BOTH"
+                                  ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm cursor-pointer"
+                                  : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60 cursor-pointer"
+                            }`}
+                          >
+                            Both (Customer Chooses)
+                          </button>
                         </div>
                       </div>
 
-                      {/* Row 2: How to collect (only if paymentTiming !== 'NONE') */}
-                      {(flow.paymentTiming || "CHECKIN") !== "NONE" && (
+                      {/* Row 2: When to collect (Dynamic based on selected medium) */}
+                      {flow.paymentTiming !== "NONE" && (
                         <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border/50 dark:border-zinc-800">
                           <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 w-28 shrink-0">
-                            How to collect:
+                            When to collect:
                           </span>
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateFlowMutation.mutate({
-                                  checkinPayMode: "COUNTER_ONLY",
-                                })
-                              }
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
-                                (flow.checkinPayMode || "COUNTER_ONLY") ===
-                                "COUNTER_ONLY"
-                                  ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
-                                  : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
-                              }`}
-                            >
-                              Pay at Counter
-                            </button>
+                            {/* STRIPE_ONLY options */}
+                            {(flow.checkinPayMode || "COUNTER_ONLY") === "STRIPE_ONLY" && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateFlowMutation.mutate({
+                                      paymentTiming: "BOOKING",
+                                    })
+                                  }
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                    (flow.paymentTiming || "BOOKING") === "BOOKING" ||
+                                    flow.paymentTiming === "CHECKIN"
+                                      ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
+                                      : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
+                                  }`}
+                                >
+                                  <span>Pay at Booking (Online)</span>
+                                  <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold uppercase">
+                                    Recommended
+                                  </span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateFlowMutation.mutate({
+                                      paymentTiming: "CHECKOUT",
+                                    })
+                                  }
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                                    flow.paymentTiming === "CHECKOUT"
+                                      ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
+                                      : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
+                                  }`}
+                                >
+                                  Pay at Counter Checkout (Stripe Link/QR)
+                                </button>
+                              </>
+                            )}
 
-                            <button
-                              type="button"
-                              disabled={!stripeConnected}
-                              onClick={() => {
-                                if (stripeConnected) {
-                                  updateFlowMutation.mutate({
-                                    checkinPayMode: "STRIPE_ONLY",
-                                  });
-                                }
-                              }}
-                              title={
-                                !stripeConnected
-                                  ? "Connect Stripe in Settings to enable online payments"
-                                  : undefined
-                              }
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                                !stripeConnected
-                                  ? "opacity-50 cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400"
-                                  : (flow.checkinPayMode || "COUNTER_ONLY") ===
-                                      "STRIPE_ONLY"
-                                    ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm cursor-pointer"
-                                    : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60 cursor-pointer"
-                              }`}
-                            >
-                              Pay via Stripe Online
-                            </button>
+                            {/* COUNTER_ONLY options */}
+                            {(flow.checkinPayMode || "COUNTER_ONLY") === "COUNTER_ONLY" && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateFlowMutation.mutate({
+                                      paymentTiming: "CHECKIN",
+                                    })
+                                  }
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                                    (flow.paymentTiming || "CHECKIN") === "CHECKIN" ||
+                                    flow.paymentTiming === "BOOKING"
+                                      ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
+                                      : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
+                                  }`}
+                                >
+                                  Pay at Check-in (Counter)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateFlowMutation.mutate({
+                                      paymentTiming: "CHECKOUT",
+                                    })
+                                  }
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                                    flow.paymentTiming === "CHECKOUT"
+                                      ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
+                                      : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
+                                  }`}
+                                >
+                                  Pay at Check-out (Counter)
+                                </button>
+                              </>
+                            )}
 
-                            <button
-                              type="button"
-                              disabled={!stripeConnected}
-                              onClick={() => {
-                                if (stripeConnected) {
-                                  updateFlowMutation.mutate({
-                                    checkinPayMode: "BOTH",
-                                  });
-                                }
-                              }}
-                              title={
-                                !stripeConnected
-                                  ? "Connect Stripe in Settings to enable online payments"
-                                  : undefined
-                              }
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                                !stripeConnected
-                                  ? "opacity-50 cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-400"
-                                  : (flow.checkinPayMode || "COUNTER_ONLY") === "BOTH"
-                                    ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm cursor-pointer"
-                                    : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60 cursor-pointer"
-                              }`}
-                            >
-                              Both (Customer Chooses)
-                            </button>
+                            {/* BOTH options */}
+                            {(flow.checkinPayMode || "COUNTER_ONLY") === "BOTH" && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateFlowMutation.mutate({
+                                      paymentTiming: "BOOKING",
+                                    })
+                                  }
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                                    flow.paymentTiming === "BOOKING"
+                                      ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
+                                      : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
+                                  }`}
+                                >
+                                  Online at Booking (or Counter Check-in)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateFlowMutation.mutate({
+                                      paymentTiming: "CHECKOUT",
+                                    })
+                                  }
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                                    flow.paymentTiming === "CHECKOUT"
+                                      ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100 shadow-sm"
+                                      : "bg-surface-container-low dark:bg-zinc-800 border-border dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700/60"
+                                  }`}
+                                >
+                                  At Counter Check-out (Stripe QR or Cash/Card)
+                                </button>
+                              </>
+                            )}
                           </div>
 
                           {/* Extra options */}
