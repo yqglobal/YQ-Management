@@ -438,20 +438,20 @@ export class ServiceService {
       delete updateData.slaPolicyId;
     }
 
-    const result = await this.prisma.extendedClient.service
-      .update({
-        where: { id_tenantId: { id, tenantId } },
-        data: updateData,
-        include: { queues: true },
-      })
-      .catch(async () => {
-        const exists = await this.findOne(id, tenantId);
-        return this.prisma.extendedClient.service.update({
-          where: { id: exists.id },
-          data: updateData,
-          include: { queues: true },
-        });
-      });
+    if (data.basePrice !== undefined) {
+      updateData.basePrice = data.basePrice;
+      if (data.basePrice && data.basePrice > 0) {
+        updateData.requiresPayment = true;
+        updateData.allowOfflinePayment = true;
+      }
+    }
+
+    const exists = await this.findOne(id, tenantId);
+    const result = await this.prisma.extendedClient.service.update({
+      where: { id: exists.id },
+      data: updateData,
+      include: { queues: true },
+    });
 
     // Sync queue name if service name was updated
     if (data.name && result.queues && result.queues.length > 0) {

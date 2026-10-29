@@ -543,8 +543,9 @@ export class TenantPaymentsService {
     )
       ? (method.toUpperCase() as any)
       : 'OTHER';
-    if (!(amount > 0))
-      throw new BadRequestException('Amount must be greater than zero');
+    if (typeof amount !== 'number' || isNaN(amount) || amount < 0) {
+      throw new BadRequestException('Amount must be a valid non-negative number');
+    }
     const visit = await this.prisma.visit.findUnique({
       where: { id: visitId },
       include: {
@@ -576,7 +577,7 @@ export class TenantPaymentsService {
         amount,
         platformFeeAmount: 0,
         tenantNetAmount: amount,
-        currency: visit.service.priceCurrency || 'ZAR',
+        currency: visit.service?.priceCurrency || 'ZAR',
         status: 'SUCCEEDED',
         stripePaymentMethodType: method,
         method: normalizedMethod,
@@ -585,7 +586,7 @@ export class TenantPaymentsService {
           (visit.currentState === 'PENDING_PAYMENT' ? 'CHECKIN' : 'CHECKOUT'),
         recordedByStaffId: extra.staffId,
         proofUrl: extra.proofUrl,
-        description: description || 'Manual Payment at Counter',
+        description: description || (amount === 0 ? 'Complimentary / Free Service' : 'Manual Payment at Counter'),
       },
     });
 

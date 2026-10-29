@@ -822,6 +822,12 @@ export default function ServiceDeskToday() {
     queryFn: () => fetchApi("/resource").catch(() => []),
   });
 
+  const { data: services = [] } = useQuery({
+    queryKey: ["services", activeLocationId],
+    queryFn: () =>
+      fetchApi(`/service${locParamPrefix}`).catch(() => []),
+  });
+
   // Connect to Socket.io for real-time updates
   useEffect(() => {
     if (!socket || !tenant?.id) return;
@@ -3239,12 +3245,54 @@ export default function ServiceDeskToday() {
                     );
                     const isPendingPaymentState =
                       selectedVisit?.currentState === "PENDING_PAYMENT";
-                    const basePrice = selectedVisit?.service?.basePrice || 0;
+
+                    // Resolve latest service details from services cache (to pick up freshly configured prices)
+                    const activeService =
+                      (services || []).find(
+                        (s: AnyFixMe) =>
+                          s.id === selectedVisit?.serviceId ||
+                          s.id === selectedVisit?.service?.id ||
+                          (selectedVisit?.service?.name &&
+                            s.name?.trim().toLowerCase() ===
+                              selectedVisit.service.name?.trim().toLowerCase()),
+                      ) || selectedVisit?.service;
+
+                    // Also check if any PAYMENT step exists in the flow
+                    const paymentStep = selectedVisit?.visitSteps?.find(
+                      (s: any) =>
+                        s.type === 'PAYMENT' &&
+                        s.status !== 'DONE' &&
+                        s.status !== 'SKIPPED' &&
+                        !s.isSkipped,
+                    );
+                    const stepPrice =
+                      paymentStep?.templateStep?.stepPrice ||
+                      paymentStep?.amountCharged ||
+                      0;
+
+                    const basePrice =
+                      activeService?.basePrice !== undefined &&
+                      activeService?.basePrice !== null &&
+                      activeService?.basePrice > 0
+                        ? activeService.basePrice
+                        : selectedVisit?.service?.basePrice !== undefined &&
+                          selectedVisit?.service?.basePrice !== null &&
+                          selectedVisit?.service?.basePrice > 0
+                          ? selectedVisit.service.basePrice
+                          : stepPrice;
+
                     const priceCurrency =
-                      selectedVisit?.service?.priceCurrency || "ZAR";
-                    const flow = selectedVisit?.service?.serviceFlow;
+                      activeService?.priceCurrency ||
+                      selectedVisit?.service?.priceCurrency ||
+                      paymentStep?.templateStep?.stepPriceCurrency ||
+                      "ZAR";
+
+                    const flow =
+                      activeService?.serviceFlow ||
+                      selectedVisit?.service?.serviceFlow;
                     const paymentTiming = flow?.paymentTiming || "NONE";
-                    const checkinPayMode = flow?.checkinPayMode || "COUNTER_ONLY";
+                    const checkinPayMode =
+                      flow?.checkinPayMode || "COUNTER_ONLY";
 
                     // The payment card should be visible if:
                     // 1. Visit has a payment (succeeded or pending)

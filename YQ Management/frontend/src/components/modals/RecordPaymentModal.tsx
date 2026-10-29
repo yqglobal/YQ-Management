@@ -148,7 +148,8 @@ export function RecordPaymentModal({
     e.preventDefault();
     if (busy) return;
 
-    const parsedCents = Math.round((parseFloat(customAmountStr) || 0) * 100);
+    const rawVal = customAmountStr.trim();
+    const parsedCents = rawVal !== '' ? Math.round((parseFloat(rawVal) || 0) * 100) : amount;
     if (parsedCents < 0) {
       toast.error('Payment amount cannot be negative');
       return;
@@ -158,9 +159,9 @@ export function RecordPaymentModal({
     try {
       await onConfirm({
         method,
-        amount: parsedCents > 0 ? parsedCents : amount,
+        amount: parsedCents,
         proofUrl: proofUrl.trim() || undefined,
-        description: description.trim() || undefined,
+        description: description.trim() || (parsedCents === 0 ? 'Complimentary / Free Service' : undefined),
         sendReceipt,
       });
       onClose();
