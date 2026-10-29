@@ -2878,7 +2878,52 @@ export default function ServiceDeskToday() {
                     )}
                   </div>
 
-                  {/* 5. Current Stage, Next Stage in 1 line */}
+                  {/* 4b. Collection / Entitlement Progress (if applicable) */}
+                  {(() => {
+                    const collStep = selectedVisit.visitSteps?.find(
+                      (s: AnyFixMe) =>
+                        (s.templateStep?.type === "COLLECTION" || s.quantityAllocated) &&
+                        s.status !== "CANCELLED" &&
+                        s.status !== "SKIPPED"
+                    );
+                    if (!collStep || !collStep.quantityAllocated) return null;
+                    const allocated = collStep.quantityAllocated || 0;
+                    const redeemed = collStep.quantityRedeemed || 0;
+                    const unit = collStep.templateStep?.entitlementUnit || "units";
+                    const isAllCollected = redeemed >= allocated;
+
+                    return (
+                      <div className="flex items-center justify-between text-sm py-1.5 px-3 rounded-xl bg-surface-container dark:bg-inverse-surface border border-border dark:border-dark-border">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[18px] text-primary dark:text-sky-400">
+                            inventory_2
+                          </span>
+                          <span className="text-outline text-xs uppercase tracking-wider font-bold">
+                            Entitlement:
+                          </span>
+                          <span className="font-semibold text-on-surface dark:text-white text-xs">
+                            {allocated} {unit}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-outline">Collected:</span>
+                          <span
+                            className={`font-bold font-mono text-xs px-2 py-0.5 rounded-md ${
+                              isAllCollected
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                                : redeemed > 0
+                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+                                : "bg-zinc-500/15 text-zinc-700 dark:text-zinc-300 border border-zinc-500/30"
+                            }`}
+                          >
+                            {redeemed} / {allocated} {unit}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+
                   <div className="text-sm text-on-surface dark:text-zinc-300 flex items-center gap-x-4 gap-y-1.5 flex-wrap py-1">
                     <div>
                       <span className="text-outline">Current stage: </span>
