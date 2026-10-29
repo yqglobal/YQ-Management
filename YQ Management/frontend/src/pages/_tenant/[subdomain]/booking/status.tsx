@@ -645,6 +645,107 @@ export default function StatusPage() {
                     </div>
                   )}
 
+                  {/* Payment, Tax and Total Breakdown */}
+                  {(() => {
+                    const currency = (visit.service?.priceCurrency || visit.service?.currency || 'ZAR').toUpperCase();
+                    const currSymbol = currency === 'ZAR' ? 'R' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+                    const basePriceCents = Number(visit.service?.basePrice || 0);
+                    const guestsCount = 1 + (visit.accompanyingGuests || 0);
+
+                    const invoice = visit.visitInvoice;
+                    const succeededPayment = visit.bookingPayments?.find((p: any) => p.status === 'SUCCEEDED');
+                    const isPaid = !!succeededPayment || invoice?.status === 'PAID';
+
+                    const defaultTaxRate = currency === 'ZAR' ? 15 : currency === 'GBP' ? 20 : currency === 'EUR' ? 20 : currency === 'INR' ? 18 : 0;
+                    const taxRate = tenant?.taxConfig?.defaultTaxRatePercent !== undefined ? Number(tenant.taxConfig.defaultTaxRatePercent) : defaultTaxRate;
+                    const isTaxInclusive = tenant?.taxConfig?.taxInclusive !== undefined ? Boolean(tenant.taxConfig.taxInclusive) : (currency === 'ZAR');
+
+                    const rawSubtotalCents = basePriceCents * guestsCount;
+                    if (rawSubtotalCents <= 0 && !succeededPayment && !invoice) return null;
+
+                    let netSubtotalCents = rawSubtotalCents;
+                    let taxCents = 0;
+                    let totalCents = rawSubtotalCents;
+
+                    if (invoice) {
+                      totalCents = invoice.total ?? rawSubtotalCents;
+                      taxCents = invoice.totalTax ?? 0;
+                      netSubtotalCents = invoice.subtotal ?? (totalCents - taxCents);
+                    } else if (succeededPayment) {
+                      totalCents = succeededPayment.amount ?? rawSubtotalCents;
+                      if (taxRate > 0) {
+                        if (isTaxInclusive) {
+                          netSubtotalCents = Math.round(totalCents / (1 + taxRate / 100));
+                          taxCents = totalCents - netSubtotalCents;
+                        } else {
+                          taxCents = Math.round(totalCents * (taxRate / 100));
+                        }
+                      }
+                    } else if (taxRate > 0) {
+                      if (isTaxInclusive) {
+                        netSubtotalCents = Math.round(rawSubtotalCents / (1 + taxRate / 100));
+                        taxCents = rawSubtotalCents - netSubtotalCents;
+                        totalCents = rawSubtotalCents;
+                      } else {
+                        taxCents = Math.round(rawSubtotalCents * (taxRate / 100));
+                        totalCents = rawSubtotalCents + taxCents;
+                      }
+                    }
+
+                    const taxLabel = currency === 'ZAR'
+                      ? `VAT (${taxRate}%${isTaxInclusive ? ' Included' : ''})`
+                      : currency === 'INR'
+                      ? `GST (${taxRate}%${isTaxInclusive ? ' Included' : ''})`
+                      : `Tax (${taxRate}%${isTaxInclusive ? ' Included' : ''})`;
+
+                    return (
+                      <div className="bg-gray-50 dark:bg-zinc-950 p-4 rounded-xl border border-gray-100 dark:border-zinc-800 mt-2.5 space-y-2">
+                        <div className="flex items-center justify-between pb-2 border-b border-gray-200/60 dark:border-zinc-800/60">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Payment & Taxes</span>
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                            isPaid
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                          }`}>
+                            {isPaid ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3" /> Paid Online
+                              </>
+                            ) : (
+                              <>
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Pay at Counter
+                              </>
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1 text-xs text-gray-600 dark:text-zinc-400">
+                          <div className="flex justify-between">
+                            <span>Service Base ({guestsCount} {guestsCount === 1 ? 'person' : 'guests'})</span>
+                            <span className="font-medium text-gray-900 dark:text-zinc-200 font-mono">
+                              {currSymbol}{(netSubtotalCents / 100).toFixed(2)}
+                            </span>
+                          </div>
+                          {taxRate > 0 && (
+                            <div className="flex justify-between">
+                              <span>{taxLabel}</span>
+                              <span className="font-medium text-gray-900 dark:text-zinc-200 font-mono">
+                                {currSymbol}{(taxCents / 100).toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="pt-2 border-t border-gray-200/80 dark:border-zinc-800/80 flex justify-between items-baseline">
+                          <span className="text-xs font-bold uppercase text-gray-900 dark:text-white">Total Amount</span>
+                          <span className="text-lg font-black text-gray-900 dark:text-white font-mono">
+                            {currSymbol}{(totalCents / 100).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {!isDone && visit.accessToken && (
                     <a
                       href={`/customer/status/${visit.accessToken}`}

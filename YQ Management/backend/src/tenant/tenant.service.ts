@@ -222,7 +222,7 @@ export class TenantService {
             currentState: { in: ['WAITING', 'CHECKED_IN'] },
           },
           {
-            currentState: { in: ['SCHEDULED', 'CREATED', 'PENDING_PAYMENT'] },
+            currentState: { in: ['SCHEDULED', 'CREATED'] },
             scheduledTime: { gte: todayStart, lte: todayEnd },
           },
         ],

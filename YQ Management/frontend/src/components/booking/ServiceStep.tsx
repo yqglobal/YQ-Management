@@ -13,6 +13,15 @@ interface ServiceStepProps {
   onViewTickets?: () => void;
 }
 
+const getCurrencySymbol = (curr?: string): string => {
+  const c = (curr || 'ZAR').toUpperCase();
+  if (c === 'ZAR') return 'R';
+  if (c === 'EUR') return '€';
+  if (c === 'GBP') return '£';
+  if (c === 'JPY') return '¥';
+  return '$';
+};
+
 export const ServiceStep: React.FC<ServiceStepProps> = ({
   services,
   tenant,
@@ -42,6 +51,10 @@ export const ServiceStep: React.FC<ServiceStepProps> = ({
           ) : (
             filteredServices.map((service: AnyFixMe) => {
               const isSelected = selectedServiceIds.includes(service.id);
+              const price = typeof service.basePrice === 'number' ? service.basePrice : service.basePrice ? parseFloat(service.basePrice) : 0;
+              const currency = service.priceCurrency || service.currency || tenant?.currency || 'ZAR';
+              const currSymbol = getCurrencySymbol(currency);
+
               return (
                 <label key={service.id} className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected ? 'border-transparent shadow-md' : 'border-gray-200 dark:border-zinc-800'}`} style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}>
                   <div className="mt-1">
@@ -53,10 +66,21 @@ export const ServiceStep: React.FC<ServiceStepProps> = ({
                     />
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-base">{service.name}</h3>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-base text-gray-900 dark:text-white">{service.name}</h3>
+                        {price > 0 ? (
+                          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 font-mono shadow-sm">
+                            {currSymbol}{(price / 100).toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400">
+                            Free
+                          </span>
+                        )}
+                      </div>
                       {service.expectedDuration && (
-                        <span className="text-xs font-semibold px-2 py-1 rounded-md bg-white dark:bg-zinc-900 shadow-sm border dark:border-zinc-800 text-gray-600 dark:text-gray-300">
+                        <span className="text-xs font-semibold px-2 py-1 rounded-md bg-white dark:bg-zinc-900 shadow-sm border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-300 shrink-0">
                           ~{service.expectedDuration} min
                         </span>
                       )}

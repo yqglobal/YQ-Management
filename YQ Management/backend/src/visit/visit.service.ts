@@ -638,6 +638,7 @@ export class VisitService {
         serviceEnd: true,
         rating: true,
         feedbackText: true,
+        accompanyingGuests: true,
         customer: { select: { name: true } },
         service: {
           select: {
@@ -794,6 +795,7 @@ export class VisitService {
         serviceStart: true,
         scheduledTime: true,
         appointmentId: true,
+        accompanyingGuests: true,
         customer: { select: { name: true } },
         service: {
           select: {
@@ -801,11 +803,44 @@ export class VisitService {
             name: true,
             expectedDuration: true,
             emaExpectedDuration: true,
+            basePrice: true,
+            priceCurrency: true,
+            serviceFlow: {
+              select: {
+                isActive: true,
+                paymentTiming: true,
+                checkinPayMode: true,
+              },
+            },
           },
         },
         location: { select: { name: true, address: true } },
-        tenant: { select: { name: true } },
+        tenant: { select: { name: true, taxConfig: true } },
         queue: { select: { status: true } },
+        bookingPayments: {
+          select: {
+            id: true,
+            status: true,
+            amount: true,
+            currency: true,
+            method: true,
+            createdAt: true,
+          },
+        },
+        visitInvoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            subtotal: true,
+            totalTax: true,
+            total: true,
+            currency: true,
+            status: true,
+            lineItemsSnap: true,
+            taxLines: true,
+            paidAt: true,
+          },
+        },
         visitSteps: {
           select: {
             id: true,

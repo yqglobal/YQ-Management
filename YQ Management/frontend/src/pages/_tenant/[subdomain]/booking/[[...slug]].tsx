@@ -845,7 +845,19 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
             <motion.div key={`step2-${currentService.id}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6 flex-1">
               <div className="mb-4">
                 <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Step {currentServiceIndex + 1} of {selectedServiceIds.length}</span>
-                <h2 className="text-2xl font-bold mt-1">{currentService.name} Details</h2>
+                <div className="flex items-center justify-between mt-1 gap-2">
+                  <h2 className="text-2xl font-bold truncate">{currentService.name} Details</h2>
+                  {(() => {
+                    const bookingCurrency = (currentService as any)?.priceCurrency || (currentService as any)?.currency || 'ZAR';
+                    const currSymbol = bookingCurrency.toUpperCase() === 'ZAR' ? 'R' : bookingCurrency.toUpperCase() === 'EUR' ? '€' : bookingCurrency.toUpperCase() === 'GBP' ? '£' : '$';
+                    const basePriceCents = Number((currentService as any)?.basePrice || 0);
+                    return (
+                      <span className="shrink-0 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                        {basePriceCents > 0 ? `${currSymbol}${(basePriceCents / 100).toFixed(2)}` : 'Free'}
+                      </span>
+                    );
+                  })()}
+                </div>
               </div>
               
               <form onSubmit={handleNextStep2} className="space-y-6">
@@ -1149,9 +1161,18 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                     {selectedServiceIds.map(sid => {
                       const s = services.find(x => x.id === sid);
                       const details = serviceDetails[sid];
+                      const sCurrency = (s as any)?.priceCurrency || (s as any)?.currency || 'ZAR';
+                      const sSym = sCurrency.toUpperCase() === 'ZAR' ? 'R' : sCurrency.toUpperCase() === 'EUR' ? '€' : sCurrency.toUpperCase() === 'GBP' ? '£' : '$';
+                      const baseCents = Number((s as any)?.basePrice || 0);
+
                       return (
                         <div key={sid} className="bg-gray-50 dark:bg-black/50 rounded-xl p-3 border border-gray-100 dark:border-zinc-800">
-                          <p className="font-bold">{s?.name}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-bold text-gray-900 dark:text-white truncate">{s?.name}</p>
+                            <span className="shrink-0 font-mono font-bold text-sm text-gray-900 dark:text-zinc-100">
+                              {baseCents > 0 ? `${sSym}${(baseCents / 100).toFixed(2)}` : 'Free'}
+                            </span>
+                          </div>
                           {details?.joinMode === 'appointment' ? (
                             <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium mt-1">
                               Appointment: {new Date(details.selectedSlot).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
@@ -1165,16 +1186,39 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                   </div>
                 </div>
 
-                {/* Transparent Payment Breakdown in Review */}
+                {/* Comprehensive Price, Taxes & Total Breakdown in Review */}
                 {(() => {
-                  const bookingCurrency = (services.find(x => x.id === selectedServiceIds[0]) as any)?.priceCurrency || (services.find(x => x.id === selectedServiceIds[0]) as any)?.currency || 'USD';
+                  const firstService = services.find(x => selectedServiceIds.includes(x.id));
+                  const bookingCurrency = (firstService as any)?.priceCurrency || (firstService as any)?.currency || 'ZAR';
                   const currSymbol = bookingCurrency.toUpperCase() === 'ZAR' ? 'R' : bookingCurrency.toUpperCase() === 'EUR' ? '€' : bookingCurrency.toUpperCase() === 'GBP' ? '£' : '$';
+                  const totalGuests = 1 + (accompanyingGuests || 0);
 
-                  const totalCents = selectedServiceIds.reduce((total, sid) => {
+                  const rawSubtotalCents = selectedServiceIds.reduce((total, sid) => {
                     const s = services.find(x => x.id === sid);
                     const base = s && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0;
-                    return total + (base * (1 + accompanyingGuests));
+                    return total + (base * totalGuests);
                   }, 0);
+
+                  if (rawSubtotalCents <= 0) return null;
+
+                  const defaultTaxRate = bookingCurrency.toUpperCase() === 'ZAR' ? 15 : bookingCurrency.toUpperCase() === 'GB' || bookingCurrency.toUpperCase() === 'GBP' ? 20 : bookingCurrency.toUpperCase() === 'EUR' ? 20 : bookingCurrency.toUpperCase() === 'INR' ? 18 : 0;
+                  const taxRate = tenant?.taxConfig?.defaultTaxRatePercent !== undefined ? Number(tenant.taxConfig.defaultTaxRatePercent) : defaultTaxRate;
+                  const isTaxInclusive = tenant?.taxConfig?.taxInclusive !== undefined ? Boolean(tenant.taxConfig.taxInclusive) : (bookingCurrency.toUpperCase() === 'ZAR');
+
+                  let netSubtotalCents = rawSubtotalCents;
+                  let taxCents = 0;
+                  let finalTotalCents = rawSubtotalCents;
+
+                  if (taxRate > 0) {
+                    if (isTaxInclusive) {
+                      netSubtotalCents = Math.round(rawSubtotalCents / (1 + taxRate / 100));
+                      taxCents = rawSubtotalCents - netSubtotalCents;
+                      finalTotalCents = rawSubtotalCents;
+                    } else {
+                      taxCents = Math.round(rawSubtotalCents * (taxRate / 100));
+                      finalTotalCents = rawSubtotalCents + taxCents;
+                    }
+                  }
 
                   const minStripeThreshold = getMinStripeCents(bookingCurrency);
                   const isStripeBooking = selectedServiceIds.some(sid => {
@@ -1184,30 +1228,65 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                       ? (flow.paymentTiming === 'BOOKING' && (flow.checkinPayMode === 'STRIPE_ONLY' || flow.checkinPayMode === 'BOTH'))
                       : ((s as any)?.paymentMode === 'PREPAY');
                   });
-                  const isStripeViable = isStripeBooking && totalCents >= minStripeThreshold;
+                  const isStripeViable = isStripeBooking && finalTotalCents >= minStripeThreshold;
 
-                  if (totalCents <= 0) return null;
+                  const taxLabel = bookingCurrency.toUpperCase() === 'ZAR'
+                    ? `VAT (${taxRate}%${isTaxInclusive ? ' Included' : ''})`
+                    : bookingCurrency.toUpperCase() === 'INR'
+                    ? `GST (${taxRate}%${isTaxInclusive ? ' Included' : ''})`
+                    : `Tax / VAT (${taxRate}%${isTaxInclusive ? ' Included' : ''})`;
 
                   return (
-                    <div className="border-t border-gray-100 dark:border-zinc-800 pt-4 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider">Payment Method</p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 mt-0.5">
-                          <span className={`w-2 h-2 rounded-full ${isStripeViable ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                          {isStripeViable ? 'Online Payment (Stripe)' : 'Pay at Counter (Cash/Card)'}
-                        </p>
-                        {isStripeBooking && !isStripeViable && (
-                          <p className="text-[11px] text-gray-500 dark:text-zinc-400 mt-0.5">
-                            Amount below card minimum ({currSymbol}{(minStripeThreshold / 100).toFixed(2)}) • Pay in person upon arrival
-                          </p>
+                    <div className="bg-gray-50 dark:bg-black/40 rounded-2xl p-4 border border-gray-100 dark:border-zinc-800 space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-gray-200/60 dark:border-zinc-800/60">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Payment & Taxes</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                          {isStripeViable ? 'Pay Online (Card)' : 'Pay at Counter'}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between text-gray-600 dark:text-zinc-400">
+                          <span>Base Subtotal {isTaxInclusive ? '(Excl. Tax)' : ''}</span>
+                          <span className="font-medium text-gray-900 dark:text-zinc-200 font-mono">
+                            {currSymbol}{(netSubtotalCents / 100).toFixed(2)}
+                          </span>
+                        </div>
+
+                        {accompanyingGuests > 0 && (
+                          <div className="flex justify-between text-gray-500 text-[11px]">
+                            <span>Party Size</span>
+                            <span>1 customer + {accompanyingGuests} guest{accompanyingGuests > 1 ? 's' : ''}</span>
+                          </div>
+                        )}
+
+                        {taxRate > 0 && (
+                          <div className="flex justify-between text-gray-600 dark:text-zinc-400">
+                            <span>{taxLabel}</span>
+                            <span className="font-medium text-gray-900 dark:text-zinc-200 font-mono">
+                              {currSymbol}{(taxCents / 100).toFixed(2)}
+                            </span>
+                          </div>
                         )}
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500 uppercase tracking-wider">Total Due</p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">
-                          {currSymbol}{(totalCents / 100).toFixed(2)}
+
+                      <div className="pt-2.5 border-t border-gray-200 dark:border-zinc-800 flex justify-between items-baseline">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">Total Amount</p>
+                          <p className="text-[11px] text-gray-500">
+                            {isTaxInclusive ? 'All applicable taxes included' : 'Final total payable'}
+                          </p>
+                        </div>
+                        <p className="text-2xl font-black text-gray-900 dark:text-white font-mono">
+                          {currSymbol}{(finalTotalCents / 100).toFixed(2)}
                         </p>
                       </div>
+
+                      {isStripeBooking && !isStripeViable && (
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded-xl border border-amber-200/60 dark:border-amber-900/50">
+                          Note: Amount is below card processor minimum ({currSymbol}{(minStripeThreshold / 100).toFixed(2)}). You can complete booking and pay in cash or card at the counter upon arrival.
+                        </p>
+                      )}
                     </div>
                   );
                 })()}

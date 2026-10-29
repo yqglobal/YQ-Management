@@ -739,7 +739,7 @@ export default function ServiceDeskToday() {
           v.createdAt;
         if (
           start &&
-          ["WAITING", "CHECKED_IN", "PENDING_PAYMENT"].includes(v.currentState)
+          ["WAITING", "CHECKED_IN"].includes(v.currentState)
         ) {
           newCounters[v.id] = Math.max(
             0,
@@ -1060,8 +1060,7 @@ export default function ServiceDeskToday() {
   const arrivedVisits = filteredVisits.filter(
     (v: AnyFixMe) =>
       v.currentState === "WAITING" ||
-      v.currentState === "CHECKED_IN" ||
-      v.currentState === "PENDING_PAYMENT",
+      v.currentState === "CHECKED_IN",
   );
 
   // Upcoming pool: SCHEDULED appointments for today that haven't arrived yet

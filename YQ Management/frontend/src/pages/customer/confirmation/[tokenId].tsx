@@ -247,6 +247,132 @@ export default function QueueConfirmation() {
     }
   };
 
+  const renderPaymentSummary = () => {
+    const currency = (token.service?.priceCurrency || token.service?.currency || 'ZAR').toUpperCase();
+    const currSymbol = currency === 'ZAR' ? 'R' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+    const basePriceCents = Number(token.service?.basePrice || 0);
+    const guestsCount = 1 + (token.accompanyingGuests || 0);
+
+    const invoice = token.visitInvoice;
+    const succeededPayment = token.bookingPayments?.find((p: any) => p.status === 'SUCCEEDED');
+    const isPaid = !!succeededPayment || invoice?.status === 'PAID';
+
+    const defaultTaxRate = currency === 'ZAR' ? 15 : currency === 'GBP' ? 20 : currency === 'EUR' ? 20 : currency === 'INR' ? 18 : 0;
+    const taxRate = token.tenant?.taxConfig?.defaultTaxRatePercent !== undefined ? Number(token.tenant.taxConfig.defaultTaxRatePercent) : defaultTaxRate;
+    const isTaxInclusive = token.tenant?.taxConfig?.taxInclusive !== undefined ? Boolean(token.tenant.taxConfig.taxInclusive) : (currency === 'ZAR');
+
+    const rawSubtotalCents = basePriceCents * guestsCount;
+    if (rawSubtotalCents <= 0 && !succeededPayment && !invoice) return null;
+
+    let netSubtotalCents = rawSubtotalCents;
+    let taxCents = 0;
+    let totalCents = rawSubtotalCents;
+
+    if (invoice) {
+      totalCents = invoice.total ?? rawSubtotalCents;
+      taxCents = invoice.totalTax ?? 0;
+      netSubtotalCents = invoice.subtotal ?? (totalCents - taxCents);
+    } else if (succeededPayment) {
+      totalCents = succeededPayment.amount ?? rawSubtotalCents;
+      if (taxRate > 0) {
+        if (isTaxInclusive) {
+          netSubtotalCents = Math.round(totalCents / (1 + taxRate / 100));
+          taxCents = totalCents - netSubtotalCents;
+        } else {
+          taxCents = Math.round(totalCents * (taxRate / 100));
+        }
+      }
+    } else if (taxRate > 0) {
+      if (isTaxInclusive) {
+        netSubtotalCents = Math.round(rawSubtotalCents / (1 + taxRate / 100));
+        taxCents = rawSubtotalCents - netSubtotalCents;
+        totalCents = rawSubtotalCents;
+      } else {
+        taxCents = Math.round(rawSubtotalCents * (taxRate / 100));
+        totalCents = rawSubtotalCents + taxCents;
+      }
+    }
+
+    const taxLabel = currency === 'ZAR'
+      ? `VAT (${taxRate}%${isTaxInclusive ? ' Included' : ''})`
+      : currency === 'INR'
+      ? `GST (${taxRate}%${isTaxInclusive ? ' Included' : ''})`
+      : `Tax / VAT (${taxRate}%${isTaxInclusive ? ' Included' : ''})`;
+
+    return (
+      <div className="bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-5 mb-5 shadow-2xl text-left space-y-3">
+        <div className="flex items-center justify-between pb-2.5 border-b border-white/5">
+          <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Receipt className="w-3.5 h-3.5 text-indigo-400" />
+            Payment & Taxes
+          </span>
+          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 border ${
+            isPaid
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+          }`}>
+            {isPaid ? (
+              <>
+                <Check className="w-3 h-3" /> Paid Online
+              </>
+            ) : (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> Pay at Counter
+              </>
+            )}
+          </span>
+        </div>
+
+        <div className="space-y-1.5 text-xs text-zinc-300">
+          <div className="flex justify-between">
+            <span className="text-zinc-400">Base Services ({guestsCount} {guestsCount === 1 ? 'person' : 'guests'})</span>
+            <span className="font-mono font-semibold text-white">
+              {currSymbol}{(netSubtotalCents / 100).toFixed(2)}
+            </span>
+          </div>
+          {token.accompanyingGuests > 0 && (
+            <div className="flex justify-between text-zinc-400 text-[11px]">
+              <span>Accompanying Guests</span>
+              <span>+{token.accompanyingGuests} guest{token.accompanyingGuests > 1 ? 's' : ''}</span>
+            </div>
+          )}
+          {taxRate > 0 && (
+            <div className="flex justify-between">
+              <span className="text-zinc-400">{taxLabel}</span>
+              <span className="font-mono font-semibold text-zinc-200">
+                {currSymbol}{(taxCents / 100).toFixed(2)}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="pt-2.5 border-t border-white/5 flex justify-between items-baseline">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-white block">Total Amount</span>
+            <span className="text-[10px] text-zinc-400">
+              {isTaxInclusive ? 'All applicable taxes included' : 'Total payable'}
+            </span>
+          </div>
+          <span className="text-2xl font-black font-mono text-emerald-400">
+            {currSymbol}{(totalCents / 100).toFixed(2)}
+          </span>
+        </div>
+
+        {(token.visitInvoice || (token.bookingPayments && token.bookingPayments.length > 0)) && (
+          <div className="pt-2 border-t border-white/5">
+            <button
+              onClick={handleDownloadInvoice}
+              className="w-full py-2 px-3 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5 text-indigo-400" />
+              Download Tax Invoice / Receipt (PDF)
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Completion duration calculation
   const durationMins =
     token.serviceStart && token.completedAt
@@ -635,6 +761,8 @@ export default function QueueConfirmation() {
               </p>
             </div>
 
+            {renderPaymentSummary()}
+
             {/* CTAs */}
             <div className="space-y-3">
               <Link
@@ -713,6 +841,8 @@ export default function QueueConfirmation() {
                 )}
               </div>
             </div>
+
+            {renderPaymentSummary()}
 
             <Link
               href={trackingUrl.replace(typeof window !== 'undefined' ? window.location.origin : '', '') || `/customer/status/${token.accessToken || token.id}`}

@@ -252,7 +252,7 @@ export default function TVDisplay() {
         if (Array.isArray(data)) {
           const list: UpcomingToken[] = data
             .filter((d: AnyFixMe) =>
-              ['WAITING', 'CHECKED_IN', 'SCHEDULED', 'CREATED', 'PENDING_PAYMENT'].includes(d.currentState)
+              ['WAITING', 'CHECKED_IN', 'SCHEDULED', 'CREATED'].includes(d.currentState)
             )
             .map((d: AnyFixMe) => ({
               id: d.id,
