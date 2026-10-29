@@ -71,6 +71,10 @@ export class InvoiceService {
         tenant: true,
         service: true,
         customer: true,
+        bookingPayments: {
+          where: { status: 'SUCCEEDED' },
+          orderBy: { createdAt: 'desc' },
+        },
         visitInvoice: {
           include: {
             customer: true,
@@ -109,7 +113,11 @@ export class InvoiceService {
       taxInclusive: false,
     };
 
-    const price = visit.service.basePrice || 0;
+    const succeededPayment = visit.bookingPayments?.[0];
+    const price =
+      visit.service.basePrice && visit.service.basePrice > 0
+        ? visit.service.basePrice
+        : succeededPayment?.amount || 0;
     const qty = 1; // Assuming 1 service booked per visit
     const lineItemSubtotal = price * qty;
 

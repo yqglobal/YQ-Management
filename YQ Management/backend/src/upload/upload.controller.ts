@@ -38,9 +38,7 @@ export class UploadController {
       throw new BadRequestException('No file uploaded');
     }
 
-    // In a production system, this would upload to S3 with SSE-KMS encryption.
-    // For this boilerplate, we'll store in a local .tmp folder with a generated ID.
-    const uploadDir = path.join(process.cwd(), '.tmp', 'uploads');
+    const uploadDir = path.join(process.cwd(), 'uploads', 'proofs');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -50,13 +48,13 @@ export class UploadController {
     const fileName = `${fileId}${ext}`;
     const filePath = path.join(uploadDir, fileName);
 
-    // Simulate basic file encryption at rest (or just write it)
     fs.writeFileSync(filePath, file.buffer);
 
     return {
       success: true,
       fileId,
-      url: `/upload/${fileId}`, // Secure URL to access later
+      fileName,
+      url: `/uploads/proofs/${fileName}`,
       message: 'File securely uploaded and stored.',
     };
   }

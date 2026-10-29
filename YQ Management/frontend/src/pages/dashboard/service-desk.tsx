@@ -3233,8 +3233,21 @@ export default function ServiceDeskToday() {
                     const paymentTiming = flow?.paymentTiming || "NONE";
                     const checkinPayMode = flow?.checkinPayMode || "COUNTER_ONLY";
 
+                    // The payment card should be visible if:
+                    // 1. Visit has a payment (succeeded or pending)
+                    // 2. Visit state is PENDING_PAYMENT
+                    // 3. Flow configured payment (timing is not NONE)
+                    // 4. Pay at counter is enabled (COUNTER_ONLY, BOTH, ONLINE_OR_COUNTER)
+                    // 5. Or service has a basePrice > 0 or requires payment
+                    const isFlowPaymentEnabled =
+                      paymentTiming !== "NONE" ||
+                      checkinPayMode === "COUNTER_ONLY" ||
+                      checkinPayMode === "ONLINE_OR_COUNTER" ||
+                      checkinPayMode === "BOTH";
+
                     const hasPaymentObligation =
-                      basePrice > 0 && paymentTiming !== "NONE";
+                      basePrice > 0 || isFlowPaymentEnabled;
+
                     if (
                       !succeededPayment &&
                       !pendingPayment &&
@@ -3255,61 +3268,6 @@ export default function ServiceDeskToday() {
                         ? pendingPayment.currency
                         : priceCurrency;
 
-                    const markAsPaid = async (
-                      method: "CASH" | "CARD_TERMINAL" | "EFT",
-                    ) => {
-                      try {
-                        if (pendingPayment) {
-                          await fetchApi(
-                            `/tenant-payments/public/payment/${pendingPayment.id}/complete`,
-                            {
-                              method: "POST",
-                              body: JSON.stringify({ method }),
-                            },
-                          );
-                        } else {
-                          await fetchApi(`/tenant-payments/manual`, {
-                            method: "POST",
-                            body: JSON.stringify({
-                              visitId: selectedVisit.id,
-                              amount,
-                              method,
-                            }),
-                          });
-                        }
-                        queryClient.invalidateQueries({ queryKey: ["visits"] });
-                        toast.success(
-                          `Payment marked as paid (${method === "CASH" ? "Cash" : "Card/POS"})!`,
-                        );
-                        setSelectedVisit((prev: any) =>
-                          prev
-                            ? {
-                                ...prev,
-                                currentState:
-                                  prev.currentState === "PENDING_PAYMENT"
-                                    ? "WAITING"
-                                    : prev.currentState,
-                                bookingPayments: [
-                                  ...(prev.bookingPayments || []).filter(
-                                    (p: any) => p.status !== "PENDING",
-                                  ),
-                                  {
-                                    id: "temp-" + Date.now(),
-                                    status: "SUCCEEDED",
-                                    amount,
-                                    currency,
-                                    method,
-                                    createdAt: new Date().toISOString(),
-                                  },
-                                ],
-                              }
-                            : null,
-                        );
-                      } catch (e: any) {
-                        toast.error(e.message || "Failed to update payment");
-                      }
-                    };
-
                     return (
                       <div className="p-3.5 border border-border/80 dark:border-white/10 bg-surface-container-low dark:bg-zinc-900/60 rounded-xl space-y-3 text-xs">
                         <div className="flex items-center justify-between">
@@ -3317,7 +3275,7 @@ export default function ServiceDeskToday() {
                             <span className="material-symbols-outlined text-[16px] text-primary">
                               payments
                             </span>
-                            <span>Payment</span>
+                            <span>Payment & Billing</span>
                           </div>
                           {succeededPayment ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
@@ -3329,7 +3287,8 @@ export default function ServiceDeskToday() {
                               Payment Due
                             </span>
                           ) : checkinPayMode === "COUNTER_ONLY" ||
-                            paymentTiming === "CHECKOUT" ? (
+                            paymentTiming === "CHECKOUT" ||
+                            paymentTiming === "CHECKIN" ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400">
                               Pay at Counter
                             </span>
@@ -3343,10 +3302,18 @@ export default function ServiceDeskToday() {
                         <div className="grid grid-cols-2 gap-2 py-2 border-y border-border/50 dark:border-white/5 text-[11px]">
                           <div>
                             <span className="text-zinc-400 block text-[10px] uppercase font-semibold">
-                              Amount
+                              Amount {amount === 0 && !succeededPayment ? "(Counter Set)" : ""}
                             </span>
                             <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200">
-                              {currency} {(amount / 100).toFixed(2)}
+                              {amount > 0 ? (
+                                `${currency} ${(amount / 100).toFixed(2)}`
+                              ) : succeededPayment ? (
+                                `${currency} 0.00`
+                              ) : (
+                                <span className="text-amber-600 dark:text-amber-400 font-sans font-medium text-[11px]">
+                                  Enter at counter
+                                </span>
+                              )}
                             </span>
                           </div>
                           <div>
@@ -3365,7 +3332,7 @@ export default function ServiceDeskToday() {
                                         succeededPayment.stripePaymentMethodType ||
                                         "Online"
                                 : checkinPayMode === "COUNTER_ONLY"
-                                  ? "Counter Only"
+                                  ? "Pay at Counter"
                                   : checkinPayMode === "STRIPE_ONLY"
                                     ? "Stripe Online"
                                     : "Stripe or Counter"}
@@ -3374,11 +3341,25 @@ export default function ServiceDeskToday() {
                         </div>
 
                         {succeededPayment && (succeededPayment.proofUrl || (succeededPayment.description && succeededPayment.description !== "Manual Payment at Counter")) && (
-                          <div className="py-1 px-2 rounded-lg bg-surface-container/60 dark:bg-zinc-800/40 border border-border/40 dark:border-white/5 text-[11px] space-y-0.5">
+                          <div className="py-1 px-2 rounded-lg bg-surface-container/60 dark:bg-zinc-800/40 border border-border/40 dark:border-white/5 text-[11px] space-y-1">
                             {succeededPayment.proofUrl && (
                               <div className="flex items-center justify-between">
                                 <span className="text-[10px] text-zinc-400 font-semibold uppercase">Ref / Slip:</span>
-                                <span className="font-mono font-bold text-zinc-700 dark:text-zinc-200">{succeededPayment.proofUrl}</span>
+                                {succeededPayment.proofUrl.startsWith("/uploads/") ? (
+                                  <a
+                                    href={`${getBackendUrl()}${succeededPayment.proofUrl}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="font-mono font-bold text-primary underline truncate max-w-[160px]"
+                                    title="View attached slip"
+                                  >
+                                    View Slip Attachment ↗
+                                  </a>
+                                ) : (
+                                  <span className="font-mono font-bold text-zinc-700 dark:text-zinc-200 truncate max-w-[160px]">
+                                    {succeededPayment.proofUrl}
+                                  </span>
+                                )}
                               </div>
                             )}
                             {succeededPayment.description && succeededPayment.description !== "Manual Payment at Counter" && (
@@ -3392,20 +3373,20 @@ export default function ServiceDeskToday() {
                         {succeededPayment ? (
                           <div className="flex items-center justify-between pt-0.5">
                             <span className="text-zinc-500 text-[11px]">
-                              Payment recorded successfully
+                              Payment recorded
                             </span>
                             <button
                               onClick={() =>
                                 setShowInvoiceForVisit(selectedVisit.id)
                               }
-                              className="bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 border border-border dark:border-white/10 transition-colors shadow-xs"
+                              className="bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 border border-border dark:border-white/10 transition-colors shadow-xs cursor-pointer"
                             >
                               <FileText className="w-3.5 h-3.5 text-zinc-500" />{" "}
                               View Invoice
                             </button>
                           </div>
                         ) : (
-                          <div className="space-y-1.5 pt-0.5">
+                          <div className="space-y-2 pt-0.5">
                             <div className="grid grid-cols-2 gap-2">
                               <button
                                 onClick={() =>
@@ -3439,8 +3420,34 @@ export default function ServiceDeskToday() {
                                 POS
                               </button>
                             </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() =>
+                                  setRecordPaymentModalState({
+                                    isOpen: true,
+                                    initialMethod: "EFT",
+                                    amount,
+                                    currency,
+                                    visit: selectedVisit,
+                                    pendingPaymentId: pendingPayment?.id,
+                                  })
+                                }
+                                className="flex-1 bg-surface-container hover:bg-surface-container-high dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-border dark:border-white/10 px-2 py-1.5 rounded-lg font-semibold text-[11px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">account_balance</span> EFT / Bank
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setShowInvoiceForVisit(selectedVisit.id)
+                                }
+                                className="bg-surface-container hover:bg-surface-container-high dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-border dark:border-white/10 px-2.5 py-1.5 rounded-lg font-semibold text-[11px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                title="View or generate invoice"
+                              >
+                                <FileText className="w-3.5 h-3.5 text-zinc-500" /> Invoice
+                              </button>
+                            </div>
                             <p className="text-[10px] text-zinc-400 text-center">
-                              Confirm payment with slip/reference & send receipt on WhatsApp.
+                              Enter custom amount, attach slip proof & send receipt on WhatsApp.
                             </p>
                           </div>
                         )}
@@ -3683,6 +3690,11 @@ export default function ServiceDeskToday() {
         onConfirm={async (data) => {
           const visitId = recordPaymentModalState.visit?.id;
           const pendingId = recordPaymentModalState.pendingPaymentId;
+          const effectiveAmount =
+            typeof data.amount === "number" && !isNaN(data.amount)
+              ? data.amount
+              : recordPaymentModalState.amount;
+
           if (pendingId) {
             await fetchApi(
               `/tenant-payments/public/payment/${pendingId}/complete`,
@@ -3701,7 +3713,7 @@ export default function ServiceDeskToday() {
               method: "POST",
               body: JSON.stringify({
                 visitId,
-                amount: recordPaymentModalState.amount,
+                amount: effectiveAmount,
                 method: data.method,
                 proofUrl: data.proofUrl,
                 description: data.description,
@@ -3738,7 +3750,7 @@ export default function ServiceDeskToday() {
                     {
                       id: "temp-" + Date.now(),
                       status: "SUCCEEDED",
-                      amount: recordPaymentModalState.amount,
+                      amount: effectiveAmount,
                       currency: recordPaymentModalState.currency,
                       method: data.method,
                       proofUrl: data.proofUrl,

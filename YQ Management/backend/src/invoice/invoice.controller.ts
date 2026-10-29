@@ -21,7 +21,7 @@ export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}
 
   @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-  @Roles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER, Role.ADMIN, Role.MANAGER, Role.STAFF)
   @Get('visit/:visitId')
   async getVisitInvoice(
     @Req() req: AuthenticatedRequest,
@@ -32,7 +32,7 @@ export class InvoiceController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-  @Roles(Role.SUPER_ADMIN, Role.OWNER)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER, Role.ADMIN)
   @Get()
   async listInvoices(
     @Req() req: AuthenticatedRequest,
@@ -45,7 +45,7 @@ export class InvoiceController {
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard, WorkspaceGuard)
-  @Roles(Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER, Role.MANAGER)
+  @Roles(Role.SUPER_ADMIN, Role.OWNER, Role.ADMIN, Role.MANAGER, Role.STAFF)
   @Post('visit/:visitId')
   async updateVisitInvoice(
     @Req() req: AuthenticatedRequest,

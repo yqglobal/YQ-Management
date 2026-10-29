@@ -663,6 +663,8 @@ export class VisitService {
             amount: true,
             currency: true,
             method: true,
+            proofUrl: true,
+            description: true,
             createdAt: true,
           },
         },
