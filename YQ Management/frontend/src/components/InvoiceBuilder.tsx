@@ -82,6 +82,7 @@ export default function InvoiceBuilder({ visitId, visitStepId, tenant, onLinkGen
       const res = await fetchApi('/tenant-payments/public/intent', {
         method: 'POST',
         body: JSON.stringify({
+          tenantId: tenant?.id,
           amount: updatedInvoice.total * 100, // Cents
           visitId,
           visitStepId,

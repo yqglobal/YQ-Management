@@ -7,6 +7,7 @@ import {
   UseGuards,
   Param,
   Query,
+  Headers,
 } from '@nestjs/common';
 import { TenantPaymentsService } from './tenant-payments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -133,6 +134,15 @@ export class TenantPaymentsController {
       description: body?.description,
       sendWhatsAppReceipt: body?.sendWhatsAppReceipt,
     });
+  }
+
+  @Post('webhook')
+  async handleStripeWebhook(
+    @Headers('stripe-signature') signature: string,
+    @Req() req: any,
+  ) {
+    const rawBody = req.rawBody || Buffer.from(JSON.stringify(req.body));
+    return this.tenantPaymentsService.handleStripeWebhook(signature, rawBody);
   }
 
   @UseGuards(JwtAuthGuard)

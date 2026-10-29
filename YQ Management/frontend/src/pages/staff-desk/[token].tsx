@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { fetchApi } from '../../lib/api';
+import { fetchApi, AuthStorage } from '../../lib/api';
 import { MyDeskProvider, useMyDesk } from '../../components/my-desk/MyDeskContext';
 import { renderWidget } from '../../components/my-desk/WidgetRegistry';
 import {
   LayoutDashboard, RefreshCw, MapPin, Briefcase,
-  Clock, AlertCircle,
+  Clock, AlertCircle, Monitor,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ interface Tenant {
   id: string; name: string; subdomain?: string;
   staffViewLayout?: {
     version?: number;
-    templates?: Array<{ id: string; name: string; layout: WidgetConfig[] }>;
+    templates?: Array<{ id: string; name: string; color?: string; layout: WidgetConfig[] }>;
     assignments?: Record<string, string>;
   };
 }
@@ -24,6 +24,7 @@ interface StaffData {
   id: string; name: string; title?: string; color?: string;
   status: string; services: Service[]; location?: Location;
   tenant: Tenant;
+  sessionToken?: string;
 }
 interface WidgetConfig {
   id: string; type: string;
@@ -31,9 +32,13 @@ interface WidgetConfig {
 }
 
 // ─── Layout resolver ──────────────────────────────────────────────────────────
-function resolveLayout(staff: StaffData): WidgetConfig[] {
+function resolveLayout(staff: StaffData, selectedTemplateId?: string | null): WidgetConfig[] {
   const svl = staff.tenant?.staffViewLayout;
   if (svl && svl.version === 2) {
+    if (selectedTemplateId) {
+      const selected = svl.templates?.find(t => t.id === selectedTemplateId);
+      if (selected?.layout?.length) return selected.layout;
+    }
     // Check if this staff member has an assignment (by staff.id in assignments)
     const templateId = svl.assignments?.[staff.id];
     if (templateId) {
@@ -85,7 +90,11 @@ function StatusPill({ status }: { status: string }) {
 // ─── Desk Canvas ──────────────────────────────────────────────────────────────
 function DeskCanvas({ staff }: { staff: StaffData }) {
   const { refetchVisits } = useMyDesk();
-  const layout = resolveLayout(staff);
+  const svl = staff.tenant?.staffViewLayout;
+  const templates = svl?.version === 2 ? svl.templates || [] : [];
+  const assignedTemplateId = svl?.assignments?.[staff.id] || templates[0]?.id;
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(assignedTemplateId || null);
+  const layout = resolveLayout(staff, selectedTemplateId);
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -130,8 +139,24 @@ function DeskCanvas({ staff }: { staff: StaffData }) {
           </div>
         </div>
 
-        {/* Right side */}
+        {/* Right side controls */}
         <div className="flex items-center gap-3 shrink-0">
+          {templates.length > 1 && (
+            <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 border border-zinc-200 dark:border-zinc-700">
+              <Monitor className="w-3.5 h-3.5 text-zinc-400" />
+              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 hidden sm:inline">Station:</span>
+              <select
+                value={selectedTemplateId || ''}
+                onChange={(e) => setSelectedTemplateId(e.target.value)}
+                className="bg-transparent text-xs font-bold text-zinc-800 dark:text-zinc-200 outline-none cursor-pointer"
+              >
+                {templates.map(t => (
+                  <option key={t.id} value={t.id} className="dark:bg-zinc-900">{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
             <Clock className="w-3.5 h-3.5" />
             {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -208,7 +233,10 @@ export default function StaffDeskKiosk() {
 
   const loadDesk = useCallback(async (t: string) => {
     try {
-      const data = await fetchApi(`/staff/desk-token/${t}`);
+      const data = await fetchApi<StaffData>(`/staff/desk-token/${t}`);
+      if (data?.sessionToken) {
+        AuthStorage.set(data.sessionToken);
+      }
       setStaff(data);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Invalid or expired desk link.';

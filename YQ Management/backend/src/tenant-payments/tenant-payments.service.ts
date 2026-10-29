@@ -351,6 +351,9 @@ export class TenantPaymentsService {
       include: { paymentAccount: true },
     });
     if (!payment) throw new BadRequestException('Payment not found');
+    if (payment.status === 'SUCCEEDED') {
+      return payment;
+    }
 
     if (
       payment.stripePaymentIntentId &&
@@ -1195,5 +1198,146 @@ export class TenantPaymentsService {
         methodBreakdown,
       },
     };
+  }
+
+  /**
+   * Handle incoming Stripe webhooks (direct charges & connected accounts).
+   */
+  async handleStripeWebhook(signature: string, rawBody: Buffer) {
+    if (!this.stripe) {
+      throw new BadRequestException('Stripe is not configured on this server.');
+    }
+
+    const webhookSecret =
+      process.env.STRIPE_WEBHOOK_SECRET ||
+      process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
+
+    let event: Stripe.Event;
+    if (webhookSecret && signature) {
+      try {
+        event = this.stripe.webhooks.constructEvent(
+          rawBody,
+          signature,
+          webhookSecret,
+        );
+      } catch (err: any) {
+        this.logger.error(
+          `Stripe Webhook signature verification failed: ${err.message}`,
+        );
+        throw new BadRequestException(
+          `Webhook signature verification failed: ${err.message}`,
+        );
+      }
+    } else {
+      try {
+        event = JSON.parse(rawBody.toString('utf8'));
+      } catch {
+        throw new BadRequestException('Invalid webhook body JSON');
+      }
+      this.logger.warn(
+        'STRIPE_WEBHOOK_SECRET not configured; processed event without cryptographic verification.',
+      );
+    }
+
+    this.logger.log(
+      `Received Stripe webhook event: ${event.type} [${event.id}]`,
+    );
+
+    switch (event.type) {
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        await this.handlePaymentIntentSucceeded(paymentIntent);
+        break;
+      }
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        await this.handlePaymentIntentFailed(paymentIntent);
+        break;
+      }
+      case 'account.updated': {
+        const account = event.data.object as Stripe.Account;
+        await this.handleAccountUpdated(account);
+        break;
+      }
+      default:
+        this.logger.debug(`Unhandled Stripe event type: ${event.type}`);
+    }
+
+    return { received: true };
+  }
+
+  private async handlePaymentIntentSucceeded(intent: Stripe.PaymentIntent) {
+    const payment = await this.prisma.bookingPayment.findFirst({
+      where: {
+        OR: [
+          { stripePaymentIntentId: intent.id },
+          ...(intent.metadata?.paymentId ? [{ id: intent.metadata.paymentId }] : []),
+        ],
+      },
+      include: { paymentAccount: true },
+    });
+
+    if (!payment) {
+      this.logger.warn(
+        `Webhook payment_intent.succeeded received for unknown intent: ${intent.id}`,
+      );
+      return;
+    }
+
+    if (payment.status === 'SUCCEEDED') {
+      this.logger.log(`Payment ${payment.id} already marked SUCCEEDED. Idempotent skip.`);
+      return;
+    }
+
+    const method = intent.payment_method_types?.[0] || 'CARD';
+    await this.completePayment(payment.id, method);
+    this.logger.log(`Payment ${payment.id} successfully marked SUCCEEDED via webhook.`);
+  }
+
+  private async handlePaymentIntentFailed(intent: Stripe.PaymentIntent) {
+    const payment = await this.prisma.bookingPayment.findFirst({
+      where: {
+        OR: [
+          { stripePaymentIntentId: intent.id },
+          ...(intent.metadata?.paymentId ? [{ id: intent.metadata.paymentId }] : []),
+        ],
+      },
+    });
+
+    if (!payment) return;
+
+    await this.prisma.bookingPayment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'FAILED',
+        description: intent.last_payment_error?.message || payment.description,
+      },
+    });
+
+    this.logger.warn(`Payment ${payment.id} marked FAILED via webhook: ${intent.last_payment_error?.message}`);
+  }
+
+  private async handleAccountUpdated(account: Stripe.Account) {
+    const paymentAccount = await this.prisma.tenantPaymentAccount.findFirst({
+      where: { connectedAccountId: account.id },
+    });
+
+    if (!paymentAccount) return;
+
+    const isFullyEnabled = account.charges_enabled && account.payouts_enabled;
+
+    await this.prisma.tenantPaymentAccount.update({
+      where: { id: paymentAccount.id },
+      data: {
+        chargesEnabled: account.charges_enabled,
+        payoutsEnabled: account.payouts_enabled,
+        detailsSubmitted: account.details_submitted,
+        accountStatus: isFullyEnabled ? 'ENABLED' : 'RESTRICTED',
+      },
+    });
+
+    this.logger.log(
+      `TenantPaymentAccount ${paymentAccount.id} updated via account.updated webhook. Charges: ${account.charges_enabled}, Payouts: ${account.payouts_enabled}`,
+    );
   }
 }

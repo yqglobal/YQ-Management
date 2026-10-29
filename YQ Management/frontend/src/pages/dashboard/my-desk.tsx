@@ -33,17 +33,21 @@ interface DeskTenant {
 function MyDeskContent({ tenant }: { tenant: DeskTenant | null | undefined }) {
   const { user } = useAuth();
   const { refetchVisits } = useMyDesk();
+  const svl = tenant?.staffViewLayout;
+  const templates = svl?.version === 2 ? svl.templates || [] : [];
+  
+  const staffOrUserId = (user as any)?.staffId || user?.userId;
+  const defaultTemplateId = (staffOrUserId && svl?.assignments?.[staffOrUserId]) || templates[0]?.id || null;
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
-  // Resolve layout: v2 template system → per-user assignment → global → default
+  const currentTemplateId = selectedTemplateId || defaultTemplateId;
+
+  // Resolve layout: v2 template system → per-user/staff assignment → global → default
   const layout = useMemo<DeskWidgetConfig[]>(() => {
-    const svl = tenant?.staffViewLayout;
-
     // v2 template system
     if (svl && svl.version === 2) {
-      const userId = user?.userId;
-      const templateId = userId ? svl.assignments?.[userId] : undefined;
-      if (templateId) {
-        const tpl = svl.templates?.find((t) => t.id === templateId);
+      if (currentTemplateId) {
+        const tpl = svl.templates?.find((t) => t.id === currentTemplateId);
         if (tpl?.layout?.length) return tpl.layout;
       }
       // fall back to first template
@@ -62,7 +66,7 @@ function MyDeskContent({ tenant }: { tenant: DeskTenant | null | undefined }) {
       { id: 'schedule-1', type: 'ScheduleWidget', position: { colSpan: 1, rowSpan: 1 } },
       { id: 'queue-grid-1', type: 'QueueGridWidget', position: { colSpan: 2, rowSpan: 1 } },
     ];
-  }, [tenant, user]);
+  }, [svl, currentTemplateId]);
 
   return (
     <div className="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8 flex flex-col min-h-[calc(100vh-80px)]">
@@ -87,6 +91,21 @@ function MyDeskContent({ tenant }: { tenant: DeskTenant | null | undefined }) {
         </div>
 
         <div className="flex items-center gap-2">
+          {templates.length > 1 && (
+            <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 border border-zinc-200 dark:border-zinc-700">
+              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 hidden sm:inline">Station:</span>
+              <select
+                value={currentTemplateId || ''}
+                onChange={(e) => setSelectedTemplateId(e.target.value)}
+                className="bg-transparent text-xs font-bold text-zinc-800 dark:text-zinc-200 outline-none cursor-pointer"
+              >
+                {templates.map(t => (
+                  <option key={t.id} value={t.id} className="dark:bg-zinc-900">{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <button
             onClick={() => refetchVisits()}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 transition-colors border border-zinc-200 dark:border-zinc-700"

@@ -39,6 +39,7 @@ interface StaffViewData {
 type OnGroundStaff = {
   id: string; name: string; title?: string; color?: string; status: string;
   deskToken?: string | null;
+  userId?: string | null;
   services?: { id: string; name: string }[];
 };
 
@@ -554,13 +555,16 @@ export default function StaffViewSettings() {
 
   const openAssign = (t: DeskTemplate) => { setAssignTemplate(t); setView('assign'); };
 
-  const toggleAssignment = async (staffId: string) => {
+  const toggleAssignment = async (staff: OnGroundStaff) => {
     if (!assignTemplate) return;
     const assignments = { ...data.assignments };
+    const staffId = staff.id;
     if (assignments[staffId] === assignTemplate.id) {
       delete assignments[staffId];
+      if (staff.userId) delete assignments[staff.userId];
     } else {
       assignments[staffId] = assignTemplate.id;
+      if (staff.userId) assignments[staff.userId] = assignTemplate.id;
     }
     await save({ ...data, assignments }, true);
     toast.success('Assignment updated');
@@ -952,7 +956,7 @@ export default function StaffViewSettings() {
                       ? 'border-primary/50 bg-primary/5 dark:bg-primary/10'
                       : 'border-border dark:border-dark-border bg-white dark:bg-zinc-800/60 hover:border-zinc-300 dark:hover:border-zinc-600'
                   }`}
-                  onClick={() => toggleAssignment(staff.id)}
+                  onClick={() => toggleAssignment(staff)}
                 >
                   <div
                     className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white shrink-0"

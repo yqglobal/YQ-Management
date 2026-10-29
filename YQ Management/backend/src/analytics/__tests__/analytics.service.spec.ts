@@ -136,9 +136,9 @@ describe('AnalyticsService', () => {
       '2026-10-24T00:00:00.000Z',
     );
     expect(singleDay).toBeDefined();
-    // Hourly breakdown for single day (8 to 20 = 13 hours)
-    expect(singleDay.chartData.length).toBe(13);
-    expect(singleDay.chartData[0].timeLabel).toBe('8:00');
+    // Hourly breakdown for single day (full 24h: 0:00 to 23:00 = 24 hours)
+    expect(singleDay.chartData.length).toBe(24);
+    expect(singleDay.chartData[0].timeLabel).toBe('0:00');
 
     // Multi-day custom query (5 days: Oct 20 to Oct 24)
     const multiDay = await service.getDashboardAnalytics(

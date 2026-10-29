@@ -390,7 +390,25 @@ export class AuthController {
           },
         },
       });
-      return { ...req.user, ...user };
+
+      let staffId = req.user.staffId;
+      if (!staffId && user) {
+        const staff = await this.usersService['prisma'].staff.findFirst({
+          where: {
+            tenantId: user.tenantId,
+            OR: [
+              { userId: user.id },
+              ...(user.email ? [{ email: user.email }] : []),
+            ],
+          },
+          select: { id: true },
+        });
+        if (staff) {
+          staffId = staff.id;
+        }
+      }
+
+      return { ...req.user, ...user, staffId };
     }
     return req.user;
   }

@@ -6,6 +6,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { randomBytes } from 'crypto';
 
+import { JwtService } from '@nestjs/jwt';
+
 interface WeeklyScheduleSlot {
   day:
     | 'MONDAY'
@@ -47,7 +49,10 @@ interface CreateProviderDto {
 
 @Injectable()
 export class StaffService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async create(tenantId: string, dto: CreateProviderDto) {
     const { serviceIds, weeklySchedule, exceptionDates, ...rest } = dto;
@@ -212,7 +217,24 @@ export class StaffService {
       },
     });
     if (!staff) throw new NotFoundException('Invalid desk token');
-    return staff;
+
+    const sessionToken = this.jwtService.sign(
+      {
+        sub: staff.id,
+        isDeskToken: true,
+        staffId: staff.id,
+        deskToken: staff.deskToken,
+        tenantId: staff.tenantId,
+        role: 'STAFF',
+        email: staff.email || `${staff.id}@desk.qmova.local`,
+      },
+      { expiresIn: '24h' },
+    );
+
+    return {
+      ...staff,
+      sessionToken,
+    };
   }
 
   /**

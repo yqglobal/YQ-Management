@@ -32,7 +32,14 @@ async function bootstrap() {
     profilesSampleRate: 1.0,
   });
 
-  app.use(express.json({ limit: '2mb' }));
+  app.use(
+    express.json({
+      limit: '2mb',
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
   expressApp.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 

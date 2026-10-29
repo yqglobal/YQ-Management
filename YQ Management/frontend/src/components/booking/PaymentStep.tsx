@@ -123,7 +123,7 @@ export function PaymentStep({ tenantId, amount, currency, stripeAccountId, onSuc
       }
     };
     if (tenantId && amount > 0) getSecret();
-  }, [tenantId, amount]);
+  }, [tenantId, amount, visitId, visitStepId]);
 
   if (!clientSecret || !stripePromise) {
     return (

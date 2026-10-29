@@ -38,6 +38,34 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
     }
 
+    if (payload.isDeskToken) {
+      const staff = await this.prisma.staff.findUnique({
+        where: { id: payload.staffId },
+        include: {
+          services: { select: { id: true } },
+        },
+      });
+
+      if (!staff || !staff.deskToken || staff.deskToken !== payload.deskToken) {
+        throw new UnauthorizedException(
+          'Desk token is invalid or has been revoked',
+        );
+      }
+
+      return {
+        userId: staff.id,
+        sub: staff.id,
+        staffId: staff.id,
+        email: staff.email || `${staff.id}@desk.qmova.local`,
+        role: 'STAFF',
+        tenantId: staff.tenantId,
+        isDeskToken: true,
+        allowedPages: ['my-desk', 'service-desk'],
+        allowedLocationIds: staff.locationId ? [staff.locationId] : [],
+        allowedServiceIds: staff.services.map((s) => s.id),
+      };
+    }
+
     if (payload.sub) {
       const isUserBlocked = await this.redisService.client.get(
         `blocklist_user:${payload.sub}`,
