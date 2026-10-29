@@ -1001,17 +1001,19 @@ export class VisitService {
         },
       });
 
-      await tx.outboxEvent.create({
-        data: {
-          type: 'VISIT_CREATED',
-          payload: {
-            visitId: visit.id,
-            queueId: queue.id,
-            tenantId: queue.tenantId,
-            displayId,
+      if (visit.currentState !== 'PENDING_PAYMENT') {
+        await tx.outboxEvent.create({
+          data: {
+            type: 'VISIT_CREATED',
+            payload: {
+              visitId: visit.id,
+              queueId: queue.id,
+              tenantId: queue.tenantId,
+              displayId,
+            },
           },
-        },
-      });
+        });
+      }
 
       if (visit.serviceId) {
         await this.visitStepService.instantiateStepsForVisit(
@@ -1272,12 +1274,15 @@ export class VisitService {
           },
         });
 
-        await tx.outboxEvent.create({
-          data: {
-            type: 'VISIT_CREATED',
-            payload: { visitId: visit.id, queueId, tenantId, displayId },
-          },
-        });
+        // Only emit VISIT_CREATED if the visit is confirmed and not waiting for online booking payment
+        if (visit.currentState !== 'PENDING_PAYMENT') {
+          await tx.outboxEvent.create({
+            data: {
+              type: 'VISIT_CREATED',
+              payload: { visitId: visit.id, queueId, tenantId, displayId },
+            },
+          });
+        }
 
         // FIX (6B): Removed inline WhatsApp call from joinMultiple.
         // WhatsApp confirmation is now handled by OutboxProcessorService when it processes

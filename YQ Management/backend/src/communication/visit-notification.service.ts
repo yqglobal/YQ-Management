@@ -135,6 +135,7 @@ export class VisitNotificationService {
         queueId: true,
         customerId: true,
         createdAt: true,
+        currentState: true,
         cancelReason: true,
         metadata: true,
         surveySent: true,
@@ -185,6 +186,12 @@ export class VisitNotificationService {
     if (!hasWhatsapp && !hasSms) {
       this.logger.debug(
         `${type}: Messaging not connected for tenant ${visit.tenantId}`,
+      );
+      return false;
+    }
+    if (visit.currentState === 'PENDING_PAYMENT') {
+      this.logger.debug(
+        `${type}: visit ${visit.id} is PENDING_PAYMENT, withholding confirmation message until paid.`,
       );
       return false;
     }

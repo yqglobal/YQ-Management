@@ -1155,15 +1155,84 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                     })}
                   </div>
                 </div>
+
+                {/* Transparent Payment Breakdown in Review */}
+                {(() => {
+                  const bookingCurrency = (services.find(x => x.id === selectedServiceIds[0]) as any)?.priceCurrency || (services.find(x => x.id === selectedServiceIds[0]) as any)?.currency || 'USD';
+                  const currSymbol = bookingCurrency.toUpperCase() === 'ZAR' ? 'R' : bookingCurrency.toUpperCase() === 'EUR' ? '€' : bookingCurrency.toUpperCase() === 'GBP' ? '£' : '$';
+
+                  const totalCents = selectedServiceIds.reduce((total, sid) => {
+                    const s = services.find(x => x.id === sid);
+                    const base = s && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0;
+                    return total + (base * (1 + accompanyingGuests));
+                  }, 0);
+
+                  const isStripeBooking = selectedServiceIds.some(sid => {
+                    const s = services.find(x => x.id === sid);
+                    const flow = (s as any)?.serviceFlow;
+                    return flow?.isActive
+                      ? (flow.paymentTiming === 'BOOKING' && (flow.checkinPayMode === 'STRIPE_ONLY' || flow.checkinPayMode === 'BOTH'))
+                      : ((s as any)?.paymentMode === 'PREPAY');
+                  });
+
+                  if (totalCents <= 0) return null;
+
+                  return (
+                    <div className="border-t border-gray-100 dark:border-zinc-800 pt-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider">Payment Method</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 mt-0.5">
+                          <span className={`w-2 h-2 rounded-full ${isStripeBooking ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                          {isStripeBooking ? 'Online Payment (Stripe)' : 'Pay at Counter (Cash/Card)'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500 uppercase tracking-wider">Total Due</p>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">
+                          {currSymbol}{(totalCents / 100).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setStep(3)} className="px-6 py-4 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
                   Back
                 </button>
-                <button type="button" onClick={handleConfirm} className="flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95" style={{ backgroundColor: primaryColor }}>
-                  Confirm Booking
-                </button>
+                {(() => {
+                  const bookingCurrency = (services.find(x => x.id === selectedServiceIds[0]) as any)?.priceCurrency || (services.find(x => x.id === selectedServiceIds[0]) as any)?.currency || 'USD';
+                  const currSymbol = bookingCurrency.toUpperCase() === 'ZAR' ? 'R' : bookingCurrency.toUpperCase() === 'EUR' ? '€' : bookingCurrency.toUpperCase() === 'GBP' ? '£' : '$';
+
+                  const totalCents = selectedServiceIds.reduce((total, sid) => {
+                    const s = services.find(x => x.id === sid);
+                    const flow = (s as any)?.serviceFlow;
+                    const isBookingPay = flow?.isActive
+                      ? (flow.paymentTiming === 'BOOKING')
+                      : ((s as any)?.paymentMode === 'PREPAY');
+                    const base = s && isBookingPay && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0;
+                    return total + (base * (1 + accompanyingGuests));
+                  }, 0);
+
+                  const isStripeBooking = selectedServiceIds.some(sid => {
+                    const s = services.find(x => x.id === sid);
+                    const flow = (s as any)?.serviceFlow;
+                    return flow?.isActive
+                      ? (flow.paymentTiming === 'BOOKING' && (flow.checkinPayMode === 'STRIPE_ONLY' || flow.checkinPayMode === 'BOTH'))
+                      : ((s as any)?.paymentMode === 'PREPAY');
+                  });
+
+                  const buttonLabel = isStripeBooking && totalCents > 0
+                    ? `Proceed to Payment • ${currSymbol}${(totalCents / 100).toFixed(2)}`
+                    : 'Confirm Booking';
+
+                  return (
+                    <button type="button" onClick={handleConfirm} className="flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2" style={{ backgroundColor: primaryColor }}>
+                      {buttonLabel}
+                    </button>
+                  );
+                })()}
               </div>
             </motion.div>
           )}

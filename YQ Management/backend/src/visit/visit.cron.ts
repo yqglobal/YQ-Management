@@ -625,4 +625,41 @@ export class VisitCron {
       this.logger.error('Error during Deferred Steps Monitor:', err);
     }
   }
+
+  /**
+   * Auto-expire abandoned PENDING_PAYMENT visits older than 30 minutes.
+   * Prevents unpaid bookings from lingering or reserving slots indefinitely.
+   */
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async handlePendingPaymentExpiration() {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    try {
+      const expiredVisits = await this.prisma.visit.findMany({
+        where: {
+          currentState: 'PENDING_PAYMENT',
+          createdAt: { lt: thirtyMinutesAgo },
+        },
+        select: { id: true, tenantId: true },
+      });
+
+      if (expiredVisits.length > 0) {
+        this.logger.log(
+          `Auto-expiring ${expiredVisits.length} abandoned PENDING_PAYMENT visits.`,
+        );
+        await this.prisma.visit.updateMany({
+          where: { id: { in: expiredVisits.map((v) => v.id) } },
+          data: {
+            currentState: 'CANCELLED',
+            cancelReason: 'Payment timed out / abandoned checkout',
+            completedAt: new Date(),
+          },
+        });
+      }
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to expire pending payment visits: ${err.message}`,
+        err.stack,
+      );
+    }
+  }
 }

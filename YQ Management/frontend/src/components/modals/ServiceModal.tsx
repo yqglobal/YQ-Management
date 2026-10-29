@@ -202,6 +202,18 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !selectedLocId) return;
+
+    if (paymentTiming !== 'NONE' && (checkinPayMode === 'STRIPE_ONLY' || checkinPayMode === 'BOTH')) {
+      const numPrice = parseFloat(basePrice || '0');
+      const minReqs: Record<string, number> = { ZAR: 8.0, USD: 0.5, EUR: 0.5, GBP: 0.3 };
+      const minVal = minReqs[priceCurrency] || 0.5;
+      if (numPrice < minVal) {
+        toast.error(
+          `For Stripe payments in ${priceCurrency}, the minimum amount required by the gateway is ${priceCurrency} ${minVal.toFixed(2)}. Please increase the Base Price.`
+        );
+        return;
+      }
+    }
     
     saveMutation.mutate({ 
       name, 
@@ -328,6 +340,12 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
                   placeholder="e.g. 50.00"
                   className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-600"
                 />
+                {paymentTiming !== "NONE" && (checkinPayMode === "STRIPE_ONLY" || checkinPayMode === "BOTH") && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5 flex items-center gap-1 font-medium">
+                    <span>⚠️</span>
+                    <span>Stripe gateway minimum: {priceCurrency === 'ZAR' ? 'R8.00' : priceCurrency === 'GBP' ? '£0.30' : '$0.50 / €0.50'}</span>
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Currency</label>

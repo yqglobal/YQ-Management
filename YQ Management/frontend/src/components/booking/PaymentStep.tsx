@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { fetchApi } from '../../lib/api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react';
 
 interface PaymentStepProps {
   tenantId: string;
   amount: number;
   currency: string;
-  stripeAccountId: string;
+  stripeAccountId?: string;
   onSuccess: (paymentId: string) => void;
   onBack?: () => void;
   primaryColor: string;
@@ -98,32 +98,96 @@ export function PaymentStep({ tenantId, amount, currency, stripeAccountId, onSuc
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [stripePromise, setStripePromise] = useState<any>(null);
+  const [intentError, setIntentError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   useEffect(() => {
     // Only load if we have an account ID
-    if (!stripeAccountId) return;
+    if (!stripeAccountId) {
+      setIntentError('Online payment processing is not configured for this tenant. Please pay at the counter or contact support.');
+      return;
+    }
     
-    // We assume the platform publishable key is in NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-    // For connected accounts, we pass stripeAccount in the options
-    const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'; // Fallback so it doesn't crash if env missing during dev
+    // Platform publishable key
+    const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder';
     setStripePromise(loadStripe(pk, { stripeAccount: stripeAccountId }));
   }, [stripeAccountId]);
 
+  const getSecret = async () => {
+    setIntentError(null);
+    setIsRetrying(true);
+    try {
+      const res = await fetchApi('/tenant-payments/public/intent', {
+        method: 'POST',
+        body: JSON.stringify({ tenantId, amount, description: 'Booking Prepayment', visitId, visitStepId })
+      });
+      setClientSecret(res.clientSecret);
+      setPaymentId(res.paymentId);
+    } catch (err: any) {
+      console.error("Failed to create payment intent", err);
+      setIntentError(err.message || 'Unable to initialize secure payment session.');
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
   useEffect(() => {
-    const getSecret = async () => {
-      try {
-        const res = await fetchApi('/tenant-payments/public/intent', {
-          method: 'POST',
-          body: JSON.stringify({ tenantId, amount, description: 'Booking Prepayment', visitId, visitStepId })
-        });
-        setClientSecret(res.clientSecret);
-        setPaymentId(res.paymentId);
-      } catch (err) {
-        console.error("Failed to create payment intent", err);
-      }
-    };
-    if (tenantId && amount > 0) getSecret();
-  }, [tenantId, amount, visitId, visitStepId]);
+    if (tenantId && amount > 0 && stripeAccountId) {
+      getSecret();
+    }
+  }, [tenantId, amount, stripeAccountId, visitId, visitStepId]);
+
+  if (intentError) {
+    return (
+      <div className="w-full max-w-lg mx-auto bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 text-center space-y-5">
+        <div className="w-14 h-14 bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mx-auto">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Payment Gateway Notice</h2>
+          <p className="text-sm text-gray-600 dark:text-zinc-400 mt-2 bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-200 dark:border-red-900/50">
+            {intentError}
+          </p>
+        </div>
+        <div className="flex flex-col gap-2.5 pt-2">
+          {stripeAccountId && (
+            <button
+              type="button"
+              onClick={getSecret}
+              disabled={isRetrying}
+              className="w-full py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 shadow-sm"
+              style={{ backgroundColor: primaryColor }}
+            >
+              {isRetrying ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              Retry Payment
+            </button>
+          )}
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="w-full py-3 rounded-xl font-semibold text-gray-700 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center gap-1.5"
+            >
+              <ArrowLeft className="w-4 h-4" /> Go Back
+            </button>
+          )}
+          {onSkip && (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="w-full py-2.5 text-sm font-semibold text-gray-500 hover:text-gray-800 dark:hover:text-zinc-200 transition-colors"
+            >
+              Skip and Pay Later at Counter
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (!clientSecret || !stripePromise) {
     return (

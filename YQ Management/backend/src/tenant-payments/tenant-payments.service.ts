@@ -11,6 +11,7 @@ import { VisitStepService } from '../visit-step/visit-step.service';
 import { InvoiceService } from '../invoice/invoice.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { QueueGateway } from '../queue/queue.gateway';
+import { RedisService } from '../redis/redis.service';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -22,6 +23,7 @@ export class TenantPaymentsService {
     private readonly prisma: PrismaService,
     private readonly visitStepService: VisitStepService,
     private readonly invoiceService: InvoiceService,
+    private readonly redisService: RedisService,
     @Inject(forwardRef(() => WhatsappService))
     private readonly whatsappService: WhatsappService,
     @Inject(forwardRef(() => QueueGateway))
@@ -304,22 +306,53 @@ export class TenantPaymentsService {
     // Determine currency from account config, default to ZAR
     const currency = (account.currency || 'zar').toLowerCase();
 
+    // Minimum charge amount validation for Stripe (prevents Stripe 500 rejection)
+    // Stripe requires non-settlement currencies to convert to at least 30 GBP pence (~R8.00 / $0.50 / €0.50)
+    const minAmountsInCents: Record<string, number> = {
+      zar: 800, // R8.00 (~35p) safely meets Stripe 30 pence requirement
+      gbp: 30,  // 30p
+      usd: 50,  // $0.50
+      eur: 50,  // €0.50
+    };
+    const minRequired = minAmountsInCents[currency] || 50;
+    if (finalAmount < minRequired) {
+      const displayCurr = currency.toUpperCase();
+      const formattedMin = (minRequired / 100).toFixed(2);
+      const formattedCurr = (finalAmount / 100).toFixed(2);
+      throw new BadRequestException(
+        `Amount ${displayCurr} ${formattedCurr} is below the Stripe minimum transaction limit of ${displayCurr} ${formattedMin}. Please increase the service base price.`,
+      );
+    }
+
     // Create Stripe PaymentIntent directly on the connected account
-    const paymentIntent = await this.stripe.paymentIntents.create(
-      {
-        amount: finalAmount,
-        currency,
-        application_fee_amount: applicationFeeAmount,
-        metadata: {
-          ...metadata,
-          tenantId,
+    let paymentIntent: any;
+    try {
+      paymentIntent = await this.stripe.paymentIntents.create(
+        {
+          amount: finalAmount,
+          currency,
+          application_fee_amount: applicationFeeAmount,
+          metadata: {
+            ...metadata,
+            tenantId,
+          },
+          description: metadata.description || 'Qmova Booking Payment',
         },
-        description: metadata.description || 'Qmova Booking Payment',
-      },
-      {
-        stripeAccount: account.connectedAccountId, // DIRECT CHARGE
-      },
-    );
+        {
+          stripeAccount: account.connectedAccountId, // DIRECT CHARGE
+        },
+      );
+    } catch (stripeErr: any) {
+      this.logger.error(
+        `Stripe createPaymentIntent failed: ${stripeErr.message}`,
+        stripeErr.stack,
+      );
+      throw new BadRequestException(
+        stripeErr.raw?.message ||
+          stripeErr.message ||
+          'Failed to initialize Stripe payment. Please check payment gateway configuration.',
+      );
+    }
 
     // Record the payment intent in our DB (amounts in integer cents)
     const bookingPayment = await this.prisma.bookingPayment.create({
@@ -453,10 +486,18 @@ export class TenantPaymentsService {
           where: { id: updated.visitId },
           data: { currentState: newState as any },
         });
+
+        // Now that payment is complete, emit VISIT_CREATED so notifications (WhatsApp with QR)
+        // and operator desks are informed that this visit is officially confirmed.
         await this.prisma.outboxEvent.create({
           data: {
-            type: 'VISIT_UPDATED',
-            payload: { visitId: updated.visitId },
+            type: 'VISIT_CREATED',
+            payload: {
+              visitId: visit.id,
+              queueId: visit.queueId,
+              tenantId: visit.tenantId,
+              displayId: visit.displayId,
+            },
             status: 'PENDING',
           },
         });
@@ -489,13 +530,25 @@ export class TenantPaymentsService {
             });
             await this.prisma.outboxEvent.create({
               data: {
-                type: 'VISIT_UPDATED',
-                payload: { visitId: bVisit.id },
+                type: 'VISIT_CREATED',
+                payload: {
+                  visitId: bVisit.id,
+                  queueId: bVisit.queueId,
+                  tenantId: bVisit.tenantId,
+                  displayId: bVisit.displayId,
+                },
                 status: 'PENDING',
               },
             });
           }
         }
+
+        // Wake up outbox processor immediately so notifications and WebSocket events fire in real time
+        this.redisService.client
+          .publish('outbox_events', 'WAKE_UP')
+          .catch((err: any) =>
+            this.logger.warn(`Failed to wake up outbox via Redis: ${err.message}`),
+          );
       }
 
       // Generate Invoice and mark it PAID
