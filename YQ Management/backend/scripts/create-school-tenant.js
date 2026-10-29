@@ -53,6 +53,9 @@ async function main() {
     console.log('Found Location:', location.id, location.name);
   }
 
+  const bcrypt = require('bcrypt');
+  const hashedPassword = await bcrypt.hash('EventPass2026!', 10);
+
   // 3. Create or find Admin User
   let user = await prisma.user.findFirst({
     where: { email: 'events@stmatthews.edu' },
@@ -62,6 +65,7 @@ async function main() {
     user = await prisma.user.create({
       data: {
         email: 'events@stmatthews.edu',
+        password: hashedPassword,
         name: 'Sister Mary (Event Coordinator)',
         phone: '+27821112233',
         role: 'ADMIN',
@@ -70,9 +74,26 @@ async function main() {
       },
     });
     console.log('Created User:', user.id, user.email);
+  } else {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        role: 'ADMIN',
+      },
+    });
+    console.log('Updated User password:', user.id, user.email);
   }
 
   // 4. Create or find Service
+  const concertFormConfig = [
+    { id: 'childName', type: 'text', label: "Child's First Name", required: true },
+    { id: 'childSurname', type: 'text', label: "Child's Surname", required: true },
+    { id: 'gradeClass', type: 'text', label: 'Grade & Class', required: true },
+    { id: 'platesPurchased', type: 'number', label: 'Number of Catering Plates (R100/plate)', required: true },
+    { id: 'dietaryRequirements', type: 'text', label: 'Dietary Preferences (e.g. Vegetarian, Halaal, None)', required: false },
+  ];
+
   let service = await prisma.service.findFirst({
     where: { tenantId: tenant.id, name: 'Annual Concert & Graduation 2026' },
   });
@@ -84,9 +105,28 @@ async function main() {
         name: 'Annual Concert & Graduation 2026',
         description: 'Annual school concert and graduation ceremony with catered dinner.',
         expectedDuration: 180,
+        basePrice: 10000, // R100.00
+        paymentMode: 'UPFRONT',
+        priceCurrency: 'ZAR',
+        requiresPayment: true,
+        allowOfflinePayment: true,
+        formConfig: concertFormConfig,
       },
     });
     console.log('Created Service:', service.id, service.name);
+  } else {
+    service = await prisma.service.update({
+      where: { id: service.id },
+      data: {
+        basePrice: 10000,
+        paymentMode: 'UPFRONT',
+        priceCurrency: 'ZAR',
+        requiresPayment: true,
+        allowOfflinePayment: true,
+        formConfig: concertFormConfig,
+      },
+    });
+    console.log('Updated Service formConfig and pricing:', service.id);
   }
 
   // 5. Create or find Queue
@@ -169,7 +209,7 @@ async function main() {
         entitlementUnit: 'plates',
         entitlementFormula: 'accompanyingGuests + 1',
         allowPartialRedemption: true,
-        preventDoubleRedemption: false,
+        preventDoubleRedemption: true,
         customerInstruction: 'Present your QR code at the catering station to collect your food.',
         staffInstruction: 'Scan QR, check plate count, hand over food, and click Confirm Collection.',
         locationDescription: 'Catering Station (Hall B)',
@@ -189,6 +229,15 @@ async function main() {
     console.log('Created transition Step 1 -> Step 2');
   } else {
     console.log('Found existing ServiceFlow:', flow.id);
+    await prisma.flowStepTemplate.updateMany({
+      where: { flowId: flow.id, type: 'COLLECTION' },
+      data: {
+        preventDoubleRedemption: true,
+        allowPartialRedemption: true,
+        entitlementUnit: 'plates',
+      },
+    });
+    console.log('Ensured step 2 has preventDoubleRedemption: true');
   }
 
   // 7. Create Test Customer & Visit (Lethabo Ntolo with 4 plates)

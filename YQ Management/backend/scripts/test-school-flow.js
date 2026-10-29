@@ -28,19 +28,33 @@ async function testFlow() {
     process.exit(1);
   }
 
+  // Reset to initial test state
+  await prisma.visit.update({
+    where: { id: visit.id },
+    data: { currentState: 'WAITING', checkInTime: null },
+  });
+  const checkpointStep = visit.visitSteps.find(s => s.type === 'CHECKPOINT');
+  const collectionStep = visit.visitSteps.find(s => s.type === 'COLLECTION');
+
+  if (!checkpointStep || !collectionStep) {
+    console.error('Steps missing!');
+    process.exit(1);
+  }
+
+  await prisma.visitStep.update({
+    where: { id: checkpointStep.id },
+    data: { status: 'ACTIVE', completedAt: null, lastRedeemedBy: null },
+  });
+  await prisma.visitStep.update({
+    where: { id: collectionStep.id },
+    data: { status: 'PENDING', quantityAllocated: 4, quantityRedeemed: 0, completedAt: null, lastRedeemedBy: null },
+  });
+
   console.log('--- 1. INITIAL REGISTRATION STATE ---');
   console.log('Customer:', visit.customer.name);
   console.log('Token (QR):', visit.accessToken);
   console.log('Accompanying Guests:', visit.accompanyingGuests);
   console.log('Plates from Metadata:', visit.metadata.platesPurchased);
-  console.log('Steps:');
-  visit.visitSteps.forEach(s => {
-    console.log(`  [${s.type}] ${s.name}: status=${s.status}, allocated=${s.quantityAllocated}, redeemed=${s.quantityRedeemed}`);
-  });
-
-  // Verify initial state
-  const checkpointStep = visit.visitSteps.find(s => s.type === 'CHECKPOINT');
-  const collectionStep = visit.visitSteps.find(s => s.type === 'COLLECTION');
 
   if (!checkpointStep || !collectionStep) {
     console.error('Steps missing!');
