@@ -104,7 +104,7 @@ export function CheckoutBillModal({
         method: 'POST',
         body: JSON.stringify({
           tenantId,
-          amount: Math.round(bill.balanceDue * 100),
+          amount: Math.round(bill.balanceDue), // Already in integer cents
           visitId: bill.visitId,
           description: 'Payment at check-out',
         }),

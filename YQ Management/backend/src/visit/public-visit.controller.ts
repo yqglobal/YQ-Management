@@ -369,14 +369,16 @@ export class PublicVisitController {
               service.paymentMode === 'OPTIONAL_PREPAY';
 
           if (allowsOffline) {
+            const partySize = 1 + (primaryVisit.accompanyingGuests || 0);
+            const totalBasePrice = Math.round(service.basePrice * partySize);
             await this.prisma.bookingPayment.create({
               data: {
                 tenantId: primaryVisit.tenantId,
                 visitId: primaryVisit.id,
                 customerId: primaryVisit.customerId,
-                amount: service.basePrice,
+                amount: totalBasePrice,
                 platformFeeAmount: 0, // No platform fee for offline payments
-                tenantNetAmount: service.basePrice,
+                tenantNetAmount: totalBasePrice,
                 currency: service.priceCurrency || 'ZAR',
                 status: 'PENDING',
                 stripePaymentMethodType: 'OFFLINE',

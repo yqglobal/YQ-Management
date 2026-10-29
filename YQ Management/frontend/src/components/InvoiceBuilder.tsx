@@ -83,7 +83,7 @@ export default function InvoiceBuilder({ visitId, visitStepId, tenant, onLinkGen
         method: 'POST',
         body: JSON.stringify({
           tenantId: tenant?.id,
-          amount: updatedInvoice.total * 100, // Cents
+          amount: updatedInvoice.total, // Already in integer cents
           visitId,
           visitStepId,
           description: `Invoice ${updatedInvoice.invoiceNumber || 'Payment'}`

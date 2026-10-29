@@ -1181,7 +1181,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                     : ((s as any)?.paymentMode === 'PREPAY' || (s as any)?.paymentMode === 'OPTIONAL_PREPAY' || (s as any)?.paymentMode === 'PAY_AT_SERVICE');
                   const base = s && isCheckinPay && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0;
                   return total + (base * (1 + accompanyingGuests));
-                }, 0) * 100} // Stripe amount is in cents
+                }, 0)} // Base price is already in integer cents
                 currency={services.find(x => x.id === selectedServiceIds[0]) ? (services.find(x => x.id === selectedServiceIds[0]) as any).priceCurrency || (services.find(x => x.id === selectedServiceIds[0]) as any).currency || 'usd' : 'usd'}
                 stripeAccountId={tenant?.paymentAccount?.connectedAccountId}
                 visitId={createdVisits.find(v => v.currentState === 'PENDING_PAYMENT')?.id}

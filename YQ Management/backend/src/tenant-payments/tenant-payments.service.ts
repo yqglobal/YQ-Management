@@ -230,19 +230,39 @@ export class TenantPaymentsService {
       );
     }
 
-    let finalAmount = amount;
+    let finalAmount = Math.round(amount);
 
     // Server-side amount validation & tenant ownership check
     if (metadata.visitId) {
       const visit = await this.prisma.visit.findUnique({
         where: { id: metadata.visitId },
-        include: { service: true },
+        include: {
+          service: true,
+          visitInvoice: true,
+          visitSteps: { include: { templateStep: true } },
+        },
       });
       if (!visit || visit.tenantId !== tenantId) {
         throw new BadRequestException('Invalid visit or tenant mismatch');
       }
-      if (visit.service?.basePrice) {
-        finalAmount = Math.round(visit.service.basePrice * 100);
+
+      // 1. If paying for a specific SEF journey step with configured stepPrice
+      if (metadata.visitStepId) {
+        const targetStep = visit.visitSteps?.find(
+          (s) => s.id === metadata.visitStepId,
+        );
+        if (targetStep?.templateStep?.stepPrice) {
+          finalAmount = targetStep.templateStep.stepPrice;
+        } else if (visit.visitInvoice?.total && visit.visitInvoice.total > 0) {
+          finalAmount = visit.visitInvoice.total;
+        }
+      } else if (visit.visitInvoice?.total && visit.visitInvoice.total > 0) {
+        // 2. If an invoice with custom billable items was already compiled
+        finalAmount = visit.visitInvoice.total;
+      } else if (visit.service?.basePrice) {
+        // 3. Upfront booking prepayment: base price in cents multiplied by total guests
+        const partySize = 1 + (visit.accompanyingGuests || 0);
+        finalAmount = Math.round(visit.service.basePrice * partySize);
       }
     } else if (metadata.appointmentId) {
       const appt = await this.prisma.appointment.findUnique({
@@ -253,7 +273,7 @@ export class TenantPaymentsService {
         throw new BadRequestException('Invalid appointment or tenant mismatch');
       }
       if (appt.service?.basePrice) {
-        finalAmount = Math.round(appt.service.basePrice * 100);
+        finalAmount = Math.round(appt.service.basePrice);
       }
     }
 
@@ -301,7 +321,7 @@ export class TenantPaymentsService {
       },
     );
 
-    // Record the payment intent in our DB
+    // Record the payment intent in our DB (amounts in integer cents)
     const bookingPayment = await this.prisma.bookingPayment.create({
       data: {
         tenantId,
@@ -309,9 +329,9 @@ export class TenantPaymentsService {
         appointmentId: metadata.appointmentId,
         visitId: metadata.visitId,
         visitStepId: metadata.visitStepId,
-        amount: finalAmount / 100, // Store in actual currency unit
-        platformFeeAmount: applicationFeeAmount / 100,
-        tenantNetAmount: tenantNetAmount / 100,
+        amount: finalAmount, // Store in integer cents
+        platformFeeAmount: applicationFeeAmount,
+        tenantNetAmount: tenantNetAmount,
         currency: currency.toUpperCase(),
         stripePaymentIntentId: paymentIntent.id,
         status: 'PENDING',
@@ -440,6 +460,42 @@ export class TenantPaymentsService {
             status: 'PENDING',
           },
         });
+
+        // Also transition any bundled multi-service visits for this customer
+        if (visit.customerId) {
+          const bundledVisits = await this.prisma.visit.findMany({
+            where: {
+              customerId: visit.customerId,
+              tenantId: visit.tenantId,
+              currentState: 'PENDING_PAYMENT',
+              id: { not: visit.id },
+              createdAt: {
+                gte: new Date(visit.createdAt.getTime() - 15 * 60 * 1000),
+              },
+            },
+            include: { service: true },
+          });
+
+          for (const bVisit of bundledVisits) {
+            let bNewState = 'WAITING';
+            if (bVisit.scheduledTime) {
+              bNewState = bVisit.service.requireManualCheckIn
+                ? 'CREATED'
+                : 'SCHEDULED';
+            }
+            await this.prisma.visit.update({
+              where: { id: bVisit.id },
+              data: { currentState: bNewState as any },
+            });
+            await this.prisma.outboxEvent.create({
+              data: {
+                type: 'VISIT_UPDATED',
+                payload: { visitId: bVisit.id },
+                status: 'PENDING',
+              },
+            });
+          }
+        }
       }
 
       // Generate Invoice and mark it PAID

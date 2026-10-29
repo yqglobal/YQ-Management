@@ -25,9 +25,12 @@ import {
   Sparkles,
   ShieldCheck,
   ChevronRight,
+  Download,
+  Receipt,
 } from 'lucide-react';
 import { PaymentStep } from '../../../components/booking/PaymentStep';
 import { ConfirmModal } from '../../../components/modals/ConfirmModal';
+import { downloadInvoicePdf, formatMoney } from '../../../lib/invoicePdf';
 
 interface TemplateStep {
   type: string;
@@ -715,7 +718,7 @@ export default function CustomerLiveStatus() {
                   {stripeAccountId ? (
                     <PaymentStep
                       tenantId={tenant?.id}
-                      amount={activeStep.templateStep?.stepPrice || 0}
+                      amount={activeStep.templateStep?.stepPrice || data.token?.visitInvoice?.total || 0}
                       currency={activeStep.templateStep?.stepPriceCurrency || 'ZAR'}
                       stripeAccountId={stripeAccountId}
                       onSuccess={() => {
@@ -897,6 +900,119 @@ export default function CustomerLiveStatus() {
               </div>
             </div>
           )}
+
+          {/* ── Payment & Tax Invoice Card ── */}
+          {(data.token?.bookingPayments?.length > 0 || data.token?.visitInvoice) && (() => {
+            const payments = data.token?.bookingPayments || [];
+            const invoice = data.token?.visitInvoice;
+            const latestPayment = payments[0];
+            const isPaid = latestPayment?.status === 'SUCCEEDED' || invoice?.status === 'PAID';
+            const amountCents = latestPayment?.amount ?? invoice?.total ?? service?.basePrice ?? 0;
+            const currency = latestPayment?.currency || invoice?.currency || service?.priceCurrency || 'ZAR';
+
+            const methodLabels: Record<string, string> = {
+              CARD_TERMINAL: 'Card Machine (POS)',
+              CASH: 'Cash at Counter',
+              EFT: 'EFT / Bank Transfer',
+              STRIPE: 'Online Card (Stripe)',
+              OTHER: 'Counter Payment',
+            };
+            const methodLabel =
+              methodLabels[latestPayment?.method] ||
+              latestPayment?.method ||
+              (isPaid ? 'Paid' : 'Payment Pending');
+
+            const handleDownloadPdf = () => {
+              if (!invoice) {
+                toast.info('Invoice document is being prepared.');
+                return;
+              }
+              const invoiceData = {
+                id: invoice.id,
+                invoiceNumber: invoice.invoiceNumber,
+                status: invoice.status,
+                createdAt: invoice.createdAt || new Date().toISOString(),
+                currency: invoice.currency || currency,
+                subtotal: invoice.subtotal || amountCents,
+                totalTax: invoice.totalTax || 0,
+                total: invoice.total || amountCents,
+                taxLines: invoice.taxLines || [],
+                lineItemsSnap: invoice.lineItemsSnap || [
+                  { name: serviceName, qty: 1, unitPrice: amountCents }
+                ],
+                customer: {
+                  name: customerName,
+                },
+                tenant: {
+                  name: tenantName,
+                },
+              };
+              const ok = downloadInvoicePdf(invoiceData);
+              if (ok) {
+                toast.success(`Invoice ${invoice.invoiceNumber} downloaded`);
+              } else {
+                toast.error('Could not generate PDF. Please ask reception.');
+              }
+            };
+
+            return (
+              <div className="bg-white dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 rounded-3xl p-5 shadow-[0_4px_20px_rgb(0,0,0,0.02)] space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                      <Receipt className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                        Payment & Tax Invoice
+                      </h3>
+                      {invoice?.invoiceNumber && (
+                        <p className="text-[11px] font-mono text-slate-400 dark:text-zinc-500">
+                          {invoice.invoiceNumber}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                      isPaid
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
+                    }`}
+                  >
+                    {isPaid ? 'Paid' : 'Payment Pending'}
+                  </span>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-zinc-900/60 rounded-2xl p-3.5 space-y-2 border border-slate-100 dark:border-zinc-800/80">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 dark:text-zinc-400">Amount:</span>
+                    <span className="font-bold text-sm text-slate-900 dark:text-white">
+                      {formatMoney(amountCents, currency)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 dark:text-zinc-400">Payment Method:</span>
+                    <span className="font-medium text-slate-700 dark:text-zinc-300">
+                      {methodLabel}
+                    </span>
+                  </div>
+                </div>
+
+                {invoice && (
+                  <button
+                    type="button"
+                    onClick={handleDownloadPdf}
+                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download Invoice PDF
+                  </button>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ── Post-Visit CSAT Feedback / Rating Section ── */}
           {isCompleted && (

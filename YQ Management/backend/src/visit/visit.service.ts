@@ -668,6 +668,20 @@ export class VisitService {
             createdAt: true,
           },
         },
+        visitInvoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            subtotal: true,
+            totalTax: true,
+            total: true,
+            currency: true,
+            status: true,
+            lineItemsSnap: true,
+            taxLines: true,
+            paidAt: true,
+          },
+        },
         scheduledTime: true,
         language: true,
         tenant: {
