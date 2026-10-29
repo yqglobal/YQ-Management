@@ -275,39 +275,59 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Top Header Line: Name, Phone, Ticket, Type Badge, and Close Button in one line */}
-        <div className="flex items-center justify-between gap-2 p-3.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0 bg-zinc-50/80 dark:bg-zinc-900/80">
-          <div className="flex items-center gap-2 flex-wrap min-w-0">
-            <span className="font-bold text-sm text-zinc-900 dark:text-white truncate">
-              {visit.customer?.name || visit.customerName || 'Walk-in Customer'}
-            </span>
-            {(visit.customer?.phone || visit.phone) && (
-              <span className="text-xs text-zinc-500 font-mono flex items-center gap-1">
-                <span>{visit.customer?.phone || visit.phone}</span>
-                <a
-                  href={`https://wa.me/${(visit.customer?.phone || visit.phone).replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-emerald-600 hover:text-emerald-500 inline-flex items-center"
-                  title="Open WhatsApp chat"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                </a>
+        {/* Top Header Area: Spaced breathing layout with direct Inbox navigation */}
+        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 shrink-0 bg-zinc-50/80 dark:bg-zinc-900/80 space-y-2.5">
+          {/* Row 1: Name, Phone & WhatsApp, Close button */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="font-bold text-base md:text-lg text-zinc-900 dark:text-white truncate">
+                {visit.customer?.name || visit.customerName || 'Walk-in Customer'}
               </span>
-            )}
+              {(visit.customer?.phone || visit.phone) && (
+                <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                  <span className="text-xs text-zinc-600 dark:text-zinc-300 font-mono font-medium">
+                    {visit.customer?.phone || visit.phone}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const ph = (visit.customer?.phone || visit.phone)?.trim();
+                      if (ph) {
+                        router.push(`/dashboard/inbox?phone=${encodeURIComponent(ph)}`);
+                      }
+                    }}
+                    className="text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-300 p-0.5 hover:bg-emerald-500/10 rounded transition-colors inline-flex items-center"
+                    title="Open conversation in Inbox"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={onClose}
+              className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors shrink-0 cursor-pointer"
+              title="Close details"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Row 2: Ticket chip, Appt/Walk-in badge, VIP, & Current State */}
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => {
                 navigator.clipboard.writeText(ticketDisplay);
                 toast.success(`Copied ${ticketDisplay}`);
               }}
               title="Click to copy ticket number"
-              className="inline-flex items-center gap-1 font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-2.5 py-1 rounded-md cursor-pointer transition-colors shadow-xs"
             >
               <span>Ticket: {ticketDisplay}</span>
-              <Copy className="w-2.5 h-2.5 opacity-70 hover:opacity-100" />
+              <Copy className="w-3 h-3 opacity-70 hover:opacity-100" />
             </button>
             <span
-              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
+              className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border ${
                 isAppt
                   ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30'
                   : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
@@ -316,23 +336,16 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
               {isAppt ? 'Appointment' : 'Walk-in'}
             </span>
             {isExplicitVip && (
-              <span className="inline-flex items-center gap-1 text-[10px] bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded font-bold uppercase">
-                <Sparkles className="w-2.5 h-2.5 text-purple-500" /> VIP
+              <span className="inline-flex items-center gap-1 text-xs bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 px-2 py-1 rounded-md font-bold uppercase">
+                <Sparkles className="w-3 h-3 text-purple-500" /> VIP
               </span>
             )}
             {(!isAppt || visit.currentState !== 'SCHEDULED') && (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border bg-zinc-500/15 text-zinc-700 dark:text-zinc-300 border-zinc-500/30">
+              <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border bg-zinc-500/15 text-zinc-700 dark:text-zinc-300 border-zinc-500/30">
                 {visit.currentState.replace(/_/g, ' ')}
               </span>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-white rounded-lg transition-colors shrink-0"
-            title="Close details"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
         {/* Scrollable Content Body - Line-by-line layout */}

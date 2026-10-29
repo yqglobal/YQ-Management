@@ -2652,27 +2652,47 @@ export default function ServiceDeskToday() {
               >
                 {/* Top details area - streamlined line-by-line compact display */}
                 <div className="flex-1 overflow-y-auto min-h-0 p-4 flex flex-col gap-3">
-                  {/* 1. Header Line: Name, Number, Ticket: XXXXX, Appointment in one line */}
-                  <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-border/50">
-                    <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                      <span className="font-bold text-[15px] text-on-surface dark:text-white truncate">
-                        {selectedVisit.customer?.name ||
-                          industry.terminology.walkIn}
-                      </span>
-                      {selectedVisit.customer?.phone && (
-                        <span className="text-xs md:text-sm text-outline font-mono flex items-center gap-1.5">
-                          <span>{selectedVisit.customer.phone}</span>
-                          <a
-                            href={`https://wa.me/${selectedVisit.customer.phone.replace(/\D/g, "")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-emerald-600 hover:text-emerald-500 inline-flex items-center"
-                            title="Open WhatsApp chat"
-                          >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                          </a>
+                  {/* 1. Header Area: Spaced, breathing layout with direct Inbox navigation */}
+                  <div className="pb-3 border-b border-border/60 dark:border-white/10 space-y-2.5">
+                    {/* Top Row: Customer Identity, WhatsApp, and Close Drawer */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="font-bold text-base md:text-lg text-on-surface dark:text-white truncate">
+                          {selectedVisit.customer?.name ||
+                            industry.terminology.walkIn}
                         </span>
-                      )}
+                        {selectedVisit.customer?.phone && (
+                          <div className="flex items-center gap-1.5 bg-surface-container-low dark:bg-zinc-800/80 px-2 py-0.5 rounded-lg border border-border/50 dark:border-white/5">
+                            <span className="text-xs text-zinc-600 dark:text-zinc-300 font-mono font-medium">
+                              {selectedVisit.customer.phone}
+                            </span>
+                            <button
+                              onClick={() => {
+                                const phone = selectedVisit.customer?.phone?.trim();
+                                if (phone) {
+                                  router.push(`/dashboard/inbox?phone=${encodeURIComponent(phone)}`);
+                                }
+                              }}
+                              className="text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-300 p-0.5 hover:bg-emerald-500/10 rounded transition-colors inline-flex items-center"
+                              title="Open conversation in Inbox"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => setSelectedVisit(null)}
+                        className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-white hover:bg-surface-container rounded-lg transition-colors shrink-0 cursor-pointer"
+                        title="Close details"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Secondary Row: Ticket chip, Walk-in/Appt badge, VIP, & State */}
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => {
                           const tkt =
@@ -2683,7 +2703,7 @@ export default function ServiceDeskToday() {
                           toast.success(`Copied ${tkt}`);
                         }}
                         title="Click to copy ticket number"
-                        className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 px-2 py-0.5 rounded cursor-pointer transition-colors"
+                        className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 px-2.5 py-1 rounded-md cursor-pointer transition-colors shadow-xs"
                       >
                         <span>
                           Ticket:{" "}
@@ -2693,8 +2713,9 @@ export default function ServiceDeskToday() {
                         </span>
                         <Copy className="w-3 h-3 opacity-70 hover:opacity-100" />
                       </button>
+
                       <span
-                        className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
+                        className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border ${
                           isAppt
                             ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30"
                             : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
@@ -2702,17 +2723,19 @@ export default function ServiceDeskToday() {
                       >
                         {isAppt ? "Appointment" : "Walk-in"}
                       </span>
+
                       {(selectedVisit.isVip ||
                         selectedVisit.customer?.isVip ||
                         selectedVisit.priority >= 3) && (
-                        <span className="inline-flex items-center gap-1 text-xs bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold uppercase">
+                        <span className="inline-flex items-center gap-1 text-xs bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 px-2 py-1 rounded-md font-bold uppercase">
                           <Sparkles className="w-3 h-3 text-purple-500" /> VIP
                         </span>
                       )}
+
                       {(!isAppt ||
                         selectedVisit.currentState !== "SCHEDULED") && (
                         <span
-                          className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
+                          className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border ${
                             isInService
                               ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                               : isWaiting
@@ -2727,14 +2750,6 @@ export default function ServiceDeskToday() {
                         </span>
                       )}
                     </div>
-
-                    <button
-                      onClick={() => setSelectedVisit(null)}
-                      className="p-1.5 text-outline hover:text-on-surface dark:hover:text-white hover:bg-surface-container rounded-lg transition-colors shrink-0"
-                      title="Close details"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
                   </div>
 
                   {/* 2. Customer Overdue Alert - Small, compact, easy to understand */}

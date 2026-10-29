@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import AdminLayout from '../../components/AdminLayout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../lib/api';
@@ -178,12 +179,21 @@ function getInitials(nameOrPhone: string): string {
 }
 
 export default function InboxPage() {
+  const router = useRouter();
   const { allowedLocations: locations, activeLocationId } = useLocation();
   const queryClient = useQueryClient();
   const { socket } = useSocket();
 
   // ── Conversation & Chat State ──────────────────────────────────────────────
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
+
+  // Auto-select conversation or initiate chat when navigated from service-desk with ?phone=...
+  useEffect(() => {
+    const qPhone = router.query.phone;
+    if (typeof qPhone === 'string' && qPhone.trim()) {
+      setSelectedPhone(qPhone.trim());
+    }
+  }, [router.query.phone]);
   const [input, setInput] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [media, setMedia] = useState<string | null>(null);
