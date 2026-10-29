@@ -1202,17 +1202,33 @@ export default function RecordsPage() {
                   {/* Visit Cards in this Date Group */}
                   <div className="space-y-3">
                     {group.visits.map((visit: any) => {
-                      const startTime = visit.serviceStart || visit.checkInTime || visit.createdAt;
-                      const endTime = visit.completedAt;
-                      let durationMins = 0;
-                      if (endTime && startTime) {
-                        durationMins = Math.max(1, Math.round((new Date(endTime).getTime() - new Date(startTime).getTime()) / 60000));
+                      // Determine true service start: prefer earliest activated step in SEF flow, or visit.serviceStart
+                      let actualServiceStart = visit.serviceStart;
+                      if (Array.isArray(visit.visitSteps) && visit.visitSteps.length > 0) {
+                        const activatedSteps = visit.visitSteps
+                          .filter((s: any) => s.activatedAt)
+                          .sort((a: any, b: any) => new Date(a.activatedAt).getTime() - new Date(b.activatedAt).getTime());
+                        if (activatedSteps.length > 0) {
+                          actualServiceStart = activatedSteps[0].activatedAt;
+                        }
                       }
 
+                      const waitStart = visit.waitingStart || visit.checkInTime || visit.createdAt;
                       let waitMins = 0;
-                      if (visit.serviceStart && (visit.waitingStart || visit.checkInTime || visit.createdAt)) {
-                        const waitStart = visit.waitingStart || visit.checkInTime || visit.createdAt;
-                        waitMins = Math.max(0, Math.round((new Date(visit.serviceStart).getTime() - new Date(waitStart).getTime()) / 60000));
+                      if (actualServiceStart && waitStart) {
+                        waitMins = Math.max(0, Math.round((new Date(actualServiceStart).getTime() - new Date(waitStart).getTime()) / 60000));
+                      } else if (visit.completedAt && waitStart && !actualServiceStart) {
+                        waitMins = Math.max(0, Math.round((new Date(visit.completedAt).getTime() - new Date(waitStart).getTime()) / 60000));
+                      }
+
+                      const endTime = visit.completedAt;
+                      let durationMins = 0;
+                      if (endTime && actualServiceStart) {
+                        const diffMs = new Date(endTime).getTime() - new Date(actualServiceStart).getTime();
+                        durationMins = Math.max(0, Math.round(diffMs / 60000));
+                      } else if (endTime && visit.serviceStart) {
+                        const diffMs = new Date(endTime).getTime() - new Date(visit.serviceStart).getTime();
+                        durationMins = Math.max(0, Math.round(diffMs / 60000));
                       }
 
                       const opName =
@@ -1347,8 +1363,8 @@ export default function RecordsPage() {
                                 <div className="text-center px-1.5">
                                   <p className="text-[9px] text-outline uppercase font-sans font-bold">Service</p>
                                   <p className="font-semibold text-blue-600 dark:text-blue-400">
-                                    {visit.serviceStart
-                                      ? new Date(visit.serviceStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                    {actualServiceStart
+                                      ? new Date(actualServiceStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                       : '—'}
                                   </p>
                                 </div>
@@ -1359,9 +1375,9 @@ export default function RecordsPage() {
                                   <p className="text-[9px] text-outline uppercase font-sans font-bold">Done</p>
                                   <p className="font-semibold text-emerald-600 dark:text-emerald-400">
                                     {visit.completedAt
-                                      ? `${durationMins}m`
+                                      ? new Date(visit.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                       : visit.currentState === 'IN_SERVICE'
-                                      ? 'Active'
+                                      ? (durationMins > 0 ? `${durationMins}m` : 'Active')
                                       : '—'}
                                   </p>
                                 </div>

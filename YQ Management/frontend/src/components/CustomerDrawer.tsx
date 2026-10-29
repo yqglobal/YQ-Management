@@ -253,14 +253,22 @@ export function CustomerDrawer({ isOpen, onClose, customerId }: CustomerDrawerPr
                       const startTime = v.serviceStart || v.waitingStart || v.checkInTime || v.createdAt;
                       const endTime = v.completedAt || v.serviceEnd;
                       
+                      let actualServiceStart = v.serviceStart;
+                      if (Array.isArray(v.steps) && v.steps.length > 0) {
+                        const actSteps = v.steps
+                          .filter((s: any) => s.activatedAt)
+                          .sort((a: any, b: any) => new Date(a.activatedAt).getTime() - new Date(b.activatedAt).getTime());
+                        if (actSteps.length > 0) actualServiceStart = actSteps[0].activatedAt;
+                      }
+
                       let durationDisplay = '—';
-                      if (v.completedAt && (v.serviceStart || v.waitingStart)) {
-                        const startMs = new Date(v.serviceStart || v.waitingStart).getTime();
+                      if (v.completedAt && (actualServiceStart || v.serviceStart)) {
+                        const startMs = new Date(actualServiceStart || v.serviceStart).getTime();
                         const endMs = new Date(v.completedAt).getTime();
-                        const mins = Math.max(1, Math.round((endMs - startMs) / 60000));
+                        const mins = Math.max(0, Math.round((endMs - startMs) / 60000));
                         durationDisplay = `${mins} mins`;
-                      } else if (v.currentState === 'IN_SERVICE' && v.serviceStart) {
-                        const elapsed = Math.max(1, Math.round((Date.now() - new Date(v.serviceStart).getTime()) / 60000));
+                      } else if (v.currentState === 'IN_SERVICE' && (actualServiceStart || v.serviceStart)) {
+                        const elapsed = Math.max(0, Math.round((Date.now() - new Date(actualServiceStart || v.serviceStart).getTime()) / 60000));
                         durationDisplay = `${elapsed}m (in service)`;
                       } else if (v.service?.expectedDuration) {
                         durationDisplay = `~${v.service.expectedDuration} mins (est.)`;

@@ -39,6 +39,22 @@ interface VisitDrawerProps {
   visit: AnyFixMe | null;
 }
 
+const formatDateTime = (dateStr?: string | Date | null) => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '—';
+  const datePart = d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const timePart = d.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${datePart} · ${timePart}`;
+};
+
 export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -345,9 +361,7 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
             <div>
               <span className="text-zinc-500 dark:text-zinc-400">Schedule: </span>
               <span className="font-semibold text-indigo-600 dark:text-sky-400 font-mono">
-                {scheduledTimeVal
-                  ? new Date(scheduledTimeVal).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                  : 'N/A'}
+                {scheduledTimeVal ? formatDateTime(scheduledTimeVal) : 'N/A'}
               </span>
             </div>
             <div>
@@ -650,8 +664,8 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
                 <div className="relative pl-3">
                   <div className="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-zinc-400 dark:bg-zinc-600 ring-4 ring-white dark:ring-zinc-950" />
                   <p className="text-xs font-semibold text-zinc-900 dark:text-white">Created / Booked</p>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                    {new Date(visit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <p className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
+                    {formatDateTime(visit.createdAt)}
                   </p>
                 </div>
               )}
@@ -659,20 +673,22 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
                 <div className="relative pl-3">
                   <div className="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-amber-400 ring-4 ring-white dark:ring-zinc-950" />
                   <p className="text-xs font-semibold text-zinc-900 dark:text-white">Checked In / Waiting</p>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                    {new Date(visit.waitingStart || visit.checkInTime).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                  <p className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
+                    {formatDateTime(visit.waitingStart || visit.checkInTime)}
                   </p>
                 </div>
               )}
-              {visit.serviceStart && (
+              {(visit.serviceStart || (Array.isArray(visit.steps) && visit.steps.some((s: any) => s.activatedAt))) && (
                 <div className="relative pl-3">
                   <div className="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-white dark:ring-zinc-950" />
                   <p className="text-xs font-semibold text-zinc-900 dark:text-white">Service In Progress</p>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                    {new Date(visit.serviceStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <p className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
+                    {formatDateTime(
+                      visit.serviceStart ||
+                      (Array.isArray(visit.steps)
+                        ? visit.steps.find((s: any) => s.activatedAt)?.activatedAt
+                        : null)
+                    )}
                   </p>
                 </div>
               )}
@@ -680,8 +696,8 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
                 <div className="relative pl-3">
                   <div className="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-white dark:ring-zinc-950" />
                   <p className="text-xs font-semibold text-zinc-900 dark:text-white">Completed</p>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                    {new Date(visit.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <p className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
+                    {formatDateTime(visit.completedAt)}
                   </p>
                 </div>
               )}

@@ -1884,6 +1884,11 @@ export class VisitService {
 
       const visit = await tx.visit.findUnique({
         where: { id },
+        include: {
+          visitSteps: {
+            orderBy: { stepOrder: 'asc' },
+          },
+        },
       });
       if (!visit) throw new NotFoundException('Visit not found');
 
@@ -1919,6 +1924,24 @@ export class VisitService {
         nextItinerary = visit.itinerary;
       }
 
+      // If serviceStart was not previously recorded, look for the earliest activated step in SEF flow
+      let resolvedServiceStart = visit.serviceStart;
+      if (!resolvedServiceStart && visit.visitSteps && visit.visitSteps.length > 0) {
+        const sortedActivated = visit.visitSteps
+          .filter((s: any) => s.activatedAt)
+          .sort(
+            (a: any, b: any) =>
+              new Date(a.activatedAt).getTime() -
+              new Date(b.activatedAt).getTime(),
+          );
+        if (sortedActivated.length > 0) {
+          resolvedServiceStart = sortedActivated[0].activatedAt;
+        }
+      }
+      if (!resolvedServiceStart) {
+        resolvedServiceStart = new Date();
+      }
+
       const updated = await tx.visit.update({
         where: { id },
         data: {
@@ -1927,7 +1950,7 @@ export class VisitService {
             nextState === 'COMPLETED' ? new Date() : visit.completedAt,
           serviceEnd: new Date(),
           operatorId: operatorId || visit.operatorId,
-          serviceStart: visit.serviceStart || new Date(),
+          serviceStart: resolvedServiceStart,
           itinerary: nextItinerary as any,
           queueId: nextQueueId,
           currentStepId: nextState === 'COMPLETED' ? null : visit.currentStepId,
