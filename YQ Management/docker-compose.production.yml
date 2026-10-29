@@ -108,6 +108,7 @@ services:
       - OZOW_API_KEY=${OZOW_API_KEY}
       - OZOW_IS_TEST=${OZOW_IS_TEST:-false}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-pk_live_51TncmkIdVVmQLEG3kmpaJE7ROAPd9XcW94BzXuJoLlEjuGCMVflLVSw3chR4GL3IlI9Wnq2WkQKtkVrhxGRSB8mA00G5T3CIYn}
     command: ["node", "dist/main"]
     depends_on:
       db:
@@ -150,6 +151,7 @@ services:
       - NEXT_PUBLIC_DOMAIN_BASE=${DOMAIN_BASE}
       - DOMAIN_BASE=${DOMAIN_BASE}
       - NEXT_PUBLIC_SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL}
+      - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-pk_live_51TncmkIdVVmQLEG3kmpaJE7ROAPd9XcW94BzXuJoLlEjuGCMVflLVSw3chR4GL3IlI9Wnq2WkQKtkVrhxGRSB8mA00G5T3CIYn}
     depends_on:
       backend:
         condition: service_healthy

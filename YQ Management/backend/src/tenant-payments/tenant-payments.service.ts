@@ -372,9 +372,15 @@ export class TenantPaymentsService {
       },
     });
 
+    const publishableKey =
+      process.env.STRIPE_PUBLISHABLE_KEY ||
+      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
+      'pk_live_51TncmkIdVVmQLEG3kmpaJE7ROAPd9XcW94BzXuJoLlEjuGCMVflLVSw3chR4GL3IlI9Wnq2WkQKtkVrhxGRSB8mA00G5T3CIYn';
+
     return {
       clientSecret: paymentIntent.client_secret,
       paymentId: bookingPayment.id,
+      publishableKey,
     };
   }
 
