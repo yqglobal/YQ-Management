@@ -1300,15 +1300,25 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                   const bookingCurrency = (services.find(x => x.id === selectedServiceIds[0]) as any)?.priceCurrency || (services.find(x => x.id === selectedServiceIds[0]) as any)?.currency || 'USD';
                   const currSymbol = bookingCurrency.toUpperCase() === 'ZAR' ? 'R' : bookingCurrency.toUpperCase() === 'EUR' ? '€' : bookingCurrency.toUpperCase() === 'GBP' ? '£' : '$';
 
-                  const totalCents = selectedServiceIds.reduce((total, sid) => {
+                  const totalGuests = 1 + accompanyingGuests;
+                  const rawSubtotalCents = selectedServiceIds.reduce((total, sid) => {
                     const s = services.find(x => x.id === sid);
                     const flow = (s as any)?.serviceFlow;
                     const isBookingPay = flow?.isActive
                       ? (flow.paymentTiming === 'BOOKING')
                       : ((s as any)?.paymentMode === 'PREPAY');
                     const base = s && isBookingPay && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0;
-                    return total + (base * (1 + accompanyingGuests));
+                    return total + (base * totalGuests);
                   }, 0);
+
+                  const defaultTaxRate = bookingCurrency.toUpperCase() === 'ZAR' ? 15 : bookingCurrency.toUpperCase() === 'GB' || bookingCurrency.toUpperCase() === 'GBP' ? 20 : bookingCurrency.toUpperCase() === 'EUR' ? 20 : bookingCurrency.toUpperCase() === 'INR' ? 18 : 0;
+                  const taxRate = tenant?.taxConfig?.defaultTaxRatePercent !== undefined ? Number(tenant.taxConfig.defaultTaxRatePercent) : defaultTaxRate;
+                  const isTaxInclusive = tenant?.taxConfig?.taxInclusive !== undefined ? Boolean(tenant.taxConfig.taxInclusive) : (bookingCurrency.toUpperCase() === 'ZAR');
+
+                  let finalTotalCents = rawSubtotalCents;
+                  if (taxRate > 0 && !isTaxInclusive) {
+                    finalTotalCents += Math.round(rawSubtotalCents * (taxRate / 100));
+                  }
 
                   const minStripeThreshold = getMinStripeCents(bookingCurrency);
                   const isStripeBooking = selectedServiceIds.some(sid => {
@@ -1318,10 +1328,10 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                       ? (flow.paymentTiming === 'BOOKING' && (flow.checkinPayMode === 'STRIPE_ONLY' || flow.checkinPayMode === 'BOTH'))
                       : ((s as any)?.paymentMode === 'PREPAY');
                   });
-                  const isStripeViable = isStripeBooking && totalCents >= minStripeThreshold;
+                  const isStripeViable = isStripeBooking && finalTotalCents >= minStripeThreshold;
 
-                  const buttonLabel = isStripeViable && totalCents > 0
-                    ? `Proceed to Payment • ${currSymbol}${(totalCents / 100).toFixed(2)}`
+                  const buttonLabel = isStripeViable && finalTotalCents > 0
+                    ? `Proceed to Payment • ${currSymbol}${(finalTotalCents / 100).toFixed(2)}`
                     : 'Confirm Booking';
 
                   return (
@@ -1339,15 +1349,28 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
             <motion.div key="step4_5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1 w-full space-y-6">
               <PaymentStep
                 tenantId={tenant?.id}
-                amount={selectedServiceIds.reduce((total, sid) => {
-                  const s = services.find(x => x.id === sid);
-                  const flow = (s as any)?.serviceFlow;
-                  const isBookingPay = flow?.isActive
-                    ? (flow.paymentTiming === 'BOOKING' || flow.paymentTiming === 'CHECKIN')
-                    : ((s as any)?.paymentMode === 'PREPAY' || (s as any)?.paymentMode === 'OPTIONAL_PREPAY' || (s as any)?.paymentMode === 'PAY_AT_SERVICE');
-                  const base = s && isBookingPay && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0;
-                  return total + (base * (1 + accompanyingGuests));
-                }, 0)} // Base price is already in integer cents
+                amount={(() => {
+                  const bookingCurrency = (services.find(x => x.id === selectedServiceIds[0]) as any)?.priceCurrency || (services.find(x => x.id === selectedServiceIds[0]) as any)?.currency || 'USD';
+                  const totalGuests = 1 + accompanyingGuests;
+                  const rawSubtotalCents = selectedServiceIds.reduce((total, sid) => {
+                    const s = services.find(x => x.id === sid);
+                    const flow = (s as any)?.serviceFlow;
+                    const isBookingPay = flow?.isActive
+                      ? (flow.paymentTiming === 'BOOKING' || flow.paymentTiming === 'CHECKIN')
+                      : ((s as any)?.paymentMode === 'PREPAY' || (s as any)?.paymentMode === 'OPTIONAL_PREPAY' || (s as any)?.paymentMode === 'PAY_AT_SERVICE');
+                    const base = s && isBookingPay && (s as any).basePrice ? parseFloat((s as any).basePrice) : 0;
+                    return total + (base * totalGuests);
+                  }, 0);
+                  if (rawSubtotalCents <= 0) return 0;
+                  const defaultTaxRate = bookingCurrency.toUpperCase() === 'ZAR' ? 15 : bookingCurrency.toUpperCase() === 'GB' || bookingCurrency.toUpperCase() === 'GBP' ? 20 : bookingCurrency.toUpperCase() === 'EUR' ? 20 : bookingCurrency.toUpperCase() === 'INR' ? 18 : 0;
+                  const taxRate = tenant?.taxConfig?.defaultTaxRatePercent !== undefined ? Number(tenant.taxConfig.defaultTaxRatePercent) : defaultTaxRate;
+                  const isTaxInclusive = tenant?.taxConfig?.taxInclusive !== undefined ? Boolean(tenant.taxConfig.taxInclusive) : (bookingCurrency.toUpperCase() === 'ZAR');
+                  if (taxRate > 0 && !isTaxInclusive) {
+                    const taxCents = Math.round(rawSubtotalCents * (taxRate / 100));
+                    return rawSubtotalCents + taxCents;
+                  }
+                  return rawSubtotalCents;
+                })()}
                 currency={services.find(x => x.id === selectedServiceIds[0]) ? (services.find(x => x.id === selectedServiceIds[0]) as any).priceCurrency || (services.find(x => x.id === selectedServiceIds[0]) as any).currency || 'usd' : 'usd'}
                 stripeAccountId={tenant?.paymentAccount?.connectedAccountId}
                 visitId={createdVisits.find(v => v.currentState === 'PENDING_PAYMENT')?.id}

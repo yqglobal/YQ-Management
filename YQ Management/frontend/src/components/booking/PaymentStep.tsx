@@ -71,6 +71,14 @@ const CheckoutForm = ({
   const [isElementReady, setIsElementReady] = useState(false);
   const [elementLoadError, setElementLoadError] = useState<string | null>(null);
 
+  // Safety fallback: if Stripe loads but onReady event is delayed or suppressed, reveal inputs after 3.5s
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsElementReady(true);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const currSymbol = getCurrencySymbol(currency);
   const formattedAmount = `${currSymbol}${(amount / 100).toFixed(2)}`;
 
@@ -148,46 +156,48 @@ const CheckoutForm = ({
         </div>
       </div>
 
-      {/* Payment Element Container with Skeleton */}
+      {/* Payment Element Container with Skeleton Overlay */}
       <div className="space-y-3">
         <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-zinc-300">
           Card or Payment Method
         </label>
 
-        {!isElementReady && !elementLoadError && (
-          <div className="space-y-3 py-2 animate-pulse">
-            <div className="h-11 bg-gray-100 dark:bg-zinc-800 rounded-xl w-full flex items-center justify-center text-xs font-medium text-gray-400 gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Initializing secure card inputs...
+        <div className="relative min-h-[160px]">
+          {!isElementReady && !elementLoadError && (
+            <div className="absolute inset-0 z-10 bg-white dark:bg-zinc-900 space-y-3 py-1 pointer-events-none">
+              <div className="h-11 bg-gray-100 dark:bg-zinc-800 rounded-xl w-full flex items-center justify-center text-xs font-medium text-gray-400 gap-2 animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Initializing secure card inputs...
+              </div>
+              <div className="h-12 bg-gray-100 dark:bg-zinc-800 rounded-xl w-full animate-pulse" />
+              <div className="grid grid-cols-2 gap-3 animate-pulse">
+                <div className="h-12 bg-gray-100 dark:bg-zinc-800 rounded-xl" />
+                <div className="h-12 bg-gray-100 dark:bg-zinc-800 rounded-xl" />
+              </div>
             </div>
-            <div className="h-12 bg-gray-100 dark:bg-zinc-800 rounded-xl w-full" />
-            <div className="grid grid-cols-2 gap-3">
-              <div className="h-12 bg-gray-100 dark:bg-zinc-800 rounded-xl" />
-              <div className="h-12 bg-gray-100 dark:bg-zinc-800 rounded-xl" />
+          )}
+
+          {elementLoadError && (
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-800 dark:text-amber-300 text-xs space-y-2 mb-3">
+              <p className="font-semibold flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                {elementLoadError}
+              </p>
+              <p className="text-[11px] opacity-90">
+                You can confirm your booking right now and pay in person at the counter.
+              </p>
             </div>
-          </div>
-        )}
+          )}
 
-        {elementLoadError && (
-          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-800 dark:text-amber-300 text-xs space-y-2">
-            <p className="font-semibold flex items-center gap-1.5">
-              <AlertCircle className="w-4 h-4 text-amber-600" />
-              {elementLoadError}
-            </p>
-            <p className="text-[11px] opacity-90">
-              You can confirm your booking right now and pay in person at the counter.
-            </p>
+          <div className={!isElementReady ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
+            <PaymentElement
+              onReady={() => setIsElementReady(true)}
+              onLoadError={(err) => {
+                console.error('PaymentElement failed to load:', err);
+                setElementLoadError('Card processor unavailable. Please choose pay at counter.');
+              }}
+            />
           </div>
-        )}
-
-        <div className={!isElementReady ? 'opacity-0 h-0 overflow-hidden pointer-events-none' : 'opacity-100 transition-opacity duration-300'}>
-          <PaymentElement
-            onReady={() => setIsElementReady(true)}
-            onLoadError={(err) => {
-              console.error('PaymentElement failed to load:', err);
-              setElementLoadError('Card processor unavailable. Please choose pay at counter.');
-            }}
-          />
         </div>
       </div>
 
