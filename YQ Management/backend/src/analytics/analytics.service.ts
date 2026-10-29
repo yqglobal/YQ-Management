@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { toZonedTime, fromZonedTime, format } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime, format, formatInTimeZone } from 'date-fns-tz';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -408,7 +408,7 @@ export class AnalyticsService {
       (timeframe === 'custom' && diffDays > 90);
 
     if (isSingleDay) {
-      // 1. Hourly Breakdown (8:00 - 20:00)
+      // 1. Hourly Breakdown (0:00 - 23:00 full 24h)
       const hourlyDataMap = new Map<
         number,
         {
@@ -418,7 +418,7 @@ export class AnalyticsService {
           waitCount: number;
         }
       >();
-      for (let i = 8; i <= 20; i++) {
+      for (let i = 0; i < 24; i++) {
         hourlyDataMap.set(i, {
           timeLabel: `${i}:00`,
           volume: 0,
@@ -429,7 +429,7 @@ export class AnalyticsService {
 
       tokens.forEach((t: any) => {
         const opTime = getVisitOperationalTime(t);
-        const h = parseInt(format(opTime, 'H', { timeZone: tz }), 10);
+        const h = parseInt(formatInTimeZone(opTime, tz, 'H'), 10);
         if (hourlyDataMap.has(h)) {
           const entry = hourlyDataMap.get(h)!;
           entry.volume++;
@@ -470,8 +470,9 @@ export class AnalyticsService {
       endMonth.setHours(0, 0, 0, 0);
 
       while (curMonth <= endMonth) {
-        const key = format(curMonth, 'yyyy-MM', { timeZone: tz });
-        const label = format(curMonth, 'MMM yyyy', { timeZone: tz });
+        const utcDate = fromZonedTime(curMonth, tz);
+        const key = formatInTimeZone(utcDate, tz, 'yyyy-MM');
+        const label = formatInTimeZone(utcDate, tz, 'MMM yyyy');
         monthlyDataMap.set(key, {
           timeLabel: label,
           volume: 0,
@@ -483,7 +484,7 @@ export class AnalyticsService {
 
       tokens.forEach((t: any) => {
         const opTime = getVisitOperationalTime(t);
-        const key = format(opTime, 'yyyy-MM', { timeZone: tz });
+        const key = formatInTimeZone(opTime, tz, 'yyyy-MM');
         if (monthlyDataMap.has(key)) {
           const entry = monthlyDataMap.get(key)!;
           entry.volume++;
@@ -523,10 +524,11 @@ export class AnalyticsService {
       const showDayOfWeek = timeframe === '7d' || timeframe === 'week';
 
       while (cur <= endZoned) {
-        const key = format(cur, 'yyyy-MM-dd', { timeZone: tz });
+        const utcDate = fromZonedTime(cur, tz);
+        const key = formatInTimeZone(utcDate, tz, 'yyyy-MM-dd');
         const label = showDayOfWeek
-          ? format(cur, 'EEE d', { timeZone: tz })
-          : format(cur, 'MMM d', { timeZone: tz });
+          ? formatInTimeZone(utcDate, tz, 'EEE d')
+          : formatInTimeZone(utcDate, tz, 'MMM d');
         dailyDataMap.set(key, {
           timeLabel: label,
           volume: 0,
@@ -538,7 +540,7 @@ export class AnalyticsService {
 
       tokens.forEach((t: any) => {
         const opTime = getVisitOperationalTime(t);
-        const key = format(opTime, 'yyyy-MM-dd', { timeZone: tz });
+        const key = formatInTimeZone(opTime, tz, 'yyyy-MM-dd');
         if (dailyDataMap.has(key)) {
           const entry = dailyDataMap.get(key)!;
           entry.volume++;

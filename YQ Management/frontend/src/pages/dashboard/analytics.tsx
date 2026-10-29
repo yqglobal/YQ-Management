@@ -22,39 +22,51 @@ import { CustomerDrawer } from '../../components/CustomerDrawer';
 function PeakHourHeatmap({ data }: { data: { matrix: number[][]; maxValue: number } }) {
   if (!data || !data.matrix) return null;
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const hours = Array.from({ length: 13 }, (_, i) => i + 8); // 8 AM to 8 PM
+  const hours = Array.from({ length: 24 }, (_, i) => i); // Full 24 Hours (0:00 to 23:00)
 
   return (
-    <div className="overflow-x-auto pb-2">
-      <div className="min-w-[600px]">
-        <div className="flex mb-1">
-          <div className="w-12 shrink-0"></div>
+    <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-700">
+      <div className="min-w-[780px]">
+        {/* Hour Header Row */}
+        <div className="flex mb-1.5 items-center">
+          <div className="w-10 shrink-0 text-[10px] text-outline font-semibold uppercase">Day</div>
           {hours.map(h => (
-            <div key={h} className="flex-1 text-center text-[10px] text-outline font-medium">
-              {h}:00
+            <div key={h} className="flex-1 text-center text-[9px] text-outline font-mono">
+              {h < 10 ? `0${h}` : h}
             </div>
           ))}
         </div>
+        {/* Day Rows */}
         {days.map((day, dIdx) => (
           <div key={day} className="flex items-center mb-1">
-            <div className="w-12 shrink-0 text-xs text-on-surface-variant font-medium">{day}</div>
+            <div className="w-10 shrink-0 text-xs text-on-surface-variant font-medium">{day}</div>
             {hours.map(h => {
-              const val = data.matrix[dIdx][h] || 0;
+              const val = data.matrix[dIdx]?.[h] || 0;
               const intensity = data.maxValue > 0 ? val / data.maxValue : 0;
-              // Map 0 to very light green, 1 to solid emerald
+              
               let bg = 'bg-surface-container-low dark:bg-white/5';
+              let text = 'text-transparent hover:text-emerald-900';
               if (intensity > 0) {
-                if (intensity > 0.7) bg = 'bg-emerald-600 dark:bg-emerald-500';
-                else if (intensity > 0.4) bg = 'bg-emerald-400 dark:bg-emerald-400/80';
-                else if (intensity > 0.1) bg = 'bg-emerald-200 dark:bg-emerald-300/40';
-                else bg = 'bg-emerald-100 dark:bg-emerald-200/20';
+                if (intensity > 0.7) {
+                  bg = 'bg-emerald-600 dark:bg-emerald-500';
+                  text = 'text-white';
+                } else if (intensity > 0.4) {
+                  bg = 'bg-emerald-400 dark:bg-emerald-400/80';
+                  text = 'text-emerald-950 font-bold';
+                } else if (intensity > 0.1) {
+                  bg = 'bg-emerald-200 dark:bg-emerald-300/40';
+                  text = 'text-emerald-900 dark:text-emerald-200 font-bold';
+                } else {
+                  bg = 'bg-emerald-100 dark:bg-emerald-200/20';
+                  text = 'text-emerald-800 dark:text-emerald-300';
+                }
               }
               
               return (
                 <div key={h} className="flex-1 px-0.5">
                   <div 
-                    className={`h-6 rounded flex items-center justify-center text-[10px] font-bold ${bg} ${intensity > 0.5 ? 'text-white' : 'text-transparent hover:text-emerald-900'} transition-colors cursor-default`}
-                    title={`${val} visits on ${day} at ${h}:00`}
+                    className={`h-6 rounded flex items-center justify-center text-[9px] font-mono font-bold ${bg} ${text} transition-colors cursor-default border border-transparent hover:border-emerald-400/50`}
+                    title={`${val} visit${val === 1 ? '' : 's'} on ${day} at ${h}:00`}
                   >
                     {val > 0 ? val : ''}
                   </div>
@@ -63,6 +75,16 @@ function PeakHourHeatmap({ data }: { data: { matrix: number[][]; maxValue: numbe
             })}
           </div>
         ))}
+        {/* Heatmap Legend */}
+        <div className="flex items-center justify-end gap-2 mt-3 text-[10px] text-outline">
+          <span>Less</span>
+          <div className="w-3 h-3 rounded bg-surface-container-low dark:bg-white/5" />
+          <div className="w-3 h-3 rounded bg-emerald-100 dark:bg-emerald-200/20" />
+          <div className="w-3 h-3 rounded bg-emerald-200 dark:bg-emerald-300/40" />
+          <div className="w-3 h-3 rounded bg-emerald-400 dark:bg-emerald-400/80" />
+          <div className="w-3 h-3 rounded bg-emerald-600 dark:bg-emerald-500" />
+          <span>More (24h Window)</span>
+        </div>
       </div>
     </div>
   );
