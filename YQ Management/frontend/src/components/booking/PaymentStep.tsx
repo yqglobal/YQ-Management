@@ -2,7 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { fetchApi } from '../../lib/api';
-import { Loader2, AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react';
+import { Loader2, AlertCircle, RefreshCw, ArrowLeft, CheckCircle2, CreditCard } from 'lucide-react';
+
+const getCurrencyMinStripeCents = (curr: string): number => {
+  const c = (curr || 'USD').toUpperCase();
+  if (c === 'ZAR') return 800; // R 8.00 minimum for Stripe card processing
+  if (['USD', 'EUR', 'CAD', 'AUD', 'SGD', 'NZD'].includes(c)) return 50; // 0.50
+  if (c === 'GBP') return 30; // £0.30
+  if (c === 'JPY') return 50; // ¥50
+  return 50;
+};
+
+const getCurrencySymbol = (curr: string): string => {
+  const c = (curr || 'USD').toUpperCase();
+  if (c === 'ZAR') return 'R';
+  if (c === 'EUR') return '€';
+  if (c === 'GBP') return '£';
+  if (c === 'JPY') return '¥';
+  return '$';
+};
 
 interface PaymentStepProps {
   tenantId: string;
@@ -100,11 +118,49 @@ export function PaymentStep({ tenantId, amount, currency, stripeAccountId, onSuc
   const [stripePromise, setStripePromise] = useState<any>(null);
   const [intentError, setIntentError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [confirmingCounter, setConfirmingCounter] = useState(false);
+
+  const minRequiredCents = getCurrencyMinStripeCents(currency);
+  const currSymbol = getCurrencySymbol(currency);
+  const isUnderLimit = amount < minRequiredCents || Boolean(
+    intentError && (
+      intentError.toLowerCase().includes('below') ||
+      intentError.toLowerCase().includes('minimum') ||
+      intentError.toLowerCase().includes('threshold') ||
+      intentError.toLowerCase().includes('limit')
+    )
+  );
+
+  const handlePayAtCounter = async () => {
+    setConfirmingCounter(true);
+    try {
+      if (visitId) {
+        await fetchApi('/public-visit/confirm-counter-payment', {
+          method: 'POST',
+          body: JSON.stringify({ visitIds: [visitId] })
+        });
+      }
+      if (onSkip) {
+        onSkip();
+      } else {
+        onSuccess('COUNTER_PAY');
+      }
+    } catch (err) {
+      console.warn('Confirm counter payment fallback warning:', err);
+      if (onSkip) {
+        onSkip();
+      } else {
+        onSuccess('COUNTER_PAY');
+      }
+    } finally {
+      setConfirmingCounter(false);
+    }
+  };
 
   useEffect(() => {
     // Only load if we have an account ID
     if (!stripeAccountId) {
-      setIntentError('Online payment processing is not configured for this tenant. Please pay at the counter or contact support.');
+      setIntentError('Online card payment is currently unavailable. Please complete your booking and pay in person at the counter.');
       return;
     }
     
@@ -133,55 +189,128 @@ export function PaymentStep({ tenantId, amount, currency, stripeAccountId, onSuc
 
   useEffect(() => {
     if (tenantId && amount > 0 && stripeAccountId) {
+      if (amount < minRequiredCents) {
+        return;
+      }
       getSecret();
     }
-  }, [tenantId, amount, stripeAccountId, visitId, visitStepId]);
+  }, [tenantId, amount, stripeAccountId, visitId, visitStepId, minRequiredCents]);
+
+  // Seamless fallback to Pay at Counter if amount is below minimum processing limit
+  if (isUnderLimit) {
+    return (
+      <div className="w-full max-w-lg mx-auto bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 text-center space-y-6 shadow-sm">
+        <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+          <CreditCard className="w-8 h-8" />
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+            Pay at Counter
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-zinc-400 leading-relaxed max-w-sm mx-auto">
+            Online card checkout is available for amounts of{' '}
+            <span className="font-semibold text-gray-800 dark:text-zinc-200">
+              {currSymbol}{(minRequiredCents / 100).toFixed(2)}
+            </span>{' '}
+            or higher. You can pay your balance upon arrival.
+          </p>
+          <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-800/60 border border-gray-200 dark:border-zinc-700/60 mt-4 text-left flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-zinc-400 font-semibold">Total Due Upon Arrival</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Pay at service counter (Cash or Card)</p>
+            </div>
+            <div className="text-right">
+              <span className="text-xl font-bold text-gray-900 dark:text-white">
+                {currSymbol}{(amount / 100).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3 pt-2">
+          <button
+            type="button"
+            onClick={handlePayAtCounter}
+            disabled={confirmingCounter}
+            className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.01] active:scale-98 flex items-center justify-center gap-2"
+            style={{ backgroundColor: primaryColor }}
+          >
+            {confirmingCounter ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Confirming Booking...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-5 h-5" />
+                <span>Complete Booking (Pay at Counter)</span>
+              </>
+            )}
+          </button>
+
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={confirmingCounter}
+              className="w-full py-3 rounded-xl font-semibold text-gray-700 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center gap-1.5 text-sm"
+            >
+              <ArrowLeft className="w-4 h-4" /> Go Back
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (intentError) {
     return (
       <div className="w-full max-w-lg mx-auto bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 text-center space-y-5">
-        <div className="w-14 h-14 bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mx-auto">
+        <div className="w-14 h-14 bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center mx-auto">
           <AlertCircle className="w-8 h-8" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Payment Gateway Notice</h2>
-          <p className="text-sm text-gray-600 dark:text-zinc-400 mt-2 bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-200 dark:border-red-900/50">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Payment Notice</h2>
+          <p className="text-sm text-gray-600 dark:text-zinc-400 mt-2 bg-gray-50 dark:bg-zinc-800 p-3 rounded-xl border border-gray-200 dark:border-zinc-700">
             {intentError}
           </p>
         </div>
         <div className="flex flex-col gap-2.5 pt-2">
+          <button
+            type="button"
+            onClick={handlePayAtCounter}
+            disabled={confirmingCounter}
+            className="w-full py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 shadow-sm"
+            style={{ backgroundColor: primaryColor }}
+          >
+            {confirmingCounter ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            Continue & Pay at Counter ({currSymbol}{(amount / 100).toFixed(2)})
+          </button>
+
           {stripeAccountId && (
             <button
               type="button"
               onClick={getSecret}
               disabled={isRetrying}
-              className="w-full py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 shadow-sm"
-              style={{ backgroundColor: primaryColor }}
+              className="w-full py-3 rounded-xl font-semibold text-gray-700 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2"
             >
               {isRetrying ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
-              Retry Payment
+              Retry Online Card Payment
             </button>
           )}
           {onBack && (
             <button
               type="button"
               onClick={onBack}
-              className="w-full py-3 rounded-xl font-semibold text-gray-700 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center gap-1.5"
+              disabled={confirmingCounter}
+              className="w-full py-2.5 text-sm font-semibold text-gray-500 hover:text-gray-800 dark:hover:text-zinc-200 transition-colors flex items-center justify-center gap-1.5"
             >
               <ArrowLeft className="w-4 h-4" /> Go Back
-            </button>
-          )}
-          {onSkip && (
-            <button
-              type="button"
-              onClick={onSkip}
-              className="w-full py-2.5 text-sm font-semibold text-gray-500 hover:text-gray-800 dark:hover:text-zinc-200 transition-colors"
-            >
-              Skip and Pay Later at Counter
             </button>
           )}
         </div>

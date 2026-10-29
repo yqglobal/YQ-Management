@@ -1166,16 +1166,32 @@ export class VisitService {
           !!paymentAccount?.connectedAccountId;
         const payMode = bookingFlow?.checkinPayMode ?? 'COUNTER_ONLY';
 
+        // Check currency-specific Stripe minimum transaction limit
+        const minAmountsInCents: Record<string, number> = {
+          zar: 800, // R8.00 (~35p) safely meets Stripe 30 pence requirement
+          gbp: 30,  // 30p
+          usd: 50,  // $0.50
+          eur: 50,  // €0.50
+        };
+        const serviceCurrency = (service.priceCurrency || 'zar').toLowerCase();
+        const minStripeAmount = minAmountsInCents[serviceCurrency] || 50;
+        const totalBookingPrice = Math.round(
+          (service.basePrice ?? 0) * (1 + (booking.accompanyingGuests || 0)),
+        );
+        const canChargeStripe = totalBookingPrice >= minStripeAmount;
+
         const holdForBookingPayment = bookingFlow?.isActive
           ? (bookingFlow.paymentTiming === 'BOOKING' || bookingFlow.paymentTiming === 'CHECKIN') &&
             (service.basePrice ?? 0) > 0 &&
             payMode !== 'COUNTER_ONLY' &&
-            stripeActive
+            stripeActive &&
+            canChargeStripe
           : (service.paymentMode === 'PREPAY' ||
               service.paymentMode === 'OPTIONAL_PREPAY' ||
               service.paymentMode === 'PAY_AT_SERVICE') &&
             (service.basePrice ?? 0) > 0 &&
-            stripeActive;
+            stripeActive &&
+            canChargeStripe;
 
         if (holdForBookingPayment && !(data as any).paymentId) {
           currentState = 'PENDING_PAYMENT';

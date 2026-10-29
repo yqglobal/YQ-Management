@@ -203,14 +203,15 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
     e.preventDefault();
     if (!name.trim() || !selectedLocId) return;
 
-    if (paymentTiming !== 'NONE' && (checkinPayMode === 'STRIPE_ONLY' || checkinPayMode === 'BOTH')) {
+    if (paymentTiming !== 'NONE' && checkinPayMode === 'STRIPE_ONLY') {
       const numPrice = parseFloat(basePrice || '0');
       const minReqs: Record<string, number> = { ZAR: 8.0, USD: 0.5, EUR: 0.5, GBP: 0.3 };
       const minVal = minReqs[priceCurrency] || 0.5;
       if (numPrice < minVal) {
         toast.error(
-          `For Stripe payments in ${priceCurrency}, the minimum amount required by the gateway is ${priceCurrency} ${minVal.toFixed(2)}. Please increase the Base Price.`
+          `Cannot save service: 'Pay via Stripe Online (Only)' requires a minimum base price of ${priceCurrency} ${minVal.toFixed(2)} to meet Stripe transaction limits. Please adjust the price or change to 'Pay Offline (Counter)'.`
         );
+        setIsAdvancedMode(true);
         return;
       }
     }
@@ -340,12 +341,6 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
                   placeholder="e.g. 50.00"
                   className="w-full bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-600"
                 />
-                {paymentTiming !== "NONE" && (checkinPayMode === "STRIPE_ONLY" || checkinPayMode === "BOTH") && (
-                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5 flex items-center gap-1 font-medium">
-                    <span>⚠️</span>
-                    <span>Stripe gateway minimum: {priceCurrency === 'ZAR' ? 'R8.00' : priceCurrency === 'GBP' ? '£0.30' : '$0.50 / €0.50'}</span>
-                  </p>
-                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Currency</label>
@@ -360,6 +355,44 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
                   <option value="GBP">GBP (£)</option>
                 </select>
               </div>
+
+              {/* Dynamic Stripe Transaction & Payout Limit Alert */}
+              {(() => {
+                const numPrice = parseFloat(basePrice || '0');
+                const minReqs: Record<string, { minTx: number; minPayout: number; symbol: string }> = {
+                  ZAR: { minTx: 8.0, minPayout: 10.0, symbol: 'R' },
+                  USD: { minTx: 0.5, minPayout: 1.0, symbol: '$' },
+                  EUR: { minTx: 0.5, minPayout: 1.0, symbol: '€' },
+                  GBP: { minTx: 0.3, minPayout: 1.0, symbol: '£' },
+                };
+                const limits = minReqs[priceCurrency] || { minTx: 0.5, minPayout: 1.0, symbol: '$' };
+                const isBelowMin = numPrice > 0 && numPrice < limits.minTx;
+                const isOnlineOnly = checkinPayMode === 'STRIPE_ONLY' && paymentTiming !== 'NONE';
+
+                if (isBelowMin) {
+                  return (
+                    <div className="col-span-2 p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs space-y-1.5 text-amber-900 dark:text-amber-200 animate-in fade-in">
+                      <div className="font-bold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+                        <span>⚠️</span>
+                        <span>Stripe Transaction & Payout Limit Notice</span>
+                      </div>
+                      <p>
+                        Stripe requires a minimum charge of <strong>{limits.symbol}{limits.minTx.toFixed(2)}</strong> for {priceCurrency} card processing (payout threshold is {limits.symbol}{limits.minPayout.toFixed(2)}).
+                      </p>
+                      {isOnlineOnly ? (
+                        <p className="text-red-600 dark:text-red-400 font-semibold">
+                          ⚠️ With &quot;Online Only (Stripe)&quot; selected, you must set the price to at least {limits.symbol}{limits.minTx.toFixed(2)}, or change the payment method to &quot;Pay Offline (Counter)&quot;.
+                        </p>
+                      ) : (
+                        <p className="text-amber-700 dark:text-amber-400">
+                          Note: Since the price is below {limits.symbol}{limits.minTx.toFixed(2)}, bookings will automatically be collected at the counter so customer checkout is never blocked.
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
             {isAdvancedMode && (
               <div className="space-y-4">

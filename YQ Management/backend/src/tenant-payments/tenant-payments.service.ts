@@ -320,7 +320,7 @@ export class TenantPaymentsService {
       const formattedMin = (minRequired / 100).toFixed(2);
       const formattedCurr = (finalAmount / 100).toFixed(2);
       throw new BadRequestException(
-        `Amount ${displayCurr} ${formattedCurr} is below the Stripe minimum transaction limit of ${displayCurr} ${formattedMin}. Please increase the service base price.`,
+        `Amount ${displayCurr} ${formattedCurr} is below the online card processing threshold of ${displayCurr} ${formattedMin}.`,
       );
     }
 

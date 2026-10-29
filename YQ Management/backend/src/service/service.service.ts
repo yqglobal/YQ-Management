@@ -30,6 +30,35 @@ export class ServiceService {
     private subscriptionService: SubscriptionService,
   ) {}
 
+  private validateStripePricingLimit(
+    priceInCents: number | null | undefined,
+    currency: string | undefined,
+    payMode: string | undefined,
+    timing: string | undefined,
+  ) {
+    if (!timing || timing === 'NONE') return;
+    if (payMode !== 'STRIPE_ONLY') return;
+    if (priceInCents === null || priceInCents === undefined || priceInCents <= 0) return;
+
+    const minAmountsInCents: Record<string, number> = {
+      zar: 800, // R8.00 (~35p) safely meets Stripe 30 pence requirement
+      gbp: 30,  // 30p
+      usd: 50,  // $0.50
+      eur: 50,  // €0.50
+    };
+    const currKey = (currency || 'zar').toLowerCase();
+    const minRequired = minAmountsInCents[currKey] || 50;
+
+    if (priceInCents < minRequired) {
+      const displayCurr = currKey.toUpperCase();
+      const formattedMin = (minRequired / 100).toFixed(2);
+      const formattedPrice = (priceInCents / 100).toFixed(2);
+      throw new BadRequestException(
+        `For 'Pay via Stripe Online (Only)' services, the base price (${displayCurr} ${formattedPrice}) cannot be lower than the Stripe minimum transaction limit of ${displayCurr} ${formattedMin}. Please increase the price to at least ${displayCurr} ${formattedMin} or select 'Pay Offline (Counter)'.`,
+      );
+    }
+  }
+
   async create(
     tenantId: string,
     data: {
@@ -67,6 +96,13 @@ export class ServiceService {
         'A location must be provided to create a service.',
       );
     }
+
+    this.validateStripePricingLimit(
+      data.basePrice,
+      data.priceCurrency,
+      data.checkinPayMode,
+      data.paymentTiming,
+    );
 
     const servicesCount = await this.prisma.extendedClient.service.count({
       where: {
@@ -447,6 +483,13 @@ export class ServiceService {
     }
 
     const exists = await this.findOne(id, tenantId);
+    const targetPayMode = checkinPayMode !== undefined ? checkinPayMode : (exists as any)?.serviceFlow?.checkinPayMode;
+    const targetTiming = paymentTiming !== undefined ? paymentTiming : (exists as any)?.serviceFlow?.paymentTiming;
+    const targetCurrency = data.priceCurrency ?? exists.priceCurrency;
+    const targetPrice = data.basePrice !== undefined ? data.basePrice : exists.basePrice;
+
+    this.validateStripePricingLimit(targetPrice, targetCurrency, targetPayMode, targetTiming);
+
     const result = await this.prisma.extendedClient.service.update({
       where: { id: exists.id },
       data: updateData,

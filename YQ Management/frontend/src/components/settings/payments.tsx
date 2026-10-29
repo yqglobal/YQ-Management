@@ -349,6 +349,93 @@ export default function StripePaymentsSettings() {
         </div>
       </div>
 
+      {/* ── Stripe Minimum Transaction Limits & Payout Thresholds ── */}
+      <div className="mt-8 bg-surface dark:bg-dark-surface border border-border dark:border-dark-border rounded-2xl overflow-hidden shadow-sm">
+        <div className="p-6 border-b border-border dark:border-dark-border bg-surface-container-low dark:bg-dark-card flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                Stripe Charge Limits & Payout Thresholds
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-zinc-400">
+                Minimum charge requirements and payout thresholds across supported currencies.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-lg border border-emerald-200 dark:border-emerald-800">
+            Payment Guard Active
+          </span>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl border border-border dark:border-dark-border bg-surface-container-lowest dark:bg-dark-card">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-mono">
+                  ZAR (R)
+                </span>
+                <span className="text-xs text-gray-400">South Africa</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500 dark:text-zinc-400">Min Online Card Charge:</p>
+                <p className="text-base font-bold text-gray-900 dark:text-white">R 8.00</p>
+              </div>
+              <div className="mt-3 pt-3 border-t border-border/50 dark:border-dark-border/50 space-y-1">
+                <p className="text-xs text-gray-500 dark:text-zinc-400">Min Bank Payout:</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-zinc-200">R 10.00</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-border dark:border-dark-border bg-surface-container-lowest dark:bg-dark-card">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 font-mono">
+                  USD ($) / EUR (€)
+                </span>
+                <span className="text-xs text-gray-400">US & Europe</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500 dark:text-zinc-400">Min Online Card Charge:</p>
+                <p className="text-base font-bold text-gray-900 dark:text-white">$0.50 / €0.50</p>
+              </div>
+              <div className="mt-3 pt-3 border-t border-border/50 dark:border-dark-border/50 space-y-1">
+                <p className="text-xs text-gray-500 dark:text-zinc-400">Min Bank Payout:</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-zinc-200">$1.00 / €1.00</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-border dark:border-dark-border bg-surface-container-lowest dark:bg-dark-card">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 font-mono">
+                  GBP (£)
+                </span>
+                <span className="text-xs text-gray-400">United Kingdom</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500 dark:text-zinc-400">Min Online Card Charge:</p>
+                <p className="text-base font-bold text-gray-900 dark:text-white">£0.30</p>
+              </div>
+              <div className="mt-3 pt-3 border-t border-border/50 dark:border-dark-border/50 space-y-1">
+                <p className="text-xs text-gray-500 dark:text-zinc-400">Min Bank Payout:</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-zinc-200">£1.00</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40 text-xs text-blue-800 dark:text-blue-300 space-y-1.5 leading-relaxed">
+            <p className="font-semibold flex items-center gap-1.5">
+              <Info className="w-4 h-4 shrink-0" />
+              Automated Customer Protection & Counter Fallback
+            </p>
+            <p>
+              When setting service prices, online card checkout requires meeting the minimum charge limit shown above. If you price a service below this limit (e.g. R 1.00), customers will not see an error; our booking engine automatically routes them to pay in person at your service counter upon arrival (Cash or Card). To require online-only Stripe payment, base prices must be set at or above the minimum charge limit.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* ── Disclaimers & Operational Policies ── */}
       <div className="mt-8 bg-surface dark:bg-dark-surface border border-border dark:border-dark-border rounded-2xl p-6 shadow-sm">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">

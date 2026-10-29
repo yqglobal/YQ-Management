@@ -423,4 +423,65 @@ export class PublicVisitController {
 
     return visits;
   }
+
+  @Post('confirm-counter-payment')
+  async confirmCounterPayment(
+    @Body() body: { visitIds?: string[]; token?: string },
+  ) {
+    const visitIds = body.visitIds || [];
+    let visitsToUpdate: any[] = [];
+
+    if (visitIds.length > 0) {
+      visitsToUpdate = await this.prisma.visit.findMany({
+        where: { id: { in: visitIds }, currentState: 'PENDING_PAYMENT' },
+        include: { service: true },
+      });
+    } else if (body.token) {
+      const v = await this.prisma.visit.findUnique({
+        where: { accessToken: body.token },
+        include: { service: true },
+      });
+      if (v && v.currentState === 'PENDING_PAYMENT') {
+        visitsToUpdate = [v];
+      }
+    }
+
+    if (visitsToUpdate.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    for (const v of visitsToUpdate) {
+      let newState = 'WAITING';
+      if (v.scheduledTime) {
+        newState = v.service?.requireManualCheckIn ? 'CREATED' : 'SCHEDULED';
+      }
+      await this.prisma.visit.update({
+        where: { id: v.id },
+        data: { currentState: newState as any },
+      });
+
+      // Emit VISIT_CREATED so notifications (WhatsApp ticket) and operator queues activate
+      await this.prisma.outboxEvent.create({
+        data: {
+          type: 'VISIT_CREATED',
+          payload: {
+            visitId: v.id,
+            queueId: v.queueId,
+            tenantId: v.tenantId,
+            displayId: v.displayId,
+          },
+          status: 'PENDING',
+        },
+      });
+    }
+
+    // Wake up outbox processor immediately
+    this.redisService.client
+      .publish('outbox_events', 'WAKE_UP')
+      .catch((e: any) =>
+        this.logger.error('Failed to publish outbox wake-up event', e),
+      );
+
+    return { success: true, count: visitsToUpdate.length };
+  }
 }

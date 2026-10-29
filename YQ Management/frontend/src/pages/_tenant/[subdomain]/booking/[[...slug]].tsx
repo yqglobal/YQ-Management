@@ -22,6 +22,15 @@ import { PaymentStep } from '../../../../components/booking/PaymentStep';
 import { slugify } from '../../../../lib/utils';
 import { detectCountryCode, getInitialCountryIso } from '../../../../lib/country-codes';
 
+const getMinStripeCents = (curr: string): number => {
+  const c = (curr || 'USD').toUpperCase();
+  if (c === 'ZAR') return 800; // R 8.00 minimum for Stripe card processing
+  if (['USD', 'EUR', 'CAD', 'AUD', 'SGD', 'NZD'].includes(c)) return 50; // 0.50
+  if (c === 'GBP') return 30; // £0.30
+  if (c === 'JPY') return 50; // ¥50
+  return 50;
+};
+
 interface Service {
   id: string;
   name: string;
@@ -1167,6 +1176,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                     return total + (base * (1 + accompanyingGuests));
                   }, 0);
 
+                  const minStripeThreshold = getMinStripeCents(bookingCurrency);
                   const isStripeBooking = selectedServiceIds.some(sid => {
                     const s = services.find(x => x.id === sid);
                     const flow = (s as any)?.serviceFlow;
@@ -1174,6 +1184,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                       ? (flow.paymentTiming === 'BOOKING' && (flow.checkinPayMode === 'STRIPE_ONLY' || flow.checkinPayMode === 'BOTH'))
                       : ((s as any)?.paymentMode === 'PREPAY');
                   });
+                  const isStripeViable = isStripeBooking && totalCents >= minStripeThreshold;
 
                   if (totalCents <= 0) return null;
 
@@ -1182,9 +1193,14 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                       <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wider">Payment Method</p>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 mt-0.5">
-                          <span className={`w-2 h-2 rounded-full ${isStripeBooking ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                          {isStripeBooking ? 'Online Payment (Stripe)' : 'Pay at Counter (Cash/Card)'}
+                          <span className={`w-2 h-2 rounded-full ${isStripeViable ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                          {isStripeViable ? 'Online Payment (Stripe)' : 'Pay at Counter (Cash/Card)'}
                         </p>
+                        {isStripeBooking && !isStripeViable && (
+                          <p className="text-[11px] text-gray-500 dark:text-zinc-400 mt-0.5">
+                            Amount below card minimum ({currSymbol}{(minStripeThreshold / 100).toFixed(2)}) • Pay in person upon arrival
+                          </p>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-gray-500 uppercase tracking-wider">Total Due</p>
@@ -1215,6 +1231,7 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                     return total + (base * (1 + accompanyingGuests));
                   }, 0);
 
+                  const minStripeThreshold = getMinStripeCents(bookingCurrency);
                   const isStripeBooking = selectedServiceIds.some(sid => {
                     const s = services.find(x => x.id === sid);
                     const flow = (s as any)?.serviceFlow;
@@ -1222,8 +1239,9 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                       ? (flow.paymentTiming === 'BOOKING' && (flow.checkinPayMode === 'STRIPE_ONLY' || flow.checkinPayMode === 'BOTH'))
                       : ((s as any)?.paymentMode === 'PREPAY');
                   });
+                  const isStripeViable = isStripeBooking && totalCents >= minStripeThreshold;
 
-                  const buttonLabel = isStripeBooking && totalCents > 0
+                  const buttonLabel = isStripeViable && totalCents > 0
                     ? `Proceed to Payment • ${currSymbol}${(totalCents / 100).toFixed(2)}`
                     : 'Confirm Booking';
 
@@ -1260,17 +1278,20 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
                 }}
                 onBack={() => setStep(4)}
                 onSkip={
-                  (() => {
-                    const pendingVisit = createdVisits.find((v: any) => v.currentState === 'PENDING_PAYMENT');
-                    const payMode =
-                      pendingVisit?.flow?.checkinPayMode ||
-                      (services.find((x: any) => x.id === pendingVisit?.serviceId) as any)?.serviceFlow?.checkinPayMode ||
-                      'COUNTER_ONLY';
-                    // STRIPE_ONLY requires payment online, so no skip button
-                    if (payMode === 'STRIPE_ONLY') return undefined;
-                    // BOTH or COUNTER_ONLY allow skip and pay later at counter
-                    return () => redirectToStatus(createdVisits);
-                  })()
+                  async () => {
+                    try {
+                      const pendingIds = createdVisits.filter((v: any) => v.currentState === 'PENDING_PAYMENT').map((v: any) => v.id);
+                      if (pendingIds.length > 0) {
+                        await fetchApi('/public-visit/confirm-counter-payment', {
+                          method: 'POST',
+                          body: JSON.stringify({ visitIds: pendingIds }),
+                        });
+                      }
+                    } catch (err) {
+                      console.warn('Failed to confirm counter payment on skip', err);
+                    }
+                    redirectToStatus(createdVisits);
+                  }
                 }
                 primaryColor={primaryColor}
               />
