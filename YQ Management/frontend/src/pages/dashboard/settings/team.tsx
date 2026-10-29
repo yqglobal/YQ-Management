@@ -69,16 +69,7 @@ export default function TeamSettingsWrapper() {
 
       <div className="flex flex-col gap-8 w-full mx-auto">
         {activeTab === 'staff'      && <StaffSettingsPage />}
-        {activeTab === 'on-ground'  && (
-          <div className="space-y-2">
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-5 py-3">
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                <strong>On-Ground Staff</strong> are bookable workers (doctors, nurses, cooks, waiters, etc.) who don&apos;t log into Qmova but are assigned to services and appear in the booking flow. They are the same as what was previously called &ldquo;Providers&rdquo;.
-              </p>
-            </div>
-            <ProvidersSettings />
-          </div>
-        )}
+        {activeTab === 'on-ground'  && <ProvidersSettings />}
         {activeTab === 'staff-view' && <StaffViewBuilder />}
         {activeTab === 'roles'      && <RolesSettingsPage />}
         {activeTab === 'security'   && <SecuritySettingsPage />}
