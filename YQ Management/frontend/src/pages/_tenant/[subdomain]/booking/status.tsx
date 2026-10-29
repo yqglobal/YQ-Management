@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
-import { Sun, Moon, Download, Maximize2, X, CheckCircle2 } from 'lucide-react';
+import { Sun, Moon, Download, Maximize2, X, CheckCircle2, Calendar, Clock, MapPin } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
 const baseUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') : 'http://localhost:3000';
@@ -473,15 +473,67 @@ export default function StatusPage() {
                 (new Date(visit.scheduledTime).getTime() - Date.now() < 2 * 60 * 60 * 1000) &&
                 (new Date(visit.scheduledTime).getTime() - Date.now() > 0);
 
+              const bookingDate = visit.scheduledTime
+                ? new Date(visit.scheduledTime)
+                : visit.waitingStart
+                  ? new Date(visit.waitingStart)
+                  : visit.createdAt
+                    ? new Date(visit.createdAt)
+                    : null;
+
+              const bookingDateStr = bookingDate
+                ? bookingDate.toLocaleDateString([], {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })
+                : null;
+
+              const bookingTimeStr = bookingDate
+                ? bookingDate.toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                  })
+                : null;
+
+              const completedDate = visit.completedAt ? new Date(visit.completedAt) : null;
+              const completedTimeStr = completedDate
+                ? completedDate.toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                  })
+                : null;
+
               return (
-                <div key={visit.id} id={`ticket-${visit.id}`} className={`bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full shadow-lg relative overflow-hidden border ${isDone ? 'border-gray-200 dark:border-zinc-800 opacity-80' : 'border-gray-100 dark:border-zinc-800'}`}>
+                <div key={visit.id} id={`ticket-${visit.id}`} className={`bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full shadow-lg relative overflow-hidden border ${isDone ? 'border-gray-200 dark:border-zinc-800 opacity-90' : 'border-gray-100 dark:border-zinc-800'}`}>
                   {!isDone && <div className="absolute top-0 left-0 right-0 h-2" style={{ backgroundColor: primaryColor }} />}
                   
                   <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-bold text-lg">{visit.service?.name}</h3>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs text-gray-500 uppercase tracking-wider">{isAppointment ? 'Appointment' : 'Walk-in'}</p>
+                    <div className="flex-1 min-w-0 pr-3">
+                      <h3 className="font-bold text-lg leading-snug">{visit.service?.name}</h3>
+                      <div className="flex items-center flex-wrap gap-2 text-xs text-gray-500 mt-1">
+                        <span className="uppercase tracking-wider font-semibold">{isAppointment ? 'Appointment' : 'Walk-in'}</span>
+                        {bookingDateStr && <span>•</span>}
+                        {bookingDateStr && (
+                          <span className="flex items-center gap-1 font-medium text-gray-700 dark:text-gray-300">
+                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            {bookingDateStr} at {bookingTimeStr}
+                          </span>
+                        )}
+                        {visit.location?.name && (
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center gap-1 font-medium text-gray-500">
+                              <MapPin className="w-3 h-3 text-gray-400" />
+                              {visit.location.name}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1.5">
                         {isSoon && (
                           <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
                             Happening Soon
@@ -494,7 +546,7 @@ export default function StatusPage() {
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                        <span className="uppercase tracking-widest text-[10px] font-bold text-gray-400 block">Ticket</span>
                        <div className="font-mono text-xl font-extrabold">{visit.displayId || visit.id.substring(0,6).toUpperCase()}</div>
                     </div>
@@ -545,23 +597,36 @@ export default function StatusPage() {
                   )}
 
                   {!isServing && (
-                    <div className="flex justify-between items-center bg-gray-50 dark:bg-zinc-950 p-4 rounded-xl border border-gray-100 dark:border-zinc-800">
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">Status</p>
-                        <p className={`font-bold capitalize ${isDone ? 'text-gray-500' : 'text-primary'}`}>
-                          {visit.currentState.toLowerCase()}
-                        </p>
-                      </div>
-                      
-                      {isAppointment ? (
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500 uppercase">Scheduled For</p>
-                          <p className="font-bold">{visit.scheduledTime ? new Date(visit.scheduledTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—'}</p>
+                    <div className="bg-gray-50 dark:bg-zinc-950 p-4 rounded-xl border border-gray-100 dark:border-zinc-800 space-y-2.5">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Status</p>
+                          <p className={`font-bold capitalize ${isDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-primary'}`}>
+                            {visit.currentState.replace('_', ' ').toLowerCase()}
+                          </p>
                         </div>
-                      ) : (
+                        
                         <div className="text-right">
-                          <p className="text-xs text-gray-500 uppercase">Started Waiting</p>
-                          <p className="font-bold">{visit.waitingStart ? new Date(visit.waitingStart).toLocaleTimeString([], { timeStyle: 'short' }) : '—'}</p>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">
+                            {isAppointment ? 'Scheduled For' : isDone ? 'Booking / Joined' : 'Started Waiting'}
+                          </p>
+                          <p className="font-bold text-sm text-gray-900 dark:text-gray-100">
+                            {bookingDateStr ? `${bookingDateStr} • ${bookingTimeStr}` : '—'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {isDone && completedTimeStr && (
+                        <div className="pt-2 border-t border-gray-200/60 dark:border-zinc-800/80 flex justify-between items-center text-xs">
+                          <span className="text-gray-500 font-medium flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-gray-400" />
+                            Completed At:
+                          </span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            {completedDate?.toLocaleDateString([], { month: 'short', day: 'numeric' }) === bookingDate?.toLocaleDateString([], { month: 'short', day: 'numeric' })
+                              ? `Today at ${completedTimeStr}`
+                              : `${completedDate?.toLocaleDateString([], { month: 'short', day: 'numeric' })} at ${completedTimeStr}`}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -649,9 +714,27 @@ export default function StatusPage() {
               </button>
               
               <h2 className="text-2xl font-bold mb-1">{expandedVisit.service?.name}</h2>
-              <p className="text-gray-500 uppercase tracking-widest text-xs font-bold mb-6">
+              <p className="text-gray-500 uppercase tracking-widest text-xs font-bold mb-2">
                 Ticket: <span className="font-mono text-gray-900 dark:text-gray-100 text-sm ml-1">{expandedVisit.displayId || expandedVisit.id.substring(0,6).toUpperCase()}</span>
               </p>
+              {(() => {
+                const expDate = expandedVisit.scheduledTime
+                  ? new Date(expandedVisit.scheduledTime)
+                  : expandedVisit.waitingStart
+                    ? new Date(expandedVisit.waitingStart)
+                    : expandedVisit.createdAt
+                      ? new Date(expandedVisit.createdAt)
+                      : null;
+                if (!expDate) return null;
+                return (
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 font-medium mb-5 bg-gray-50 dark:bg-zinc-800/60 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-zinc-800">
+                    <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                    <span>
+                      {expDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at {expDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
+                    </span>
+                  </div>
+                );
+              })()}
               
               <div className="p-4 bg-white border border-gray-100 rounded-3xl shadow-sm mb-6 w-full flex justify-center">
                 {['COMPLETED'].includes(expandedVisit.currentState) ? (

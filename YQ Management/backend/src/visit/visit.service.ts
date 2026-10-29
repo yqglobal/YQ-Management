@@ -790,6 +790,8 @@ export class VisitService {
         currentState: true,
         waitingStart: true,
         createdAt: true,
+        completedAt: true,
+        serviceStart: true,
         scheduledTime: true,
         appointmentId: true,
         customer: { select: { name: true } },
