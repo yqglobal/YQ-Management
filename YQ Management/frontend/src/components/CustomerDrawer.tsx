@@ -567,11 +567,13 @@ export function CustomerDrawer({ isOpen, onClose, customerId }: CustomerDrawerPr
       </div>
 
       {/* Render VisitDrawer for drill-down */}
-      <VisitDrawer
-        isOpen={!!selectedVisit}
-        onClose={() => setSelectedVisit(null)}
-        visit={selectedVisit}
-      />
+      {selectedVisit && (
+        <VisitDrawer
+          isOpen={!!selectedVisit}
+          onClose={() => setSelectedVisit(null)}
+          visit={selectedVisit}
+        />
+      )}
     </>
   );
 }

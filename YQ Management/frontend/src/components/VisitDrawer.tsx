@@ -292,8 +292,10 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
     }
   };
 
-  const isExplicitVip = visit.isVip || visit.customer?.isVip || visit.priority >= 3;
-  const ticketDisplay = visit.displayId || visit.ticketNumber || `#TKT-${visit.id.substring(0, 4)}`;
+  if (!isOpen || !visit) return null;
+
+  const isExplicitVip = Boolean(visit?.isVip || visit?.customer?.isVip || (visit?.priority && visit.priority >= 3));
+  const ticketDisplay = visit?.displayId || visit?.ticketNumber || (visit?.id ? `#TKT-${visit.id.substring(0, 4)}` : '—');
 
   return (
     <>

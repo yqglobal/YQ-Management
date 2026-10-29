@@ -537,11 +537,13 @@ export default function AppointmentsPage() {
         )}
       </div>
 
-      <VisitDrawer
-        isOpen={!!selectedVisit}
-        onClose={() => setSelectedVisit(null)}
-        visit={selectedVisit}
-      />
+      {selectedVisit && (
+        <VisitDrawer
+          isOpen={!!selectedVisit}
+          onClose={() => setSelectedVisit(null)}
+          visit={selectedVisit}
+        />
+      )}
 
       <CreateAppointmentModal
         isOpen={isModalOpen}

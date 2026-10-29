@@ -2337,11 +2337,13 @@ export default function RecordsPage() {
           if (q) setSearch(q);
         }}
       />
-      <VisitDrawer
-        isOpen={!!selectedVisit}
-        onClose={() => setSelectedVisit(null)}
-        visit={selectedVisit}
-      />
+      {selectedVisit && (
+        <VisitDrawer
+          isOpen={!!selectedVisit}
+          onClose={() => setSelectedVisit(null)}
+          visit={selectedVisit}
+        />
+      )}
     </AdminLayout>
   );
 }

@@ -70,11 +70,13 @@ export function QueueHistoryTab({ queueId }: { queueId: string }) {
         )}
       </div>
 
-      <VisitDrawer 
-        isOpen={!!selectedVisit} 
-        onClose={() => setSelectedVisit(null)} 
-        visit={selectedVisit} 
-      />
+      {selectedVisit && (
+        <VisitDrawer 
+          isOpen={!!selectedVisit} 
+          onClose={() => setSelectedVisit(null)} 
+          visit={selectedVisit} 
+        />
+      )}
     </>
   );
 }
