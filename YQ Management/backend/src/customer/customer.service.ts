@@ -119,6 +119,7 @@ export class CustomerService {
             queue: { include: { location: true } },
             location: true,
             bookingPayments: true,
+            visitInvoice: true,
             visitSteps: {
               include: { templateStep: true },
               orderBy: { stepOrder: 'asc' },
@@ -168,6 +169,7 @@ export class CustomerService {
             queue: { include: { location: true } },
             location: true,
             bookingPayments: true,
+            visitInvoice: true,
             visitSteps: {
               include: { templateStep: true },
               orderBy: { stepOrder: 'asc' },

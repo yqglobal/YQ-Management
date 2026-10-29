@@ -24,23 +24,48 @@ import {
   Sparkles,
   X,
   MessageCircle,
+  CreditCard,
+  Receipt,
+  FileText,
+  Download,
+  CheckCircle,
+  AlertCircle,
+  RefreshCw,
+  ExternalLink,
+  DollarSign,
+  PieChart,
 } from 'lucide-react';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '../../../lib/api';
+import { useAuth } from '../../../components/AuthContext';
 import { CreateVisitModal } from '../../../components/modals/CreateVisitModal';
 import { CustomerDrawer } from '../../../components/CustomerDrawer';
 import { VisitDrawer } from '../../../components/VisitDrawer';
+import { InvoiceModal } from '../../../components/modals/InvoiceModal';
+import { downloadInvoicePdf, printInvoice, formatMoney } from '../../../lib/invoicePdf';
 import { useLocation } from '../../../components/LocationContext';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { toast } from 'sonner';
 
 export default function RecordsPage() {
+  const { user } = useAuth();
   const { allowedLocations: locations } = useLocation();
   const queryClient = useQueryClient();
 
-  // ── View Mode: Timeline vs Reviews & Ratings vs Unique Visitors ──────────
-  const [viewMode, setViewMode] = useState<'timeline' | 'reviews' | 'unique_visitors'>('timeline');
+  // Role access check for payments sub-page
+  const canAccessPayments = user?.role === 'SUPER_ADMIN' || user?.role === 'OWNER' || user?.role === 'ADMIN' || user?.role === 'MANAGER';
+
+  // ── View Mode: Timeline vs Reviews & Ratings vs Unique Visitors vs Payments ──────────
+  const [viewMode, setViewMode] = useState<'timeline' | 'reviews' | 'unique_visitors' | 'payments'>('timeline');
+
+  // Selected invoice modal for fast PDF preview/download from payments tab
+  const [selectedInvoiceVisitId, setSelectedInvoiceVisitId] = useState<string | null>(null);
+
+  // Payments sub-tab filters
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
+  const [selectedPaymentDetail, setSelectedPaymentDetail] = useState<any | null>(null);
 
   // ── Filters State ─────────────────────────────────────────────────────────
   const [timeRange, setTimeRange] = useState<'Today' | 'Week' | 'Month' | 'Year' | 'All' | 'Custom'>('All');
@@ -158,6 +183,104 @@ export default function RecordsPage() {
       toast.success('Customer profile updated');
     },
     onError: () => toast.error('Failed to update customer'),
+  });
+
+  // ── Query Payments Records (4th Page / Tab) ──────────────────────────────
+  const {
+    data: paymentsResponse,
+    isLoading: isPaymentsLoading,
+    refetch: refetchPayments,
+  } = useQuery({
+    queryKey: [
+      'payments-records',
+      timeParam,
+      customRangeParam,
+      selectedLocationId,
+      selectedServiceId,
+      paymentStatusFilter,
+      paymentMethodFilter,
+      search,
+    ],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (selectedLocationId && selectedLocationId !== 'all') params.append('locationId', selectedLocationId);
+      if (selectedServiceId && selectedServiceId !== 'all') params.append('serviceId', selectedServiceId);
+      if (paymentStatusFilter && paymentStatusFilter !== 'all') params.append('status', paymentStatusFilter);
+      if (paymentMethodFilter && paymentMethodFilter !== 'all') params.append('method', paymentMethodFilter);
+      if (search && search.trim()) params.append('search', search.trim());
+      params.append('timeframe', timeParam);
+      if (timeRange === 'Custom' && startDate && effectiveEndDate) {
+        params.append('startDate', startDate.toISOString());
+        params.append('endDate', effectiveEndDate.toISOString());
+      }
+      params.append('limit', '500');
+
+      return fetchApi<{
+        payments: any[];
+        pagination: { total: number; limit: number; offset: number; hasMore: boolean };
+        summary: {
+          totalRevenue: number;
+          totalTaxAmount: number;
+          netRevenue: number;
+          successfulCount: number;
+          refundedCount: number;
+          refundedAmount: number;
+          pendingCount: number;
+          currency: string;
+          locationBreakdown: Array<{ id: string; name: string; revenue: number; count: number }>;
+          serviceBreakdown: Array<{ id: string; name: string; revenue: number; count: number }>;
+          methodBreakdown: Array<{ method: string; revenue: number; count: number }>;
+        };
+      }>(`/tenant-payments/records?${params.toString()}`).catch(() => ({
+        payments: [],
+        pagination: { total: 0, limit: 100, offset: 0, hasMore: false },
+        summary: {
+          totalRevenue: 0,
+          totalTaxAmount: 0,
+          netRevenue: 0,
+          successfulCount: 0,
+          refundedCount: 0,
+          refundedAmount: 0,
+          pendingCount: 0,
+          currency: 'ZAR',
+          locationBreakdown: [],
+          serviceBreakdown: [],
+          methodBreakdown: [],
+        },
+      }));
+    },
+    enabled: canAccessPayments,
+  });
+
+  const paymentsData = paymentsResponse?.payments || [];
+  const paymentsSummary = paymentsResponse?.summary || {
+    totalRevenue: 0,
+    totalTaxAmount: 0,
+    netRevenue: 0,
+    successfulCount: 0,
+    refundedCount: 0,
+    refundedAmount: 0,
+    pendingCount: 0,
+    currency: 'ZAR',
+    locationBreakdown: [],
+    serviceBreakdown: [],
+    methodBreakdown: [],
+  };
+
+  // Refund mutation for payments
+  const refundMutation = useMutation({
+    mutationFn: ({ paymentId, reason }: { paymentId: string; reason?: string }) =>
+      fetchApi(`/tenant-payments/${paymentId}/refund`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments-records'] });
+      queryClient.invalidateQueries({ queryKey: ['visits'] });
+      toast.success('Payment refunded successfully');
+      setSelectedPaymentDetail(null);
+    },
+    onError: (err: any) => toast.error(err?.message || 'Failed to refund payment'),
   });
 
   // ── Review Analytics Computations ─────────────────────────────────────────
@@ -569,6 +692,32 @@ export default function RecordsPage() {
                 {stats.uniqueCount}
               </span>
             </button>
+
+            {/* 4th Tab: Payments */}
+            {canAccessPayments && (
+              <button
+                onClick={() => {
+                  setViewMode('payments');
+                }}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  viewMode === 'payments'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 hover:bg-emerald-500/10'
+                }`}
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                Payments
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    viewMode === 'payments'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold'
+                  }`}
+                >
+                  {paymentsSummary.successfulCount || paymentsData.length}
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Quick Active Filter Pill Notification */}
@@ -615,7 +764,79 @@ export default function RecordsPage() {
         </div>
 
         {/* ── KPI Summary Cards ───────────────────────────────────────────────── */}
-        {viewMode === 'reviews' ? (
+        {viewMode === 'payments' ? (
+          /* Payments Mode KPI Cards */
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-colors pointer-events-none" />
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSign strokeWidth={2} className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Gross Revenue</p>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                  {formatMoney(paymentsSummary.totalRevenue, paymentsSummary.currency)}
+                </p>
+              </div>
+              <p className="text-[11px] text-on-surface-variant mt-1">
+                From {paymentsSummary.successfulCount} successful transactions
+              </p>
+            </div>
+
+            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-1">
+                <Receipt strokeWidth={1.5} className="w-4 h-4 text-primary" />
+                <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Collected Tax</p>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold font-mono text-on-surface dark:text-white">
+                  {formatMoney(paymentsSummary.totalTaxAmount, paymentsSummary.currency)}
+                </p>
+              </div>
+              <p className="text-[11px] text-on-surface-variant mt-1">
+                Net: {formatMoney(paymentsSummary.netRevenue, paymentsSummary.currency)}
+              </p>
+            </div>
+
+            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle strokeWidth={1.5} className="w-4 h-4 text-blue-500" />
+                <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Successful</p>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold font-mono text-on-surface dark:text-white">
+                  {paymentsSummary.successfulCount}
+                </p>
+                {paymentsSummary.successfulCount > 0 && (
+                  <span className="text-xs font-sans text-on-surface-variant">
+                    (Avg {formatMoney(Math.round(paymentsSummary.totalRevenue / paymentsSummary.successfulCount), paymentsSummary.currency)})
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-on-surface-variant mt-1">
+                {paymentsSummary.pendingCount > 0 ? `${paymentsSummary.pendingCount} pending / awaiting confirmation` : 'All cleared'}
+              </p>
+            </div>
+
+            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-1">
+                <RefreshCw strokeWidth={1.5} className="w-4 h-4 text-amber-500" />
+                <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Refunds & Pending</p>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">
+                  {formatMoney(paymentsSummary.refundedAmount, paymentsSummary.currency)}
+                </p>
+                <span className="text-xs font-sans text-on-surface-variant font-medium">
+                  ({paymentsSummary.refundedCount} {paymentsSummary.refundedCount === 1 ? 'refund' : 'refunds'})
+                </span>
+              </div>
+              <p className="text-[11px] text-on-surface-variant mt-1">
+                {paymentsSummary.pendingCount} pending capture
+              </p>
+            </div>
+          </div>
+        ) : viewMode === 'reviews' ? (
           /* Reviews Mode KPI Cards */
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-xl p-4 shadow-sm">
@@ -854,9 +1075,191 @@ export default function RecordsPage() {
           </div>
         )}
 
+        {/* ── Payments Revenue Breakdown Section (Location-wise, Service-wise, Method-wise) ─── */}
+        {viewMode === 'payments' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* 1. Location-wise Revenue Breakdown Card */}
+            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-on-surface dark:text-white flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  Location-wise Revenue
+                </h3>
+                <span className="text-xs text-on-surface-variant font-medium">
+                  {paymentsSummary.locationBreakdown?.length || 0} Locations
+                </span>
+              </div>
+
+              <div className="space-y-2.5 max-h-[240px] overflow-y-auto pr-1">
+                {paymentsSummary.locationBreakdown && paymentsSummary.locationBreakdown.length > 0 ? (
+                  paymentsSummary.locationBreakdown.map((loc) => {
+                    const isSelected = selectedLocationId === loc.id;
+                    const pct = paymentsSummary.totalRevenue > 0 ? Math.round((loc.revenue / paymentsSummary.totalRevenue) * 100) : 0;
+                    return (
+                      <div
+                        key={loc.id}
+                        onClick={() => setSelectedLocationId(isSelected ? 'all' : loc.id)}
+                        className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-emerald-500/10 border-emerald-500/40 ring-1 ring-emerald-500/30'
+                            : 'bg-surface-container-low dark:bg-zinc-900 border-border dark:border-dark-border hover:border-emerald-500/30'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-xs mb-1.5">
+                          <span className="font-semibold text-on-surface dark:text-white truncate max-w-[170px]">
+                            {loc.name}
+                          </span>
+                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {formatMoney(loc.revenue, paymentsSummary.currency)}
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-surface-container-high dark:bg-zinc-800 overflow-hidden mb-1">
+                          <div
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-on-surface-variant">
+                          <span>{loc.count} {loc.count === 1 ? 'payment' : 'payments'}</span>
+                          <span className="font-mono font-medium">{pct}% of total</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-xs text-on-surface-variant text-center py-8 italic">
+                    No location payments recorded yet.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* 2. Service-wise Revenue Breakdown Card */}
+            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-on-surface dark:text-white flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-primary" />
+                  Service-wise Revenue
+                </h3>
+                <span className="text-xs text-on-surface-variant font-medium">
+                  {paymentsSummary.serviceBreakdown?.length || 0} Services
+                </span>
+              </div>
+
+              <div className="space-y-2.5 max-h-[240px] overflow-y-auto pr-1">
+                {paymentsSummary.serviceBreakdown && paymentsSummary.serviceBreakdown.length > 0 ? (
+                  paymentsSummary.serviceBreakdown.map((svc) => {
+                    const isSelected = selectedServiceId === svc.id;
+                    const pct = paymentsSummary.totalRevenue > 0 ? Math.round((svc.revenue / paymentsSummary.totalRevenue) * 100) : 0;
+                    return (
+                      <div
+                        key={svc.id}
+                        onClick={() => setSelectedServiceId(isSelected ? 'all' : svc.id)}
+                        className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-primary/10 border-primary/40 ring-1 ring-primary/30'
+                            : 'bg-surface-container-low dark:bg-zinc-900 border-border dark:border-dark-border hover:border-primary/30'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-xs mb-1.5">
+                          <span className="font-semibold text-on-surface dark:text-white truncate max-w-[170px]">
+                            {svc.name}
+                          </span>
+                          <span className="font-mono font-bold text-on-surface dark:text-white">
+                            {formatMoney(svc.revenue, paymentsSummary.currency)}
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-surface-container-high dark:bg-zinc-800 overflow-hidden mb-1">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-on-surface-variant">
+                          <span>{svc.count} {svc.count === 1 ? 'sale' : 'sales'}</span>
+                          <span className="font-mono font-medium">{pct}% of total</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-xs text-on-surface-variant text-center py-8 italic">
+                    No service payments recorded yet.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* 3. Payment Method Breakdown Card */}
+            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-on-surface dark:text-white flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-blue-500" />
+                  Payment Methods
+                </h3>
+                <span className="text-xs text-on-surface-variant font-medium">Breakdown</span>
+              </div>
+
+              <div className="space-y-2.5 max-h-[240px] overflow-y-auto pr-1">
+                {paymentsSummary.methodBreakdown && paymentsSummary.methodBreakdown.length > 0 ? (
+                  paymentsSummary.methodBreakdown.map((m) => {
+                    const isSelected = paymentMethodFilter === m.method;
+                    const pct = paymentsSummary.totalRevenue > 0 ? Math.round((m.revenue / paymentsSummary.totalRevenue) * 100) : 0;
+                    const label =
+                      m.method === 'CASH'
+                        ? 'Cash'
+                        : m.method === 'CARD_TERMINAL'
+                        ? 'Card Terminal (POS)'
+                        : m.method === 'STRIPE_ONLINE'
+                        ? 'Stripe Online'
+                        : m.method === 'EFT'
+                        ? 'EFT / Wire'
+                        : m.method;
+
+                    return (
+                      <div
+                        key={m.method}
+                        onClick={() => setPaymentMethodFilter(isSelected ? 'all' : m.method)}
+                        className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-blue-500/10 border-blue-500/40 ring-1 ring-blue-500/30'
+                            : 'bg-surface-container-low dark:bg-zinc-900 border-border dark:border-dark-border hover:border-blue-500/30'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-xs mb-1.5">
+                          <span className="font-semibold text-on-surface dark:text-white truncate max-w-[170px]">
+                            {label}
+                          </span>
+                          <span className="font-mono font-bold text-on-surface dark:text-white">
+                            {formatMoney(m.revenue, paymentsSummary.currency)}
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-surface-container-high dark:bg-zinc-800 overflow-hidden mb-1">
+                          <div
+                            className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-on-surface-variant">
+                          <span>{m.count} {m.count === 1 ? 'tx' : 'txs'}</span>
+                          <span className="font-mono font-medium">{pct}% volume</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-xs text-on-surface-variant text-center py-8 italic">
+                    No payment methods recorded yet.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Filters & Controls Toolbar ──────────────────────────────────────── */}
         <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl p-4 shadow-sm space-y-3">
-          {/* Row 1: Timeframe Presets, Date Picker, Location & Service Selects, Star Filter */}
+          {/* Row 1: Timeframe Presets, Date Picker, Location & Service Selects, Star/Status Filter */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               {/* Timeframe Presets */}
@@ -928,46 +1331,84 @@ export default function RecordsPage() {
                 </select>
               </div>
 
-              {/* Filter by Stars Dropdown */}
-              <div className="flex items-center bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-xl px-2.5 py-1 gap-1.5 shadow-sm">
-                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400 shrink-0" />
-                <select
-                  value={starFilter}
-                  onChange={(e) => setStarFilter(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-on-surface dark:text-zinc-200 outline-none cursor-pointer pr-1"
-                >
-                  <option value="all" className="dark:bg-zinc-900">All Ratings</option>
-                  <option value="reviewed" className="dark:bg-zinc-900">★ All Reviewed</option>
-                  <option value="5" className="dark:bg-zinc-900">★ 5 Stars Only</option>
-                  <option value="4" className="dark:bg-zinc-900">★ 4 Stars Only</option>
-                  <option value="3" className="dark:bg-zinc-900">★ 3 Stars Only</option>
-                  <option value="2" className="dark:bg-zinc-900">★ 2 Stars Only</option>
-                  <option value="1" className="dark:bg-zinc-900">★ 1 Star Only</option>
-                  <option value="has_comment" className="dark:bg-zinc-900">💬 With Comments Only</option>
-                </select>
-              </div>
+              {/* Payments Filters: Status and Method (when in payments mode) */}
+              {viewMode === 'payments' ? (
+                <>
+                  <div className="flex items-center bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-xl px-2.5 py-1 gap-1.5 shadow-sm">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <select
+                      value={paymentStatusFilter}
+                      onChange={(e) => setPaymentStatusFilter(e.target.value)}
+                      className="bg-transparent text-xs font-semibold text-on-surface dark:text-zinc-200 outline-none cursor-pointer pr-1"
+                    >
+                      <option value="all" className="dark:bg-zinc-900">All Statuses</option>
+                      <option value="SUCCEEDED" className="dark:bg-zinc-900">✓ Succeeded</option>
+                      <option value="PENDING" className="dark:bg-zinc-900">⏳ Pending</option>
+                      <option value="REFUNDED" className="dark:bg-zinc-900">↩ Refunded</option>
+                      <option value="FAILED" className="dark:bg-zinc-900">✕ Failed</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-xl px-2.5 py-1 gap-1.5 shadow-sm">
+                    <CreditCard className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                    <select
+                      value={paymentMethodFilter}
+                      onChange={(e) => setPaymentMethodFilter(e.target.value)}
+                      className="bg-transparent text-xs font-semibold text-on-surface dark:text-zinc-200 outline-none cursor-pointer pr-1"
+                    >
+                      <option value="all" className="dark:bg-zinc-900">All Payment Methods</option>
+                      <option value="CASH" className="dark:bg-zinc-900">Cash</option>
+                      <option value="CARD_TERMINAL" className="dark:bg-zinc-900">Card Terminal (POS)</option>
+                      <option value="STRIPE_ONLINE" className="dark:bg-zinc-900">Stripe Online</option>
+                      <option value="EFT" className="dark:bg-zinc-900">EFT / Wire</option>
+                      <option value="OTHER" className="dark:bg-zinc-900">Other</option>
+                    </select>
+                  </div>
+                </>
+              ) : (
+                /* Filter by Stars Dropdown (in reviews or timeline mode) */
+                <div className="flex items-center bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-xl px-2.5 py-1 gap-1.5 shadow-sm">
+                  <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400 shrink-0" />
+                  <select
+                    value={starFilter}
+                    onChange={(e) => setStarFilter(e.target.value)}
+                    className="bg-transparent text-xs font-semibold text-on-surface dark:text-zinc-200 outline-none cursor-pointer pr-1"
+                  >
+                    <option value="all" className="dark:bg-zinc-900">All Ratings</option>
+                    <option value="reviewed" className="dark:bg-zinc-900">★ All Reviewed</option>
+                    <option value="5" className="dark:bg-zinc-900">★ 5 Stars Only</option>
+                    <option value="4" className="dark:bg-zinc-900">★ 4 Stars Only</option>
+                    <option value="3" className="dark:bg-zinc-900">★ 3 Stars Only</option>
+                    <option value="2" className="dark:bg-zinc-900">★ 2 Stars Only</option>
+                    <option value="1" className="dark:bg-zinc-900">★ 1 Star Only</option>
+                    <option value="has_comment" className="dark:bg-zinc-900">💬 With Comments Only</option>
+                  </select>
+                </div>
+              )}
             </div>
 
-            {/* Quick Toggle for Reviews Filter (Alternative to dropdown) */}
-            <label className="flex items-center gap-2 cursor-pointer select-none px-3 py-1.5 bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-xl hover:border-amber-500/40 transition-colors shadow-sm">
-              <input
-                type="checkbox"
-                checked={starFilter !== 'all' || viewMode === 'reviews'}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setStarFilter('reviewed');
-                  } else {
-                    setStarFilter('all');
-                    if (viewMode === 'reviews') setViewMode('timeline');
-                  }
-                }}
-                className="w-4 h-4 text-amber-500 rounded accent-amber-500 cursor-pointer"
-              />
-              <span className="text-xs font-semibold text-on-surface dark:text-white flex items-center gap-1.5">
-                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
-                Reviewed Visits Only
-              </span>
-            </label>
+            {/* Quick Toggle for Reviews Filter (Only when in non-payments mode) */}
+            {viewMode !== 'payments' && (
+              <label className="flex items-center gap-2 cursor-pointer select-none px-3 py-1.5 bg-surface-container-low dark:bg-zinc-900 border border-border dark:border-dark-border rounded-xl hover:border-amber-500/40 transition-colors shadow-sm">
+                <input
+                  type="checkbox"
+                  checked={starFilter !== 'all' || viewMode === 'reviews'}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setStarFilter('reviewed');
+                    } else {
+                      setStarFilter('all');
+                      if (viewMode === 'reviews') setViewMode('timeline');
+                    }
+                  }}
+                  className="w-4 h-4 text-amber-500 rounded accent-amber-500 cursor-pointer"
+                />
+                <span className="text-xs font-semibold text-on-surface dark:text-white flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+                  Reviewed Visits Only
+                </span>
+              </label>
+            )}
           </div>
 
           {/* Row 2: Search Input and Sort Options */}
@@ -977,7 +1418,9 @@ export default function RecordsPage() {
               <input
                 type="text"
                 placeholder={
-                  viewMode === 'unique_visitors'
+                  viewMode === 'payments'
+                    ? 'Search invoice #, customer, service, location, or amount...'
+                    : viewMode === 'unique_visitors'
                     ? 'Search customer name, phone, or email...'
                     : viewMode === 'reviews'
                     ? 'Search review comment, customer, service, ticket #...'
@@ -1181,6 +1624,296 @@ export default function RecordsPage() {
               </div>
             )}
           </div>
+        ) : viewMode === 'payments' ? (
+          /* ── 3. PAYMENTS RECORDS VIEW (10/10 FINTECH-GRADE TABLE) ────────── */
+          !canAccessPayments ? (
+            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
+              <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mb-4">
+                <ShieldAlert className="w-8 h-8" />
+              </div>
+              <p className="text-lg font-semibold text-on-surface dark:text-white mb-1">Access Restricted</p>
+              <p className="text-sm text-on-surface-variant max-w-sm">
+                You do not have permission to view billing and payment records. Please reach out to an administrator.
+              </p>
+            </div>
+          ) : isPaymentsLoading ? (
+            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl p-8 space-y-4 shadow-sm">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-16 bg-surface-container-low dark:bg-white/5 animate-pulse rounded-xl" />
+              ))}
+            </div>
+          ) : paymentsData.length > 0 ? (
+            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-border dark:border-dark-border bg-surface-container-low dark:bg-white/[0.02] text-xs uppercase tracking-wider text-on-surface-variant font-semibold">
+                      <th className="p-4">Date & Time</th>
+                      <th className="p-4">Customer</th>
+                      <th className="p-4">Service & Location</th>
+                      <th className="p-4">Method & Source</th>
+                      <th className="p-4">Invoice / Receipt</th>
+                      <th className="p-4 text-right">Amount & Tax</th>
+                      <th className="p-4 text-center">Status</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border dark:divide-dark-border text-sm">
+                    {paymentsData.map((payment: any) => {
+                      const customerName =
+                        payment.customer?.name ||
+                        payment.visit?.customer?.name ||
+                        payment.appointment?.customer?.name ||
+                        'Walk-in Customer';
+                      const customerPhone =
+                        payment.customer?.phone ||
+                        payment.visit?.customer?.phone ||
+                        payment.appointment?.customer?.phone ||
+                        '';
+                      const serviceName =
+                        payment.service?.name ||
+                        payment.visit?.service?.name ||
+                        payment.appointment?.service?.name ||
+                        'General Service';
+                      const locationName =
+                        payment.location?.name ||
+                        payment.visit?.location?.name ||
+                        payment.appointment?.location?.name ||
+                        'Main Location';
+                      const invoiceNumber =
+                        payment.invoice?.invoiceNumber ||
+                        payment.visit?.visitInvoice?.invoiceNumber ||
+                        payment.appointment?.visit?.visitInvoice?.invoiceNumber ||
+                        null;
+                      const visitId = payment.visitId || payment.appointment?.visitId || payment.visit?.id || null;
+
+                      const isRefunded = payment.status === 'REFUNDED';
+                      const isPending = payment.status === 'PENDING';
+                      const isFailed = payment.status === 'FAILED';
+                      const isSucceeded = payment.status === 'SUCCEEDED' || payment.status === 'PAID';
+
+                      const methodLabel =
+                        payment.method === 'CASH'
+                          ? 'Cash'
+                          : payment.method === 'CARD_TERMINAL'
+                          ? 'Card POS'
+                          : payment.method === 'STRIPE_ONLINE'
+                          ? 'Stripe Online'
+                          : payment.method === 'EFT'
+                          ? 'EFT'
+                          : payment.method || 'Other';
+
+                      const createdDate = new Date(payment.createdAt);
+
+                      return (
+                        <tr
+                          key={payment.id}
+                          onClick={() => setSelectedPaymentDetail(payment)}
+                          className="hover:bg-surface-container-low/70 dark:hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                        >
+                          {/* Date & Time */}
+                          <td className="p-4 whitespace-nowrap">
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-on-surface dark:text-white">
+                                {createdDate.toLocaleDateString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })}
+                              </span>
+                              <span className="text-xs text-on-surface-variant flex items-center gap-1 font-mono">
+                                <Clock className="w-3 h-3 text-outline" />
+                                {createdDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Customer */}
+                          <td className="p-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0">
+                                {customerName.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-on-surface dark:text-white truncate max-w-[140px]">
+                                  {customerName}
+                                </p>
+                                {customerPhone && (
+                                  <p className="text-xs text-on-surface-variant font-mono truncate">{customerPhone}</p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Service & Location */}
+                          <td className="p-4">
+                            <div className="min-w-0">
+                              <p className="font-medium text-on-surface dark:text-white truncate max-w-[160px]">
+                                {serviceName}
+                              </p>
+                              <p className="text-xs text-on-surface-variant flex items-center gap-1 truncate">
+                                <MapPin className="w-3 h-3 text-outline shrink-0" />
+                                {locationName}
+                              </p>
+                            </div>
+                          </td>
+
+                          {/* Method & Source */}
+                          <td className="p-4 whitespace-nowrap">
+                            <div className="flex flex-col items-start gap-1">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container-high dark:bg-zinc-800 text-xs font-semibold text-on-surface dark:text-zinc-200 border border-border/60 dark:border-dark-border/60">
+                                <CreditCard className="w-3 h-3 text-primary" />
+                                {methodLabel}
+                              </span>
+                              {payment.source && (
+                                <span className="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">
+                                  {payment.source === 'CHECKIN' ? 'Check-in Pay' : payment.source === 'CHECKOUT' ? 'Counter Checkout' : payment.source}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Invoice / Receipt */}
+                          <td className="p-4 whitespace-nowrap">
+                            {invoiceNumber ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (visitId) setSelectedInvoiceVisitId(visitId);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-mono font-semibold border border-primary/25 transition-colors cursor-pointer"
+                                title="View full tax invoice"
+                              >
+                                <FileText className="w-3 h-3" />
+                                {invoiceNumber}
+                              </button>
+                            ) : payment.proofUrl ? (
+                              <a
+                                href={payment.proofUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+                              >
+                                <ExternalLink className="w-3 h-3" /> Proof Slip
+                              </a>
+                            ) : (
+                              <span className="text-xs text-on-surface-variant italic">No invoice</span>
+                            )}
+                          </td>
+
+                          {/* Amount & Tax */}
+                          <td className="p-4 text-right whitespace-nowrap">
+                            <div className="flex flex-col items-end">
+                              <span
+                                className={`font-mono font-bold text-base ${
+                                  isRefunded
+                                    ? 'text-red-500 line-through'
+                                    : isFailed
+                                    ? 'text-zinc-400 line-through'
+                                    : 'text-on-surface dark:text-white'
+                                }`}
+                              >
+                                {formatMoney(payment.amount, payment.currency)}
+                              </span>
+                              {payment.invoice?.totalTax > 0 && (
+                                <span className="text-[11px] text-on-surface-variant font-mono">
+                                  Incl. {formatMoney(payment.invoice.totalTax, payment.currency)} tax
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="p-4 text-center whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                isSucceeded
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25'
+                                  : isRefunded
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25'
+                                  : isFailed
+                                  ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/25'
+                                  : 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-300 border border-zinc-500/25'
+                              }`}
+                            >
+                              {isSucceeded && <CheckCircle className="w-3 h-3" />}
+                              {isRefunded && <RefreshCw className="w-3 h-3" />}
+                              {isFailed && <AlertCircle className="w-3 h-3" />}
+                              {payment.status}
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="p-4 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              {visitId && (
+                                <button
+                                  onClick={() => setSelectedInvoiceVisitId(visitId)}
+                                  className="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                                  title="View Invoice"
+                                >
+                                  <Receipt className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setSelectedPaymentDetail(payment)}
+                                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-container-high dark:bg-zinc-800 text-on-surface dark:text-white hover:bg-primary hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                              >
+                                Details <ChevronRight className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Table Footer Summary */}
+              <div className="p-4 border-t border-border dark:border-dark-border bg-surface-container-low/50 dark:bg-white/[0.01] flex flex-wrap items-center justify-between text-xs text-on-surface-variant">
+                <span>
+                  Showing <strong className="text-on-surface dark:text-white">{paymentsData.length}</strong> payment transactions
+                </span>
+                <div className="flex items-center gap-4 font-mono">
+                  <span>
+                    Gross: <strong className="text-emerald-600 dark:text-emerald-400">{formatMoney(paymentsSummary.totalRevenue, paymentsSummary.currency)}</strong>
+                  </span>
+                  <span>
+                    Tax: <strong className="text-on-surface dark:text-white">{formatMoney(paymentsSummary.totalTaxAmount, paymentsSummary.currency)}</strong>
+                  </span>
+                  <span>
+                    Net: <strong className="text-on-surface dark:text-white">{formatMoney(paymentsSummary.netRevenue, paymentsSummary.currency)}</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
+              <div className="w-16 h-16 bg-surface-container-low dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
+                <CreditCard className="w-8 h-8 text-on-surface-variant opacity-40" strokeWidth={1.5} />
+              </div>
+              <p className="text-lg font-semibold text-on-surface dark:text-white mb-1">No payment records found</p>
+              <p className="text-sm text-on-surface-variant max-w-sm mb-6">
+                {search || paymentStatusFilter !== 'all' || paymentMethodFilter !== 'all'
+                  ? 'No transactions match your search query and filters.'
+                  : 'No customer payments recorded for the selected timeframe and location.'}
+              </p>
+              {(search || paymentStatusFilter !== 'all' || paymentMethodFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearch('');
+                    setPaymentStatusFilter('all');
+                    setPaymentMethodFilter('all');
+                  }}
+                  className="px-4 py-2 bg-primary text-white rounded-lg font-medium text-xs transition-colors hover:bg-primary-container cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          )
         ) : (
           /* ── 2. DATE-WISE TIMELINE / REVIEWS VIEW ─────────────────────────── */
           <div className="space-y-6">
@@ -1454,11 +2187,155 @@ export default function RecordsPage() {
         )}
       </div>
 
+      {/* ── Payment Detail Slide-over / Modal ───────────────────────────────── */}
+      {selectedPaymentDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card dark:bg-dark-card border border-border dark:border-dark-border rounded-2xl max-w-lg w-full p-6 shadow-2xl relative space-y-5 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setSelectedPaymentDetail(null)}
+              className="absolute top-4 right-4 p-2 text-on-surface-variant hover:text-on-surface dark:hover:text-white rounded-xl hover:bg-surface-container-high transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-on-surface dark:text-white">Payment Details</h3>
+                <p className="text-xs text-on-surface-variant font-mono">
+                  ID: {selectedPaymentDetail.id}
+                </p>
+              </div>
+            </div>
+
+            {/* Amount Banner */}
+            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wider font-semibold text-emerald-700 dark:text-emerald-300">
+                  Total Paid
+                </p>
+                <p className="text-3xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                  {formatMoney(selectedPaymentDetail.amount, selectedPaymentDetail.currency)}
+                </p>
+              </div>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                  selectedPaymentDetail.status === 'SUCCEEDED'
+                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                    : selectedPaymentDetail.status === 'REFUNDED'
+                    ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                    : 'bg-zinc-500/20 text-zinc-700 dark:text-zinc-300'
+                }`}
+              >
+                {selectedPaymentDetail.status}
+              </span>
+            </div>
+
+            {/* Breakdown Grid */}
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between py-1.5 border-b border-border/50 dark:border-dark-border/50">
+                <span className="text-on-surface-variant">Customer</span>
+                <span className="font-semibold text-on-surface dark:text-white">
+                  {selectedPaymentDetail.customer?.name || selectedPaymentDetail.visit?.customer?.name || 'Walk-in'}
+                </span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-border/50 dark:border-dark-border/50">
+                <span className="text-on-surface-variant">Phone / Email</span>
+                <span className="font-mono text-on-surface dark:text-white">
+                  {selectedPaymentDetail.customer?.phone || selectedPaymentDetail.visit?.customer?.phone || '—'}
+                </span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-border/50 dark:border-dark-border/50">
+                <span className="text-on-surface-variant">Service</span>
+                <span className="font-semibold text-on-surface dark:text-white">
+                  {selectedPaymentDetail.service?.name || selectedPaymentDetail.visit?.service?.name || 'General Service'}
+                </span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-border/50 dark:border-dark-border/50">
+                <span className="text-on-surface-variant">Location</span>
+                <span className="font-semibold text-on-surface dark:text-white">
+                  {selectedPaymentDetail.location?.name || selectedPaymentDetail.visit?.location?.name || '—'}
+                </span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-border/50 dark:border-dark-border/50">
+                <span className="text-on-surface-variant">Payment Method</span>
+                <span className="font-semibold text-on-surface dark:text-white">
+                  {selectedPaymentDetail.method}
+                </span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-border/50 dark:border-dark-border/50">
+                <span className="text-on-surface-variant">Date & Time</span>
+                <span className="font-mono text-on-surface dark:text-white">
+                  {new Date(selectedPaymentDetail.createdAt).toLocaleString()}
+                </span>
+              </div>
+              {selectedPaymentDetail.invoice?.invoiceNumber && (
+                <div className="flex justify-between py-1.5 border-b border-border/50 dark:border-dark-border/50">
+                  <span className="text-on-surface-variant">Invoice Number</span>
+                  <span className="font-mono font-bold text-primary">
+                    {selectedPaymentDetail.invoice.invoiceNumber}
+                  </span>
+                </div>
+              )}
+              {selectedPaymentDetail.stripePaymentIntentId && (
+                <div className="flex justify-between py-1.5 border-b border-border/50 dark:border-dark-border/50">
+                  <span className="text-on-surface-variant">Stripe Intent</span>
+                  <span className="font-mono text-[11px] text-on-surface-variant truncate max-w-[200px]">
+                    {selectedPaymentDetail.stripePaymentIntentId}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Actions: View Invoice, Refund */}
+            <div className="flex items-center gap-3 pt-2">
+              {(selectedPaymentDetail.visitId || selectedPaymentDetail.visit?.id) && (
+                <button
+                  onClick={() => {
+                    setSelectedInvoiceVisitId(selectedPaymentDetail.visitId || selectedPaymentDetail.visit?.id);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-primary text-white font-semibold text-xs hover:bg-primary-container transition-colors cursor-pointer"
+                >
+                  <FileText className="w-4 h-4" /> View Full Invoice
+                </button>
+              )}
+              {selectedPaymentDetail.status === 'SUCCEEDED' && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to refund this payment?')) {
+                      refundMutation.mutate({ paymentId: selectedPaymentDetail.id, reason: 'Customer requested refund' });
+                    }
+                  }}
+                  disabled={refundMutation.isPending}
+                  className="px-4 py-2.5 rounded-xl border border-red-500/40 text-red-600 dark:text-red-400 font-semibold text-xs hover:bg-red-500/10 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${refundMutation.isPending ? 'animate-spin' : ''}`} />
+                  Refund Payment
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Invoice Modal for Instant PDF Preview/Download ──────────────────── */}
+      <InvoiceModal
+        isOpen={!!selectedInvoiceVisitId}
+        visitId={selectedInvoiceVisitId}
+        onClose={() => setSelectedInvoiceVisitId(null)}
+      />
+
       <CreateVisitModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       <CustomerDrawer
         isOpen={!!selectedCustomer}
         onClose={() => setSelectedCustomer(null)}
         customerId={selectedCustomer}
+        onOpenPayments={(q) => {
+          setViewMode('payments');
+          if (q) setSearch(q);
+        }}
       />
       <VisitDrawer
         isOpen={!!selectedVisit}

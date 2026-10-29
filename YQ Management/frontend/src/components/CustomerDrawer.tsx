@@ -14,6 +14,9 @@ import {
   MapPin,
   CheckCircle2,
   Star,
+  CreditCard,
+  ArrowUpRight,
+  Receipt,
 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -25,6 +28,7 @@ interface CustomerDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   customerId: string | null;
+  onOpenPayments?: (searchQuery?: string) => void;
 }
 
 export function CustomerDrawer({ isOpen, onClose, customerId }: CustomerDrawerProps) {
@@ -191,44 +195,78 @@ export function CustomerDrawer({ isOpen, onClose, customerId }: CustomerDrawerPr
                   </button>
                 </div>
 
-                {/* Customer Details Metrics (Age, Gender, Total Visits, Location) */}
-                <div className="grid grid-cols-2 gap-2.5 mt-3.5">
-                  <div className="bg-white dark:bg-zinc-900/80 p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800/80">
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-0.5">
-                      Age
-                    </div>
-                    <div className="font-bold text-sm text-zinc-900 dark:text-white capitalize">
-                      {age !== '—' ? `${age} yrs` : '—'}
-                    </div>
-                  </div>
+                {/* Customer Details Metrics (Age, Gender, Total Visits, Total Spent, Location) */}
+                {(() => {
+                  const allCustomerPayments = (customer.visits || []).flatMap((v: any) => v.bookingPayments || []);
+                  const totalPaidCents = allCustomerPayments
+                    .filter((p: any) => p.status === 'SUCCEEDED')
+                    .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+                  const firstPaid = allCustomerPayments.find((p: any) => p.status === 'SUCCEEDED');
+                  const currency = firstPaid?.currency || 'ZAR';
 
-                  <div className="bg-white dark:bg-zinc-900/80 p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800/80">
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-0.5">
-                      Gender
-                    </div>
-                    <div className="font-bold text-sm text-zinc-900 dark:text-white capitalize">
-                      {gender}
-                    </div>
-                  </div>
+                  return (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-3.5">
+                      <div className="bg-white dark:bg-zinc-900/80 p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800/80">
+                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-0.5">
+                          Age
+                        </div>
+                        <div className="font-bold text-sm text-zinc-900 dark:text-white capitalize">
+                          {age !== '—' ? `${age} yrs` : '—'}
+                        </div>
+                      </div>
 
-                  <div className="bg-white dark:bg-zinc-900/80 p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800/80">
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-0.5">
-                      Total Visits
-                    </div>
-                    <div className="font-bold text-sm text-zinc-900 dark:text-white">
-                      {customer.visits?.length || 0}
-                    </div>
-                  </div>
+                      <div className="bg-white dark:bg-zinc-900/80 p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800/80">
+                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-0.5">
+                          Gender
+                        </div>
+                        <div className="font-bold text-sm text-zinc-900 dark:text-white capitalize">
+                          {gender}
+                        </div>
+                      </div>
 
-                  <div className="bg-white dark:bg-zinc-900/80 p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800/80">
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-0.5 flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-zinc-400" /> Location
+                      <div className="bg-white dark:bg-zinc-900/80 p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800/80">
+                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-0.5">
+                          Total Visits
+                        </div>
+                        <div className="font-bold text-sm text-zinc-900 dark:text-white">
+                          {customer.visits?.length || 0}
+                        </div>
+                      </div>
+
+                      <div className="bg-white dark:bg-zinc-900/80 p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800/80 col-span-2 sm:col-span-1">
+                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-semibold mb-0.5 flex items-center justify-between">
+                          <span>Total Paid</span>
+                          {onOpenPayments && (
+                            <button
+                              onClick={() => {
+                                onClose();
+                                onOpenPayments(customer.name || customer.phone || '');
+                              }}
+                              className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5 font-bold cursor-pointer"
+                              title="View all payments in Payments tab"
+                            >
+                              View <ArrowUpRight className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="font-bold text-sm text-emerald-600 dark:text-emerald-400 font-mono">
+                          {totalPaidCents > 0
+                            ? new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(totalPaidCents / 100)
+                            : '—'}
+                        </div>
+                      </div>
+
+                      <div className="bg-white dark:bg-zinc-900/80 p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800/80 col-span-2">
+                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-0.5 flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-zinc-400" /> Location
+                        </div>
+                        <div className="font-bold text-xs text-zinc-900 dark:text-white truncate" title={preferredLocation}>
+                          {preferredLocation}
+                        </div>
+                      </div>
                     </div>
-                    <div className="font-bold text-xs text-zinc-900 dark:text-white truncate" title={preferredLocation}>
-                      {preferredLocation}
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Past Visits Section (renamed from Recent Visits) */}
@@ -309,21 +347,41 @@ export function CustomerDrawer({ isOpen, onClose, customerId }: CustomerDrawerPr
                                     v.bookingPayments?.some((p: any) => p.status === 'PENDING');
                                   const currency = paid?.currency || v.service?.priceCurrency || 'ZAR';
 
-                                  if (paid) {
-                                    return (
-                                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                        Paid {currency} {(paid.amount / 100).toFixed(2)}
-                                      </span>
-                                    );
-                                  }
-                                  if (due) {
-                                    return (
-                                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                                        Payment Due
-                                      </span>
-                                    );
-                                  }
-                                  return null;
+                                  return (
+                                    <>
+                                      {paid && (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                            Paid {currency} {(paid.amount / 100).toFixed(2)}
+                                          </span>
+                                          {v.visitInvoice && (
+                                            <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                                              {v.visitInvoice.invoiceNumber}
+                                            </span>
+                                          )}
+                                          {onOpenPayments && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                onClose();
+                                                onOpenPayments(v.displayId || v.customer?.name || v.id);
+                                              }}
+                                              className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline font-bold flex items-center gap-0.5 px-1 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 cursor-pointer"
+                                              title="View payment record details in Payments page"
+                                            >
+                                              Learn more <ArrowUpRight className="w-2.5 h-2.5" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                      {due && (
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                          Payment Due
+                                        </span>
+                                      )}
+                                    </>
+                                  );
                                 })()}
                                 <span
                                   className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border ${

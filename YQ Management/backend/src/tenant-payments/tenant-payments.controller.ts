@@ -6,6 +6,7 @@ import {
   Req,
   UseGuards,
   Param,
+  Query,
 } from '@nestjs/common';
 import { TenantPaymentsService } from './tenant-payments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -13,6 +14,35 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 @Controller('tenant-payments')
 export class TenantPaymentsController {
   constructor(private readonly tenantPaymentsService: TenantPaymentsService) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Get('records')
+  listPayments(
+    @Req() req: any,
+    @Query('locationId') locationId?: string,
+    @Query('serviceId') serviceId?: string,
+    @Query('status') status?: string,
+    @Query('method') method?: string,
+    @Query('timeframe') timeframe?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    return this.tenantPaymentsService.listPayments(req.user.tenantId, {
+      locationId,
+      serviceId,
+      status,
+      method,
+      timeframe,
+      startDate,
+      endDate,
+      search,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      offset: offset ? parseInt(offset, 10) : undefined,
+    });
+  }
 
   @UseGuards(JwtAuthGuard)
   @Post('connect')

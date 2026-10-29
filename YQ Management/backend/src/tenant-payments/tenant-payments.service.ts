@@ -880,4 +880,320 @@ export class TenantPaymentsService {
 
     return updated;
   }
+
+  /**
+   * Comprehensive list of booking payment records for the tenant, with full service, location,
+   * customer, visitInvoice, staff recorder details, and aggregates.
+   */
+  async listPayments(
+    tenantId: string,
+    query: {
+      locationId?: string;
+      serviceId?: string;
+      status?: string;
+      method?: string;
+      timeframe?: string;
+      startDate?: string;
+      endDate?: string;
+      search?: string;
+      limit?: number;
+      offset?: number;
+    },
+  ) {
+    const where: any = { tenantId };
+
+    if (query.status && query.status !== 'all') {
+      where.status = query.status;
+    }
+
+    if (query.method && query.method !== 'all') {
+      where.method = query.method;
+    }
+
+    // Location filter
+    if (query.locationId && query.locationId !== 'all') {
+      where.OR = [
+        { visit: { locationId: query.locationId } },
+        { appointment: { locationId: query.locationId } },
+      ];
+    }
+
+    // Service filter
+    if (query.serviceId && query.serviceId !== 'all') {
+      const serviceCondition = [
+        { visit: { serviceId: query.serviceId } },
+        { appointment: { serviceId: query.serviceId } },
+      ];
+      if (where.OR) {
+        where.AND = [{ OR: where.OR }, { OR: serviceCondition }];
+        delete where.OR;
+      } else {
+        where.OR = serviceCondition;
+      }
+    }
+
+    // Date range filter
+    if (query.startDate || query.endDate) {
+      where.createdAt = {};
+      if (query.startDate) where.createdAt.gte = new Date(query.startDate);
+      if (query.endDate) where.createdAt.lte = new Date(query.endDate);
+    } else if (query.timeframe && query.timeframe !== 'all') {
+      const now = new Date();
+      if (query.timeframe === 'today') {
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        where.createdAt = { gte: start };
+      } else if (query.timeframe === '7d' || query.timeframe === 'week') {
+        const past = new Date(now.getTime() - 7 * 86400000);
+        where.createdAt = { gte: past };
+      } else if (query.timeframe === '30d' || query.timeframe === 'month') {
+        const past = new Date(now.getTime() - 30 * 86400000);
+        where.createdAt = { gte: past };
+      } else if (query.timeframe === 'year') {
+        const past = new Date(now.getTime() - 365 * 86400000);
+        where.createdAt = { gte: past };
+      }
+    }
+
+    // Search filter across customer name, phone, email, description, stripe intent, receipt
+    if (query.search && query.search.trim()) {
+      const s = query.search.trim();
+      const searchConditions = [
+        { description: { contains: s, mode: 'insensitive' } },
+        { stripePaymentIntentId: { contains: s, mode: 'insensitive' } },
+        { visit: { customer: { name: { contains: s, mode: 'insensitive' } } } },
+        { visit: { customer: { phone: { contains: s, mode: 'insensitive' } } } },
+        { visit: { customer: { email: { contains: s, mode: 'insensitive' } } } },
+        { visit: { displayId: { contains: s, mode: 'insensitive' } } },
+        { visit: { visitInvoice: { invoiceNumber: { contains: s, mode: 'insensitive' } } } },
+        { appointment: { customer: { name: { contains: s, mode: 'insensitive' } } } },
+        { appointment: { customer: { phone: { contains: s, mode: 'insensitive' } } } },
+      ];
+
+      if (where.AND) {
+        where.AND.push({ OR: searchConditions });
+      } else if (where.OR) {
+        where.AND = [{ OR: where.OR }, { OR: searchConditions }];
+        delete where.OR;
+      } else {
+        where.OR = searchConditions;
+      }
+    }
+
+    const limit = Math.min(Number(query.limit) || 100, 500);
+    const offset = Number(query.offset) || 0;
+
+    const [payments, totalCount, tenant] = await Promise.all([
+      this.prisma.bookingPayment.findMany({
+        where,
+        take: limit,
+        skip: offset,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          visit: {
+            include: {
+              customer: true,
+              service: true,
+              location: true,
+              visitInvoice: true,
+            },
+          },
+          appointment: {
+            include: {
+              customer: true,
+              service: true,
+              location: true,
+            },
+          },
+        },
+      }),
+      this.prisma.bookingPayment.count({ where }),
+      this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { id: true, name: true, taxConfig: true },
+      }),
+    ]);
+
+    // Compute robust metrics and breakdowns
+    const allMatchingForMetrics = await this.prisma.bookingPayment.findMany({
+      where,
+      select: {
+        id: true,
+        amount: true,
+        currency: true,
+        status: true,
+        method: true,
+        source: true,
+        createdAt: true,
+        visit: {
+          select: {
+            serviceId: true,
+            locationId: true,
+            service: { select: { id: true, name: true } },
+            location: { select: { id: true, name: true } },
+            visitInvoice: { select: { totalTax: true, subtotal: true } },
+          },
+        },
+        appointment: {
+          select: {
+            serviceId: true,
+            locationId: true,
+            service: { select: { id: true, name: true } },
+            location: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+
+    let totalRevenue = 0;
+    let totalTaxAmount = 0;
+    let successfulCount = 0;
+    let refundedCount = 0;
+    let refundedAmount = 0;
+    let pendingCount = 0;
+
+    const locationBreakdownMap = new Map<string, { id: string; name: string; revenue: number; count: number }>();
+    const serviceBreakdownMap = new Map<string, { id: string; name: string; revenue: number; count: number }>();
+    const methodBreakdownMap = new Map<string, { method: string; revenue: number; count: number }>();
+
+    for (const p of allMatchingForMetrics) {
+      const isSucceeded = p.status === 'SUCCEEDED';
+      if (isSucceeded) {
+        totalRevenue += p.amount;
+        successfulCount++;
+
+        // Location revenue aggregation
+        const loc = p.visit?.location || p.appointment?.location;
+        const locId = loc?.id || 'unknown';
+        const locName = loc?.name || 'Unassigned Location';
+        if (!locationBreakdownMap.has(locId)) {
+          locationBreakdownMap.set(locId, { id: locId, name: locName, revenue: 0, count: 0 });
+        }
+        const locItem = locationBreakdownMap.get(locId)!;
+        locItem.revenue += p.amount;
+        locItem.count += 1;
+
+        // Service revenue aggregation
+        const svc = p.visit?.service || p.appointment?.service;
+        const svcId = svc?.id || 'unknown';
+        const svcName = svc?.name || 'General Service';
+        if (!serviceBreakdownMap.has(svcId)) {
+          serviceBreakdownMap.set(svcId, { id: svcId, name: svcName, revenue: 0, count: 0 });
+        }
+        const svcItem = serviceBreakdownMap.get(svcId)!;
+        svcItem.revenue += p.amount;
+        svcItem.count += 1;
+
+        // Payment method breakdown
+        const methodKey = p.method || 'OTHER';
+        if (!methodBreakdownMap.has(methodKey)) {
+          methodBreakdownMap.set(methodKey, { method: methodKey, revenue: 0, count: 0 });
+        }
+        const mItem = methodBreakdownMap.get(methodKey)!;
+        mItem.revenue += p.amount;
+        mItem.count += 1;
+
+        // Estimated tax if invoice exists or tax config applies
+        if (p.visit?.visitInvoice?.totalTax) {
+          totalTaxAmount += p.visit.visitInvoice.totalTax;
+        } else if (tenant?.taxConfig) {
+          const cfg = tenant.taxConfig as any;
+          const rate = Number(cfg.defaultTaxRatePercent) || 0;
+          if (rate > 0) {
+            const tax = cfg.taxInclusive
+              ? p.amount - p.amount / (1 + rate / 100)
+              : (p.amount * rate) / 100;
+            totalTaxAmount += Math.round(tax);
+          }
+        }
+      } else if (p.status === 'REFUNDED') {
+        refundedCount++;
+        refundedAmount += p.amount;
+      } else if (p.status === 'PENDING') {
+        pendingCount++;
+      }
+    }
+
+    const locationBreakdown = Array.from(locationBreakdownMap.values()).sort((a, b) => b.revenue - a.revenue);
+    const serviceBreakdown = Array.from(serviceBreakdownMap.values()).sort((a, b) => b.revenue - a.revenue);
+    const methodBreakdown = Array.from(methodBreakdownMap.values()).sort((a, b) => b.revenue - a.revenue);
+
+    return {
+      payments: payments.map((p) => {
+        const customer = p.visit?.customer || p.appointment?.customer || null;
+        const service = p.visit?.service || p.appointment?.service || null;
+        const location = p.visit?.location || p.appointment?.location || null;
+        const invoice = p.visit?.visitInvoice || null;
+
+        return {
+          id: p.id,
+          amount: p.amount,
+          currency: p.currency || 'ZAR',
+          status: p.status,
+          method: p.method || 'OTHER',
+          source: p.source,
+          description: p.description,
+          receiptUrl: p.receiptUrl,
+          proofUrl: p.proofUrl,
+          stripePaymentIntentId: p.stripePaymentIntentId,
+          stripeChargeId: p.stripeChargeId,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+          recordedByStaffId: p.recordedByStaffId,
+          visitId: p.visitId,
+          appointmentId: p.appointmentId,
+          customer: customer
+            ? {
+                id: customer.id,
+                name: customer.name,
+                phone: customer.phone,
+                email: customer.email,
+              }
+            : null,
+          service: service
+            ? {
+                id: service.id,
+                name: service.name,
+                basePrice: service.basePrice,
+              }
+            : null,
+          location: location
+            ? {
+                id: location.id,
+                name: location.name,
+              }
+            : null,
+          invoice: invoice
+            ? {
+                id: invoice.id,
+                invoiceNumber: invoice.invoiceNumber,
+                subtotal: invoice.subtotal,
+                totalTax: invoice.totalTax,
+                total: invoice.total,
+                status: invoice.status,
+                taxLines: invoice.taxLines,
+              }
+            : null,
+        };
+      }),
+      pagination: {
+        total: totalCount,
+        limit,
+        offset,
+        hasMore: offset + payments.length < totalCount,
+      },
+      summary: {
+        totalRevenue,
+        totalTaxAmount,
+        netRevenue: Math.max(0, totalRevenue - totalTaxAmount),
+        successfulCount,
+        refundedCount,
+        refundedAmount,
+        pendingCount,
+        currency: payments[0]?.currency || 'ZAR',
+        locationBreakdown,
+        serviceBreakdown,
+        methodBreakdown,
+      },
+    };
+  }
 }
