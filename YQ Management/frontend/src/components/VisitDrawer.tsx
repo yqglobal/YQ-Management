@@ -59,10 +59,15 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  // Tags Editing State
+  // Local state for tags & notes to ensure immediate optimistic UI updates
   const [renderTime] = useState(() => Date.now());
+  const [localTags, setLocalTags] = useState<string[]>([]);
   const [isEditingTags, setIsEditingTags] = useState(false);
   const [tagInput, setTagInput] = useState('');
+
+  const [notesInput, setNotesInput] = useState('');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
 
   // Cancellation Modal State
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -75,6 +80,26 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
   // No-Show Confirmation State
   const [isNoShowModalOpen, setIsNoShowModalOpen] = useState(false);
   const [isMarkingNoShow, setIsMarkingNoShow] = useState(false);
+
+  // Sync state whenever visit or open state changes
+  useEffect(() => {
+    if (visit) {
+      setLocalTags(Array.isArray(visit.tags) ? visit.tags : []);
+      setNotesInput(visit.notes || '');
+    }
+  }, [visit?.id, visit?.notes, visit?.tags, isOpen]);
+
+  // Reset modal states when drawer closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsEditingTags(false);
+      setIsCancelModalOpen(false);
+      setIsNoShowModalOpen(false);
+      setCancelCustomNotes('');
+      setCancelConfirmText('');
+      setCancelRefundApplicable(false);
+    }
+  }, [isOpen]);
 
   // Mutations
   const startMutation = useMutation({
@@ -101,69 +126,80 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
   });
 
   const updateTagsMutation = useMutation({
-    mutationFn: (tags: string[]) =>
-      fetchApi(`/visits/${visit?.id}/tags`, { method: 'PATCH', body: JSON.stringify({ tags }) }),
+    mutationFn: (tags: string[]) => {
+      const endpoint = visit?._type === 'Appointment' && !visit?.queueId
+        ? `/appointments/${visit?.id}`
+        : `/visits/${visit?.id}/tags`;
+      const body = visit?._type === 'Appointment' && !visit?.queueId
+        ? JSON.stringify({ tags })
+        : JSON.stringify({ tags });
+      return fetchApi(endpoint, { method: 'PATCH', body });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['visits'] });
-      setIsEditingTags(false);
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['schedule-view'] });
       toast.success('Tags updated');
     },
-    onError: (err: any) => toast.error(err?.message || 'Failed to update tags'),
+    onError: (err: any) => {
+      // Revert on error
+      if (visit) setLocalTags(Array.isArray(visit.tags) ? visit.tags : []);
+      toast.error(err?.message || 'Failed to update tags');
+    },
   });
 
-  // Reset states when drawer closes
-  useEffect(() => {
-    if (!isOpen) {
-      setIsEditingTags(false);
-      setIsCancelModalOpen(false);
-      setIsNoShowModalOpen(false);
-      setCancelCustomNotes('');
-      setCancelConfirmText('');
-      setCancelRefundApplicable(false);
-    }
-  }, [isOpen]);
-
-  if (!visit) return null;
-
-  const isAppt =
-    visit._type === 'Appointment' ||
-    visit._type === 'Token (Scheduled)' ||
-    !!visit.appointmentId ||
-    (!!visit.scheduledTime && visit.scheduledTime !== visit.createdAt) ||
-    !!visit.scheduledStart;
-
-  const isWaiting = visit.currentState === 'WAITING' || visit.currentState === 'CHECKED_IN';
-  const isInService = visit.currentState === 'IN_SERVICE' || visit.currentState === 'SERVING' || visit.currentState === 'IN_PROGRESS';
-  const isCompleted = visit.currentState === 'COMPLETED';
-  const isCancelled = visit.currentState === 'CANCELLED' || visit.currentState === 'REJECTED';
-  const isNoShow = visit.currentState === 'NO_SHOW' || visit.currentState === 'MISSED';
-
-  // Determine if late / overdue and QR was never scanned
-  const scheduledTimeVal = visit.scheduledTime || visit.scheduledStart;
-  let isOverdue = false;
-  let minsOverdue = 0;
-  if (scheduledTimeVal && !isCompleted && !isCancelled && !isNoShow) {
-    const scheduledDate = new Date(scheduledTimeVal);
-    const now = new Date();
-    const diffMs = now.getTime() - scheduledDate.getTime();
-    if (diffMs > 10 * 60 * 1000) {
-      isOverdue = true;
-      minsOverdue = Math.floor(diffMs / 60000);
-    }
-  }
-
   const handleAddTag = () => {
-    if (!tagInput.trim()) return;
-    const currentTags = visit?.tags || [];
-    if (!currentTags.includes(tagInput.trim())) {
-      updateTagsMutation.mutate([...currentTags, tagInput.trim()]);
+    const trimmed = tagInput.trim();
+    if (!trimmed) return;
+    if (localTags.includes(trimmed)) {
+      setTagInput('');
+      return;
     }
+    const newTags = [...localTags, trimmed];
+    setLocalTags(newTags);
+    if (visit) visit.tags = newTags;
     setTagInput('');
+    updateTagsMutation.mutate(newTags);
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    const currentTags = visit?.tags || [];
-    updateTagsMutation.mutate(currentTags.filter((t: string) => t !== tagToRemove));
+    const newTags = localTags.filter((t) => t !== tagToRemove);
+    setLocalTags(newTags);
+    if (visit) visit.tags = newTags;
+    updateTagsMutation.mutate(newTags);
+  };
+
+  const handleSaveNotes = async () => {
+    if (!visit) return;
+    const trimmed = notesInput.trim();
+    if (trimmed === (visit.notes || '').trim()) return;
+
+    setIsSavingNotes(true);
+    setNotesSaved(false);
+    try {
+      if (visit._type === 'Appointment' && !visit.queueId) {
+        await fetchApi(`/appointments/${visit.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ notes: trimmed }),
+        });
+      } else {
+        await fetchApi(`/visits/${visit.id}/notes`, {
+          method: 'PATCH',
+          body: JSON.stringify({ notes: trimmed }),
+        });
+      }
+      visit.notes = trimmed;
+      setNotesSaved(true);
+      queryClient.invalidateQueries({ queryKey: ['visits'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['schedule-view'] });
+      toast.success('Notes saved');
+      setTimeout(() => setNotesSaved(false), 2500);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save notes');
+    } finally {
+      setIsSavingNotes(false);
+    }
   };
 
   const handleConfirmCancel = async () => {
@@ -580,13 +616,40 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
             </div>
           )}
 
-          {/* 6. Notes: Line by Line */}
+          {/* 6. Notes: Interactive Line-by-Line Editor */}
           <div className="pt-0.5">
-            <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-              Notes:
-            </span>
-            <div className="bg-zinc-50 dark:bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800 text-xs text-zinc-800 dark:text-zinc-200 min-h-[44px]">
-              {visit.notes || <span className="text-zinc-400 italic">No notes added.</span>}
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
+                Notes:
+              </span>
+              <div className="flex items-center gap-1.5 text-[11px]">
+                {isSavingNotes && (
+                  <span className="text-indigo-600 dark:text-indigo-400 animate-pulse font-medium">Saving...</span>
+                )}
+                {notesSaved && (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Saved
+                  </span>
+                )}
+                {!isSavingNotes && !notesSaved && notesInput.trim() !== (visit.notes || '').trim() && (
+                  <button
+                    onClick={handleSaveNotes}
+                    className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-semibold text-xs cursor-pointer"
+                  >
+                    Save Note
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="relative">
+              <textarea
+                value={notesInput}
+                onChange={(e) => setNotesInput(e.target.value)}
+                onBlur={handleSaveNotes}
+                placeholder="Add private staff notes for this ticket (auto-saves on blur)..."
+                rows={2}
+                className="w-full bg-zinc-50 dark:bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-y min-h-[50px]"
+              />
             </div>
           </div>
 
@@ -616,8 +679,13 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
                 Tags & Labels
               </h4>
               <button
-                onClick={() => setIsEditingTags(!isEditingTags)}
-                className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-semibold"
+                onClick={() => {
+                  if (isEditingTags && tagInput.trim()) {
+                    handleAddTag();
+                  }
+                  setIsEditingTags(!isEditingTags);
+                }}
+                className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-semibold cursor-pointer"
               >
                 {isEditingTags ? 'Done' : 'Edit Tags'}
               </button>
@@ -629,14 +697,20 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
                   type="text"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTag();
+                    }
+                  }}
                   placeholder="Add a tag..."
                   className="flex-1 text-xs bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-zinc-900 dark:text-white outline-none focus:border-indigo-500"
                 />
                 <button
+                  type="button"
                   onClick={handleAddTag}
-                  disabled={updateTagsMutation.isPending}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                  disabled={!tagInput.trim() || updateTagsMutation.isPending}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Add
                 </button>
@@ -644,8 +718,8 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
             )}
 
             <div className="flex flex-wrap gap-1.5">
-              {visit.tags && visit.tags.length > 0 ? (
-                visit.tags.map((tag: string) => (
+              {localTags && localTags.length > 0 ? (
+                localTags.map((tag: string) => (
                   <span
                     key={tag}
                     className="flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-md border border-indigo-200 dark:border-indigo-800"
@@ -653,8 +727,10 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
                     {tag}
                     {isEditingTags && (
                       <button
+                        type="button"
                         onClick={() => handleRemoveTag(tag)}
-                        className="text-indigo-400 hover:text-indigo-600 ml-1"
+                        className="text-indigo-400 hover:text-indigo-600 ml-1 cursor-pointer"
+                        title="Remove tag"
                       >
                         <X className="w-3 h-3" />
                       </button>
