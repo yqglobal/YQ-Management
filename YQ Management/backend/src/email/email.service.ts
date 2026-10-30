@@ -18,7 +18,7 @@ export class EmailService {
 
   constructor() {
     this.apiKey = process.env.BREVO_API_KEY || '';
-    this.senderEmail = process.env.BREVO_SENDER_EMAIL || 'support@qmova.com';
+    this.senderEmail = process.env.BREVO_SENDER_EMAIL || 'yqbuddysa@gmail.com';
     this.senderName = process.env.BREVO_SENDER_NAME || 'Qmova';
   }
 

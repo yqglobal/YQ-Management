@@ -233,7 +233,7 @@ export class SuperAdminController {
         provider: 'Brevo (SMTP / RELAY)',
         connected: emailConnected,
         configured: !!process.env.BREVO_API_KEY,
-        sender: process.env.BREVO_SENDER_EMAIL || 'support@qmova.com',
+        sender: process.env.BREVO_SENDER_EMAIL || 'yqbuddysa@gmail.com',
       },
       whatsapp: {
         provider: 'Evolution API',
