@@ -349,17 +349,17 @@ export default function QueueConfirmation() {
       : `Tax / VAT (${taxRate}%${isTaxInclusive ? ' Included' : ''})`;
 
     return (
-      <div className="bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-4.5 mb-5 text-left text-xs space-y-3">
+      <div className="bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-200/80 dark:border-zinc-800/80 rounded-xl sm:rounded-2xl p-3.5 sm:p-4.5 mb-4 sm:mb-5 text-left text-xs space-y-2.5 sm:space-y-3">
         <div className="flex items-center justify-between">
-          <span className="font-bold uppercase tracking-wider text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
-            <CreditCard className="w-3.5 h-3.5 text-indigo-500" /> Payment & Charges
+          <span className="font-bold uppercase tracking-wider text-[10px] sm:text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
+            <CreditCard className="w-3.5 h-3.5 text-indigo-500 shrink-0" /> Payment & Charges
           </span>
           {isPaid ? (
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="px-2 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               Paid Online
             </span>
           ) : (
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            <span className="px-2 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
               Pay at Counter
             </span>
           )}
@@ -367,15 +367,15 @@ export default function QueueConfirmation() {
 
         <div className="space-y-1.5 text-slate-600 dark:text-zinc-400">
           <div className="flex justify-between">
-            <span>Base Service ({guestsCount} {guestsCount > 1 ? 'people' : 'person'})</span>
-            <span className="font-mono font-medium text-slate-900 dark:text-zinc-200">
+            <span className="truncate pr-2">Base Service ({guestsCount} {guestsCount > 1 ? 'people' : 'person'})</span>
+            <span className="font-mono font-medium text-slate-900 dark:text-zinc-200 shrink-0">
               {currSymbol}{(netSubtotalCents / 100).toFixed(2)}
             </span>
           </div>
           {taxRate > 0 && (
             <div className="flex justify-between">
-              <span>{taxLabel}</span>
-              <span className="font-mono font-medium text-slate-900 dark:text-zinc-200">
+              <span className="truncate pr-2">{taxLabel}</span>
+              <span className="font-mono font-medium text-slate-900 dark:text-zinc-200 shrink-0">
                 {currSymbol}{(taxCents / 100).toFixed(2)}
               </span>
             </div>
@@ -384,12 +384,12 @@ export default function QueueConfirmation() {
 
         <div className="pt-2 border-t border-slate-200 dark:border-zinc-800 flex items-baseline justify-between">
           <div>
-            <span className="font-bold text-slate-900 dark:text-white uppercase text-[11px] tracking-wide block">
+            <span className="font-bold text-slate-900 dark:text-white uppercase text-[10px] sm:text-[11px] tracking-wide block">
               Total Amount
             </span>
-            <span className="text-[10px] text-slate-400 dark:text-zinc-500">All applicable taxes included</span>
+            <span className="text-[9px] sm:text-[10px] text-slate-400 dark:text-zinc-500">All applicable taxes included</span>
           </div>
-          <span className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+          <span className="text-lg sm:text-xl font-black font-mono text-emerald-600 dark:text-emerald-400">
             {currSymbol}{(totalCents / 100).toFixed(2)}
           </span>
         </div>
@@ -397,16 +397,17 @@ export default function QueueConfirmation() {
         <button
           onClick={handleDownloadInvoice}
           type="button"
-          className="w-full mt-2 py-2.5 px-3 bg-white dark:bg-zinc-900 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700/80 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+          className="w-full mt-2 py-2 sm:py-2.5 px-3 bg-white dark:bg-zinc-900 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700/80 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
         >
-          <Receipt className="w-3.5 h-3.5 text-indigo-500" /> Download Tax Invoice / Receipt (PDF)
+          <Receipt className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+          <span className="truncate">Download Tax Invoice / Receipt (PDF)</span>
         </button>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 font-sans flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-x-hidden selection:bg-indigo-500/20 transition-colors">
+    <div className="min-h-[100dvh] bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 font-sans flex flex-col items-center justify-center p-3.5 xs:p-4 sm:p-6 pt-[max(env(safe-area-inset-top),0.75rem)] pb-[max(env(safe-area-inset-bottom),1.5rem)] relative overflow-x-hidden selection:bg-indigo-500/20 transition-colors">
       <Head>
         <title>
           {isCompleted
@@ -425,48 +426,49 @@ export default function QueueConfirmation() {
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-500/10 dark:bg-emerald-600/15 rounded-full filter blur-[150px] pointer-events-none" />
 
       {/* Main Column */}
-      <div className="w-full max-w-md z-10 flex flex-col my-auto py-6">
+      <div className="w-full max-w-md z-10 flex flex-col my-auto py-3 sm:py-6">
         {/* Top Brand & Navigation Header */}
-        <div className="flex items-center justify-between mb-5 px-1">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between mb-4 sm:mb-5 px-0.5 sm:px-1 gap-2">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             {tenantLogo ? (
-              <div className="w-9 h-9 rounded-2xl overflow-hidden border border-slate-200 dark:border-zinc-800 shadow-xs relative bg-white">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl overflow-hidden border border-slate-200 dark:border-zinc-800 shadow-xs relative bg-white shrink-0">
                 <Image src={tenantLogo} alt={tenantName} fill className="object-cover" />
               </div>
             ) : (
-              <div className="w-9 h-9 rounded-2xl bg-indigo-600 text-white font-bold flex items-center justify-center shadow-md shadow-indigo-500/20">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-indigo-600 text-white font-bold flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0 text-sm">
                 {tenantName.charAt(0).toUpperCase()}
               </div>
             )}
-            <div>
-              <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight block leading-none">
+            <div className="min-w-0">
+              <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight block leading-none truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs">
                 {tenantName}
               </span>
               {locationName && (
-                <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium flex items-center gap-1 mt-1">
-                  <MapPin className="w-3 h-3 text-slate-400 dark:text-zinc-500" />
-                  {locationName}
+                <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-zinc-400 font-medium flex items-center gap-1 mt-0.5 sm:mt-1 truncate max-w-[130px] xs:max-w-[180px] sm:max-w-xs">
+                  <MapPin className="w-3 h-3 text-slate-400 dark:text-zinc-500 shrink-0" />
+                  <span className="truncate">{locationName}</span>
                 </span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold tracking-wide">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              LIVE PASS
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-[11px] font-bold tracking-wide">
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="hidden xs:inline">LIVE PASS</span>
+              <span className="xs:hidden">LIVE</span>
             </div>
             <button
               onClick={toggleTheme}
               title="Toggle Light / Dark mode"
-              className="p-2 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 transition-colors shadow-xs"
+              className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 transition-colors shadow-xs"
             >
               {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-600" />}
             </button>
             <button
               onClick={() => refetch()}
               title="Refresh status"
-              className="p-2 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 transition-colors shadow-xs"
+              className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-white rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 transition-colors shadow-xs"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-indigo-500' : ''}`} />
             </button>
@@ -478,28 +480,28 @@ export default function QueueConfirmation() {
         {/* ═════════════════════════════════════════════════════════════ */}
         {isCancelled && (
           <div className="text-center animate-in fade-in duration-300">
-            <div className="w-18 h-18 mx-auto bg-rose-500/15 border border-rose-500/30 rounded-3xl flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(244,63,94,0.15)] ring-4 ring-rose-500/10">
-              <XCircle className="w-9 h-9 text-rose-500" />
+            <div className="w-14 h-14 sm:w-18 sm:h-18 mx-auto bg-rose-500/15 border border-rose-500/30 rounded-2xl sm:rounded-3xl flex items-center justify-center mb-3.5 sm:mb-4 shadow-[0_0_30px_rgba(244,63,94,0.15)] ring-4 ring-rose-500/10">
+              <XCircle className="w-7 h-7 sm:w-9 sm:h-9 text-rose-500" />
             </div>
 
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-1.5 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mb-1 tracking-tight">
               Booking Cancelled
             </h1>
-            <p className="text-slate-500 dark:text-zinc-400 text-xs max-w-xs mx-auto mb-5 leading-relaxed">
+            <p className="text-slate-500 dark:text-zinc-400 text-xs max-w-xs mx-auto mb-4 sm:mb-5 leading-relaxed">
               Ticket <span className="font-mono font-bold text-slate-800 dark:text-zinc-200">#{displayId}</span> has been closed.
             </p>
 
-            <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-3xl p-5 mb-5 shadow-xl text-left backdrop-blur-xl space-y-3">
+            <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-5 mb-4 sm:mb-5 shadow-xl text-left backdrop-blur-xl space-y-3">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block">
                     Ticket Reference
                   </span>
-                  <span className="text-2xl font-black font-mono text-rose-600 dark:text-rose-400">
+                  <span className="text-xl sm:text-2xl font-black font-mono text-rose-600 dark:text-rose-400">
                     {displayId}
                   </span>
                 </div>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+                <span className="px-2.5 sm:px-3 py-1 rounded-full text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
                   {currentState.replace(/_/g, ' ')}
                 </span>
               </div>
@@ -525,13 +527,13 @@ export default function QueueConfirmation() {
             <div className="space-y-2.5">
               <button
                 onClick={() => router.push('/customer/lookup')}
-                className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white rounded-2xl font-bold transition-all shadow-md shadow-indigo-600/20 text-xs flex items-center justify-center gap-1.5"
+                className="w-full py-3 sm:py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white rounded-xl sm:rounded-2xl font-bold transition-all shadow-md shadow-indigo-600/20 text-xs flex items-center justify-center gap-1.5"
               >
-                Find Other Active Tickets <ChevronRight className="w-4 h-4" />
+                <span>Find Other Active Tickets</span> <ChevronRight className="w-4 h-4" />
               </button>
               <button
                 onClick={() => router.push('/')}
-                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 rounded-2xl font-semibold transition-colors text-xs"
+                className="w-full py-2.5 sm:py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 rounded-xl sm:rounded-2xl font-semibold transition-colors text-xs"
               >
                 Book a New Appointment
               </button>
@@ -544,28 +546,28 @@ export default function QueueConfirmation() {
         {/* ═════════════════════════════════════════════════════════════ */}
         {isCompleted && (
           <div className="text-center animate-in fade-in duration-300">
-            <div className="w-18 h-18 mx-auto bg-emerald-500/15 border border-emerald-500/30 rounded-3xl flex items-center justify-center mb-4 shadow-[0_0_35px_rgba(16,185,129,0.2)] ring-4 ring-emerald-500/10">
-              <CheckCircle2 className="w-9 h-9 text-emerald-500" />
+            <div className="w-14 h-14 sm:w-18 sm:h-18 mx-auto bg-emerald-500/15 border border-emerald-500/30 rounded-2xl sm:rounded-3xl flex items-center justify-center mb-3.5 sm:mb-4 shadow-[0_0_35px_rgba(16,185,129,0.2)] ring-4 ring-emerald-500/10">
+              <CheckCircle2 className="w-7 h-7 sm:w-9 sm:h-9 text-emerald-500" />
             </div>
 
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-1 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mb-1 tracking-tight">
               Visit Completed!
             </h1>
-            <p className="text-slate-500 dark:text-zinc-400 text-xs max-w-xs mx-auto mb-5 leading-relaxed">
+            <p className="text-slate-500 dark:text-zinc-400 text-xs max-w-xs mx-auto mb-4 sm:mb-5 leading-relaxed">
               Thank you for visiting <span className="font-semibold text-slate-800 dark:text-zinc-200">{tenantName}</span>, {customerName}.
             </p>
 
-            <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-3xl p-5 mb-5 shadow-xl text-left backdrop-blur-xl">
+            <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-5 mb-4 sm:mb-5 shadow-xl text-left backdrop-blur-xl">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3 mb-3">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block">
                     Completed Ticket
                   </span>
-                  <span className="text-3xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                  <span className="text-2xl sm:text-3xl font-black font-mono text-emerald-600 dark:text-emerald-400">
                     {displayId}
                   </span>
                 </div>
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                <span className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                   <Check className="w-3.5 h-3.5" /> Fulfilled
                 </span>
               </div>
@@ -573,7 +575,7 @@ export default function QueueConfirmation() {
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between py-1 border-b border-slate-100 dark:border-zinc-800/80">
                   <span className="text-slate-500 dark:text-zinc-400">Service</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">{serviceName}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white truncate pl-2">{serviceName}</span>
                 </div>
                 {token.completedAt && (
                   <div className="flex justify-between py-1 border-b border-slate-100 dark:border-zinc-800/80">
@@ -589,19 +591,19 @@ export default function QueueConfirmation() {
             {renderPaymentSummary()}
 
             {/* CSAT Review Card */}
-            <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-3xl p-5 shadow-xl text-left backdrop-blur-xl">
+            <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xl text-left backdrop-blur-xl">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1 text-center">
                 How was your experience?
               </h3>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 text-center mb-3.5">
+              <p className="text-xs text-slate-500 dark:text-zinc-400 text-center mb-3">
                 Your feedback helps us continuously improve.
               </p>
 
               {ratingSubmitted || token.rating ? (
-                <div className="text-center py-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl">
+                <div className="text-center py-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl sm:rounded-2xl">
                   <div className="flex justify-center gap-1 mb-1.5 text-amber-400">
                     {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} className={`w-5 h-5 ${s <= (token.rating || rating) ? 'fill-current' : 'opacity-20'}`} />
+                      <Star key={s} className={`w-4 h-4 sm:w-5 sm:h-5 ${s <= (token.rating || rating) ? 'fill-current' : 'opacity-20'}`} />
                     ))}
                   </div>
                   <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
@@ -610,7 +612,7 @@ export default function QueueConfirmation() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="flex justify-center gap-2">
+                  <div className="flex justify-center gap-1.5 sm:gap-2">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         key={star}
@@ -621,7 +623,7 @@ export default function QueueConfirmation() {
                         className="p-1 hover:scale-125 transition-transform"
                       >
                         <Star
-                          className={`w-8 h-8 transition-colors ${
+                          className={`w-6 h-6 sm:w-8 sm:h-8 transition-colors ${
                             star <= (hoverRating || rating)
                               ? 'text-amber-400 fill-amber-400'
                               : 'text-slate-300 dark:text-zinc-700'
@@ -638,7 +640,7 @@ export default function QueueConfirmation() {
                         onChange={(e) => setFeedbackText(e.target.value)}
                         placeholder="Write any thoughts or compliments (optional)..."
                         rows={2}
-                        className="w-full text-xs p-3 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500"
+                        className="w-full text-xs p-2.5 sm:p-3 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500"
                       />
                       <button
                         onClick={handleRatingSubmit}
@@ -660,25 +662,25 @@ export default function QueueConfirmation() {
         {/* ═════════════════════════════════════════════════════════════ */}
         {isInService && (
           <div className="text-center animate-in fade-in duration-300">
-            <div className="w-18 h-18 mx-auto bg-emerald-500/15 border-2 border-emerald-500 rounded-3xl flex items-center justify-center mb-4 shadow-[0_0_35px_rgba(16,185,129,0.3)] animate-bounce">
-              <CheckCircle2 className="w-9 h-9 text-emerald-500" />
+            <div className="w-14 h-14 sm:w-18 sm:h-18 mx-auto bg-emerald-500/15 border-2 border-emerald-500 rounded-2xl sm:rounded-3xl flex items-center justify-center mb-3.5 sm:mb-4 shadow-[0_0_35px_rgba(16,185,129,0.3)] animate-bounce">
+              <CheckCircle2 className="w-7 h-7 sm:w-9 sm:h-9 text-emerald-500" />
             </div>
 
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-1 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-1 tracking-tight">
               It&apos;s Your Turn!
             </h1>
-            <p className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs mb-5">
+            <p className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs mb-4 sm:mb-5">
               Please proceed to the counter or consultation room now.
             </p>
 
-            <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-3xl p-5 mb-5 shadow-xl text-left backdrop-blur-xl">
+            <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-5 mb-4 sm:mb-5 shadow-xl text-left backdrop-blur-xl">
               <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block mb-0.5">
                 Calling Ticket
               </span>
-              <span className="text-4xl font-black font-mono text-emerald-600 dark:text-emerald-400 block mb-3">
+              <span className="text-3xl sm:text-4xl font-black font-mono text-emerald-600 dark:text-emerald-400 block mb-3">
                 {displayId}
               </span>
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center gap-2.5">
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl sm:rounded-2xl flex items-center gap-2.5">
                 <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span className="text-xs text-emerald-900 dark:text-emerald-200 font-medium">
                   Service <strong className="font-bold">{serviceName}</strong> is actively in progress.
@@ -688,9 +690,9 @@ export default function QueueConfirmation() {
 
             <Link
               href={trackingUrl.replace(typeof window !== 'undefined' ? window.location.origin : '', '') || `/customer/status/${token.accessToken || token.id}`}
-              className="w-full inline-flex items-center justify-center gap-2 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-all shadow-xl shadow-emerald-600/25 text-sm"
+              className="w-full inline-flex items-center justify-center gap-2 py-3.5 sm:py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl sm:rounded-2xl font-bold transition-all shadow-xl shadow-emerald-600/25 text-xs sm:text-sm"
             >
-              Open Live Journey Screen <ArrowRight className="w-4 h-4" />
+              <span>Open Live Journey Screen</span> <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         )}
@@ -700,40 +702,40 @@ export default function QueueConfirmation() {
         {/* ═════════════════════════════════════════════════════════════ */}
         {isScheduled && (
           <div className="text-center animate-in fade-in duration-300">
-            <div className="w-18 h-18 mx-auto bg-indigo-500/15 border border-indigo-500/30 rounded-3xl flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
-              <Calendar className="w-9 h-9 text-indigo-500" />
+            <div className="w-14 h-14 sm:w-18 sm:h-18 mx-auto bg-indigo-500/15 border border-indigo-500/30 rounded-2xl sm:rounded-3xl flex items-center justify-center mb-3.5 sm:mb-4 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+              <Calendar className="w-7 h-7 sm:w-9 sm:h-9 text-indigo-500" />
             </div>
 
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-1 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mb-1 tracking-tight">
               Appointment Confirmed
             </h1>
-            <p className="text-slate-500 dark:text-zinc-400 text-xs max-w-xs mx-auto mb-5 leading-relaxed">
+            <p className="text-slate-500 dark:text-zinc-400 text-xs max-w-xs mx-auto mb-4 sm:mb-5 leading-relaxed">
               Hello <strong className="font-semibold text-slate-800 dark:text-zinc-200">{customerName}</strong>, your appointment with {tenantName} is booked.
             </p>
 
             {/* Primary Pass Card */}
-            <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-3xl p-5 mb-4 shadow-xl text-left backdrop-blur-xl">
+            <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-5 mb-4 shadow-xl text-left backdrop-blur-xl">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3 mb-3.5">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block">
                     Booking Reference
                   </span>
-                  <span className="text-3xl font-black font-mono text-indigo-600 dark:text-indigo-400">
+                  <span className="text-2xl sm:text-3xl font-black font-mono text-indigo-600 dark:text-indigo-400">
                     {displayId}
                   </span>
                 </div>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                <span className="px-2.5 sm:px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                   Confirmed
                 </span>
               </div>
 
               {/* Scheduled Date/Time Highlight */}
               {token.scheduledTime && (
-                <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 rounded-2xl mb-3.5">
+                <div className="p-3 sm:p-3.5 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 rounded-xl sm:rounded-2xl mb-3.5">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-0.5">
                     Date & Time
                   </span>
-                  <span className="text-sm font-bold text-indigo-950 dark:text-indigo-200 block">
+                  <span className="text-xs sm:text-sm font-bold text-indigo-950 dark:text-indigo-200 block">
                     {new Date(token.scheduledTime).toLocaleString([], {
                       weekday: 'short',
                       month: 'short',
@@ -749,25 +751,25 @@ export default function QueueConfirmation() {
               <div className="space-y-2 text-xs border-b border-slate-100 dark:border-zinc-800 pb-3 mb-3.5">
                 <div className="flex justify-between">
                   <span className="text-slate-500 dark:text-zinc-400">Service</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">{serviceName}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white truncate pl-2">{serviceName}</span>
                 </div>
                 {locationName && (
                   <div className="flex justify-between">
                     <span className="text-slate-500 dark:text-zinc-400">Location</span>
-                    <span className="font-medium text-slate-800 dark:text-zinc-200">{locationName}</span>
+                    <span className="font-medium text-slate-800 dark:text-zinc-200 truncate pl-2">{locationName}</span>
                   </div>
                 )}
               </div>
 
               {/* Digital QR Code */}
-              <div className="flex flex-col items-center justify-center p-3.5 bg-slate-50 dark:bg-zinc-950/80 rounded-2xl border border-slate-200/80 dark:border-zinc-800 text-center">
-                <div className="p-2.5 bg-white rounded-xl shadow-xs mb-2">
-                  <QRCodeSVG value={trackingUrl || `https://qmova.com/customer/status/${token.accessToken || token.id}`} size={120} level="M" />
+              <div className="flex flex-col items-center justify-center p-3 sm:p-3.5 bg-slate-50 dark:bg-zinc-950/80 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-zinc-800 text-center">
+                <div className="p-2 sm:p-2.5 bg-white rounded-xl shadow-xs mb-2">
+                  <QRCodeSVG value={trackingUrl || `https://qmova.com/customer/status/${token.accessToken || token.id}`} size={110} level="M" />
                 </div>
-                <span className="text-[11px] font-semibold text-slate-700 dark:text-zinc-300">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-700 dark:text-zinc-300">
                   Scan at Reception Kiosk Upon Arrival
                 </span>
-                <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5">
+                <span className="text-[9px] sm:text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5">
                   Fast automatic check-in pass
                 </span>
               </div>
@@ -776,29 +778,31 @@ export default function QueueConfirmation() {
             {renderPaymentSummary()}
 
             {/* Quick Action Grid */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mb-3">
               <button
                 type="button"
                 onClick={handleAddToCalendar}
-                className="py-3 px-3 bg-white dark:bg-zinc-900 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-200 rounded-2xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                className="py-2.5 sm:py-3 px-2 sm:px-3 bg-white dark:bg-zinc-900 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-200 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
               >
-                <CalendarPlus className="w-4 h-4 text-indigo-500" /> Add to Calendar
+                <CalendarPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500 shrink-0" />
+                <span className="truncate">Add to Calendar</span>
               </button>
               <button
                 type="button"
                 onClick={handleShare}
-                className="py-3 px-3 bg-white dark:bg-zinc-900 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-200 rounded-2xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                className="py-2.5 sm:py-3 px-2 sm:px-3 bg-white dark:bg-zinc-900 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-200 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
               >
-                <Share2 className="w-4 h-4 text-indigo-500" /> Share Pass
+                <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500 shrink-0" />
+                <span className="truncate">Share Pass</span>
               </button>
             </div>
 
             {/* Primary Action Button */}
             <Link
               href={trackingUrl.replace(typeof window !== 'undefined' ? window.location.origin : '', '') || `/customer/status/${token.accessToken || token.id}`}
-              className="w-full inline-flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white rounded-2xl font-bold transition-all shadow-xl shadow-indigo-600/25 text-sm mb-3"
+              className="w-full inline-flex items-center justify-center gap-2 py-3.5 sm:py-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white rounded-xl sm:rounded-2xl font-bold transition-all shadow-xl shadow-indigo-600/25 text-xs sm:text-sm mb-3"
             >
-              Open Live Journey & Waiting Room <ArrowRight className="w-4 h-4" />
+              <span>Open Live Journey & Waiting Room</span> <ArrowRight className="w-4 h-4" />
             </Link>
 
             {/* Cancel Appointment Trigger */}
@@ -817,53 +821,53 @@ export default function QueueConfirmation() {
         {/* ═════════════════════════════════════════════════════════════ */}
         {isWaiting && (
           <div className="text-center animate-in fade-in duration-300">
-            <div className="w-18 h-18 mx-auto bg-indigo-500/15 border border-indigo-500/30 rounded-3xl flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
-              <Users className="w-9 h-9 text-indigo-500" />
+            <div className="w-14 h-14 sm:w-18 sm:h-18 mx-auto bg-indigo-500/15 border border-indigo-500/30 rounded-2xl sm:rounded-3xl flex items-center justify-center mb-3.5 sm:mb-4 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+              <Users className="w-7 h-7 sm:w-9 sm:h-9 text-indigo-500" />
             </div>
 
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-1 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mb-1 tracking-tight">
               You are in Queue!
             </h1>
-            <p className="text-slate-500 dark:text-zinc-400 text-xs max-w-xs mx-auto mb-5 leading-relaxed">
+            <p className="text-slate-500 dark:text-zinc-400 text-xs max-w-xs mx-auto mb-4 sm:mb-5 leading-relaxed">
               Ticket <strong className="font-mono text-indigo-600 dark:text-indigo-400">#{displayId}</strong> is active. We will notify you when it is your turn.
             </p>
 
             {/* Wait Status Grid */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800 rounded-3xl p-4 shadow-xl backdrop-blur-xl text-center">
-                <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block mb-1">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3.5 sm:mb-4">
+              <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800 rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-xl backdrop-blur-xl text-center">
+                <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block mb-0.5 sm:mb-1 truncate">
                   Queue Position
                 </span>
-                <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 font-mono block">
+                <span className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 font-mono block">
                   #{position || 1}
                 </span>
-                <span className="text-[10px] text-slate-400 dark:text-zinc-500">
+                <span className="text-[9px] sm:text-[10px] text-slate-400 dark:text-zinc-500 truncate block">
                   {position <= 1 ? 'Next up!' : `${position - 1} ahead`}
                 </span>
               </div>
 
-              <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800 rounded-3xl p-4 shadow-xl backdrop-blur-xl text-center">
-                <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block mb-1">
+              <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800 rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-xl backdrop-blur-xl text-center">
+                <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block mb-0.5 sm:mb-1 truncate">
                   Est. Wait Time
                 </span>
-                <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono block">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono block">
                   ~{estimatedWaitTime || 5}m
                 </span>
-                <span className="text-[10px] text-slate-400 dark:text-zinc-500">Live dynamic</span>
+                <span className="text-[9px] sm:text-[10px] text-slate-400 dark:text-zinc-500 truncate block">Live dynamic</span>
               </div>
             </div>
 
             {/* Pass Summary & QR Code */}
-            <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-3xl p-5 mb-4 shadow-xl text-left backdrop-blur-xl">
+            <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-5 mb-3.5 sm:mb-4 shadow-xl text-left backdrop-blur-xl">
               <div className="flex justify-between items-center mb-3">
                 <span className="text-xs text-slate-500 dark:text-zinc-400">Service</span>
-                <span className="text-xs font-bold text-slate-900 dark:text-white">{serviceName}</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white truncate pl-2">{serviceName}</span>
               </div>
-              <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-zinc-950/80 rounded-2xl border border-slate-200/80 dark:border-zinc-800 text-center">
-                <div className="p-2.5 bg-white rounded-xl shadow-xs mb-2">
+              <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-zinc-950/80 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-zinc-800 text-center">
+                <div className="p-2 sm:p-2.5 bg-white rounded-xl shadow-xs mb-2">
                   <QRCodeSVG value={trackingUrl || `https://qmova.com/customer/status/${token.accessToken || token.id}`} size={110} level="M" />
                 </div>
-                <span className="text-[11px] font-semibold text-slate-700 dark:text-zinc-300">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-700 dark:text-zinc-300">
                   Digital Check-in Pass
                 </span>
               </div>
@@ -873,9 +877,9 @@ export default function QueueConfirmation() {
 
             <Link
               href={trackingUrl.replace(typeof window !== 'undefined' ? window.location.origin : '', '') || `/customer/status/${token.accessToken || token.id}`}
-              className="w-full inline-flex items-center justify-center gap-2 py-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white rounded-2xl font-bold transition-all shadow-xl shadow-indigo-600/25 text-sm mb-3"
+              className="w-full inline-flex items-center justify-center gap-2 py-3.5 sm:py-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white rounded-xl sm:rounded-2xl font-bold transition-all shadow-xl shadow-indigo-600/25 text-xs sm:text-sm mb-3"
             >
-              Open Live Waiting Room <ArrowRight className="w-4 h-4" />
+              <span>Open Live Waiting Room</span> <ArrowRight className="w-4 h-4" />
             </Link>
 
             <button
@@ -889,7 +893,7 @@ export default function QueueConfirmation() {
         )}
 
         {/* Footer Navigation */}
-        <div className="mt-8 pt-4 border-t border-slate-200/70 dark:border-zinc-800/70 flex items-center justify-between text-xs text-slate-400 dark:text-zinc-500">
+        <div className="mt-6 sm:mt-8 pt-4 border-t border-slate-200/70 dark:border-zinc-800/70 flex items-center justify-between text-xs text-slate-400 dark:text-zinc-500">
           <Link href="/customer/lookup" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
             Look up my tickets
           </Link>

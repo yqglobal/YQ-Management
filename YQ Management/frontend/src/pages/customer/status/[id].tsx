@@ -449,15 +449,15 @@ export default function CustomerLiveStatus() {
         <meta name="robots" content="noindex" />
       </Head>
 
-      <main className="max-w-md mx-auto min-h-screen flex flex-col bg-white dark:bg-zinc-900 shadow-2xl relative overflow-hidden transition-colors">
+      <main className="max-w-md mx-auto min-h-screen min-h-[100dvh] flex flex-col bg-white dark:bg-zinc-900 shadow-2xl relative overflow-hidden transition-colors">
         {/* Subtle top ambient glow */}
         <div className="absolute top-0 left-0 right-0 h-56 bg-gradient-to-b from-indigo-500/15 via-indigo-500/5 to-transparent dark:from-indigo-600/10 pointer-events-none" />
 
         {/* Top Header with Tenant Brand, Location & Theme Switcher */}
-        <header className="p-4 sm:p-5 flex items-center justify-between border-b border-slate-200/60 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md sticky top-0 z-30">
-          <div className="flex items-center gap-3 min-w-0">
+        <header className="px-3.5 py-3 sm:px-5 sm:py-4 flex items-center justify-between border-b border-slate-200/60 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md sticky top-0 z-30 pt-[max(env(safe-area-inset-top),0.75rem)]">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 pr-2">
             {tenant?.logoUrl ? (
-              <div className="relative w-10 h-10 rounded-2xl overflow-hidden border border-slate-200 dark:border-zinc-700 shadow-xs shrink-0 bg-white">
+              <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl overflow-hidden border border-slate-200 dark:border-zinc-700 shadow-xs shrink-0 bg-white">
                 <Image
                   src={tenant.logoUrl}
                   alt={tenantName || 'Tenant Logo'}
@@ -466,59 +466,60 @@ export default function CustomerLiveStatus() {
                 />
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold flex items-center justify-center shadow-xs shrink-0 text-base">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold flex items-center justify-center shadow-xs shrink-0 text-xs sm:text-base">
                 {(tenantName || 'Q')[0].toUpperCase()}
               </div>
             )}
-            <div className="min-w-0">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white truncate leading-tight">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate leading-tight">
                 {tenantName || 'Live Journey'}
               </h2>
               {locationName && (
-                <p className="text-xs text-slate-500 dark:text-zinc-400 flex items-center gap-1 truncate">
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-zinc-400 flex items-center gap-1 truncate">
                   <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                  {locationName}
+                  <span className="truncate">{locationName}</span>
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Live Indicator */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              LIVE
+            <div className="flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[10px] sm:text-[11px] font-bold">
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="hidden xs:inline">LIVE</span>
             </div>
 
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300 transition-colors"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label="Toggle theme"
             >
               {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400" />
+                <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
               ) : (
-                <Moon className="w-4 h-4 text-slate-600" />
+                <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600" />
               )}
             </button>
           </div>
         </header>
 
-        <div className="p-5 flex-1 flex flex-col z-10 space-y-5">
+        <div className="p-3.5 xs:p-4 sm:p-5 flex-1 flex flex-col z-10 space-y-4 sm:space-y-5 pb-[max(env(safe-area-inset-bottom),1.5rem)]">
           {/* Greeting & Customer Subheading */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">
                 Live Status & Journey
               </p>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+              <h1 className="text-base sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
                 Hi, {customerName}
               </h1>
             </div>
             <button
               onClick={() => setShowQrModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200/80 dark:border-indigo-800/80 text-indigo-600 dark:text-indigo-400 text-xs font-bold transition-all shadow-xs"
+              className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200/80 dark:border-indigo-800/80 text-indigo-600 dark:text-indigo-400 text-xs font-bold transition-all shadow-xs"
             >
               <QrCode className="w-3.5 h-3.5" />
               <span>Show QR</span>
@@ -526,23 +527,23 @@ export default function CustomerLiveStatus() {
           </div>
 
           {/* ── Main Status Card ── */}
-          <div className="bg-white dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none">
+          <div className="bg-white dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none">
             {/* Ticket & Badge header */}
-            <div className="flex justify-between items-start mb-5">
-              <div>
-                <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block mb-1">
+            <div className="flex justify-between items-start gap-2 mb-4 sm:mb-5">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block mb-0.5 sm:mb-1">
                   Ticket Number
                 </span>
-                <span className="text-4xl font-black font-mono tracking-tight text-indigo-600 dark:text-indigo-400">
+                <span className="text-2xl sm:text-4xl font-black font-mono tracking-tight text-indigo-600 dark:text-indigo-400 truncate block">
                   {displayId || (data.id as string)?.substring(0, 8).toUpperCase() || '—'}
                 </span>
               </div>
-              <div className="flex flex-col items-end gap-1.5">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">
+              <div className="flex flex-col items-end gap-1 shrink-0 max-w-[50%]">
+                <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 truncate max-w-full">
                   {serviceName}
                 </span>
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase border ${
+                  className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wide uppercase border truncate max-w-full ${
                     currentState === 'WAITING'
                       ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
                       : currentState === 'IN_SERVICE'
@@ -628,34 +629,34 @@ export default function CustomerLiveStatus() {
 
             {/* ── Waiting Stats ── */}
             {isWaiting && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 dark:bg-zinc-900 rounded-2xl p-4 border border-slate-100 dark:border-zinc-800 flex flex-col justify-center">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Users className="w-3.5 h-3.5 text-indigo-500" />
-                    <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                <div className="bg-slate-50 dark:bg-zinc-900 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-slate-100 dark:border-zinc-800 flex flex-col justify-center min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1">
+                    <Users className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 dark:text-zinc-400 uppercase tracking-wider truncate">
                       Position
                     </span>
                   </div>
-                  <div className="text-3xl font-extrabold text-slate-900 dark:text-white">
+                  <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white truncate">
                     {typeof position === 'number' ? `#${position}` : '—'}
                   </div>
-                  <span className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">
+                  <span className="text-[10px] sm:text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate block">
                     {position === 1 ? 'You are next in line!' : `${(position || 1) - 1} ahead of you`}
                   </span>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-zinc-900 rounded-2xl p-4 border border-slate-100 dark:border-zinc-800 flex flex-col justify-center">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Clock className="w-3.5 h-3.5 text-emerald-500" />
-                    <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">
+                <div className="bg-slate-50 dark:bg-zinc-900 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-slate-100 dark:border-zinc-800 flex flex-col justify-center min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1">
+                    <Clock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 dark:text-zinc-400 uppercase tracking-wider truncate">
                       Est. Wait
                     </span>
                   </div>
-                  <div className="text-3xl font-extrabold text-slate-900 dark:text-white">
+                  <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white truncate">
                     ~{typeof ewt === 'number' ? ewt : 0}
-                    <span className="text-sm font-medium text-slate-400 ml-1">min</span>
+                    <span className="text-xs sm:text-sm font-medium text-slate-400 ml-1">min</span>
                   </div>
-                  <span className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">
+                  <span className="text-[10px] sm:text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate block">
                     Live calculated
                   </span>
                 </div>
@@ -664,8 +665,8 @@ export default function CustomerLiveStatus() {
 
             {/* ── Done State Notice ── */}
             {isDone && !isCompleted && (
-              <div className="bg-slate-100 dark:bg-zinc-800 rounded-2xl p-5 text-center">
-                <h3 className="text-base font-bold mb-1">Visit Ended</h3>
+              <div className="bg-slate-100 dark:bg-zinc-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 text-center">
+                <h3 className="text-sm sm:text-base font-bold mb-1">Visit Ended</h3>
                 <p className="text-slate-500 dark:text-zinc-400 text-xs">
                   Your visit has ended with status{' '}
                   <span className="font-semibold">{currentState?.replace('_', ' ')}</span>.
@@ -675,45 +676,45 @@ export default function CustomerLiveStatus() {
           </div>
 
           {/* Quick Action Toolbar */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
             <button
               onClick={() => setShowQrModal(true)}
-              className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 hover:border-indigo-500/40 text-slate-700 dark:text-zinc-300 transition-all shadow-xs active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 hover:border-indigo-500/40 text-slate-700 dark:text-zinc-300 transition-all shadow-xs active:scale-95"
             >
-              <QrCode className="w-4 h-4 text-indigo-500" />
-              <span className="text-[11px] font-semibold">QR Pass</span>
+              <QrCode className="w-4 h-4 text-indigo-500 shrink-0" />
+              <span className="text-[10px] sm:text-[11px] font-semibold truncate block w-full text-center">QR Pass</span>
             </button>
 
             {isScheduled && scheduledTime ? (
               <button
                 onClick={handleAddToCalendar}
-                className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 hover:border-purple-500/40 text-slate-700 dark:text-zinc-300 transition-all shadow-xs active:scale-95"
+                className="flex flex-col items-center justify-center gap-1 p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 hover:border-purple-500/40 text-slate-700 dark:text-zinc-300 transition-all shadow-xs active:scale-95"
               >
-                <CalendarPlus className="w-4 h-4 text-purple-500" />
-                <span className="text-[11px] font-semibold">Calendar (.ics)</span>
+                <CalendarPlus className="w-4 h-4 text-purple-500 shrink-0" />
+                <span className="text-[10px] sm:text-[11px] font-semibold truncate block w-full text-center">Calendar</span>
               </button>
             ) : (
               <Link
                 href={`/customer/confirmation/${visitId || accessToken}`}
-                className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 hover:border-indigo-500/40 text-slate-700 dark:text-zinc-300 transition-all shadow-xs active:scale-95 text-center"
+                className="flex flex-col items-center justify-center gap-1 p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 hover:border-indigo-500/40 text-slate-700 dark:text-zinc-300 transition-all shadow-xs active:scale-95 text-center"
               >
-                <ExternalLink className="w-4 h-4 text-indigo-500" />
-                <span className="text-[11px] font-semibold">Digital Pass</span>
+                <ExternalLink className="w-4 h-4 text-indigo-500 shrink-0" />
+                <span className="text-[10px] sm:text-[11px] font-semibold truncate block w-full text-center">Digital Pass</span>
               </Link>
             )}
 
             <button
               onClick={handleShare}
-              className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 hover:border-emerald-500/40 text-slate-700 dark:text-zinc-300 transition-all shadow-xs active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 hover:border-emerald-500/40 text-slate-700 dark:text-zinc-300 transition-all shadow-xs active:scale-95"
             >
-              {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4 text-emerald-500" />}
-              <span className="text-[11px] font-semibold">{isCopied ? 'Copied!' : 'Share'}</span>
+              {isCopied ? <Check className="w-4 h-4 text-emerald-500 shrink-0" /> : <Share2 className="w-4 h-4 text-emerald-500 shrink-0" />}
+              <span className="text-[10px] sm:text-[11px] font-semibold truncate block w-full text-center">{isCopied ? 'Copied!' : 'Share'}</span>
             </button>
           </div>
 
           {/* ── Active Step Highlight Card (Location Guidance, Instructions, Skip, Form, Payment) ── */}
           {activeStep && !isDone && (
-            <div className="bg-gradient-to-b from-indigo-50/50 to-white dark:from-indigo-950/20 dark:to-zinc-900 border-2 border-indigo-500/30 dark:border-indigo-500/20 rounded-3xl p-5 shadow-sm space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="bg-gradient-to-b from-indigo-50/50 to-white dark:from-indigo-950/20 dark:to-zinc-900 border-2 border-indigo-500/30 dark:border-indigo-500/20 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5 sm:space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-ping" />
@@ -729,7 +730,7 @@ export default function CustomerLiveStatus() {
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                   {activeStep.name}
                 </h3>
                 {activeStep.templateStep?.customerView?.title && (
@@ -745,13 +746,13 @@ export default function CustomerLiveStatus() {
                 activeStep.templateStep?.floorNumber ||
                 activeStep.templateStep?.buildingWing ||
                 activeStep.templateStep?.customerView?.locationHint) && (
-                <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800 flex items-start gap-3 shadow-xs">
-                  <MapPin className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
-                  <div className="text-xs">
+                <div className="p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800 flex items-start gap-2.5 sm:gap-3 shadow-xs">
+                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 shrink-0 mt-0.5" />
+                  <div className="text-xs min-w-0">
                     <span className="font-bold text-slate-800 dark:text-zinc-200 block mb-0.5">
                       Where to go:
                     </span>
-                    <p className="text-slate-600 dark:text-zinc-400 leading-relaxed">
+                    <p className="text-slate-600 dark:text-zinc-400 leading-relaxed break-words">
                       {activeStep.templateStep?.customerView?.locationHint ||
                         activeStep.templateStep?.locationDescription}
                       {(activeStep.templateStep?.roomNumber || activeStep.templateStep?.floorNumber) && (
@@ -769,11 +770,11 @@ export default function CustomerLiveStatus() {
               {/* Customer Instruction */}
               {(activeStep.templateStep?.customerInstruction ||
                 activeStep.templateStep?.customerView?.message) && (
-                <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-900 dark:text-indigo-200 flex items-start gap-3">
-                  <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-                  <div className="text-xs leading-relaxed">
+                <div className="p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-900 dark:text-indigo-200 flex items-start gap-2.5 sm:gap-3">
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                  <div className="text-xs leading-relaxed min-w-0">
                     <span className="font-bold block mb-0.5">Instructions:</span>
-                    <p>
+                    <p className="break-words">
                       {activeStep.templateStep.customerInstruction ||
                         activeStep.templateStep.customerView?.message}
                     </p>
@@ -926,13 +927,13 @@ export default function CustomerLiveStatus() {
 
           {/* ── Journey Progress Timeline (Multi-Step Execution Flow) ── */}
           {visitSteps.length > 0 && (
-            <div className="bg-white dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 rounded-3xl p-5 shadow-[0_4px_20px_rgb(0,0,0,0.02)] space-y-4">
+            <div className="bg-white dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.02)] space-y-3.5 sm:space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                     Your Journey Itinerary
                   </h3>
-                  <span className="text-[11px] text-slate-400 dark:text-zinc-500">
+                  <span className="text-[10px] sm:text-[11px] text-slate-400 dark:text-zinc-500">
                     {completedStepsCount} of {totalSteps} stages completed
                   </span>
                 </div>
@@ -960,7 +961,7 @@ export default function CustomerLiveStatus() {
                   return (
                     <div
                       key={step.id || idx}
-                      className={`flex items-start gap-3 p-3 rounded-2xl transition-all border ${
+                      className={`flex items-start gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl transition-all border ${
                         isStepActive
                           ? 'bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800/80 shadow-xs'
                           : isStepDone
@@ -973,19 +974,19 @@ export default function CustomerLiveStatus() {
                       {/* Step Indicator */}
                       <div className="mt-0.5 shrink-0">
                         {isStepDone ? (
-                          <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
+                            <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />
                           </div>
                         ) : isStepActive ? (
-                          <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm ring-4 ring-indigo-500/20 animate-pulse">
+                          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[11px] sm:text-xs shadow-sm ring-4 ring-indigo-500/20 animate-pulse">
                             {step.stepOrder}
                           </div>
                         ) : isStepSkipped ? (
-                          <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-zinc-800 text-slate-500 flex items-center justify-center text-xs font-semibold line-through">
+                          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-200 dark:bg-zinc-800 text-slate-500 flex items-center justify-center text-[11px] sm:text-xs font-semibold line-through">
                             {step.stepOrder}
                           </div>
                         ) : (
-                          <div className="w-6 h-6 rounded-full border border-slate-300 dark:border-zinc-700 text-slate-400 dark:text-zinc-500 flex items-center justify-center text-xs font-semibold">
+                          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border border-slate-300 dark:border-zinc-700 text-slate-400 dark:text-zinc-500 flex items-center justify-center text-[11px] sm:text-xs font-semibold">
                             {step.stepOrder}
                           </div>
                         )}
@@ -1008,12 +1009,12 @@ export default function CustomerLiveStatus() {
 
                           <div className="flex items-center gap-1 shrink-0">
                             {isOptional && (
-                              <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-medium">
+                              <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-medium hidden xs:inline">
                                 Optional
                               </span>
                             )}
                             <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full ${
                                 isStepActive
                                   ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300'
                                   : isStepDone
@@ -1035,9 +1036,9 @@ export default function CustomerLiveStatus() {
                         </div>
 
                         {step.templateStep?.locationDescription && (
-                          <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 flex items-center gap-1">
+                          <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 flex items-center gap-1 truncate">
                             <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                            {step.templateStep.locationDescription}
+                            <span className="truncate">{step.templateStep.locationDescription}</span>
                           </p>
                         )}
                       </div>
@@ -1108,24 +1109,24 @@ export default function CustomerLiveStatus() {
             };
 
             return (
-              <div className="bg-white dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 rounded-3xl p-5 shadow-[0_4px_20px_rgb(0,0,0,0.02)] space-y-4">
+              <div className="bg-white dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.02)] space-y-3.5 sm:space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                       <Receipt className="w-4 h-4" />
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                    <div className="min-w-0">
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight truncate">
                         Payment & Tax Invoice
                       </h3>
-                      <p className="text-[11px] font-mono text-slate-400 dark:text-zinc-500">
+                      <p className="text-[10px] sm:text-[11px] font-mono text-slate-400 dark:text-zinc-500 truncate">
                         {invoice?.invoiceNumber || `Ref: ${displayId || 'Queue Ticket'}`}
                       </p>
                     </div>
                   </div>
 
                   <span
-                    className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                    className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full shrink-0 ${
                       isPaid
                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'
                         : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
@@ -1135,22 +1136,22 @@ export default function CustomerLiveStatus() {
                   </span>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-zinc-900/60 rounded-2xl p-3.5 space-y-2 border border-slate-100 dark:border-zinc-800/80">
+                <div className="bg-slate-50 dark:bg-zinc-900/60 rounded-xl sm:rounded-2xl p-3 sm:p-3.5 space-y-2 border border-slate-100 dark:border-zinc-800/80">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500 dark:text-zinc-400">Base Services (1 person):</span>
-                    <span className="font-medium text-slate-700 dark:text-zinc-300">
+                    <span className="text-slate-500 dark:text-zinc-400 truncate pr-2">Base Services (1 person):</span>
+                    <span className="font-medium text-slate-700 dark:text-zinc-300 shrink-0">
                       {formatMoney(Math.round(amountCents / 1.15), currency)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500 dark:text-zinc-400">VAT (15% Included):</span>
-                    <span className="font-medium text-slate-700 dark:text-zinc-300">
+                    <span className="text-slate-500 dark:text-zinc-400 truncate pr-2">VAT (15% Included):</span>
+                    <span className="font-medium text-slate-700 dark:text-zinc-300 shrink-0">
                       {formatMoney(amountCents - Math.round(amountCents / 1.15), currency)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500 dark:text-zinc-400">Payment Method:</span>
-                    <span className="font-medium text-slate-700 dark:text-zinc-300">
+                    <span className="text-slate-500 dark:text-zinc-400 truncate pr-2">Payment Method:</span>
+                    <span className="font-medium text-slate-700 dark:text-zinc-300 shrink-0">
                       {methodLabel}
                     </span>
                   </div>
@@ -1165,10 +1166,10 @@ export default function CustomerLiveStatus() {
                 <button
                   type="button"
                   onClick={handleDownloadPdf}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 px-3 sm:px-4 rounded-xl text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Download Tax Invoice / Receipt (PDF)
+                  <span>Download Tax Invoice / Receipt (PDF)</span>
                 </button>
               </div>
             );
@@ -1176,20 +1177,20 @@ export default function CustomerLiveStatus() {
 
           {/* ── Post-Visit CSAT Feedback / Rating Section ── */}
           {isCompleted && (
-            <div className="bg-gradient-to-b from-indigo-50/50 via-white to-white dark:from-zinc-900 dark:to-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm text-center space-y-4 animate-in zoom-in-95 duration-400">
+            <div className="bg-gradient-to-b from-indigo-50/50 via-white to-white dark:from-zinc-900 dark:to-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm text-center space-y-3.5 sm:space-y-4 animate-in zoom-in-95 duration-400">
               {savedRating || ratingSubmittedLocally ? (
                 <div className="space-y-2 py-2">
-                  <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center mx-auto">
-                    <Star className="w-6 h-6 fill-amber-400" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center mx-auto">
+                    <Star className="w-5 h-5 sm:w-6 sm:h-6 fill-amber-400" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                     Thank You for Your Feedback!
                   </h3>
                   <div className="flex justify-center gap-1 text-amber-400">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
-                        className={`w-5 h-5 ${
+                        className={`w-4 h-4 sm:w-5 sm:h-5 ${
                           star <= (savedRating || rating)
                             ? 'fill-amber-400 text-amber-400'
                             : 'text-slate-300 dark:text-zinc-700'
@@ -1198,7 +1199,7 @@ export default function CustomerLiveStatus() {
                     ))}
                   </div>
                   {(savedFeedbackText || feedbackText) && (
-                    <p className="text-xs italic text-slate-600 dark:text-zinc-400 max-w-xs mx-auto bg-slate-50 dark:bg-zinc-900 p-3 rounded-xl border border-slate-100 dark:border-zinc-800">
+                    <p className="text-xs italic text-slate-600 dark:text-zinc-400 max-w-xs mx-auto bg-slate-50 dark:bg-zinc-900 p-2.5 sm:p-3 rounded-xl border border-slate-100 dark:border-zinc-800">
                       &ldquo;{savedFeedbackText || feedbackText}&rdquo;
                     </p>
                   )}
@@ -1206,10 +1207,10 @@ export default function CustomerLiveStatus() {
               ) : (
                 <div className="space-y-3">
                   <div className="space-y-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                    <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                       Rate Your Experience
                     </span>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                       How was your visit today?
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-zinc-400">
@@ -1218,7 +1219,7 @@ export default function CustomerLiveStatus() {
                   </div>
 
                   {/* 5-Star Rating Buttons */}
-                  <div className="flex justify-center items-center gap-2 py-1">
+                  <div className="flex justify-center items-center gap-1.5 sm:gap-2 py-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         key={star}
@@ -1229,7 +1230,7 @@ export default function CustomerLiveStatus() {
                         className="p-1 rounded-lg transition-transform hover:scale-125 active:scale-95 focus:outline-none"
                       >
                         <Star
-                          className={`w-7 h-7 transition-colors ${
+                          className={`w-6 h-6 sm:w-7 sm:h-7 transition-colors ${
                             star <= (hoverRating || rating)
                               ? 'text-amber-400 fill-amber-400'
                               : 'text-slate-300 dark:text-zinc-700'
@@ -1278,15 +1279,15 @@ export default function CustomerLiveStatus() {
 
           {/* Location Details Footer Pill */}
           {locationName && (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800">
-              <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-2 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800">
+              <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
               <span className="text-xs text-slate-600 dark:text-zinc-400 font-medium truncate">
                 {locationName}
               </span>
               {serviceName && (
                 <>
                   <span className="text-slate-300 dark:text-zinc-700">·</span>
-                  <Stethoscope className="w-4 h-4 text-slate-400 shrink-0" />
+                  <Stethoscope className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
                   <span className="text-xs text-slate-600 dark:text-zinc-400 font-medium truncate">
                     {serviceName}
                   </span>
@@ -1296,20 +1297,20 @@ export default function CustomerLiveStatus() {
           )}
 
           {/* ── Bottom Navigation & Actions ── */}
-          <div className="mt-auto pt-6 pb-4 space-y-2.5">
+          <div className="mt-auto pt-4 sm:pt-6 pb-[max(env(safe-area-inset-bottom),1rem)] space-y-2.5">
             <Link
               href={`/customer/confirmation/${visitId || accessToken}`}
-              className="w-full flex items-center justify-center gap-2 py-3.5 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-xs tracking-wide transition-all shadow-md active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 py-3 sm:py-3.5 px-4 sm:px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl sm:rounded-2xl font-bold text-xs tracking-wide transition-all shadow-md active:scale-[0.98]"
             >
-              <QrCode className="w-4 h-4" />
-              <span>Open Digital Pass & Receipt</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-1 opacity-75" />
+              <QrCode className="w-4 h-4 shrink-0" />
+              <span className="truncate">Open Digital Pass & Receipt</span>
+              <ArrowRight className="w-3.5 h-3.5 ml-1 opacity-75 shrink-0" />
             </Link>
 
             {/* Manual Refresh Button */}
             <button
               onClick={triggerRefetch}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Tap to refresh live status
@@ -1320,43 +1321,46 @@ export default function CustomerLiveStatus() {
 
       {/* ── In-Place Digital Pass / QR Modal ── */}
       {showQrModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl relative space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 xs:p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl sm:rounded-3xl max-w-sm w-full p-4 xs:p-6 shadow-2xl relative space-y-3.5 sm:space-y-4 max-h-[92dvh] overflow-y-auto">
             <button
               onClick={() => setShowQrModal(false)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-500 dark:text-zinc-400 transition-colors"
+              className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 p-1.5 sm:p-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-500 dark:text-zinc-400 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <div className="text-center">
+            <div className="text-center pr-6">
               <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
                 {tenantName || 'Digital Pass'}
               </span>
-              <h3 className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mt-0.5">
                 Scan for Desk / Kiosk Check-In
               </h3>
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-zinc-400">
                 Present this code to the receptionist or scanner.
               </p>
             </div>
 
             {/* High Contrast QR Code Container */}
-            <div className="bg-white p-5 rounded-2xl shadow-inner border border-slate-200 flex flex-col items-center justify-center">
-              <QRCodeSVG
-                value={
-                  typeof window !== 'undefined'
-                    ? `${window.location.origin}/customer/confirmation/${visitId || accessToken}`
-                    : String(visitId || accessToken)
-                }
-                size={180}
-                level="H"
-                includeMargin={false}
-              />
-              <span className="mt-3 font-mono text-2xl font-black tracking-widest text-slate-950">
+            <div className="bg-white p-3.5 xs:p-5 rounded-xl sm:rounded-2xl shadow-inner border border-slate-200 flex flex-col items-center justify-center">
+              <div className="max-w-[150px] xs:max-w-[180px] w-full aspect-square flex items-center justify-center">
+                <QRCodeSVG
+                  value={
+                    typeof window !== 'undefined'
+                      ? `${window.location.origin}/customer/confirmation/${visitId || accessToken}`
+                      : String(visitId || accessToken)
+                  }
+                  size={160}
+                  level="H"
+                  includeMargin={false}
+                  className="w-full h-full"
+                />
+              </div>
+              <span className="mt-2.5 sm:mt-3 font-mono text-xl sm:text-2xl font-black tracking-widest text-slate-950 truncate max-w-full">
                 {displayId || (data.id as string)?.substring(0, 8).toUpperCase() || 'PASS'}
               </span>
-              <span className="text-[11px] font-semibold text-slate-500">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 truncate max-w-full">
                 {customerName} • {serviceName}
               </span>
             </div>
@@ -1364,7 +1368,7 @@ export default function CustomerLiveStatus() {
             <div className="space-y-2 pt-1">
               <Link
                 href={`/customer/confirmation/${visitId || accessToken}`}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors shadow-sm"
               >
                 <span>Open Full Pass & Confirmation</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -1372,7 +1376,7 @@ export default function CustomerLiveStatus() {
               <button
                 type="button"
                 onClick={() => setShowQrModal(false)}
-                className="w-full py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-zinc-400 transition-colors"
+                className="w-full py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-zinc-400 transition-colors"
               >
                 Done / Close
               </button>

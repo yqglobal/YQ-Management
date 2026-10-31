@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
-import { useState, useEffect } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useState, useEffect, useCallback } from 'react';
 import { MapPin, Clock, XCircle, Search, AlertCircle, Phone, ArrowRight } from 'lucide-react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -17,15 +18,7 @@ export default function CustomerLookup() {
   const [isCancelling, setIsCancelling] = useState(false);
   const router = useRouter();
 
-  // If a phone number is provided in the URL, search immediately
-  useEffect(() => {
-    if (router.query.phone && typeof router.query.phone === 'string') {
-      setPhone(router.query.phone);
-      handleSearch(router.query.phone);
-    }
-  }, [router.query.phone]);
-
-  const handleSearch = async (phoneNumber: string = phone) => {
+  const handleSearch = useCallback(async (phoneNumber: string = phone) => {
     if (!phoneNumber.trim()) {
       setError('Please enter a valid phone number');
       return;
@@ -44,7 +37,15 @@ export default function CustomerLookup() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [phone]);
+
+  // If a phone number is provided in the URL, search immediately
+  useEffect(() => {
+    if (router.query.phone && typeof router.query.phone === 'string') {
+      setPhone(router.query.phone);
+      handleSearch(router.query.phone);
+    }
+  }, [router.query.phone, handleSearch]);
 
   const handleCancel = (accessToken: string) => {
     setCancelToken(accessToken);
@@ -105,49 +106,49 @@ export default function CustomerLookup() {
   const pastTickets = visits.filter(v => !activeStates.includes(v.currentState));
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-zinc-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[100dvh] bg-gray-50 dark:bg-zinc-900 py-6 sm:py-12 px-3.5 sm:px-6 lg:px-8 pt-[max(env(safe-area-inset-top),1.5rem)] pb-[max(env(safe-area-inset-bottom),2rem)]">
       <Head>
         <title>Find My Tickets | Qmova</title>
       </Head>
 
-      <div className="max-w-3xl mx-auto space-y-8">
+      <div className="max-w-3xl mx-auto space-y-6 sm:space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">
             Find Your Tickets
           </h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
             Enter your phone number to view and manage your active queue tickets across all businesses.
           </p>
         </div>
 
-        <div className="bg-white dark:bg-zinc-800 shadow rounded-xl p-6 border border-gray-100 dark:border-zinc-700">
-          <div className="flex gap-4">
+        <div className="bg-white dark:bg-zinc-800 shadow rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 dark:border-zinc-700">
+          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-4">
             <div className="relative flex-grow">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Phone className="h-5 w-5 text-gray-400" />
+                <Phone className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               </div>
               <input
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-zinc-600 rounded-lg leading-5 bg-white dark:bg-zinc-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 dark:text-white"
+                className="block w-full pl-9 sm:pl-10 pr-3 py-2.5 sm:py-3 border border-gray-300 dark:border-zinc-600 rounded-lg leading-5 bg-white dark:bg-zinc-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-gray-900 dark:text-white"
                 placeholder="Enter your phone number (e.g. +1234567890)"
               />
             </div>
             <button
               onClick={() => handleSearch()}
               disabled={loading || !phone.trim()}
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center justify-center px-5 sm:px-6 py-2.5 sm:py-3 border border-transparent text-xs sm:text-sm font-semibold rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
             >
               {loading ? 'Searching...' : 'Search'}
-              {!loading && <Search className="ml-2 -mr-1 h-5 w-5" />}
+              {!loading && <Search className="ml-1.5 sm:ml-2 -mr-1 h-4 w-4 sm:h-5 sm:w-5" />}
             </button>
           </div>
           {error && (
-            <div className="mt-4 flex items-center text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-100 dark:border-red-800/30">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              {error}
+            <div className="mt-3 sm:mt-4 flex items-center text-xs sm:text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2.5 sm:p-3 rounded-lg border border-red-100 dark:border-red-800/30">
+              <AlertCircle className="h-4 w-4 mr-2 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
         </div>
@@ -170,7 +171,7 @@ export default function CustomerLookup() {
                     <Search className="h-8 w-8 text-gray-400" />
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white">No active tickets</h3>
-                  <p className="mt-1 text-gray-500 dark:text-gray-400">We couldn't find any active tickets for this phone number.</p>
+                  <p className="mt-1 text-gray-500 dark:text-gray-400">We couldn&apos;t find any active tickets for this phone number.</p>
                 </div>
               ) : (
                 <div className="grid gap-6">
@@ -220,45 +221,45 @@ function TicketCard({ visit, getStateColor, handleCancel }: { visit: AnyFixMe, g
   const isCancellable = ['WAITING', 'SCHEDULED', 'CREATED'].includes(visit.currentState);
   
   return (
-    <div className="bg-white dark:bg-zinc-800 shadow-sm rounded-xl overflow-hidden border border-gray-100 dark:border-zinc-700 hover:shadow-md transition-shadow">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <span className={`px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded-full border ${getStateColor(visit.currentState)}`}>
+    <div className="bg-white dark:bg-zinc-800 shadow-sm rounded-xl sm:rounded-2xl overflow-hidden border border-gray-100 dark:border-zinc-700 hover:shadow-md transition-shadow">
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2.5 mb-4">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <span className={`px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-semibold uppercase tracking-wider rounded-full border ${getStateColor(visit.currentState)}`}>
               {visit.currentState}
             </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-              Token: <strong className="text-gray-900 dark:text-white">{visit.displayId}</strong>
+            <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">
+              Token: <strong className="text-gray-900 dark:text-white font-mono">{visit.displayId}</strong>
             </span>
           </div>
           <a 
             href={`/customer/status/${visit.accessToken}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center"
+            className="text-xs sm:text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center shrink-0"
           >
-            View Live Status <ArrowRight className="ml-1 h-4 w-4" />
+            <span>View Live Status</span> <ArrowRight className="ml-1 h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </a>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="flex items-start">
-            <MapPin className="h-5 w-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">{visit.queue?.location?.name || 'Main Location'}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{visit.queue?.name}</p>
+            <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mt-0.5 mr-2.5 sm:mr-3 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">{visit.queue?.location?.name || 'Main Location'}</p>
+              <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">{visit.queue?.name}</p>
             </div>
           </div>
           <div className="flex items-start">
-            <Clock className="h-5 w-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
+            <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mt-0.5 mr-2.5 sm:mr-3 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                 {visit.scheduledTime 
                   ? `Scheduled: ${format(new Date(visit.scheduledTime), 'MMM d, h:mm a')}` 
                   : 'Walk-in'}
               </p>
               {visit.waitingStart && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
                   Joined at {format(new Date(visit.waitingStart), 'h:mm a')}
                 </p>
               )}
@@ -267,13 +268,13 @@ function TicketCard({ visit, getStateColor, handleCancel }: { visit: AnyFixMe, g
         </div>
 
         {isCancellable && (
-          <div className="border-t border-gray-100 dark:border-zinc-700 pt-4 flex justify-end">
+          <div className="border-t border-gray-100 dark:border-zinc-700 pt-3 sm:pt-4 flex justify-end">
             <button
               onClick={() => handleCancel(visit.accessToken)}
-              className="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-800 shadow-sm text-sm font-medium rounded-lg text-red-700 dark:text-red-400 bg-white dark:bg-transparent hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-3.5 sm:px-4 py-2 border border-red-300 dark:border-red-800 shadow-sm text-xs sm:text-sm font-medium rounded-lg text-red-700 dark:text-red-400 bg-white dark:bg-transparent hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
             >
-              <XCircle className="mr-2 h-4 w-4" />
-              Cancel Ticket
+              <XCircle className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <span>Cancel Ticket</span>
             </button>
           </div>
         )}

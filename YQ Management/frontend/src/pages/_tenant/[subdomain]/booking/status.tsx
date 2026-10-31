@@ -37,7 +37,7 @@ function getStoredTokens(subdomain?: string): string[] {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) parsed.forEach(t => t && tokensSet.add(String(t).trim()));
     }
-  } catch (e) {}
+  } catch {}
 
   // 2. Tenant-specific localStorage
   if (subdomain) {
@@ -47,7 +47,7 @@ function getStoredTokens(subdomain?: string): string[] {
         const parsed = JSON.parse(rawSub);
         if (Array.isArray(parsed)) parsed.forEach(t => t && tokensSet.add(String(t).trim()));
       }
-    } catch (e) {}
+    } catch {}
   }
 
   // 3. Document cookie
@@ -56,7 +56,7 @@ function getStoredTokens(subdomain?: string): string[] {
     if (cookieVal) {
       cookieVal.split(',').forEach(t => t && tokensSet.add(t.trim()));
     }
-  } catch (e) {}
+  } catch {}
 
   return Array.from(tokensSet).filter(Boolean);
 }
@@ -96,6 +96,7 @@ export default function StatusPage() {
   const [visits, setVisits] = useState<AnyFixMe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const [nowMs] = useState(() => Date.now());
 
   const downloadTicket = async (elementId: string, filename: string) => {
     const el = document.getElementById(elementId);
@@ -394,14 +395,14 @@ export default function StatusPage() {
 
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col items-center">
+    <div className="min-h-[100dvh] bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col items-center pt-[max(env(safe-area-inset-top),0rem)] pb-[max(env(safe-area-inset-bottom),1.5rem)]">
       <Head>
         <title>{tenant?.name ? `${tenant.name} | Ticket Status` : 'Ticket Status'}</title>
       </Head>
 
       {/* Header */}
-      <header className="w-full max-w-md sticky top-0 z-50 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md border-b border-gray-200/80 dark:border-zinc-800/80 px-4 py-3 flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.02)] transition-all">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <header className="w-full max-w-md sticky top-0 z-50 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-md border-b border-gray-200/80 dark:border-zinc-800/80 px-3.5 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.02)] transition-all">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
           {logoUrl ? (
             <div className="flex items-center shrink-0">
               <Image src={logoUrl} alt={tenant?.name} width={72} height={18} className="h-[18px] sm:h-5 max-w-[90px] w-auto object-contain" priority />
@@ -421,7 +422,7 @@ export default function StatusPage() {
           <span className="h-3.5 w-px bg-gray-200 dark:bg-zinc-700/80 shrink-0" aria-hidden="true" />
 
           {/* Tenant Name */}
-          <h1 className="font-semibold text-sm sm:text-base tracking-tight text-gray-900 dark:text-zinc-100 truncate">
+          <h1 className="font-semibold text-xs sm:text-base tracking-tight text-gray-900 dark:text-zinc-100 truncate max-w-[140px] xs:max-w-[200px] sm:max-w-none">
             {tenant?.name}
           </h1>
         </div>
@@ -434,11 +435,11 @@ export default function StatusPage() {
         </button>
       </header>
 
-      <main className="w-full max-w-md p-4 sm:p-6 flex-1 flex flex-col items-center relative z-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 w-full space-y-6">
-          <div className="text-center mb-2">
-            <h2 className="text-xl font-bold">Your Boarding Passes</h2>
-            <p className="text-sm text-gray-500">Bookmark this page to track your status</p>
+      <main className="w-full max-w-md p-3.5 xs:p-4 sm:p-6 flex-1 flex flex-col items-center relative z-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 w-full space-y-5 sm:space-y-6">
+          <div className="text-center mb-1 sm:mb-2">
+            <h2 className="text-lg sm:text-xl font-bold">Your Boarding Passes</h2>
+            <p className="text-xs sm:text-sm text-gray-500">Bookmark this page to track your status</p>
           </div>
           
           {(() => {
@@ -447,7 +448,7 @@ export default function StatusPage() {
             
             // Sort current visits: SERVING > WAITING/CHECKED_IN > Upcoming Appointments
             currentVisits.sort((a, b) => {
-              const getPriority = (v: any) => {
+              const getPriority = (v: AnyFixMe) => {
                 if (v.currentState === 'SERVING') return 1;
                 if (v.currentState === 'WAITING' || v.currentState === 'CHECKED_IN') return 2;
                 if (v.scheduledTime) return 3;
@@ -463,15 +464,15 @@ export default function StatusPage() {
               return 0;
             });
 
-            const renderVisitCard = (visit: any, isPast: boolean) => {
+            const renderVisitCard = (visit: AnyFixMe, isPast: boolean) => {
               const isDone = isPast;
               const isServing = visit.currentState === 'SERVING';
               const isAppointment = visit.isScheduled || visit.appointmentId != null || visit.scheduledTime != null;
               
               // Determine if booking is "soon" (within 2 hours)
               const isSoon = isAppointment && visit.scheduledTime && !isDone && !isServing && 
-                (new Date(visit.scheduledTime).getTime() - Date.now() < 2 * 60 * 60 * 1000) &&
-                (new Date(visit.scheduledTime).getTime() - Date.now() > 0);
+                (new Date(visit.scheduledTime).getTime() - nowMs < 2 * 60 * 60 * 1000) &&
+                (new Date(visit.scheduledTime).getTime() - nowMs > 0);
 
               const bookingDate = visit.scheduledTime
                 ? new Date(visit.scheduledTime)
@@ -508,79 +509,81 @@ export default function StatusPage() {
                 : null;
 
               return (
-                <div key={visit.id} id={`ticket-${visit.id}`} className={`bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full shadow-lg relative overflow-hidden border ${isDone ? 'border-gray-200 dark:border-zinc-800 opacity-90' : 'border-gray-100 dark:border-zinc-800'}`}>
-                  {!isDone && <div className="absolute top-0 left-0 right-0 h-2" style={{ backgroundColor: primaryColor }} />}
+                <div key={visit.id} id={`ticket-${visit.id}`} className={`bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6 w-full shadow-lg relative overflow-hidden border ${isDone ? 'border-gray-200 dark:border-zinc-800 opacity-90' : 'border-gray-100 dark:border-zinc-800'}`}>
+                  {!isDone && <div className="absolute top-0 left-0 right-0 h-1.5 sm:h-2" style={{ backgroundColor: primaryColor }} />}
                   
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1 min-w-0 pr-3">
-                      <h3 className="font-bold text-lg leading-snug">{visit.service?.name}</h3>
-                      <div className="flex items-center flex-wrap gap-2 text-xs text-gray-500 mt-1">
+                  <div className="flex justify-between items-start mb-3.5 sm:mb-4">
+                    <div className="flex-1 min-w-0 pr-2 sm:pr-3">
+                      <h3 className="font-bold text-base sm:text-lg leading-snug truncate">{visit.service?.name}</h3>
+                      <div className="flex items-center flex-wrap gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-gray-500 mt-1">
                         <span className="uppercase tracking-wider font-semibold">{isAppointment ? 'Appointment' : 'Walk-in'}</span>
                         {bookingDateStr && <span>•</span>}
                         {bookingDateStr && (
                           <span className="flex items-center gap-1 font-medium text-gray-700 dark:text-gray-300">
-                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                             {bookingDateStr} at {bookingTimeStr}
                           </span>
                         )}
                         {visit.location?.name && (
                           <>
                             <span>•</span>
-                            <span className="flex items-center gap-1 font-medium text-gray-500">
-                              <MapPin className="w-3 h-3 text-gray-400" />
-                              {visit.location.name}
+                            <span className="flex items-center gap-1 font-medium text-gray-500 truncate max-w-full">
+                              <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
+                              <span className="truncate">{visit.location.name}</span>
                             </span>
                           </>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-1.5">
+                      <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5">
                         {isSoon && (
-                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
+                          <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
                             Happening Soon
                           </span>
                         )}
                         {isServing && (
-                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+                          <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
                             Happening Now
                           </span>
                         )}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                       <span className="uppercase tracking-widest text-[10px] font-bold text-gray-400 block">Ticket</span>
-                       <div className="font-mono text-xl font-extrabold">{visit.displayId || visit.id.substring(0,6).toUpperCase()}</div>
+                       <span className="uppercase tracking-widest text-[9px] sm:text-[10px] font-bold text-gray-400 block">Ticket</span>
+                       <div className="font-mono text-lg sm:text-xl font-extrabold">{visit.displayId || visit.id.substring(0,6).toUpperCase()}</div>
                     </div>
                   </div>
 
-                  <div className="flex justify-center mb-4 relative">
+                  <div className="flex justify-center mb-3.5 sm:mb-4 relative">
                     {['COMPLETED'].includes(visit.currentState) ? (
-                      <div className="flex flex-col items-center justify-center p-6 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl w-full text-emerald-700 dark:text-emerald-400">
-                        <CheckCircle2 strokeWidth={1.5} className="w-16 h-16 mb-2" />
-                        <span className="font-bold text-lg">Service Completed</span>
-                        <span className="text-sm opacity-80 mt-1 text-center font-medium">Thank you for visiting</span>
+                      <div className="flex flex-col items-center justify-center p-4 sm:p-6 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-500/20 rounded-xl sm:rounded-2xl w-full text-emerald-700 dark:text-emerald-400">
+                        <CheckCircle2 strokeWidth={1.5} className="w-12 h-12 sm:w-16 sm:h-16 mb-2" />
+                        <span className="font-bold text-base sm:text-lg">Service Completed</span>
+                        <span className="text-xs sm:text-sm opacity-80 mt-0.5 text-center font-medium">Thank you for visiting</span>
                       </div>
                     ) : (
-                      <div className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm relative group cursor-pointer" onClick={() => setExpandedVisit(visit)}>
+                      <div className="p-2.5 sm:p-3 bg-white border border-gray-100 rounded-xl sm:rounded-2xl shadow-sm relative group cursor-pointer" onClick={() => setExpandedVisit(visit)}>
                         <QRCode value={visit.id} size={100} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
-                        <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Maximize2 className="text-white w-6 h-6" />
+                        <div className="absolute inset-0 bg-black/40 rounded-xl sm:rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Maximize2 className="text-white w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex justify-center gap-2 mb-4">
+                  <div className="flex justify-center gap-1.5 sm:gap-2 mb-3.5 sm:mb-4">
                     <button 
                       onClick={() => downloadTicket(`ticket-${visit.id}`, `Ticket-${visit.displayId || visit.id.substring(0,6)}.png`)}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-sm font-bold rounded-xl transition-colors"
+                      className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-xs sm:text-sm font-bold rounded-xl transition-colors"
                     >
-                      <Download className="w-4 h-4" /> Download
+                      <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                      <span>Download</span>
                     </button>
                     <button 
                       onClick={() => setExpandedVisit(visit)}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-sm font-bold rounded-xl transition-colors"
+                      className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-xs sm:text-sm font-bold rounded-xl transition-colors"
                     >
-                      <Maximize2 className="w-4 h-4" /> Expand
+                      <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                      <span>Expand</span>
                     </button>
                   </div>
 
@@ -653,7 +656,7 @@ export default function StatusPage() {
                     const guestsCount = 1 + (visit.accompanyingGuests || 0);
 
                     const invoice = visit.visitInvoice;
-                    const succeededPayment = visit.bookingPayments?.find((p: any) => p.status === 'SUCCEEDED');
+                    const succeededPayment = visit.bookingPayments?.find((p: AnyFixMe) => p.status === 'SUCCEEDED');
                     const isPaid = !!succeededPayment || invoice?.status === 'PAID';
 
                     const defaultTaxRate = currency === 'ZAR' ? 15 : currency === 'GBP' ? 20 : currency === 'EUR' ? 20 : currency === 'INR' ? 18 : 0;
@@ -799,24 +802,24 @@ export default function StatusPage() {
         </motion.div>
 
         {expandedVisit && (
-          <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setExpandedVisit(null)}>
+          <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 xs:p-4 sm:p-6" onClick={() => setExpandedVisit(null)}>
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-zinc-900 rounded-3xl p-8 max-w-sm w-full relative shadow-2xl flex flex-col items-center text-center"
+              className="bg-white dark:bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-8 max-w-sm w-full max-h-[92dvh] overflow-y-auto relative shadow-2xl flex flex-col items-center text-center"
             >
               <button 
                 onClick={() => setExpandedVisit(null)}
-                className="absolute top-4 right-4 p-2 bg-gray-100 dark:bg-zinc-800 rounded-full hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 p-1.5 sm:p-2 bg-gray-100 dark:bg-zinc-800 rounded-full hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               
-              <h2 className="text-2xl font-bold mb-1">{expandedVisit.service?.name}</h2>
-              <p className="text-gray-500 uppercase tracking-widest text-xs font-bold mb-2">
-                Ticket: <span className="font-mono text-gray-900 dark:text-gray-100 text-sm ml-1">{expandedVisit.displayId || expandedVisit.id.substring(0,6).toUpperCase()}</span>
+              <h2 className="text-xl sm:text-2xl font-bold mb-1 truncate max-w-[240px]">{expandedVisit.service?.name}</h2>
+              <p className="text-gray-500 uppercase tracking-widest text-[11px] sm:text-xs font-bold mb-2">
+                Ticket: <span className="font-mono text-gray-900 dark:text-gray-100 text-xs sm:text-sm ml-1">{expandedVisit.displayId || expandedVisit.id.substring(0,6).toUpperCase()}</span>
               </p>
               {(() => {
                 const expDate = expandedVisit.scheduledTime
@@ -828,34 +831,37 @@ export default function StatusPage() {
                       : null;
                 if (!expDate) return null;
                 return (
-                  <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 font-medium mb-5 bg-gray-50 dark:bg-zinc-800/60 px-3 py-1.5 rounded-xl border border-gray-100 dark:border-zinc-800">
-                    <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                    <span>
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium mb-4 sm:mb-5 bg-gray-50 dark:bg-zinc-800/60 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-gray-100 dark:border-zinc-800">
+                    <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span className="truncate">
                       {expDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at {expDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
                     </span>
                   </div>
                 );
               })()}
               
-              <div className="p-4 bg-white border border-gray-100 rounded-3xl shadow-sm mb-6 w-full flex justify-center">
+              <div className="p-3 sm:p-4 bg-white border border-gray-100 rounded-2xl sm:rounded-3xl shadow-sm mb-4 sm:mb-6 w-full flex justify-center">
                 {['COMPLETED'].includes(expandedVisit.currentState) ? (
-                  <div className="flex flex-col items-center justify-center p-6 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl w-full text-emerald-700 dark:text-emerald-400">
-                    <CheckCircle2 strokeWidth={1.5} className="w-24 h-24 mb-4" />
-                    <span className="font-bold text-2xl text-center">Service Completed</span>
+                  <div className="flex flex-col items-center justify-center p-4 sm:p-6 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-500/20 rounded-xl sm:rounded-2xl w-full text-emerald-700 dark:text-emerald-400">
+                    <CheckCircle2 strokeWidth={1.5} className="w-16 h-16 sm:w-24 sm:h-24 mb-3 sm:mb-4" />
+                    <span className="font-bold text-xl sm:text-2xl text-center">Service Completed</span>
                   </div>
                 ) : (
-                  <QRCode value={expandedVisit.id} size={200} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                  <div className="max-w-[160px] sm:max-w-[200px] w-full aspect-square flex items-center justify-center">
+                    <QRCode value={expandedVisit.id} size={160} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                  </div>
                 )}
               </div>
               
-              <p className="text-sm text-gray-500 mb-6">Show this QR code to the staff at {expandedVisit.location?.name || 'the service desk'}.</p>
+              <p className="text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6">Show this QR code to the staff at {expandedVisit.location?.name || 'the service desk'}.</p>
               
               <button 
                 onClick={() => downloadTicket(`ticket-${expandedVisit.id}`, `Ticket-${expandedVisit.displayId || expandedVisit.id.substring(0,6)}.png`)}
-                className="w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                className="w-full py-3 sm:py-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm"
                 style={{ backgroundColor: primaryColor }}
               >
-                <Download className="w-5 h-5" /> Save Ticket to Device
+                <Download className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span>Save Ticket to Device</span>
               </button>
             </motion.div>
           </div>
