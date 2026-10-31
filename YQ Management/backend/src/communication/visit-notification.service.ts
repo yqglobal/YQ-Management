@@ -136,6 +136,7 @@ export class VisitNotificationService {
         customerId: true,
         createdAt: true,
         currentState: true,
+        cancelledBy: true,
         cancelReason: true,
         metadata: true,
         surveySent: true,
@@ -475,6 +476,7 @@ export class VisitNotificationService {
   /** VISIT_CANCELLED: Cancellation notification. */
   private async handleVisitCancelled(
     payload: VisitEventPayload & {
+      cancelledBy?: string;
       cancelReason?: string;
       customMessage?: string;
       refundApplicable?: boolean;
@@ -495,8 +497,21 @@ export class VisitNotificationService {
       (visit.customer as any)?.preferredLanguage || 'en',
     );
 
-    const reason =
-      payload.cancelReason || visit.cancelReason || 'Cancelled by staff';
+    const isCustomerCancelled =
+      payload.cancelledBy === 'CUSTOMER' ||
+      (visit as any).cancelledBy === 'CUSTOMER' ||
+      ((visit.metadata as any)?.cancellation?.cancelledBy === 'CUSTOMER');
+
+    const defaultReason = isCustomerCancelled
+      ? 'Cancelled by customer'
+      : 'Cancelled by staff';
+
+    let reason =
+      payload.cancelReason || visit.cancelReason || defaultReason;
+
+    if (isCustomerCancelled && reason === 'Cancelled by staff') {
+      reason = 'Cancelled by customer';
+    }
     const notes = payload.customMessage;
     const isRefund =
       payload.refundApplicable !== undefined

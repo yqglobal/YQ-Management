@@ -134,10 +134,15 @@ export default function TenantStatusPage({ tenant, tokenId }: { tenant: AnyFixMe
   });
 
   const cancelMutation = useMutation({
-    mutationFn: () => fetchApi(`/visits/${tokenId}/cancel`, { method: 'POST' }),
+    mutationFn: () =>
+      fetchApi(`/public-visit/${tokenId}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cancelReason: 'Cancelled by customer' }),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['token-status', tokenId] });
-    }
+    },
   });
 
   const checkInMutation = useMutation({

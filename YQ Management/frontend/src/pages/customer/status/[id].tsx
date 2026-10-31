@@ -125,6 +125,8 @@ export default function CustomerLiveStatus() {
     try {
       await fetch(`${getBackendUrl()}/public-visit/${accessToken}/cancel`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cancelReason: 'Cancelled by customer' }),
       });
       toast.success('Appointment cancelled');
       setShowCancelAppointmentConfirm(false);

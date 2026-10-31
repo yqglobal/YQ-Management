@@ -680,7 +680,11 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
     try {
       const accessToken = tokens.find(t => t.id === tokenId)?.accessToken;
       if (!accessToken) return;
-      await fetchApi(`/public-visit/${accessToken}/cancel`, { method: 'POST' });
+      await fetchApi(`/public-visit/${accessToken}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cancelReason: 'Cancelled by customer' }),
+      });
       // Remove filtering to keep ticket visible and rely on SSE/WebSocket updates
     } catch (e) {
       console.error('Failed to cancel ticket', e);

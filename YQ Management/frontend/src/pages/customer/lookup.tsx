@@ -56,6 +56,8 @@ export default function CustomerLookup() {
     try {
       await fetchApi(`/public-visit/${cancelToken}/cancel`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cancelReason: 'Cancelled by customer' }),
       });
       toast.success('Ticket cancelled successfully');
       setCancelToken(null);

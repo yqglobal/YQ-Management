@@ -318,10 +318,16 @@ export class AppointmentService {
       existing.status !== 'CANCELLED' &&
       updated.status === 'CANCELLED'
     ) {
+      const isCustomerCancelled =
+        (updateAppointmentDto as any).cancelledBy === 'CUSTOMER' ||
+        existing.customerNotes?.toLowerCase().includes('customer cancelled');
+      const defaultReason = isCustomerCancelled
+        ? 'Cancelled by customer'
+        : 'Cancelled by staff';
       const reason =
         (updateAppointmentDto as any).cancelReason ||
         updateAppointmentDto.notes ||
-        'Cancelled by staff';
+        defaultReason;
       const formattedDate = new Intl.DateTimeFormat('en-US', {
         day: '2-digit',
         month: 'short',

@@ -548,14 +548,36 @@ export class WhatsappChatbot {
       return;
     }
 
+    const existingMeta =
+      typeof visit.metadata === 'object' && visit.metadata !== null
+        ? (visit.metadata as Record<string, any>)
+        : {};
+
     const updated = await this.prisma.visit.update({
       where: { id: visit.id },
       data: {
         currentState: 'CANCELLED',
         completedAt: new Date(),
         cancelledBy: 'CUSTOMER',
+        cancelReason: 'Cancelled by customer via WhatsApp',
+        metadata: {
+          ...existingMeta,
+          cancellation: {
+            reason: 'Cancelled by customer via WhatsApp',
+            category: 'CUSTOMER_REQUEST',
+            cancelledAt: new Date().toISOString(),
+            cancelledBy: 'CUSTOMER',
+          },
+        },
       },
     });
+
+    if (visit.appointmentId) {
+      await this.prisma.appointment.update({
+        where: { id: visit.appointmentId },
+        data: { status: 'CANCELLED' },
+      }).catch(() => null);
+    }
 
     await this.prisma.outboxEvent.create({
       data: {
@@ -564,7 +586,9 @@ export class WhatsappChatbot {
           visitId: updated.id,
           queueId: updated.queueId,
           tenantId: updated.tenantId,
-          cancelledBy: updated.cancelledBy,
+          cancelledBy: 'CUSTOMER',
+          cancelReason: 'Cancelled by customer via WhatsApp',
+          reasonCategory: 'CUSTOMER_REQUEST',
         },
       },
     });

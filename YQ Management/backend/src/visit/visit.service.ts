@@ -2166,11 +2166,16 @@ export class VisitService {
         );
       }
 
+      const defaultReason =
+        cancelledBy === 'CUSTOMER'
+          ? 'Cancelled by customer'
+          : 'Cancelled by staff';
+
       const formattedReason =
         cancelReason ||
         options?.notes ||
         options?.customMessage ||
-        'Cancelled by staff';
+        defaultReason;
 
       const existingMeta =
         typeof visit.metadata === 'object' && visit.metadata !== null
@@ -2199,6 +2204,13 @@ export class VisitService {
         },
         include: { customer: true, queue: true, service: true, location: true },
       });
+
+      if (visit.appointmentId) {
+        await tx.appointment.update({
+          where: { id: visit.appointmentId },
+          data: { status: 'CANCELLED' },
+        }).catch(() => null);
+      }
 
       await tx.outboxEvent.create({
         data: {
@@ -2590,7 +2602,7 @@ export class VisitService {
     };
   }
 
-  async cancelPublicVisit(accessToken: string) {
+  async cancelPublicVisit(accessToken: string, reason?: string) {
     const visit = await this.prisma.visit.findFirst({
       where: {
         OR: [{ accessToken }, { id: accessToken }],
@@ -2624,11 +2636,41 @@ export class VisitService {
       );
     }
 
+    const existingMeta =
+      typeof visit.metadata === 'object' && visit.metadata !== null
+        ? (visit.metadata as Record<string, any>)
+        : {};
+
+    const formattedReason = reason?.trim() || 'Cancelled by customer';
+
     const updated = await this.prisma.visit.update({
       where: { id: visit.id },
-      data: { currentState: 'CANCELLED', cancelledBy: 'CUSTOMER' },
+      data: {
+        currentState: 'CANCELLED',
+        completedAt: new Date(),
+        cancelledBy: 'CUSTOMER',
+        cancelReason: formattedReason,
+        metadata: {
+          ...existingMeta,
+          cancellation: {
+            reason: formattedReason,
+            category: 'CUSTOMER_REQUEST',
+            cancelledAt: new Date().toISOString(),
+            cancelledBy: 'CUSTOMER',
+          },
+        },
+      },
       include: { customer: true, queue: true, service: true, tenant: true },
     });
+
+    if (visit.appointmentId) {
+      await this.prisma.appointment.update({
+        where: { id: visit.appointmentId },
+        data: { status: 'CANCELLED' },
+      }).catch((e) =>
+        console.error('Failed to sync appointment status on cancelPublicVisit', e),
+      );
+    }
 
     await this.prisma.outboxEvent.create({
       data: {
@@ -2637,7 +2679,9 @@ export class VisitService {
           visitId: updated.id,
           queueId: updated.queueId,
           tenantId: updated.tenantId,
-          cancelledBy: updated.cancelledBy,
+          cancelledBy: 'CUSTOMER',
+          cancelReason: formattedReason,
+          reasonCategory: 'CUSTOMER_REQUEST',
         },
       },
     });
@@ -2651,7 +2695,8 @@ export class VisitService {
         newState: 'CANCELLED',
         customerPhone: updated.customer?.phone,
         customerName: updated.customer?.name,
-        queueName: updated.queue?.name,
+        queueName: updated.queue?.name || updated.service?.name,
+        cancelReason: formattedReason,
       },
     );
 

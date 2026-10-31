@@ -242,8 +242,14 @@ export class PublicVisitController {
   }
 
   @Post(':accessToken/cancel')
-  async cancelPublicVisit(@Param('accessToken') accessToken: string) {
-    return this.visitService.cancelPublicVisit(accessToken);
+  async cancelPublicVisit(
+    @Param('accessToken') accessToken: string,
+    @Body() body?: { cancelReason?: string; reason?: string },
+  ) {
+    return this.visitService.cancelPublicVisit(
+      accessToken,
+      body?.cancelReason || body?.reason,
+    );
   }
 
   @Post(':accessToken/skip-step/:stepId')
