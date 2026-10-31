@@ -257,6 +257,37 @@ export function VisitDrawer({ isOpen, onClose, visit }: VisitDrawerProps) {
     }
   };
 
+  // Status flags & appointment detection
+  const isAppt = Boolean(
+    visit?._type === 'Appointment' ||
+    visit?._type === 'Token (Scheduled)' ||
+    !!visit?.appointmentId ||
+    visit?.source === 'APPOINTMENT' ||
+    visit?.bookingSource === 'APPOINTMENT' ||
+    (!!visit?.scheduledTime && visit?.scheduledTime !== visit?.createdAt) ||
+    !!visit?.scheduledStart
+  );
+
+  const isWaiting = visit?.currentState === 'WAITING' || visit?.currentState === 'CHECKED_IN';
+  const isInService = visit?.currentState === 'IN_SERVICE' || visit?.currentState === 'SERVING' || visit?.currentState === 'IN_PROGRESS';
+  const isCompleted = visit?.currentState === 'COMPLETED';
+  const isCancelled = visit?.currentState === 'CANCELLED' || visit?.currentState === 'REJECTED';
+  const isNoShow = visit?.currentState === 'NO_SHOW' || visit?.currentState === 'MISSED';
+
+  // Determine if late / overdue and QR was never scanned
+  const scheduledTimeVal = visit?.scheduledTime || visit?.scheduledStart;
+  let isOverdue = false;
+  let minsOverdue = 0;
+  if (scheduledTimeVal && !isCompleted && !isCancelled && !isNoShow) {
+    const scheduledDate = new Date(scheduledTimeVal);
+    const now = new Date();
+    const diffMs = now.getTime() - scheduledDate.getTime();
+    if (diffMs > 10 * 60 * 1000) {
+      isOverdue = true;
+      minsOverdue = Math.floor(diffMs / 60000);
+    }
+  }
+
   const handleConfirmNoShow = async () => {
     try {
       setIsMarkingNoShow(true);
