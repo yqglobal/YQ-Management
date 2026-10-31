@@ -394,10 +394,10 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
                 return null;
               })()}
             </div>
-            {isAdvancedMode && (
-              <div className="space-y-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Payment Settings</label>
-                <div className="p-4 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl space-y-4">
+
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Payment Settings</label>
+              <div className="p-4 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl space-y-4">
                   {/* Row 1: How to Collect (Payment Medium) */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
@@ -618,7 +618,6 @@ export function ServiceModal({ isOpen, onClose, locationId, service }: ServiceMo
                   )}
                 </div>
               </div>
-            )}
           </div>
 
           <div>
