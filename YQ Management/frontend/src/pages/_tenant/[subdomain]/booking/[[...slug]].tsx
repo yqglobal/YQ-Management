@@ -8,7 +8,7 @@ import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'react-phone-number-input/style.css';
 import { useTheme } from '../../../../components/ThemeProvider';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Calendar } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
@@ -602,11 +602,35 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
     try {
       const bookings = selectedServiceIds.map(sid => {
         const d = serviceDetails[sid] || {};
+        const s = services.find(x => x.id === sid);
+        const cfg = (s && s.formConfig && s.formConfig.length > 0) ? s.formConfig : (currentQueue?.formConfig || []);
+        const rawResponses = d.responses || {};
+        const enrichedResponses: Record<string, any> = { ...rawResponses };
+        
+        cfg.forEach((f: any) => {
+          if (f && f.id && rawResponses[f.id] !== undefined) {
+            const val = rawResponses[f.id];
+            if (f.label) {
+              enrichedResponses[f.label] = val;
+              const normalized = f.label.toLowerCase().replace(/[^a-z0-9]/g, '_');
+              enrichedResponses[normalized] = val;
+              if (normalized.includes('date_of_birth') || normalized === 'dob' || normalized.includes('birthday') || normalized.includes('birth_date')) {
+                enrichedResponses['dob'] = val;
+                enrichedResponses['dateOfBirth'] = val;
+                enrichedResponses['date_of_birth'] = val;
+              }
+              if (normalized === 'age' || normalized.includes('age')) {
+                enrichedResponses['age'] = val;
+              }
+            }
+          }
+        });
+
         return {
           serviceId: sid,
           providerId: d.providerId || undefined,
           scheduledFor: d.joinMode === 'appointment' && d.selectedSlot ? d.selectedSlot : undefined,
-          formResponses: d.responses || {},
+          formResponses: enrichedResponses,
           accompanyingGuests
         };
       });
@@ -861,29 +885,210 @@ export default function TenantBooking({ tenant, services, queues, error, ipCount
               </div>
               
               <form onSubmit={handleNextStep2} className="space-y-6">
-                {formConfig.map((field: AnyFixMe) => (
-                  <div key={field.id} className="space-y-2">
-                    {field.type !== 'checkbox' && (
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                        {field.label} {field.required && <span className="text-red-500">*</span>}
-                      </label>
-                    )}
-                    {field.type === 'text' && <input type="text" value={currentDetails.responses[field.id] || ''} onChange={e => updateCurrentDetails({ responses: {...currentDetails.responses, [field.id]: e.target.value} })} required={field.required} className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent" style={{ '--tw-ring-color': primaryColor } as React.CSSProperties} />}
-                    {field.type === 'textarea' && <textarea value={currentDetails.responses[field.id] || ''} onChange={e => updateCurrentDetails({ responses: {...currentDetails.responses, [field.id]: e.target.value} })} required={field.required} rows={3} className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent" style={{ '--tw-ring-color': primaryColor } as React.CSSProperties} />}
-                    {field.type === 'dropdown' && (
-                      <select value={currentDetails.responses[field.id] || ''} onChange={e => updateCurrentDetails({ responses: {...currentDetails.responses, [field.id]: e.target.value} })} required={field.required} className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent" style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}>
-                        <option value="" disabled>Select option</option>
-                        {(field.options || []).map((opt: string, i: number) => <option key={i} value={opt}>{opt}</option>)}
-                      </select>
-                    )}
-                    {field.type === 'checkbox' && (
-                      <label className="flex items-center gap-3 cursor-pointer p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl">
-                        <input type="checkbox" checked={!!currentDetails.responses[field.id]} onChange={e => updateCurrentDetails({ responses: {...currentDetails.responses, [field.id]: e.target.checked} })} className="w-5 h-5 rounded border-gray-300" style={{ accentColor: primaryColor }} />
-                        <span className="text-sm font-medium">{field.label} {field.required && <span className="text-red-500">*</span>}</span>
-                      </label>
-                    )}
-                  </div>
-                ))}
+                {formConfig.map((field: AnyFixMe) => {
+                  const labelLower = (field.label || '').toLowerCase();
+                  const isDateField =
+                    field.type === 'date' ||
+                    labelLower.includes('date of birth') ||
+                    labelLower.includes('dob') ||
+                    labelLower.includes('birth date') ||
+                    labelLower.includes('birthdate') ||
+                    labelLower.includes('birthday');
+                  const isDob =
+                    labelLower.includes('date of birth') ||
+                    labelLower.includes('dob') ||
+                    labelLower.includes('birth date') ||
+                    labelLower.includes('birthdate') ||
+                    labelLower.includes('birthday');
+
+                  return (
+                    <div key={field.id} className="space-y-2">
+                      {field.type !== 'checkbox' && (
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                          {field.label} {field.required && <span className="text-red-500">*</span>}
+                        </label>
+                      )}
+
+                      {isDateField ? (
+                        <div className="relative flex items-center">
+                          <div className="absolute left-3.5 pointer-events-none text-gray-400 dark:text-zinc-500 z-10">
+                            <Calendar className="w-5 h-5" />
+                          </div>
+                          <DatePicker
+                            selected={
+                              currentDetails.responses[field.id]
+                                ? new Date(
+                                    currentDetails.responses[field.id].includes('T')
+                                      ? currentDetails.responses[field.id]
+                                      : `${currentDetails.responses[field.id]}T00:00:00`
+                                  )
+                                : null
+                            }
+                            onChange={(date: Date | null) => {
+                              if (date) {
+                                const y = date.getFullYear();
+                                const m = String(date.getMonth() + 1).padStart(2, '0');
+                                const d = String(date.getDate()).padStart(2, '0');
+                                updateCurrentDetails({
+                                  responses: {
+                                    ...currentDetails.responses,
+                                    [field.id]: `${y}-${m}-${d}`,
+                                  },
+                                });
+                              } else {
+                                updateCurrentDetails({
+                                  responses: {
+                                    ...currentDetails.responses,
+                                    [field.id]: '',
+                                  },
+                                });
+                              }
+                            }}
+                            dateFormat="yyyy-MM-dd"
+                            maxDate={isDob ? new Date() : undefined}
+                            showYearDropdown
+                            showMonthDropdown
+                            dropdownMode="select"
+                            yearDropdownItemNumber={100}
+                            scrollableYearDropdown
+                            placeholderText={isDob ? 'Select Date of Birth (YYYY-MM-DD)' : 'Select Date (YYYY-MM-DD)'}
+                            required={field.required}
+                            wrapperClassName="w-full"
+                            className="w-full pl-11 pr-4 py-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent text-sm text-gray-900 dark:text-white transition-all shadow-sm cursor-pointer"
+                            style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+                          />
+                        </div>
+                      ) : field.type === 'textarea' ? (
+                        <textarea
+                          value={currentDetails.responses[field.id] || ''}
+                          onChange={(e) =>
+                            updateCurrentDetails({
+                              responses: {
+                                ...currentDetails.responses,
+                                [field.id]: e.target.value,
+                              },
+                            })
+                          }
+                          required={field.required}
+                          rows={3}
+                          placeholder={field.label}
+                          className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent text-sm text-gray-900 dark:text-white"
+                          style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+                        />
+                      ) : field.type === 'dropdown' ? (
+                        <select
+                          value={currentDetails.responses[field.id] || ''}
+                          onChange={(e) =>
+                            updateCurrentDetails({
+                              responses: {
+                                ...currentDetails.responses,
+                                [field.id]: e.target.value,
+                              },
+                            })
+                          }
+                          required={field.required}
+                          className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent text-sm text-gray-900 dark:text-white"
+                          style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+                        >
+                          <option value="" disabled>Select option</option>
+                          {(field.options || []).map((opt: string, i: number) => (
+                            <option key={i} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      ) : field.type === 'checkbox' ? (
+                        <label className="flex items-center gap-3 cursor-pointer p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl">
+                          <input
+                            type="checkbox"
+                            checked={!!currentDetails.responses[field.id]}
+                            onChange={(e) =>
+                              updateCurrentDetails({
+                                responses: {
+                                  ...currentDetails.responses,
+                                  [field.id]: e.target.checked,
+                                },
+                              })
+                            }
+                            className="w-5 h-5 rounded border-gray-300"
+                            style={{ accentColor: primaryColor }}
+                          />
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {field.label} {field.required && <span className="text-red-500">*</span>}
+                          </span>
+                        </label>
+                      ) : field.type === 'number' ? (
+                        <input
+                          type="number"
+                          value={currentDetails.responses[field.id] ?? ''}
+                          onChange={(e) =>
+                            updateCurrentDetails({
+                              responses: {
+                                ...currentDetails.responses,
+                                [field.id]: e.target.value,
+                              },
+                            })
+                          }
+                          required={field.required}
+                          placeholder={field.label}
+                          className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent text-sm text-gray-900 dark:text-white"
+                          style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+                        />
+                      ) : field.type === 'email' ? (
+                        <input
+                          type="email"
+                          value={currentDetails.responses[field.id] || ''}
+                          onChange={(e) =>
+                            updateCurrentDetails({
+                              responses: {
+                                ...currentDetails.responses,
+                                [field.id]: e.target.value,
+                              },
+                            })
+                          }
+                          required={field.required}
+                          placeholder="email@example.com"
+                          className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent text-sm text-gray-900 dark:text-white"
+                          style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+                        />
+                      ) : field.type === 'phone' || field.type === 'tel' ? (
+                        <input
+                          type="tel"
+                          value={currentDetails.responses[field.id] || ''}
+                          onChange={(e) =>
+                            updateCurrentDetails({
+                              responses: {
+                                ...currentDetails.responses,
+                                [field.id]: e.target.value,
+                              },
+                            })
+                          }
+                          required={field.required}
+                          placeholder="+1..."
+                          className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent text-sm text-gray-900 dark:text-white"
+                          style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={currentDetails.responses[field.id] || ''}
+                          onChange={(e) =>
+                            updateCurrentDetails({
+                              responses: {
+                                ...currentDetails.responses,
+                                [field.id]: e.target.value,
+                              },
+                            })
+                          }
+                          required={field.required}
+                          placeholder={field.label}
+                          className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:border-transparent text-sm text-gray-900 dark:text-white"
+                          style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
 
                 {/* Provider Selection */}
                 {currentService?.allowProviderSelection && availableProviders[currentServiceId]?.length > 0 && (

@@ -594,4 +594,32 @@ body {
   display: none !important;
 }
 
+.react-datepicker__header__dropdown {
+  margin: 0.5rem 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+}
+
+.react-datepicker__month-select,
+.react-datepicker__year-select {
+  background-color: #ffffff !important;
+  color: #18181b !important;
+  border: 1px solid #e4e4e7 !important;
+  border-radius: 0.5rem !important;
+  padding: 0.35rem 0.6rem !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  outline: none !important;
+  cursor: pointer !important;
+}
+
+.dark .react-datepicker__month-select,
+.dark .react-datepicker__year-select {
+  background-color: #27272a !important;
+  color: #f4f4f5 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+
 

@@ -334,6 +334,9 @@ export function SettingsPanel({
                       >
                         <option value="text">Short Text</option>
                         <option value="textarea">Long Text</option>
+                        <option value="date">Date / Calendar</option>
+                        <option value="number">Number</option>
+                        <option value="email">Email</option>
                         <option value="dropdown">Dropdown (Select)</option>
                         <option value="phone">Phone Number</option>
                         <option value="checkbox">Checkbox</option>
