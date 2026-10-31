@@ -20,17 +20,27 @@ import {
   Check,
   AlertCircle,
   SkipForward,
-  Building,
   Send,
   Sparkles,
-  ShieldCheck,
-  ChevronRight,
   Download,
   Receipt,
+  Sun,
+  Moon,
+  Share2,
+  CalendarPlus,
+  QrCode,
+  X,
+  ExternalLink,
+  ArrowRight,
 } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { QRCodeSVG } from 'qrcode.react';
+import { useTheme } from '../../../components/ThemeProvider';
 import { PaymentStep } from '../../../components/booking/PaymentStep';
 import { ConfirmModal } from '../../../components/modals/ConfirmModal';
 import { downloadInvoicePdf, formatMoney } from '../../../lib/invoicePdf';
+import { downloadIcsCalendar } from '../../../lib/calendarExport';
 
 interface TemplateStep {
   type: string;
@@ -72,7 +82,7 @@ interface VisitStepItem {
   name: string;
   type?: string;
   status: 'LOCKED' | 'PENDING' | 'QUEUED' | 'ACTIVE' | 'UNLOCKED' | 'DONE' | 'SKIPPED' | 'EXPIRED' | 'DEFERRED';
-  formData?: any;
+  formData?: Record<string, unknown>;
   amountCharged?: number | null;
   paymentStatus?: string | null;
   templateStep?: TemplateStep;
@@ -100,6 +110,11 @@ export default function CustomerLiveStatus() {
   const { id: accessToken } = router.query;
   const socketRef = useRef<Socket | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Theme & Modal states
+  const { theme, toggleTheme } = useTheme();
+  const [showQrModal, setShowQrModal] = useState<boolean>(false);
+  const [isCopied, setIsCopied] = useState<boolean>(false);
 
   // CSAT Rating state
   const [rating, setRating] = useState<number>(0);
@@ -269,6 +284,46 @@ export default function CustomerLiveStatus() {
       data.token?.queue?.status === 'PAUSED_FOR_EMERGENCY'
   );
 
+  const handleAddToCalendar = () => {
+    if (!scheduledTime) return;
+    const startDate = new Date(scheduledTime);
+    const endDate = new Date(startDate.getTime() + 30 * 60 * 1000);
+    downloadIcsCalendar({
+      title: `${serviceName} - ${tenantName || 'Appointment'}`,
+      description: `Appointment reference ${displayId || 'Queue Ticket'} for ${customerName} at ${tenantName || 'qmova'}.`,
+      location: locationName || tenantName || '',
+      startDate,
+      endDate,
+      filename: `appointment-${displayId || 'qmova'}.ics`,
+    });
+    toast.success('Calendar event (.ics) downloaded');
+  };
+
+  const handleShare = async () => {
+    if (typeof window === 'undefined') return;
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Live Status: ${customerName}`,
+          text: `Track live visit status for ${customerName} at ${tenantName || 'qmova'}`,
+          url,
+        });
+        return;
+      } catch {
+        // Fall back to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setIsCopied(true);
+      toast.success('Live tracking link copied to clipboard!');
+      setTimeout(() => setIsCopied(false), 2500);
+    } catch {
+      toast.error('Could not copy link');
+    }
+  };
+
   // Active step in the journey
   const activeStep: VisitStepItem | undefined = visitSteps.find(
     (s: VisitStepItem) => s.status === 'ACTIVE' || s.status === 'UNLOCKED'
@@ -309,8 +364,8 @@ export default function CustomerLiveStatus() {
       toast.success('Information submitted successfully!');
       setFormResponses({});
       triggerRefetch();
-    } catch (err: any) {
-      toast.error(err.message || 'Error submitting form. Please try again.');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error submitting form. Please try again.');
     } finally {
       setIsSubmittingForm(false);
     }
@@ -339,8 +394,8 @@ export default function CustomerLiveStatus() {
       toast.success('Step skipped successfully');
       setConfirmSkipStepId(null);
       triggerRefetch();
-    } catch (err: any) {
-      toast.error(err.message || 'Error skipping step');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Error skipping step');
     } finally {
       setIsSkippingStep(false);
     }
@@ -372,8 +427,8 @@ export default function CustomerLiveStatus() {
       toast.success('Thank you for your feedback!');
       setRatingSubmittedLocally(true);
       triggerRefetch();
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit feedback');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Failed to submit feedback');
     } finally {
       setIsSubmittingRating(false);
     }
@@ -394,27 +449,80 @@ export default function CustomerLiveStatus() {
         <meta name="robots" content="noindex" />
       </Head>
 
-      <main className="max-w-md mx-auto min-h-screen flex flex-col bg-white dark:bg-zinc-900 shadow-2xl relative overflow-hidden">
+      <main className="max-w-md mx-auto min-h-screen flex flex-col bg-white dark:bg-zinc-900 shadow-2xl relative overflow-hidden transition-colors">
         {/* Subtle top ambient glow */}
         <div className="absolute top-0 left-0 right-0 h-56 bg-gradient-to-b from-indigo-500/15 via-indigo-500/5 to-transparent dark:from-indigo-600/10 pointer-events-none" />
 
-        <div className="p-5 pt-8 flex-1 flex flex-col z-10 space-y-5">
-          {/* Top Live Bar & Tenant Brand */}
-          <div className="flex items-center justify-between">
-            <div>
-              {tenantName && (
-                <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                  {tenantName}
+        {/* Top Header with Tenant Brand, Location & Theme Switcher */}
+        <header className="p-4 sm:p-5 flex items-center justify-between border-b border-slate-200/60 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md sticky top-0 z-30">
+          <div className="flex items-center gap-3 min-w-0">
+            {tenant?.logoUrl ? (
+              <div className="relative w-10 h-10 rounded-2xl overflow-hidden border border-slate-200 dark:border-zinc-700 shadow-xs shrink-0 bg-white">
+                <Image
+                  src={tenant.logoUrl}
+                  alt={tenantName || 'Tenant Logo'}
+                  fill
+                  className="object-contain p-1"
+                />
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold flex items-center justify-center shadow-xs shrink-0 text-base">
+                {(tenantName || 'Q')[0].toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white truncate leading-tight">
+                {tenantName || 'Live Journey'}
+              </h2>
+              {locationName && (
+                <p className="text-xs text-slate-500 dark:text-zinc-400 flex items-center gap-1 truncate">
+                  <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                  {locationName}
                 </p>
               )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Live Indicator */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              LIVE
+            </div>
+
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300 transition-colors"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-slate-600" />
+              )}
+            </button>
+          </div>
+        </header>
+
+        <div className="p-5 flex-1 flex flex-col z-10 space-y-5">
+          {/* Greeting & Customer Subheading */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">
+                Live Status & Journey
+              </p>
               <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Hi, {customerName}
               </h1>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              LIVE STATUS
-            </div>
+            <button
+              onClick={() => setShowQrModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200/80 dark:border-indigo-800/80 text-indigo-600 dark:text-indigo-400 text-xs font-bold transition-all shadow-xs"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Show QR</span>
+            </button>
           </div>
 
           {/* ── Main Status Card ── */}
@@ -564,6 +672,43 @@ export default function CustomerLiveStatus() {
                 </p>
               </div>
             )}
+          </div>
+
+          {/* Quick Action Toolbar */}
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => setShowQrModal(true)}
+              className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 hover:border-indigo-500/40 text-slate-700 dark:text-zinc-300 transition-all shadow-xs active:scale-95"
+            >
+              <QrCode className="w-4 h-4 text-indigo-500" />
+              <span className="text-[11px] font-semibold">QR Pass</span>
+            </button>
+
+            {isScheduled && scheduledTime ? (
+              <button
+                onClick={handleAddToCalendar}
+                className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 hover:border-purple-500/40 text-slate-700 dark:text-zinc-300 transition-all shadow-xs active:scale-95"
+              >
+                <CalendarPlus className="w-4 h-4 text-purple-500" />
+                <span className="text-[11px] font-semibold">Calendar (.ics)</span>
+              </button>
+            ) : (
+              <Link
+                href={`/customer/confirmation/${visitId || accessToken}`}
+                className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 hover:border-indigo-500/40 text-slate-700 dark:text-zinc-300 transition-all shadow-xs active:scale-95 text-center"
+              >
+                <ExternalLink className="w-4 h-4 text-indigo-500" />
+                <span className="text-[11px] font-semibold">Digital Pass</span>
+              </Link>
+            )}
+
+            <button
+              onClick={handleShare}
+              className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 hover:border-emerald-500/40 text-slate-700 dark:text-zinc-300 transition-all shadow-xs active:scale-95"
+            >
+              {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4 text-emerald-500" />}
+              <span className="text-[11px] font-semibold">{isCopied ? 'Copied!' : 'Share'}</span>
+            </button>
           </div>
 
           {/* ── Active Step Highlight Card (Location Guidance, Instructions, Skip, Form, Payment) ── */}
@@ -904,7 +1049,9 @@ export default function CustomerLiveStatus() {
           )}
 
           {/* ── Payment & Tax Invoice Card ── */}
-          {(data.token?.bookingPayments?.length > 0 || data.token?.visitInvoice) && (() => {
+          {((data.token?.bookingPayments && data.token.bookingPayments.length > 0) ||
+            data.token?.visitInvoice ||
+            (service?.basePrice && service.basePrice > 0)) && (() => {
             const payments = data.token?.bookingPayments || [];
             const invoice = data.token?.visitInvoice;
             const latestPayment = payments[0];
@@ -922,25 +1069,28 @@ export default function CustomerLiveStatus() {
             const methodLabel =
               methodLabels[latestPayment?.method] ||
               latestPayment?.method ||
-              (isPaid ? 'Paid' : 'Payment Pending');
+              (isPaid ? 'Paid' : 'Pay at Counter');
 
             const handleDownloadPdf = () => {
-              if (!invoice) {
-                toast.info('Invoice document is being prepared.');
-                return;
-              }
+              const invoiceNumber =
+                invoice?.invoiceNumber ||
+                `REC-${(displayId || 'Q').replace(/[^a-zA-Z0-9]/g, '')}-${(visitId || '001').substring(0, 4).toUpperCase()}`;
+              const subtotal = invoice?.subtotal || Math.round(amountCents / 1.15);
+              const totalTax = invoice?.totalTax || (amountCents - subtotal);
               const invoiceData = {
-                id: invoice.id,
-                invoiceNumber: invoice.invoiceNumber,
-                status: invoice.status,
-                createdAt: invoice.createdAt || new Date().toISOString(),
-                currency: invoice.currency || currency,
-                subtotal: invoice.subtotal || amountCents,
-                totalTax: invoice.totalTax || 0,
-                total: invoice.total || amountCents,
-                taxLines: invoice.taxLines || [],
-                lineItemsSnap: invoice.lineItemsSnap || [
-                  { name: serviceName, qty: 1, unitPrice: amountCents }
+                id: invoice?.id || visitId || 'inv',
+                invoiceNumber,
+                status: isPaid ? 'PAID' : 'PENDING',
+                createdAt: invoice?.createdAt || data.token?.createdAt || new Date().toISOString(),
+                currency,
+                subtotal,
+                totalTax,
+                total: amountCents,
+                taxLines: invoice?.taxLines || [
+                  { label: 'VAT (15%)', rate: 15, amount: totalTax },
+                ],
+                lineItemsSnap: invoice?.lineItemsSnap || [
+                  { name: serviceName, qty: 1, unitPrice: amountCents },
                 ],
                 customer: {
                   name: customerName,
@@ -951,7 +1101,7 @@ export default function CustomerLiveStatus() {
               };
               const ok = downloadInvoicePdf(invoiceData);
               if (ok) {
-                toast.success(`Invoice ${invoice.invoiceNumber} downloaded`);
+                toast.success(`Tax Invoice / Receipt downloaded`);
               } else {
                 toast.error('Could not generate PDF. Please ask reception.');
               }
@@ -968,11 +1118,9 @@ export default function CustomerLiveStatus() {
                       <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
                         Payment & Tax Invoice
                       </h3>
-                      {invoice?.invoiceNumber && (
-                        <p className="text-[11px] font-mono text-slate-400 dark:text-zinc-500">
-                          {invoice.invoiceNumber}
-                        </p>
-                      )}
+                      <p className="text-[11px] font-mono text-slate-400 dark:text-zinc-500">
+                        {invoice?.invoiceNumber || `Ref: ${displayId || 'Queue Ticket'}`}
+                      </p>
                     </div>
                   </div>
 
@@ -983,15 +1131,21 @@ export default function CustomerLiveStatus() {
                         : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
                     }`}
                   >
-                    {isPaid ? 'Paid' : 'Payment Pending'}
+                    {isPaid ? 'Paid' : 'Pay at Counter'}
                   </span>
                 </div>
 
                 <div className="bg-slate-50 dark:bg-zinc-900/60 rounded-2xl p-3.5 space-y-2 border border-slate-100 dark:border-zinc-800/80">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500 dark:text-zinc-400">Amount:</span>
-                    <span className="font-bold text-sm text-slate-900 dark:text-white">
-                      {formatMoney(amountCents, currency)}
+                    <span className="text-slate-500 dark:text-zinc-400">Base Services (1 person):</span>
+                    <span className="font-medium text-slate-700 dark:text-zinc-300">
+                      {formatMoney(Math.round(amountCents / 1.15), currency)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 dark:text-zinc-400">VAT (15% Included):</span>
+                    <span className="font-medium text-slate-700 dark:text-zinc-300">
+                      {formatMoney(amountCents - Math.round(amountCents / 1.15), currency)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
@@ -1000,18 +1154,22 @@ export default function CustomerLiveStatus() {
                       {methodLabel}
                     </span>
                   </div>
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-zinc-800 flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">Total Amount:</span>
+                    <span className="font-black text-sm text-emerald-600 dark:text-emerald-400 font-mono">
+                      {formatMoney(amountCents, currency)}
+                    </span>
+                  </div>
                 </div>
 
-                {invoice && (
-                  <button
-                    type="button"
-                    onClick={handleDownloadPdf}
-                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Download Invoice PDF
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Tax Invoice / Receipt (PDF)
+                </button>
               </div>
             );
           })()}
@@ -1137,16 +1295,16 @@ export default function CustomerLiveStatus() {
             </div>
           )}
 
-          {/* ── Bottom Utility Buttons ── */}
-          <div className="mt-auto pt-4 space-y-2.5">
-            {/* View Ticket QR Button */}
-            <button
-              onClick={() => router.push(`/customer/confirmation/${data.token?.id || data.id}`)}
-              className="w-full flex items-center justify-center gap-2 py-3.5 px-5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-2xl font-bold text-xs tracking-wide transition-all shadow-sm active:scale-[0.98]"
+          {/* ── Bottom Navigation & Actions ── */}
+          <div className="mt-auto pt-6 pb-4 space-y-2.5">
+            <Link
+              href={`/customer/confirmation/${visitId || accessToken}`}
+              className="w-full flex items-center justify-center gap-2 py-3.5 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-xs tracking-wide transition-all shadow-md active:scale-[0.98]"
             >
-              <span className="material-symbols-outlined text-[18px]">qr_code</span>
-              View Ticket QR Code
-            </button>
+              <QrCode className="w-4 h-4" />
+              <span>Open Digital Pass & Receipt</span>
+              <ArrowRight className="w-3.5 h-3.5 ml-1 opacity-75" />
+            </Link>
 
             {/* Manual Refresh Button */}
             <button
@@ -1154,11 +1312,74 @@ export default function CustomerLiveStatus() {
               className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              Tap to refresh status
+              Tap to refresh live status
             </button>
           </div>
         </div>
       </main>
+
+      {/* ── In-Place Digital Pass / QR Modal ── */}
+      {showQrModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl relative space-y-4">
+            <button
+              onClick={() => setShowQrModal(false)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-500 dark:text-zinc-400 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="text-center">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
+                {tenantName || 'Digital Pass'}
+              </span>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
+                Scan for Desk / Kiosk Check-In
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
+                Present this code to the receptionist or scanner.
+              </p>
+            </div>
+
+            {/* High Contrast QR Code Container */}
+            <div className="bg-white p-5 rounded-2xl shadow-inner border border-slate-200 flex flex-col items-center justify-center">
+              <QRCodeSVG
+                value={
+                  typeof window !== 'undefined'
+                    ? `${window.location.origin}/customer/confirmation/${visitId || accessToken}`
+                    : String(visitId || accessToken)
+                }
+                size={180}
+                level="H"
+                includeMargin={false}
+              />
+              <span className="mt-3 font-mono text-2xl font-black tracking-widest text-slate-950">
+                {displayId || (data.id as string)?.substring(0, 8).toUpperCase() || 'PASS'}
+              </span>
+              <span className="text-[11px] font-semibold text-slate-500">
+                {customerName} • {serviceName}
+              </span>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <Link
+                href={`/customer/confirmation/${visitId || accessToken}`}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors shadow-sm"
+              >
+                <span>Open Full Pass & Confirmation</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowQrModal(false)}
+                className="w-full py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-zinc-400 transition-colors"
+              >
+                Done / Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={showCancelAppointmentConfirm}
