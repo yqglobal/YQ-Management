@@ -135,7 +135,9 @@ export class ServiceService {
       requiredSkills: data.requiredSkills || [],
       basePrice: data.basePrice,
       priceCurrency: data.priceCurrency,
-      paymentMode: data.paymentMode,
+      paymentMode: data.paymentMode || 'NONE',
+      requiresPayment: Boolean(data.basePrice && data.basePrice > 0),
+      allowOfflinePayment: Boolean(data.basePrice && data.basePrice > 0),
     };
 
     if (data.slaMode && data.slaMode !== 'Disabled') {
@@ -148,9 +150,9 @@ export class ServiceService {
           escalationPhones: data.escalationPhones || [],
         },
       });
-      createData.slaPolicy = { connect: { id: slaPolicy.id } };
+      createData.slaPolicyId = slaPolicy.id;
     } else if (data.slaPolicyId) {
-      createData.slaPolicy = { connect: { id: data.slaPolicyId } };
+      createData.slaPolicyId = data.slaPolicyId;
     }
 
     const service = await this.prisma.extendedClient.service.create({
